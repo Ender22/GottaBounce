@@ -14,7 +14,7 @@ const LAYER_SURFACES := 1 << 2   # 4
 const LAYER_HAZARDS := 1 << 3    # 8
 
 static func load_level(path: String, parent: Node2D) -> Dictionary:
-	var result := { "spawns": [], "bounds": Rect2() }
+	var result := { "spawns": [], "bounds": Rect2(), "powerup_spawners": [] }
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
 		push_error("LevelLoader: cannot open " + path)
@@ -47,7 +47,10 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				result["spawns"].append(Vector2(o["x"], o["y"]))
 			"spikes":
 				_build_spikes(o, parent)
-			"powerup_spawner", "physics_prop", "bomb", "container", "physics_structure", \
+			"powerup_spawner":
+				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
+				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))
+			"physics_prop", "bomb", "container", "physics_structure", \
 			"gravity_source", "moving_platform", "crusher", "fan":
 				# v0: these entity types are not ported yet — skip cleanly so old levels still load.
 				push_warning("LevelLoader: '%s' not ported in v0 — skipped (%s)" % [otype, path])

@@ -19,6 +19,8 @@
     { "type": "player_spawn", "x": 960,  "y": 380 },
     { "type": "player_spawn", "x": 640,  "y": 560 },
     { "type": "player_spawn", "x": 1280, "y": 560 },
-    { "type": "powerup_spawner", "x": 992, "y": 320, "interval": 9 }
+    { "type": "powerup_spawner", "x": 992, "y": 320 },
+    { "type": "powerup_spawner", "x": 576, "y": 480 },
+    { "type": "powerup_spawner", "x": 1344, "y": 480 }
   ]
 }

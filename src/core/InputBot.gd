@@ -10,19 +10,22 @@ extends RefCounted
 var me: Player
 var arena
 var profile: BotProfile
+var level := 3
 var _intent := InputIntent.new()
 var _super_cd := 0.0
-var _pu_cd := 0.0
+var _pu_use_timer := -1.0    # counts down to using a held powerup (v1: minimal bot behavior)
+var _had_powerup := false
 var _react := 0.0
 var _cached_aim := Vector2.ZERO
 var _cached_boost := false
 var _cached_super := false
 var _sb_hold := 0.0          # how long the bot keeps charging its super-boost before releasing
 
-func _init(player: Player, arena_ref, level := 3) -> void:
+func _init(player: Player, arena_ref, bot_level := 3) -> void:
 	me = player
 	arena = arena_ref
-	profile = BotProfile.for_level(level)
+	level = bot_level
+	profile = BotProfile.for_level(bot_level)
 
 func poll() -> InputIntent:
 	var it := _intent
@@ -55,11 +58,18 @@ func poll() -> InputIntent:
 	it.super_hold = _sb_hold > 0.0
 	if it.super_hold:
 		it.boost = false   # don't normal-boost while charging
-	# use a held powerup — eagerness scales with aggression (party bots, INV-8)
-	_pu_cd = maxf(0.0, _pu_cd - dt)
-	if me.held_powerup != "" and _pu_cd <= 0.0 and randf() < 0.05 * (0.5 + profile.aggression):
-		it.use_powerup = true
-		_pu_cd = 0.6
+	# Powerups (spec v1, minimal bot behavior): bots collect on touch (bubble Area2D handles it)
+	# and use what they hold after bot_powerup_delay + level-scaled variance. No seeking/strategy
+	# yet — a dedicated bot-powerup-brain pass is its own future task (spec §7).
+	var has_pu: bool = me.held_powerup != ""
+	if has_pu and not _had_powerup:
+		_pu_use_timer = Tuning.bot_powerup_delay + randf_range(0.0, 0.4 * float(6 - clampi(level, 1, 5)))
+	_had_powerup = has_pu
+	if has_pu and _pu_use_timer >= 0.0:
+		_pu_use_timer -= dt
+		if _pu_use_timer <= 0.0:
+			it.use_powerup = true
+			_pu_use_timer = -1.0
 	# Wings active: occasionally tap a flap to fly while boosting.
 	if me.wings_flaps > 0 and it.boost and randf() < 0.15:
 		it.flap = true

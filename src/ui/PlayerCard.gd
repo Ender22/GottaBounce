@@ -12,6 +12,7 @@ var _shown := 0                 # pips currently displayed (visual state; scores
 var _sb_full: StyleBoxFlat
 var _sb_empty: StyleBoxFlat
 var _fuel_was_full := true
+var _was_locked := false
 var _pips: Array = []
 
 @onready var _name_label: Label = $Margin/VBox/IdentityRow/NameLabel
@@ -19,6 +20,9 @@ var _pips: Array = []
 @onready var _skull: Control = $Margin/VBox/IdentityRow/HeadSlot/Skull
 @onready var _fuel_bg: Panel = $Margin/VBox/FuelSlot/FuelBG
 @onready var _fuel_fill: Panel = $Margin/VBox/FuelSlot/FuelFill
+@onready var _pu_icon: TextureRect = $Margin/VBox/IdentityRow/PowerupSlot
+
+var _pu_id := ""
 
 func setup(idx: int, color: Color, skin: String) -> void:
 	_color = color
@@ -43,18 +47,43 @@ func setup(idx: int, color: Color, skin: String) -> void:
 	set_score(0)
 
 ## Fuel gauge, mapped 0..1 (GDD §10 glanceable). Flashes bright when a full tank is banked —
-## the super-boost-ready tell.
-func set_fuel(r: float) -> void:
+## the super-boost-ready tell. `locked` = Unlimited Boost: the gauge glows solid (spec 3.2).
+func set_fuel(r: float, locked := false) -> void:
 	r = clampf(r, 0.0, 1.0)
 	var w: float = maxf(0.0, _fuel_bg.size.x - FUEL_PAD * 2.0)
 	_fuel_fill.size = Vector2(w * r, maxf(0.0, _fuel_bg.size.y - FUEL_PAD * 2.0))
 	_fuel_fill.visible = r > 0.02
+	if locked:
+		_fuel_fill.self_modulate = Color(1.2, 2.4, 2.8)   # solid cyan glow
+		_was_locked = true
+		_fuel_was_full = true
+		return
+	if _was_locked:
+		_was_locked = false
+		_fuel_fill.self_modulate = _color   # drop the glow the moment the pin ends
 	var full := r >= 0.999
 	if full and not _fuel_was_full:
 		_fuel_fill.self_modulate = Color(2.2, 2.2, 2.2)
 		var tw := create_tween()
 		tw.tween_property(_fuel_fill, "self_modulate", _color, 0.35)
 	_fuel_was_full = full
+
+## Held-powerup icon slot (spec §2: pickup shows on the corner HUD card).
+func set_powerup(id: String) -> void:
+	if id == _pu_id:
+		return
+	_pu_id = id
+	if id == "":
+		_pu_icon.visible = false
+		return
+	var path := "res://assets/powerups/icon_%s.png" % id
+	if ResourceLoader.exists(path):
+		_pu_icon.texture = load(path)
+	_pu_icon.visible = true
+	_pu_icon.pivot_offset = _pu_icon.custom_minimum_size * 0.5
+	_pu_icon.scale = Vector2(1.5, 1.5)
+	var tw := create_tween()
+	tw.tween_property(_pu_icon, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## Instant pip state (round/match resets). Use animate_score() for the ROUND_END tick-tick.
 func set_score(n: int) -> void:

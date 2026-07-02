@@ -31,11 +31,12 @@ func setup(players: Array, colors: Array, skins: Array) -> void:
 		_cards[i].setup(i, colors[i], skins[i])
 
 func _process(_delta: float) -> void:
-	# fuel gauges track Player.fuel live (spec §3) — everything else is event-driven
+	# fuel gauges + held-powerup icons track the players live (v0 spec §3 / v1_powerups §2)
 	for i in range(mini(_players.size(), _cards.size())):
 		var p = _players[i]
 		if is_instance_valid(p):
-			_cards[i].set_fuel(p.get_fuel_ratio())
+			_cards[i].set_fuel(p.get_fuel_ratio(), p.fuel_locked)
+			_cards[i].set_powerup(p.held_powerup)
 
 func set_dead(i: int, dead: bool) -> void:
 	if i >= 0 and i < _cards.size():

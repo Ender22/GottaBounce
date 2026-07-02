@@ -47,6 +47,8 @@ var players: Array = []
 var bounds: Rect2
 
 var _spawns: Array = []
+var _pu_points: Array = []       # powerup_spawner positions from the level JSON
+var _pu_director                 # PowerupSpawnDirector (spec v1_powerups §4 pacing)
 var _stage_rect := Rect2(0, 0, 1920, 320)
 var _camera: CameraController
 var _juice: Juice
@@ -91,6 +93,11 @@ func _ready() -> void:
 	_juice.setup(_camera)
 	KillPipeline.killed.connect(_on_killed)
 
+	# powerup spawn pacing (docs/specs/v1_powerups.md §4)
+	_pu_director = PowerupSpawnDirector.new()
+	add_child(_pu_director)
+	_pu_director.setup(self, _pu_points)
+
 	# P1 human + 3 bots (spec §4: mixed 2/3/4 lineup from Tuning.bot_levels)
 	_spawn_player(0, true)
 	for b in range(NUM_BOTS):
@@ -128,6 +135,7 @@ func _load_stage(path: String) -> void:
 		c.queue_free()
 	var data := LevelLoader.load_level(path, _level_root)
 	_spawns = data.get("spawns", [])
+	_pu_points = data.get("powerup_spawners", [])
 	bounds = data.get("bounds", Rect2(-120, -120, 2160, 1380))
 	_stage_rect = data.get("play_rect", Rect2(bounds.get_center() - Vector2(900, 160), Vector2(1800, 320)))
 
@@ -244,6 +252,8 @@ func _bounce_go() -> void:
 	for p in players:
 		p.frozen = false
 		p.fuel = Tuning.fuel_max   # every round starts on a full tank
+	if _pu_director != null:
+		_pu_director.reset()       # first telegraph pu_first_spawn after BOUNCE! (spec §4)
 	_hud.show_center("BOUNCE!", GOLD, BOUNCE_HOLD)
 	get_tree().create_timer(NAME_TAG_LINGER).timeout.connect(_fade_name_tags)
 
@@ -355,6 +365,11 @@ func _activate_lasers() -> void:
 	_lasers = LASER_WALLS.new()
 	add_child(_lasers)
 	_lasers.setup(bounds, _stage_rect.get_center().x, Tuning.laser_close_time)
+	# powerup sudden-death cutoff (spec §2/§4): spawner off, live bubbles pop, rings cleared;
+	# active effects and in-flight balls keep running (a Star finale is hilarious)
+	if _pu_director != null:
+		_pu_director.on_sudden_death()
+	PowerupSystem.clear_rings()
 
 # ------------------------------------------------------------------- round end / match end
 
@@ -363,6 +378,11 @@ func _enter_round_end(deferred := false) -> void:
 	state = "ROUND_END"
 	# the double-KO wait already elapsed since the last death — it counts as freeze time
 	_state_t = Tuning.double_ko_window if deferred else 0.0
+	# powerup round-end sweep (spec §2): all active effects, held slots, and field objects
+	# (balls / rings / bubbles / telegraphs) are cleared — every round starts clean
+	if _pu_director != null:
+		_pu_director.stop()
+	PowerupSystem.round_sweep()
 	for p in players:
 		if is_instance_valid(p) and not p.is_dead():
 			p.frozen = true

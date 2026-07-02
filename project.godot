@@ -13,6 +13,7 @@ Tuning="*res://src/core/Tuning.gd"
 GravityField="*res://src/core/GravityField.gd"
 EventBus="*res://src/systems/EventBus.gd"
 KillPipeline="*res://src/systems/KillPipeline.gd"
+PowerupSystem="*res://src/systems/PowerupSystem.gd"
 McpInteractionServer="*res://src/dev/mcp_interaction_server.gd"
 
 [display]

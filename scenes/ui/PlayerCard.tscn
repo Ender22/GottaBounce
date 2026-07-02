@@ -132,6 +132,19 @@ size_flags_vertical = 4
 theme_type_variation = &"CardName"
 text = "P1"
 
+[node name="Spacer" type="Control" parent="Margin/VBox/IdentityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="PowerupSlot" type="TextureRect" parent="Margin/VBox/IdentityRow"]
+visible = false
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
 [node name="Pips" type="GridContainer" parent="Margin/VBox"]
 layout_mode = 2
 columns = 5

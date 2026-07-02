@@ -27,26 +27,31 @@ var _spawn_protect := 0.0      # brief post-respawn invulnerability (anti spawn-
 var _deform_cd := 0.0          # throttles the cosmetic surface squash (not the bounce itself)
 const SPAWN_PROTECT_TIME := 1.3
 
-# powerup state (P6) — set/cleared by PowerupSystem (v0: powerups not ported yet; the fields stay
-# so InputBot and the smash/knockback code keep their contracts).
-var held_powerup := ""
-var fuel_locked := false
-var invincible := false
-var contact_launch := false
-var counter_active := false
-var bounce_mult := 1.0
+# powerup state (docs/specs/v1_powerups.md) — set/cleared by PowerupSystem.
+var held_powerup := ""       # one held slot (spec §2)
+var active_powerup := ""     # QA hook (spec §2): id of the running timed effect
+var powerup_time_left := 0.0 # QA hook: seconds left on active_powerup
+var fuel_locked := false     # Unlimited Boost: fuel pinned at max
+var invincible := false      # Star: zero impulse/hitstun from players
+var contact_launch := false  # Star: any body contact launches the other player
+var counter_active := false  # Counter Shield: live parry window
+var bounce_mult := 1.0       # Mega Bounce
+var rainbow := false         # Star telegraphy: rainbow hue-cycle tint
+var silhouette := false      # Black Hole telegraphy: silhouette-dark body
+var channel_broken := false  # Black Hole: smashed mid-channel (cancelled, no fuel refill)
 var speed_mult := 1.0        # per-match modifier (e.g. Double-Speed Boost)
-var slow_factor := 1.0       # Slow-Mo powerup (others slowed)
-var wings_flaps := 0         # Wings powerup (flap count remaining)
+var slow_factor := 1.0       # Slow-Mo powerup (deferred; others slowed)
+var wings_flaps := 0         # Wings powerup (deferred; flap count remaining)
 var _channel_timer := 0.0    # Black Hole channel
+var _pulled := 0.0           # being pulled by a black hole right now (drift auto-brake off)
+var _aim_active := false     # stick past deadzone this frame (Ring of Fire launch direction)
+var _super_recent := 0.0     # just fired a super boost (deliberate-attack window vs channelers)
 var _boosting_now := false
 var _sb_charging := false    # chargeable super-boost: currently charging
 var _sb_charge := 0.0        # 0..1 charge level
 var _sb_was_held := false
 var _boost_was_held := false
 const WINGS_FLAP_IMPULSE := 540.0
-const BLACK_HOLE_PULL := 950.0
-const BLACK_HOLE_RADIUS := 720.0
 var _down_angle := PI * 0.5    # local-gravity direction angle (for body orientation, P8)
 var last_attacker = null       # for kill credit (P9); cleared after a couple seconds
 var skin := "pink"             # character sprite color (set by the mode before add_child)
@@ -76,6 +81,9 @@ var _shadow: Polygon2D             # contact shadow ellipse (top_level, sits on 
 var _anim_t := 0.0
 var _fire: CPUParticles2D
 var _smoke: CPUParticles2D
+var _fire_grad_normal: Gradient        # stock orange exhaust ramp
+var _fire_grad_cyan: Gradient          # Unlimited Boost: cyan afterburner (spec 3.2)
+var _fire_cyan_now := false            # transition latch (lifetime writes restart the emitter)
 var _arrow: Polygon2D
 var _charge_ring: Line2D
 var _hit_area: Area2D
@@ -113,6 +121,11 @@ func _ready() -> void:
 	add_child(_smoke)
 	_fire = _make_exhaust(true)
 	add_child(_fire)
+	_fire_grad_normal = _fire.color_ramp
+	_fire_grad_cyan = Gradient.new()
+	_fire_grad_cyan.set_color(0, Color(0.6, 1.0, 1.0, 1.0))
+	_fire_grad_cyan.add_point(0.3, Color(0.05, 0.65, 1.0, 1.0))
+	_fire_grad_cyan.set_color(1, Color(0.0, 0.2, 0.9, 0.0))
 
 	# Character sprite: per-skin idle texture; pink also carries a squash pose for bounces.
 	# Scaled so the round body reads ~2.2x the collider radius wide (art bleeds past physics —
@@ -235,13 +248,17 @@ func _physics_process(delta: float) -> void:
 		_frozen_preaim()
 		return
 	_smash_cd = maxf(0.0, _smash_cd - delta)
+	_super_recent = maxf(0.0, _super_recent - delta)
+	_pulled = maxf(0.0, _pulled - delta)
 	_spawn_protect = maxf(0.0, _spawn_protect - delta)
 	_deform_cd = maxf(0.0, _deform_cd - delta)
 	_attacker_timer = maxf(0.0, _attacker_timer - delta)
 	if _attacker_timer <= 0.0:
 		last_attacker = null
 
-	# Black Hole channel: hover briefly and pull everyone else in (brief active state, INV-11 OK)
+	# Black Hole channel (spec 3.6): hover frozen (velocity zeroed, gravity off, input locked)
+	# and pull all other players in-zone at a CONSTANT accel — readable, not 1/r^2. The pull is
+	# weaker than normal_boost_accel, so a fueled player fights out by burning their tank.
 	if _channel_timer > 0.0:
 		_channel_timer -= delta
 		velocity = Vector2.ZERO
@@ -249,8 +266,9 @@ func _physics_process(delta: float) -> void:
 			if o == self or not is_instance_valid(o) or o.is_dead():
 				continue
 			var pull: Vector2 = global_position - o.global_position
-			if pull.length() < BLACK_HOLE_RADIUS:
-				o.velocity += pull.normalized() * BLACK_HOLE_PULL * delta
+			if pull.length() < Tuning.pu_black_hole_radius:
+				o.velocity += pull.normalized() * Tuning.pu_black_hole_pull * delta
+				o._pulled = 0.1   # dragged bodies don't auto-brake (drift) — boost still fights out
 		_update_visual(_last_aim, false, false, false, delta)
 		return
 
@@ -261,7 +279,7 @@ func _physics_process(delta: float) -> void:
 		_stun_timer -= delta
 		intent = InputIntent.new()   # no control while stunned (FEEL §4.6)
 	elif intent.use_powerup:
-		pass   # v0: powerups not ported yet (PowerupSystem.try_use(self))
+		PowerupSystem.try_use(self)   # never during hitstun (intent zeroed above) or dead (spec §2)
 
 	var g := GravityField.get_gravity_at(global_position)
 	_down_angle = g.angle()
@@ -271,6 +289,7 @@ func _physics_process(delta: float) -> void:
 	# holding boost with no direction always lifts you straight up — easy recovery.
 	var aiming := intent.aim.length() > 0.001
 	var aim_dir := intent.aim.normalized() if aiming else Vector2.UP
+	_aim_active = aiming
 	if aiming:
 		_last_aim = aim_dir
 
@@ -291,6 +310,7 @@ func _physics_process(delta: float) -> void:
 			velocity += aim_dir * Tuning.super_boost_impulse_full * frac * clampf(fuel / Tuning.fuel_max, 0.0, 1.0) * speed_mult
 			fuel = 0.0
 			_sb_charging = false
+			_super_recent = 0.6
 			EventBus.super_boosted.emit(self)
 	_sb_was_held = sh
 
@@ -313,7 +333,8 @@ func _physics_process(delta: float) -> void:
 			velocity += aim_dir * add
 		if not fuel_locked:
 			fuel = maxf(0.0, fuel - Tuning.normal_boost_drain() * delta)
-	elif not _sb_charging:
+	elif not _sb_charging and _pulled <= 0.0:
+		# (skipped while black-hole-pulled: the auto-brake toward vx=0 would fight the pull)
 		var target_x := Tuning.air_drift_max_speed * clampf(intent.aim.x, -1.0, 1.0)
 		velocity.x = move_toward(velocity.x, target_x, Tuning.air_drift_accel * delta)
 
@@ -473,14 +494,37 @@ func _handle_smashes() -> void:
 		var is_player: bool = b is Player
 		if is_player and b.is_dead():
 			continue
-		# Star (contact_launch): ANY contact flings another player, regardless of speed.
+		# Counter Shield (spec 3.4): ANY body contact during the live window counter-launches
+		# the toucher — including Star holders (the timed parry is the one answer to Star).
+		if counter_active and is_player and _smash_cd <= 0.0 and b._spawn_protect <= 0.0:
+			var cdir := (b.global_position - global_position).normalized()
+			if cdir == Vector2.ZERO:
+				cdir = Vector2.UP
+			if b.counter_active:
+				# two live shields: comedy BOING — both knocked apart, no hitstun
+				b.velocity = cdir * 700.0
+				velocity = -cdir * 700.0
+			else:
+				b.receive_counter_launch(cdir * Tuning.pu_counter_reflect_impulse, self)
+			_smash_cd = 0.3
+			return
+		# Star (contact_launch, spec 3.3): ANY contact flings the other player, regardless of speed.
 		if contact_launch and is_player and _smash_cd <= 0.0:
-			var imp := (b.global_position - global_position).normalized() * (Tuning.smash_impulse_base + 400.0)
+			if b.contact_launch:
+				_soft_separate(b)   # two Stars: mutual clang, no impulse to either (spec 3.3)
+				continue
+			var imp := (b.global_position - global_position).normalized() * Tuning.pu_star_contact_impulse
 			b.receive_smash(imp, self)
 			EventBus.smashed.emit(self, b, imp)
 			_smash_cd = 0.3
 			return
 		if is_player:
+			# Black Hole (spec 3.6/P6): bodies DRAGGED into a channeler crash and stack — they are
+			# not attacks. Only deliberate propulsion (boosting / a fresh super) or storm balls
+			# break the channel; ball hits and eval'd smashes route via receive_smash directly.
+			if b.is_channeling() and not (_boosting_now or _super_recent > 0.0):
+				_soft_separate(b)
+				continue
 			# A real hit needs a hard CLOSING speed AND we must be the faster body (no double-apply).
 			# Otherwise the two just softly bounce apart — normal contact, no knockback/hitstun.
 			var rel: float = (velocity - b.velocity).length()
@@ -514,13 +558,26 @@ func _soft_separate(other) -> void:
 func receive_smash(impulse: Vector2, attacker) -> void:
 	if _dead:
 		return
-	if invincible or _spawn_protect > 0.0:
-		return   # Star / fresh-spawn: take zero knockback
-	if counter_active and attacker != null and is_instance_valid(attacker) and attacker.has_method("apply_impulse_vector"):
-		# Counter Shield: reflect — fling the attacker away instead.
-		var dir: Vector2 = (attacker.global_position - global_position).normalized()
-		attacker.apply_impulse_vector(dir * impulse.length())
+	if counter_active:
+		# Counter Shield (spec 3.4): the parry — the attacker is counter-launched instead,
+		# the holder takes ZERO impulse/stun. Beats Star (bypasses invincibility).
+		if attacker != null and is_instance_valid(attacker) and attacker is Player and not attacker.is_dead():
+			var dir: Vector2 = (attacker.global_position - global_position).normalized()
+			if dir == Vector2.ZERO:
+				dir = Vector2.UP
+			if attacker.counter_active:
+				# two live shields colliding: both knocked apart, no hitstun (comedy BOING)
+				attacker.velocity = dir * 700.0
+				velocity = -dir * 700.0
+			else:
+				attacker.receive_counter_launch(dir * Tuning.pu_counter_reflect_impulse, self)
 		return
+	if invincible or _spawn_protect > 0.0:
+		return   # Star / fresh-spawn: take zero knockback, zero hitstun
+	if _channel_timer > 0.0:
+		# Black Hole: any hit during the channel cancels it — no fuel refill (spec 3.6)
+		_channel_timer = 0.0
+		channel_broken = true
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
 	if attacker != null and attacker is Player:
 		last_attacker = attacker
@@ -529,30 +586,76 @@ func receive_smash(impulse: Vector2, attacker) -> void:
 	_stun_timer = minf(st, Tuning.hitstun_max)
 	_flash_timer = 0.12
 
+## Counter Shield launch (spec 3.4): velocity REPLACED (arrive at 2800, leave at 1400) +
+## standard hitstun. Bypasses Star invincibility — the one answer to the rare power.
+## Kill credit goes to the shield holder (it's their attack).
+func receive_counter_launch(impulse: Vector2, holder) -> void:
+	if _dead or _spawn_protect > 0.0:
+		return
+	if _channel_timer > 0.0:
+		_channel_timer = 0.0
+		channel_broken = true
+	velocity = impulse.limit_length(Tuning.max_speed)
+	if holder != null and holder is Player:
+		last_attacker = holder
+		_attacker_timer = Tuning.kill_credit_window
+	var st := Tuning.hitstun_base + impulse.length() * Tuning.hitstun_per_impulse
+	_stun_timer = minf(st, Tuning.hitstun_max)
+	_flash_timer = 0.12
+	EventBus.smashed.emit(holder, self, impulse)
+
+## Ring of Fire kill credit (spec 3.7): a ring launch that carries someone out scores the owner.
+func credit_attacker(attacker) -> void:
+	if attacker != null and attacker != self and attacker is Player:
+		last_attacker = attacker
+		_attacker_timer = Tuning.kill_credit_window
+
 func flash() -> void:
 	_flash_timer = 0.12
 
 func apply_impulse_vector(v: Vector2) -> void:
-	# Impulsable (INV-3) — used by explosions later.
-	if not _dead:
-		velocity = (velocity + v).limit_length(Tuning.max_speed)
+	# Impulsable (INV-3) — explosions etc. Star is knockback-immune; a live Counter Shield
+	# blocks explosion knockback on the holder (spec 3.3/3.4). Hazards still instakill.
+	if _dead or invincible or counter_active:
+		return
+	velocity = (velocity + v).limit_length(Tuning.max_speed)
 
 func force_super_boost() -> void:
-	# Ring of Fire: trigger a full-power super-boost in the current aim, regardless of fuel.
+	# Ring of Fire (spec 3.7): instant full-power super-boost — current aim if the stick is past
+	# deadzone, else current velocity direction, else straight up. Full control kept (no hitstun),
+	# actual fuel untouched; any in-progress super charge is consumed/replaced.
 	if _dead:
 		return
-	velocity = _last_aim * Tuning.super_boost_impulse_full
+	cancel_super_charge()
+	var dir := Vector2.UP
+	if _aim_active:
+		dir = _last_aim
+	elif velocity.length() > 40.0:
+		dir = velocity.normalized()
+	velocity = dir * Tuning.super_boost_impulse_full
+	_super_recent = 0.6   # a ring launch is a super — it can break a channel like one
 	EventBus.super_boosted.emit(self)
+
+func cancel_super_charge() -> void:
+	# cancel an in-progress super-boost charge, fuel retained (Black Hole / Ring of Fire)
+	_sb_charging = false
+	_sb_charge = 0.0
 
 func start_channel(dur: float) -> void:
 	# Black Hole
 	if not _dead:
 		_channel_timer = dur
 
+func is_channeling() -> bool:
+	return _channel_timer > 0.0
+
 func reset_powerup_state() -> void:
 	slow_factor = 1.0
 	wings_flaps = 0
 	_channel_timer = 0.0
+	channel_broken = false
+	rainbow = false
+	silhouette = false
 
 func kill(cause: StringName, attacker = null) -> void:
 	if attacker == null:
@@ -584,13 +687,18 @@ func respawn(pos: Vector2) -> void:
 	_sb_was_held = false
 	_boost_was_held = false
 	_spawn_protect = SPAWN_PROTECT_TIME
-	# clear powerup state
+	# clear powerup state (PowerupSystem's death sweep also runs; this covers round respawns)
 	held_powerup = ""
+	active_powerup = ""
+	powerup_time_left = 0.0
 	fuel_locked = false
 	invincible = false
 	contact_launch = false
 	counter_active = false
 	bounce_mult = 1.0
+	rainbow = false
+	silhouette = false
+	channel_broken = false
 	slow_factor = 1.0
 	wings_flaps = 0
 	_channel_timer = 0.0
@@ -623,8 +731,10 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 		if _squash_timer > 0.0:
 			_squash_timer = maxf(0.0, _squash_timer - delta)
 			var t := _squash_timer / SQUASH_SWAP_TIME
-			sx *= lerpf(1.0, 1.25, t)
-			sy *= lerpf(1.0, 0.75, t)
+			# Mega Bounce telegraphy (spec 3.1): squash 1.4x the normal deltas
+			var amp := 1.4 if bounce_mult > 1.0 else 1.0
+			sx *= lerpf(1.0, 1.0 + 0.25 * amp, t)
+			sy *= lerpf(1.0, 1.0 - 0.25 * amp, t)
 		else:
 			var rise := clampf(-velocity.y / 1100.0, 0.0, 1.0)   # fast ascent = slight stretch
 			sx *= lerpf(1.0, 0.9, rise)
@@ -639,10 +749,14 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 					_apply_squash_sprite()
 				else:
 					_apply_idle_sprite()
-			# hit flash (FEEL §5.2)
+			# hit flash (FEEL §5.2) > Star rainbow (spec 3.3) > Black Hole silhouette (spec 3.6)
 			if _flash_timer > 0.0:
 				_flash_timer = maxf(0.0, _flash_timer - delta)
 				_sprite.self_modulate = Color(2.6, 2.6, 2.6)
+			elif rainbow:
+				_sprite.self_modulate = Color.from_hsv(fmod(_anim_t * 6.0, 1.0), 0.62, 1.0)  # 6 cycles/s
+			elif silhouette:
+				_sprite.self_modulate = Color(0.2, 0.13, 0.28)
 			else:
 				_sprite.self_modulate = Color.WHITE
 	_update_contact_shadow()
@@ -671,6 +785,15 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_smoke.direction = thrust_dir
 			# supercharged thrust = bigger, faster fire
 			var boost_amt := 1.6 if _supercharge_timer > 0.0 else 1.0
+			# Unlimited Boost (spec 3.2): flame turns cyan, doubles in size, longer afterburner —
+			# the "get away from that person" read. Only touch lifetime/ramp on the TRANSITION:
+			# setting CPUParticles2D.lifetime restarts emission, so a per-frame write kills the flame.
+			if fuel_locked != _fire_cyan_now:
+				_fire_cyan_now = fuel_locked
+				_fire.color_ramp = _fire_grad_cyan if fuel_locked else _fire_grad_normal
+				_fire.lifetime = 0.55 if fuel_locked else 0.32
+			if fuel_locked:
+				boost_amt *= 2.0
 			_fire.initial_velocity_max = 520.0 * boost_amt
 			_fire.scale = Vector2(boost_amt, boost_amt)
 			_smoke.scale = Vector2.ONE

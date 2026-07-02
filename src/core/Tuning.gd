@@ -95,16 +95,41 @@ var kill_credit_window: float = 2.5    # s — last-attacker kill credit (replac
 var match_target_score: int = 10       # first to this with a strict lead wins the match
 var bot_levels: Array[int] = [2, 3, 4] # P2 punchline / P3 fair fight / P4 menace (spec §4)
 
-# --- Powerups (GAME_DESIGN §5) ---
-var powerup_spawn_interval: float = 8.0
-var pu_unlimited_boost_dur: float = 10.0
+# --- Powerups (docs/specs/v1_powerups.md §6) ---
+# spawner pacing (spec §4 — rounds are 10-30s; powerups are a beat, not the meal)
+var pu_first_spawn: float = 4.0          # s after BOUNCE! before the first telegraph
+var pu_spawn_interval: float = 7.0       # s between spawns (telegraph starts this long after the previous BUBBLE went live)
+var pu_spawn_telegraph: float = 1.0      # s of converging sparkle before the bubble is live
+var pu_max_on_field: int = 2             # uncollected-bubble cap; spawner skips its beat at cap
+
+# durations (spec: star 6→5, unlimited 10→8 — rebalanced for short rounds)
+var pu_unlimited_boost_dur: float = 8.0
 var pu_mega_bounce_dur: float = 8.0
-var pu_mega_bounce_mult: float = 2.0
-var pu_star_dur: float = 6.0
+var pu_star_dur: float = 5.0
 var pu_counter_dur: float = 2.0
+var pu_black_hole_dur: float = 2.0
+var pu_ring_lifetime: float = 8.0
+
+# magnitudes
+var pu_mega_bounce_mult: float = 2.0
+var pu_star_contact_impulse: float = 900.0    # px/s, 1.5x smash_impulse_base
+var pu_counter_reflect_impulse: float = 1400.0 # px/s, half a full super
+var pu_ball_count: int = 16
+var pu_ball_hit_impulse: float = 500.0        # px/s along ball velocity
+var pu_ball_lifetime: float = 6.0
+var pu_ball_owner_grace: float = 0.5
+var pu_black_hole_radius: float = 700.0
+var pu_black_hole_pull: float = 2600.0        # px/s^2 constant-in-zone; must stay < normal_boost_accel
+var pu_ring_max_triggers: int = 3
+var pu_ring_retrigger_cd: float = 1.5
+var pu_ring_owner_grace: float = 1.0
+
+# deferred powerups (slow-mo waits — spec §1; constants kept for the future pass)
 var pu_slow_mo_dur: float = 3.0
 var pu_slow_mo_factor: float = 0.5
-var pu_black_hole_dur: float = 2.0
+
+# bots (minimal v1 behavior: collect on touch, use after a beat — no seeking brain yet)
+var bot_powerup_delay: float = 1.5       # s a bot sits on a pickup before using it (+ level-scaled variance)
 
 # --- Derived helpers ---
 func normal_boost_drain() -> float:
