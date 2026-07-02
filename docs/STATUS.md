@@ -2,52 +2,56 @@
 
 > The single always-current handoff doc. Update after EVERY commit. A fresh context reads this first.
 
-**Last updated:** 2026-07-02 (session 1, midday)
+**Last updated:** 2026-07-02 end of session 1. Everything below is committed (git log = the history).
 
-## Session 1 progress snapshot
-- Core port from v1 DONE & verified (physics seams, Player, bots, LevelLoader, camera, Juice,
-  headless harness; DevArena dev scene = main).
-- Full v0 art set generated & committed ("Glossy Toybox"): 4 Bouncers + squash pose, grass
-  platform body (3-slice), 4 tier mats, bumper post, sky/hills/clouds, decals, bush/fence,
-  owner music copied. Prompts + intake gotchas in assets/CATALOG.md.
-- docs/briefs/arena_rendering.md (art-director): 3-slice+tiled centers, tier-mat readability
-  system, 7-layer diorama, shadows. IMPLEMENTATION IN FLIGHT (agent building ArenaRenderer).
-- docs/specs/v0_round_loop.md (game-designer): boot-to-match, state machine, sudden-death
-  lasers, scoring edge cases, HUD spec, 19 QA criteria. NOT yet implemented — next after renderer.
+## Where we are — end of session 1
+The game LOOKS like a real game and RUNS. Boot `scenes/Arena.tscn` (main scene): Glossy Toybox
+diorama arena (sky/hills/clouds parallax, 3-sliced grass platforms, 4 readable tier mats, bumper
+posts, shadows), 4 sprite Bouncers (P1 pink + 3 bots) bouncing/boosting/smashing with squash &
+stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png`,
+`toybox_close1.png` for how it looks.
 
-## Where we are
-Session 1: studio foundation. Repo initialized, validation tooling built and **proven end-to-end**
-(rendered game driven via `tools/gbplay.py` → input injection moved a physics ball, screenshots
-captured and visually reviewed). Old project surveyed (see below). Vision set (`docs/VISION.md`).
+## What exists (all validated, all committed)
+1. **Studio**: CLAUDE.md (non-negotiables, gotchas), docs/ (VISION, STUDIO, PIPELINE, DECISIONS,
+   briefs/, specs/), .claude/agents roles (register after session reload; until then run role
+   briefs via general-purpose agents), post-commit STATUS hook, memory files.
+2. **Validation stack (proven)**: `tools/run_game.ps1` (windowed launch, port 9090) +
+   `python tools/gbplay.py` (screenshot/key/hold/eval/burst/script) + vision review; headless
+   `scenes/Playtest.tscn` harness (observe/hover/duel/botwar); parse gate. Details docs/PIPELINE.md.
+3. **Art pipeline (proven)**: ChatGPT via Chrome (start Chrome first!), download → `tools/art.py
+   trim/keyout/check` → assets/. All prompts + gotchas in assets/CATALOG.md. ~22 bespoke assets in.
+4. **Core game** (ported from old project + new): physics seams (Tuning/GravityField/Forces/
+   BounceResolver), Player (bounce/jetpack/super-boost/smash), InputHuman (action map), InputBot
+   5 levels, LevelLoader (JSON) + ArenaRenderer + ThreeSlice (diorama painting), Juice,
+   CameraController, KillPipeline, EventBus. DevArena = current match scene (1v3, no scoring yet).
 
-## Key facts
-- Old project at `D:\Dropbox\MyGames\GottaBounce` = well-architected but unpolished prototype.
-  Survey verdict: **keep** design docs, Tuning pattern, physics seams (BounceResolver/GravityField/
-  Forces/InputIntent/EventBus/KillPipeline), JSON level pipeline, Player.gd physics logic, InputBot,
-  owner's Hoptron music. **Rebuild:** all UI (as .tscn+Theme), all art, input action map, feel, content.
-- Godot 4.7 console exe: `C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe`.
-- `tools/run_game.ps1` quoting bug fixed (spaces in path → launched the OLD project; now quoted).
-- PS1 files must be ASCII-only (PowerShell 5.1 reads them as ANSI → em-dashes break parsing).
-- Smoke test scene `scenes/SmokeTest.tscn` proves the loop; replace as main scene when game exists.
+## NEXT STEPS in priority order (session 2 starts here)
+1. **Verify decals landed**: re-run the game — decals/tufts/flowers/bush/fence/cloud_b were
+   committed AFTER the renderer agent last checked; its data-driven hooks should pick them up
+   automatically. Screenshot and confirm no push_warnings remain.
+2. **Implement `docs/specs/v0_round_loop.md`** (complete spec, 19 QA criteria): match state
+   machine (intro pop-ins → 3-2-1-BOUNCE → combat → sudden-death lasers → round end → first-to-10),
+   scoring w/ kill-credit 2.5s, corner HUD cards, banners. DevArena → PartyMatch. Then QA agent
+   runs the 19 criteria via gbplay.
+3. **Art-director grade of current build** — my (Director) quick grade of grade_far.png: SHIP-able
+   base; Fix list: (a) far-zoom floor mat reads as thin band — consider 40px mat height or stronger
+   rim contrast on the 1792px floor; (b) trampoline-floor "rope" look up close (flagged by
+   programmer); (c) blue bouncer tumble rotation reads sideways — consider clamping visual rotation
+   or upright-spring; (d) Juice's square particles → replace w/ soft round sprites; (e) spikes still
+   flat red (unused in dev arena).
+4. **Feel-tuning loop** (docs/reference/FEEL_REFERENCE.md targets): drive via gbplay eval (live
+   Tuning writes), measure bounce rhythm/heights with Playtest harness, iterate. Old values were
+   "controlled but not fun-verified".
+5. Then: powerup port (10 exist in old code), more arenas (level-designer role + JSON), audio
+   (owner music in assets/music + AudioManager port), menus (.tscn + Theme ONLY), Steam prep.
 
-## In flight
-- [x] Studio foundation (repo, docs, roles, hooks)
-- [x] Validation tooling core (gbplay + run/stop scripts) — proven
-- [x] Art pipeline — PROVEN end-to-end: ChatGPT gen (Chrome automation; start Chrome first if
-      extension disconnected) → Downloads → `tools/art.py trim/check` → assets/. First bespoke
-      sprite: `assets/characters/bouncer_pink_idle.png`. Prompts in `assets/CATALOG.md`.
-- [ ] Port core seams from old project — agent running (Tuning/seams/Player/LevelLoader/bots/
-      Playtest harness + Arena.tscn dev scene)
-- [ ] v0 vertical slice: movement feel + one polished arena + round loop
-
-## Next actions
-1. Port core seams (`Tuning`, `BounceResolver`, `GravityField`, `Forces`, `InputIntent`,
-   `InputHuman`→action map, `InputBot`, `KillPipeline`, `EventBus`) + JSON level loader.
-2. Build v0 arena + player, tune feel via live gbplay eval loop.
-3. Art pipeline + first bespoke character sprite set.
-
-## Watch out for
-- Always `tools/stop_game.ps1` after playtests (zombies steal port 9090).
-- Godot shell calls need `dangerouslyDisableSandbox: true`; prefer Bash tool for Godot invocations
-  (PowerShell 2>&1 wrapping breaks exit codes).
-- Rebuild class cache (`--editor --quit`) after adding any `class_name` script.
+## Watch out for (hard-won this session)
+- Start Chrome before art generation (extension connects only when Chrome runs).
+- ChatGPT image downloads: verify Downloads-folder timestamp BEFORE intake — a missed download
+  click silently reuses the previous file (this corrupted hills_far once; fixed).
+- Some generations bake FAKE checkerboard transparency → `art.py check` catches, `keyout --tol 40` fixes.
+- `Start-Process` arg quoting, ASCII-only .ps1, Bash-for-Godot, zombie processes: see CLAUDE.md.
+- Project .claude/agents subagents need a session reload to register; run as general-purpose with
+  the role file quoted until then.
+- The renderer agent left `push_warning` hooks for missing decals — they were generated later, so
+  warnings should be gone; if not, paths differ (check assets/world/grass/decals/, assets/bg/).
