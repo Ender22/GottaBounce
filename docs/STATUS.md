@@ -25,25 +25,29 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
    5 levels, LevelLoader (JSON) + ArenaRenderer + ThreeSlice (diorama painting), Juice,
    CameraController, KillPipeline, EventBus. DevArena = current match scene (1v3, no scoring yet).
 
-## NEXT STEPS in priority order (session 2 starts here)
-1. **Verify decals landed**: re-run the game — decals/tufts/flowers/bush/fence/cloud_b were
-   committed AFTER the renderer agent last checked; its data-driven hooks should pick them up
-   automatically. Screenshot and confirm no push_warnings remain.
-2. **Implement `docs/specs/v0_round_loop.md`** (complete spec, 19 QA criteria): match state
-   machine (intro pop-ins → 3-2-1-BOUNCE → combat → sudden-death lasers → round end → first-to-10),
-   scoring w/ kill-credit 2.5s, corner HUD cards, banners. DevArena → PartyMatch. Then QA agent
-   runs the 19 criteria via gbplay.
-3. **Art-director grade of current build** — my (Director) quick grade of grade_far.png: SHIP-able
-   base; Fix list: (a) far-zoom floor mat reads as thin band — consider 40px mat height or stronger
-   rim contrast on the 1792px floor; (b) trampoline-floor "rope" look up close (flagged by
-   programmer); (c) blue bouncer tumble rotation reads sideways — consider clamping visual rotation
-   or upright-spring; (d) Juice's square particles → replace w/ soft round sprites; (e) spikes still
-   flat red (unused in dev arena).
-4. **Feel-tuning loop** (docs/reference/FEEL_REFERENCE.md targets): drive via gbplay eval (live
-   Tuning writes), measure bounce rhythm/heights with Playtest harness, iterate. Old values were
-   "controlled but not fun-verified".
-5. Then: powerup port (10 exist in old code), more arenas (level-designer role + JSON), audio
-   (owner music in assets/music + AudioManager port), menus (.tscn + Theme ONLY), Steam prep.
+## Session 2 progress
+- [x] Decals/props verified rendering (zero warnings).
+- [x] **v0 round loop SHIPPED** (docs/specs/v0_round_loop.md implemented in full): PartyMatch
+  state machine, scoring w/ all edge cases, MatchHUD corner cards + banner system, sudden-death
+  LaserWalls, tiebreaker, rematch. Timing contract measured 4.28-4.29s death→BOUNCE. 79fps.
+- [x] Powerup spec written (docs/specs/v1_powerups.md: 7 ship / 3 wait, 17 QA criteria) AND all
+  7 pickup icons generated (assets/powerups/). Spike strip + fx particle sprites in.
+- Screenshots: tools/out/rl_*.png (combat/round-end/sudden-death/etc).
+
+## NEXT STEPS in priority order
+1. **QA full pass** on the round loop: the 19 criteria in docs/specs/v0_round_loop.md via
+   qa-playtester agent (programmer verified most technically; QA re-verifies + feel judgment +
+   bug hunt). Fix what it finds.
+2. **Implement docs/specs/v1_powerups.md** (icons ready in assets/powerups/): PowerupSystem +
+   pickups + the 7 powerups + spawner pacing; port/adapt from old project's PowerupSystem.gd.
+3. **Feel-tuning loop** (docs/reference/FEEL_REFERENCE.md targets): gbplay eval live Tuning
+   writes; measure bounce rhythm/heights; old values "controlled but not fun-verified".
+4. **Art fix list** (small): (a) far-zoom floor mat thin; (b) trampoline-floor "rope" up close;
+   (c) tumble rotation reads sideways; (d) Juice square particles → assets/fx/puff_soft.png +
+   star_sparkle.png now exist, wire them; (e) real font asset to replace SystemFont stack in
+   theme.tres; (f) art skull icon for PlayerCard; (g) name-tag blink inherit.
+5. Then: more arenas (level-designer, JSON), audio (assets/music + AudioManager port), title
+   screen + minimal menu (.tscn + Theme ONLY), Steam prep.
 
 ## Watch out for (hard-won this session)
 - Start Chrome before art generation (extension connects only when Chrome runs).
