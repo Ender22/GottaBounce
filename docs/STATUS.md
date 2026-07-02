@@ -22,9 +22,12 @@ captured and visually reviewed). Old project surveyed (see below). Vision set (`
 ## In flight
 - [x] Studio foundation (repo, docs, roles, hooks)
 - [x] Validation tooling core (gbplay + run/stop scripts) — proven
-- [ ] Port core seams from old project (headless Playtest harness port still pending)
+- [x] Art pipeline — PROVEN end-to-end: ChatGPT gen (Chrome automation; start Chrome first if
+      extension disconnected) → Downloads → `tools/art.py trim/check` → assets/. First bespoke
+      sprite: `assets/characters/bouncer_pink_idle.png`. Prompts in `assets/CATALOG.md`.
+- [ ] Port core seams from old project — agent running (Tuning/seams/Player/LevelLoader/bots/
+      Playtest harness + Arena.tscn dev scene)
 - [ ] v0 vertical slice: movement feel + one polished arena + round loop
-- [ ] Art pipeline (ChatGPT + tools/art.py trim tool)
 
 ## Next actions
 1. Port core seams (`Tuning`, `BounceResolver`, `GravityField`, `Forces`, `InputIntent`,
