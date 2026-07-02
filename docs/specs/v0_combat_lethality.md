@@ -1,292 +1,460 @@
 # Spec: v0 Combat Lethality — rounds end by KILLS, not lasers
 
-> **Owner:** Lead Game Designer. **Status:** READY FOR BUILD. **Last updated:** 2026-07-02.
-> Responds to QA playtest #1 of `v0_round_loop.md` (18/19 PASS, fun diagnosis: "kills feel like
-> traffic accidents"; 55–60% of rounds laser-decided; L2 bot won a match; idle human scored 9).
-> Sources: `docs/VISION.md` (pillars), `docs/reference/GAME_DESIGN.md` §4/§8,
-> `docs/reference/FEEL_REFERENCE.md` §3–4, `src/core/Tuning.gd`, `src/core/InputBot.gd`,
-> `src/core/BotProfile.gd`, `src/entities/Player.gd`, `levels/dev_arena.json`.
+> **Owner:** Lead Game Designer. **Status:** READY FOR BUILD. **Version 2 — 2026-07-02.**
+>
+> **v2 changelog (same day, pre-build):** Reconciled against
+> `docs/feedback/owner_2026-07-02_movement_feel.md` (highest-authority design input) BEFORE
+> implementation started. Two structural changes from v1:
+> 1. **§1 is new: the super boost is redesigned — UN-CHARGED.** Full power at any fuel ≥ a small
+>    minimum, dumps the whole tank, brief aim-hover (≤2s) then auto-fire. The charge-hold model
+>    (`super_charge_*`) is removed. This supersedes GDD §4.3's "super scales with remaining fuel."
+> 2. **§2 contact is now two-tier:** physics SHOVE (no hitstun) vs SMASH (super-active attackers
+>    and stunned flying bodies only). v1's light-smash tier (620 gate for boost-rams) is dropped.
+>    Bot "bank-then-strike" (`strike_fuel`) is replaced by a refuel-rhythm model (§3).
+> Sections on scoring guard, sudden-death pacing/visibility and match-end (§4–§7) carry over from
+> v1 unchanged. QA criteria fully rewritten (§9).
+>
+> Responds to: QA playtest #1 ("kills feel like traffic accidents"; 55–60% laser-decided; L2 won a
+> match; idle human scored 9) + the owner movement-feel thesis (TowerFall-caliber movement is the
+> product). Sources: `docs/VISION.md`, `docs/reference/GAME_DESIGN.md` §4/§8,
+> `docs/reference/FEEL_REFERENCE.md` §3–4, `src/core/Tuning.gd`, `src/entities/Player.gd`,
+> `src/core/InputBot.gd`, `src/core/BotProfile.gd`, `levels/dev_arena.json`.
 
 ## The player fantasy
 
-**"I lined that up, I pulled the trigger, and they're GONE."** A super-boost smash is an authored
-moment — you banked fuel, read their arc, committed, and the victim rockets off-screen screaming.
-Every touch matters: even a hit that doesn't kill visibly chunks the victim's fuel gauge and sets up
-the next one. Rounds are decided by somebody DOING something, in 10–20 seconds, and the laser walls
-are the rare "you two cowards, FIGHT" punishment — not the game's executioner.
+**"I read their arc, I pulled the trigger, and they're GONE."** The super boost is the game's one
+gun, sword and dodge-roll at once: any time you have a sip of fuel, you can hang in the air for a
+breath, aim, and detonate yourself across the screen. Land it on a rival and they rocket off
+screaming. Miss, hit the wall behind them, bounce, and fire the return shot. Every touch that
+doesn't kill visibly chunks the victim's fuel gauge — and a dry tank means no escape super, so
+every hit advances a kill. Rounds are decided by somebody DOING something, in 10–20 seconds, and
+the laser walls are the rare "you two cowards, FIGHT" punishment — not the game's executioner.
 
-## Diagnosis (why contact currently doesn't decide rounds)
+## Why v2 (design rationale — read before arguing with the numbers)
 
-1. **Most contact is a no-op.** `Player.gd` `IMPACT_MIN = 800` (hardcoded const) requires 800 px/s
-   *relative closing speed* for a smash; `normal_boost_max_speed` is 760, so a deliberate boost-ram
-   into a drifting rival usually falls into `_soft_separate()` (a flat 300 px/s nudge). Four blobs
-   drift through each other → "traffic accidents."
-2. **Landed hits have no lasting cost.** The victim's first surface contact clears hitstun AND
-   refunds fuel (`_on_bounced`), the side **bumper walls reflect them back into play** at 0.86
-   restitution, and the blast zone is ~1000px past the stage edge (`dev_arena.json` bounds
-   −1000/2900). A smash that doesn't instantly kill resets to zero progress.
-3. **Bots don't hunt.** `InputBot._decide()` re-rolls `randf() < aggression` every reaction tick
-   (L4 goes passive 22% of ticks mid-chase), supers need `dist < 280 && fuel > 55`, the charge hold
-   is a random 0.45–1.1s during which the bot freezes and the target leaves, and aim has zero target
-   lead. No edge-guarding, no leader focus, no punishment for idlers.
-4. **Sudden death pays too well.** With few kills, most rounds reach 20s; lasers then hand out kill
-   credits + survival points to whoever floats longest. That's how L2 won a match and an idle human
-   banked 9 points.
+The v1 spec fixed lethality inside the charge-hold super model. The owner's feedback exposes that
+model's real problem: **the game's only kill move was double-taxed.** To land a super you had to
+(a) bank fuel (power scaled with fuel fraction), (b) stand still charging (power scaled with hold
+time), and (c) still aim it. Result: players hoard, freeze, and whiff — QA's "traffic accidents"
+were a symptom of a kill move too expensive to fire. The owner's un-charged model removes both
+taxes and keeps only the skill that matters: **aim and timing.**
 
-Fix order matters: **(1) make contact decisive, (2) make bots seek contact, (3) gate the freebies,
-(4) demote sudden death to a backstop.** Pillars touched: 2 (no camping — idle-hunt enforces it),
-3 (chain hits are the comedy), 4 (death cheap & authored). Nothing here adds standable ground,
-health bars, or HUD clutter.
+What the un-charged model buys, measured against the pillars:
+- **Pillar 1 (low floor, high ceiling):** floor drops (any fuel = a real blast); ceiling *rises* —
+  super-chaining through bounces, dodge-supers, wall-climbs, second-try return shots.
+- **Pillar 2 (constant motion):** hoarding dies. Fuel is pure mobility currency; there is no
+  "saving up for a big one." The aim-hover is hard-capped at 2s with an auto-fire — it can never
+  become camping (same clause that legalizes the Black Hole channel, GDD §2 scope note).
+- **Pillar 3 (physics comedy):** every super is all-in (dumps the tank), so every super is a
+  commitment gag — and smashed bodies stay lethal projectiles (§2), so chains survive.
+- **Pillar 4 (death cheap & funny):** the self-destruct is *always* violent now — a panic recovery
+  super at 8 fuel launches just as hard as a full-tank one. Aiming it is the whole gamble.
+- **GDD §4.6 recovery triad — PROTECTED and sharpened:** hitstun → no mid-air refuel → fuel-gated
+  recovery. The gate changes shape: instead of "did I bank enough *power*," it's "do I have *any*
+  fuel above the minimum, and can I snap-aim the counter before I cross the line." The smash sting
+  (§2.2) attacks exactly this gate: a stung victim below `super_boost_min_fuel` has NO escape super
+  — sting → starve → kill is the new authored kill loop. See §9 test 6, which QA must pass in both
+  directions.
+
+Fix order: **(1) rebuild the super, (2) make contact two-tier and decisive, (3) rebuild bot intent
+on the new model, (4) gate the freebies, (5) demote sudden death.** Nothing here adds standable
+ground, health bars, or HUD clutter.
 
 ---
 
-## 1. Contact decisiveness
+## 1. The un-charged super boost (replaces the charge model)
 
-### 1.1 Tuning changes (`src/core/Tuning.gd` — exact names, current → new)
+### 1.1 Behavior (exact)
+
+- **Press super** (with `fuel >= super_boost_min_fuel`): enter **AIM state**.
+  - Velocity is kept (`super_aim_velocity_keep = 1.0` — entering aim is NOT a brake, see 1.3),
+    then decays under `super_aim_damp` (proportional, per-sec) toward a hover.
+  - Gravity is scaled by `super_aim_gravity = 0.25` while aiming — floaty, cinematic, readable.
+  - The stick steers the aim arrow. No thrust, no drift, no fuel drain while aiming.
+- **Release super** (or reach `super_aim_max = 2.0` s → **AUTO-FIRE** in current aim direction;
+  no stick input ever = straight up, which is the funny default):
+  - `velocity += aim_dir * super_boost_impulse_full` (2800, unchanged), clamped by `max_speed`.
+  - **Fuel set to 0** — the super always dumps the whole tank (GDD §4.2 identity kept). Power is
+    **constant regardless of tank level**: 5 fuel fires exactly as hard as 100.
+  - `super_active` window opens for `super_active_time = 0.45` s (this is the §2 smash license;
+    replaces the hardcoded `_super_recent = 0.6`).
+  - `super_refire_lockout = 0.25` s before another aim can start (buffer-spam guard).
+- **No cancel.** Once you enter AIM you are committed to firing within 2s — this is the
+  telegraph: enemies see the rev-up (§1.4) and get their dodge window. The only out is being
+  smashed (below).
+- **Smashed while aiming:** aim CANCELS, **fuel retained**, normal knockback/hitstun applies.
+  (Firing on stun would dump the victim's recovery tank — that would break the §4.6 triad.)
+- **Bounce while aiming:** allowed, does not cancel. The bounce launch then decays under aim damp
+  (a floaty pop) and the bounce refunds fuel as normal. This enables "aim during the bounce beat."
+- **Shoved while aiming:** the shove impulse applies (you drift), aim continues. Only a smash
+  cancels.
+
+### 1.2 Why drain-all (not a flat cost)
+
+A flat cost (e.g. 30) allows 3 airborne supers back-to-back with zero surface contact — floaty,
+and hoarding returns ("save enough for two"). Drain-all forces every super chain **through a
+bounce** (`fuel_per_bounce = 20 ≥ super_boost_min_fuel = 5`), which is exactly the owner's own
+chain scenario ("miss → hit the bounce surface behind them → immediately super back") and keeps
+the bounce-powered-jetpack identity load-bearing: **surfaces are the combo system.**
+
+### 1.3 Why aim entry keeps full velocity (the lethality guard)
+
+If entering AIM cut velocity (old model: ×0.25), pressing super would be a **free air-brake** — a
+smashed victim flying out at 3000 px/s could erase their death for free. With keep = 1.0 and
+`super_aim_damp = 2.5`, decay is honest:
+
+| situation | v₀ | after 0.3s aim | distance drifted in 0.3s / 0.5s / 2.0s |
+|---|---|---|---|
+| neutral drift | 400 px/s | 189 px/s | 76 / 102 / 143 px — reads as a graceful hover |
+| smashed at cap | 3000 px/s | 1417 px/s | 634 / 853 / 1192 px — you are still dying while you aim |
+
+So for neutral play the freeze fantasy holds (near-hover in under half a second), while a smashed
+victim who dawdles in aim drifts across the blast line. The recovery gamble becomes **snap-aim the
+counter within ~0.2–0.3s of stun end** — the skill moment we want. All four aim constants live in
+Tuning so the movement-courses loop (`docs/specs/v1_movement_courses.md`) can retune them.
+
+### 1.4 Telegraphy (readability > prettiness)
+
+- Reuse the existing charge visuals with new meaning: the **ring** (`_charge_ring`) fills over
+  `super_aim_max` (a 2s fuse, yellow → red as auto-fire nears); the **arrow** shows aim at full
+  size from frame 1 (power no longer scales, so the arrow shouldn't grow); exhaust rev-up stays.
+- The read for opponents: *ring appearing = a blast is coming within 2s, arrow = where.* That is
+  the dodge/counter window — do not shrink or hide it.
+
+### 1.5 Tuning changes (exact)
 
 | Constant | Current | New | Rationale |
 |---|---|---|---|
-| `smash_impact_min` (**NEW** — move `Player.gd` const `IMPACT_MIN` into Tuning) | 800 (const) | **620** | `normal_boost_max_speed` = 760: a committed boost-ram vs a ~200 px/s drifter closes at ~560–760 and must register as a (light) smash. Passive trampoline bounces launch at ~930 px/s, so incidental crossings already exceeded 800 today — 620 adds *deliberate pokes*, not noise. |
-| `smash_impulse_base` | 600 | **500** | With the lower gate, light hits must stay light. The base shrinks; the speed-scaled term carries the weight. |
-| `smash_impulse_from_attacker` | 1.1 | **1.35** | The victim must exit meaningfully faster than the attacker arrived. Full-charge super at ~2400 px/s impact → impulse ≈ 500 + 2400×1.35 ≈ 3740, clamped by `max_speed` 3000 → victim launches at cap. A boost-ram at 760 → ~1525 launch: a real poke, not a kill. |
-| `hitstun_base` / `hitstun_per_impulse` / `hitstun_max` | 0.15 / 0.00025 / 0.55 | **unchanged** | The recovery window is the skill heart (GDD §4.6, "protect this interaction"). At the 3000 cap a victim is helpless for ~1650px of travel — with the tightened bounds (§1.3) that's lethal from mid-stage, while a hit at the stage's far side still leaves a recovery gamble. Do not touch. |
-| `smash_self_retain` | 0.1 | **unchanged** | Attacker stopping on impact is correct (you don't ride your victim off the edge). |
-| `max_speed` | 3000 | **unchanged** | Cap = attacker's own super ceiling; raising it makes self-destructs unrecoverable too. |
+| `super_boost_impulse_full` | 2800 | **unchanged** | Launch speed was never the problem. |
+| `super_boost_min_fuel` | 15.0 | **5.0** | Owner: "even 5%." Also makes the sting-starve kill loop (§2.2) meaningful: 30-fuel sting drops a 34-fuel victim below the line. |
+| `super_charge_time` / `super_charge_min_frac` / `super_charge_freeze` / `super_charge_glide_damp` | — | **REMOVED** | Charge model dies. Delete `_sb_charge` scaling in `Player.gd`; the fuel-fraction multiplier on launch (`clampf(fuel/fuel_max...)`) dies with it. |
+| **`super_aim_max`** (NEW) | — | **2.0** | Owner cap. Auto-fire, never a hover-camp (Pillar 2). |
+| **`super_aim_gravity`** (NEW) | — | **0.25** | Floaty aim; at ≤2s the max free-fall drop is ≤ ~200px — you sag, you don't plummet, you can't hang. |
+| **`super_aim_damp`** (NEW) | — | **2.5** | §1.3 table. |
+| **`super_aim_velocity_keep`** (NEW) | — | **1.0** | §1.3. Kept as a constant so the courses loop can experiment with entry-snap without code changes. |
+| **`super_active_time`** (NEW) | — | **0.45** | Smash license window ≈ 1200px of travel at full speed — beyond that your super is spent and you're a body, not a missile. Replaces the hardcoded `_super_recent = 0.6` (Black Hole channel-break keeps using the same flag). |
+| **`super_refire_lockout`** (NEW) | — | **0.25** | Prevents buffered double-fires at a spring. |
+| **`pu_unlimited_super_lockout`** (NEW) | — | **1.0** | While `fuel_locked` (Unlimited Boost), the refire lockout is 1.0s instead — the powerup is a super machine-gun by design (GDD §5) but 20 supers in 8s is not a game. ~6 supers per pickup. |
+| `fuel_per_bounce` | 20.0 | **unchanged** | 20 ≥ min_fuel 5 = one bounce always re-arms a super. The chain rhythm depends on this ordering — if either number changes, keep `fuel_per_bounce ≥ 2× super_boost_min_fuel`. |
 
-### 1.2 Smash sting — hits now have a lasting cost (decided: YES, fuel drain; NO input lock)
+Edge cases: `force_super_boost()` (Ring of Fire) is now fully consistent — every super is
+full-power. Aim cannot start while stunned (intent already zeroed), while channeling (existing
+cancel rules), or while dead/frozen. Spawn-protected players CAN aim/fire (escaping spawn is
+legal). Buffered super presses during hitstun (≤ `input_buffer` before stun end) fire the aim
+state on the first free frame — this IS the recovery gamble input.
 
-**Every heavy smash bites a chunk out of the victim's tank.**
+---
 
-- **NEW `smash_sting_fuel = 30.0`** — on `receive_smash()` with `impulse.length() >=
-  smash_sting_min_impulse`, victim fuel −30 (floored at 0), applied before hitstun.
-- **NEW `smash_sting_min_impulse = 1500.0`** — boost-pokes (~1500 launch) sit right at the line;
-  supers and hard chain-hits always sting; soft bumps never do.
-- **NO fuel lock / input lock.** A lock would break GDD §4.6 ("a recovery *window* always exists")
-  — ring-outs must come from momentum, not from disabled controls. The sting instead attacks the
-  *fuel* side of the triad: hitstun → no mid-flight refuel → **now-smaller** tank for the recovery
-  gamble. Banking fuel before a fight still pays (a full-tank victim survives one smash and it
-  should); a half-tank victim who eats a super is nearly dry — the NEXT hit kills. This converts
-  non-lethal hits (wall slams, floor saves) into visible attrition on the HUD fuel bar: every hit
-  advances a kill.
-- **Edge cases:** `invincible` / `_spawn_protect` early-outs skip the sting (already return before
-  knockback). Counter-shield reflection stings the attacker (they got smashed — consistent).
-  `_smash_cd = 0.3` already rate-limits sting spam. Sting fires on explosion knockback too (it
-  routes through the same impulse path) — correct, bombs should scare people.
+## 2. Two-tier contact: SHOVE vs SMASH
 
-### 1.3 Body-contact momentum transfer (sub-threshold contact stops being invisible)
+**Owner model adopted:** the super is the only *reliable* launch; ordinary contact is honest
+physics. v1's light-smash tier (impact gate at 620 so boost-rams cause hitstun) is **dropped** —
+it would have re-created traffic-accident noise with extra steps. But strict "supers only" would
+kill chain-reaction comedy (Pillar 3), so smashed bodies stay weapons:
 
-Replace `_soft_separate()`'s flat 300 px/s with a relative-speed-scaled shove:
+### 2.1 Smash eligibility rule (the one rule to implement)
 
-- **NEW `soft_bump_scale = 0.4`**, **`soft_bump_min = 250.0`**, **`soft_bump_max = 550.0`** —
-  push = `clamp(rel_speed * soft_bump_scale, soft_bump_min, soft_bump_max)` along the separation
-  axis. Two blobs crossing paths now visibly shoulder-check each other (Pillar 3 chain-reaction
-  texture) without triggering hitstun. No kill credit, no sting — it's a shove, not a hit.
+A body contact is a **SMASH** (knockback + hitstun + kill credit + sting) iff:
 
-### 1.4 Blast-zone tightening (`levels/dev_arena.json` — data, not code)
+```
+(attacker.super_active OR attacker.in_hitstun)          # a fired super, or a flying smashed body
+AND rel_closing_speed >= smash_impact_min (900)          # safety gate vs spent/grazing contact
+AND attacker is the faster body                          # existing tiebreak, unchanged
+```
+
+Everything else is a **SHOVE** (§2.3). Existing special contacts are untouched: Star contact-launch,
+Counter Shield parry, storm balls, explosions, props (props keep the plain speed gate — a fast
+heavy ball doesn't need a super license, it IS one).
+
+| Constant | Current | New | Rationale |
+|---|---|---|---|
+| `smash_impact_min` (**NEW** — move `Player.gd` const `IMPACT_MIN` into Tuning, INV-6) | 800 (const) | **900** | Only checked for eligible attackers. A super arrives at 2200–2800 within its 0.45s window — always passes. A stunned body launched at cap passes until it decays. Passive spring crossings (~930 px/s) never smash regardless — they fail eligibility. The gate exists so an end-of-window graze doesn't feel random. |
+| `smash_impulse_base` | 600 | **500** | Speed-scaled term carries the weight. |
+| `smash_impulse_from_attacker` | 1.1 | **1.35** | Super at ~2500 impact → impulse ≈ 500 + 2500×1.35 ≈ 3875 → victim exits at `max_speed` cap. Every clean super launches at cap = decisive. Chain body at cap → same. **This is the first knob DOWN (→1.2) if rounds get too short (<8s median).** |
+| `hitstun_base` / `hitstun_per_impulse` / `hitstun_max` | 0.15 / 0.00025 / 0.55 | **unchanged** | GDD §4.6: "protect this interaction." Ring-outs come from momentum, never from being frozen to death. Do not touch — see §9 test 6's explicit both-ways check. |
+| `smash_self_retain` | 0.1 | **unchanged** | You stop on impact; you don't ride the victim off the edge. |
+| `max_speed` | 3000 | **unchanged** | Cap = your own super ceiling; raising it makes self-destructs unrecoverable too. |
+
+### 2.2 Smash sting — hits have a lasting cost (carried from v1, now the kill-setup engine)
+
+- **NEW `smash_sting_fuel = 30.0`** — on `receive_smash()` with impulse ≥
+  `smash_sting_min_impulse`, victim fuel −30 (floored at 0), applied before hitstun.
+- **NEW `smash_sting_min_impulse = 1500.0`** — all supers and chain hits sting; Star contact
+  (900) and Counter reflect (1400) sit below the line by design (powerups launch, they don't
+  starve); explosions sting only near the epicenter (1600 center, linear falloff) — bombs should
+  scare people.
+- **NO input/fuel lock** — the sting attacks the *fuel* side of the §4.6 triad instead: hitstun →
+  no mid-air refuel → and now, if the sting dropped you below `super_boost_min_fuel` (5), **no
+  escape super at all**. Sting → starve → kill is the authored 2-hit kill on a mid-tank victim
+  (34 fuel − 30 = 4 < 5). A full-tank victim survives one smash with a full-power counter in hand
+  — banking fuel still pays, for *defense*.
+- **Edge cases:** `invincible`/`_spawn_protect` early-outs skip the sting (already return before
+  knockback). `_smash_cd = 0.3` rate-limits sting spam. A victim stung mid-AIM keeps their
+  (pre-sting) tank? **No** — sting applies, aim cancels with the *stung* fuel retained. Consistent:
+  the hit cost you 30 fuel whether you were aiming or not.
+
+### 2.3 The SHOVE — sub-super contact stops being invisible
+
+Replace `_soft_separate()`'s flat 300 px/s with a momentum-scaled body-check. Since shoves are now
+the ONLY sub-super player contact, they get more authority than v1 gave them:
+
+- **NEW `soft_bump_scale = 0.5`**, **`soft_bump_min = 250.0`**, **`soft_bump_max = 700.0`** —
+  push = `clamp(rel_speed * soft_bump_scale, min, max)` along the separation axis, applied
+  mutually. A committed boost-ram (rel ~700) shoulder-checks the rival at ~350 px/s — visible,
+  positional, **no hitstun** (they keep full control and can boost back: honest physics, and near
+  an edge it's a real threat that the victim can always answer).
+- **NEW `shove_credit_min_rel = 500.0`** — a shove at rel speed ≥ 500 sets the shoved player's
+  `last_attacker` (standard `kill_credit_window`). A body-check that carries someone over the
+  line must credit the checker, not read as a suicide — that would be a rage generator.
+- No sting, no hitstun, no `smashed` event (shoves never satisfy `survival_requires_contact`).
+
+### 2.4 Blast-zone tightening (`levels/dev_arena.json` — data, not code; carried from v1)
 
 | Bound | Current | New | Rationale |
 |---|---|---|---|
-| `left` / `right` | −1000 / 2900 | **−620 / 2520** | Side runway drops ~1000px → ~660px past the stage edge. A stunned victim at ≥2000 px/s horizontal crosses before `hitstun_max` expires (0.55s × 2000 = 1100px) — a clean smash near the edge now KILLS. A player who merely drifts off in control recovers in <0.5s of boost (4600 px/s² accel) — the recovery gamble survives. |
-| `top` | −1350 | **−950** | Spring + supercharge apex is ~y −400; 550px of headroom remains. A full vertical super (rise ≈ 2800²/2g ≈ 2450px) still self-destructs off the top — the comedy knob is untouched, just 400px sooner. |
-| `bottom` | 1780 | **unchanged** | Floor spans the full stage; bottom ring-outs are rare and fine. |
+| `left` / `right` | −1000 / 2900 | **−620 / 2520** | Runway past the stage edge drops to ~660px ≈ 0.22s at cap speed. A cap-speed smash near the edge kills before the stun ends; a mid-stage victim regains control with roughly one snap-aim's worth of runway left (§1.3) — the recovery gamble survives, barely, which is where it belongs. A player who merely drifts off in control recovers in <0.5s of boost. |
+| `top` | −1350 | **−950** | Spring + supercharge apex ~y −400; 550px headroom remains. A full vertical super still self-destructs off the top — the comedy knob, 400px sooner. |
+| `bottom` | 1780 | **unchanged** | Floor spans the stage; bottom ring-outs are rare and fine. |
 
-Laser walls spawn at the new bounds — see §4 for their speed.
+Laser walls spawn at the new bounds — §5.
 
 ---
 
-## 2. Bot intent overhaul (`InputBot.gd` + `BotProfile.gd`)
+## 3. Bot intent overhaul (`InputBot.gd` + `BotProfile.gd`)
 
-Bots keep playing by human rules (INV-8, no cheating). All changes are execution/intent quality.
+Bots keep playing by human rules (INV-8). The v1 "bank-then-strike" model dies with the charge —
+there is no power to bank. The new readable rhythm is **bounce → hunt → AIM → BLAST → dive to
+refuel → repeat**, and the new skill axes are *aim quality* and *aim speed*.
 
-### 2.1 New `BotProfile` dials (6) + retuned existing dials
+### 3.1 Dials — retained, replaced, new
 
-| Dial | L1 | L2 | L3 | L4 | L5 | What it does |
+| Dial | L1 | L2 | L3 | L4 | L5 | Notes |
 |---|---|---|---|---|---|---|
-| `aim_error` (rad) | 0.70 | 0.50 | 0.32 | **0.16** | 0.06 | (existing; L4 0.18→0.16) |
-| `reaction_time` (s) | 0.50 | 0.38 | 0.28 | **0.16** | 0.10 | (existing; L4 0.18→0.16) |
-| `recovery_skill` | 0.20 | 0.40 | 0.60 | **0.82** | 0.95 | (existing; L4 0.80→0.82) |
-| `aggression` | 0.25 | 0.45 | **0.65** | **0.85** | 0.95 | (existing; L3 0.60→0.65, L4 0.78→0.85) |
-| **`target_lead`** (0–1) | 0.0 | 0.15 | 0.5 | 0.85 | 1.0 | Aim at `target_pos + target_vel * (dist / expected_attack_speed) * target_lead` instead of current position. The single biggest hit-rate fix. |
-| **`commit_time`** (s) | 0.0 | 0.4 | 0.8 | 1.3 | 1.5 | Once the hunt roll succeeds, `hunt` stays TRUE for this long — no re-rolling every reaction tick. L4 stops abandoning chases mid-flight. |
-| **`attack_range`** (px) | 240 | 280 | 340 | 460 | 520 | Replaces hardcoded `dist < 280` super gate. |
-| **`strike_fuel`** | 40 | 50 | 55 | 70 | 70 | Replaces hardcoded `fuel > 55`. L4/L5 *bank then strike* — their supers land at ~0.7+ fuel fraction = launch speeds that actually kill (§1.1 math). |
-| **`edge_guard`** (0–1) | 0.0 | 0.0 | 0.3 | 0.7 | 0.9 | When an opponent is off-stage (outside `stage_rect()`, inside bounds) and this roll passes, pursue and smash them *outward* instead of waiting. Self-preservation gate: only while own `fuel >= 35` AND own position inside `bounds.grow(-250)` — guards must not become suicides. |
-| **`leader_focus`** (0–1) | 0.0 | 0.0 | 0.25 | 0.6 | 0.8 | Target selection: with probability `leader_focus`, target the current score leader (via `arena.scores`) if within 1.5× `attack_range`; else nearest. At 0–0 or self-leading, falls back to nearest. Gives the score race a villain and keeps a lucky L2 honest. |
+| `aim_error` (rad) | 0.70 | 0.50 | 0.32 | **0.16** | 0.06 | existing; L4 0.18→0.16 |
+| `reaction_time` (s) | 0.50 | 0.38 | 0.28 | **0.16** | 0.10 | existing; L4 0.18→0.16 |
+| `recovery_skill` | 0.20 | 0.40 | 0.60 | **0.82** | 0.95 | existing; governs recovery-super aim/timing only — the recovery super itself is now always full power |
+| `aggression` | 0.25 | 0.45 | **0.65** | **0.85** | 0.95 | existing; L3 0.60→0.65, L4 0.78→0.85 |
+| **`target_lead`** (0–1) | 0.0 | 0.15 | 0.5 | 0.85 | 1.0 | NEW (from v1). Aim at `target_pos + target_vel * (dist / super_boost_impulse_full) * target_lead`. The single biggest hit-rate fix. |
+| **`commit_time`** (s) | 0.0 | 0.4 | 0.8 | 1.3 | 1.5 | NEW (from v1). Hunt stays TRUE this long once rolled — no re-rolling every tick. |
+| **`attack_range`** (px) | 240 | 280 | 340 | 460 | 520 | NEW (from v1). Replaces hardcoded `dist < 280`. |
+| **`refuel_floor`** | 15 | 20 | 25 | 35 | 35 | NEW — **replaces v1's `strike_fuel`**. Below this, the bot prioritizes diving to a bounce surface over hunting; it also gates starting an attack run (travel + post-miss escape budget, not power). |
+| **`super_aim_time`** (s) | 1.4 | 1.0 | 0.6 | 0.3 | 0.18 | NEW — max time spent in AIM before firing at the best current solution. L1 hangs comically (sometimes hits the 2s auto-fire); L5 snap-fires. Replaces v1's charge-release rule. |
+| **`edge_guard`** (0–1) | 0.0 | 0.0 | 0.3 | 0.7 | 0.9 | NEW (from v1). Pursue off-stage victims and smash them outward. Self-preservation gate: own `fuel >= refuel_floor` AND own position inside `bounds.grow(-250)`. |
+| **`leader_focus`** (0–1) | 0.0 | 0.0 | 0.25 | 0.6 | 0.8 | NEW (from v1). With this probability, target the score leader if within 1.5× `attack_range`; else nearest. Gives the race a villain; keeps a lucky L2 honest. |
+| **`dodge_super`** (0–1) | 0.0 | 0.0 | 0.0 | 0.5 | 0.8 | NEW — the owner's dodge-counter, botified: when an enemy enters AIM within 500px with their aim within 0.5 rad of me, roll per reaction tick → fire my own super perpendicular/away (prefer a direction that lands on a bounce surface — refuel follows). Max once per enemy aim window. |
 
-### 2.2 Behavior rules (implementable, dial-free)
+### 3.2 Behavior rules (implementable, dial-free)
 
-1. **Aim-locked charge release** (replaces `_sb_hold = randf_range(0.45, 1.1)`): while charging,
-   keep steering aim at the *led* target; release when the angle to the led target is within
-   `aim_error * 0.5` **or** hold reaches 1.2s (forced release). Low-`target_lead` bots (L1/L2)
-   still whiff constantly because their lead is wrong — the comedy survives, the freeze-and-pray
-   doesn't.
-2. **Bank-then-strike:** while hunting with `fuel < strike_fuel`, dive toward the nearest bounce
-   surface (aim down-toward-stage, boost only if falling away from it) instead of drifting at the
-   target. Produces the readable rhythm: bounce-bounce-bank → charge → BLAST.
-3. **Punish passivity (all levels):** arena tracks per-player `secs_since_input` (reset on any
-   boost/super press; ticking only during COMBAT). When a living player exceeds
-   **`idle_hunt_after = 4.0`** (NEW, Tuning), the **nearest living bot** overrides its target
-   selection with that player until they press boost/super. Even L1 flailing *at* the idler is
-   correct — Pillar 2 says camping never pays, and passive bouncing is camping.
-4. **Existing survival-first recovery loop is untouched** — `_danger_recover()` already works and
-   is the reason bots stopped free-falling; edge-guard sits *behind* it in priority.
+1. **Aim-timed release** (replaces `_sb_hold = randf_range(0.45, 1.1)` and the charge hold): enter
+   AIM when hunting, target within `attack_range`, and `fuel >= refuel_floor`. While aiming, keep
+   steering at the *led* target; fire when the angle error < `aim_error * 0.5` **or** aim time
+   reaches `super_aim_time`. Low-lead bots still whiff constantly — the comedy survives, the
+   freeze-and-pray doesn't.
+2. **Refuel rhythm** (replaces bank-then-strike): while `fuel < refuel_floor`, dive toward the
+   nearest bounce surface (aim down-toward-stage; boost only if falling away from it). One bounce
+   = +20 = re-armed; this beat is FAST now and reads as the bot's drum pattern.
+3. **Punish passivity (all levels, carried from v1):** arena tracks per-player `secs_since_input`
+   (reset on boost/super press, ticks only during COMBAT). Past **`idle_hunt_after = 4.0`** (NEW,
+   Tuning), the nearest living bot overrides its targeting to the idler until they press
+   something. Pillar 2: passive bouncing is camping.
+4. **Survival-first recovery loop untouched** — `_danger_recover()` stays top priority;
+   edge-guard sits behind it. Its super is now always full power, so L1's comedy self-destructs
+   get *bigger*, not rarer.
+5. **Dodge-super (L4/L5)** per the `dodge_super` dial — this is the showcase of the new model:
+   the human commits to an aim, the menace bots *move*.
 
-### 2.3 Per-level behavior targets (what QA should see)
+### 3.3 Per-level behavior targets (what QA should see)
 
-- **L2 — the punchline (stays comedic, stops winning):** no nerf to its comedy (aim 0.5,
-  recovery 0.40, suicides stay). It stops winning because its three income streams dry up:
-  sudden-death point showers (<25% of rounds, §4), untouched-survivor points (§3), and nobody
-  contesting its lucky leads (`leader_focus` on L4/L5 hunts any L2 that gets ahead). Zero
-  `edge_guard`, near-zero `target_lead` = its kill rate stays a punchline.
-- **L3 — the fair fight:** leads a little, commits a little, guards occasionally. A new human
-  should trade rounds with it roughly evenly.
-- **L4 — the menace:** banks to 70 fuel, leads shots at 0.85, commits 1.3s to a chase,
-  edge-guards at 0.7, focuses the leader. The human should feel *hunted* whenever they're ahead.
-- **L5 — reserved (campaign/hard mode):** all dials near max; not in the v0 lineup, but the table
-  above ships so `bot_levels` stays hot-swappable.
-
----
-
-## 3. Scoring guard — idle accrual
-
-**Primary fix is §2.3 rule 3** (idle players get attacked — design-honest, Pillar 2). **Backstop
-(also ships):**
-
-- **NEW `survival_requires_contact = true`** (Tuning, bool): the survival point is only awarded if
-  the survivor **dealt or received at least one smash** (a `smashed` event where they were attacker
-  or victim; soft bumps don't count) during the round. Contact flags persist across a double-KO
-  revive within the same round; reset at ROUND_INTRO.
-- *Rationale:* kills already require contact by definition; this closes the last freebie. Counting
-  *received* smashes keeps skilled evasion legal — surviving under fire scores, hiding untouched
-  doesn't. Edge case: a 2-alive round where the rival insta-suicides with zero contact → survivor
-  gets +0 (banner still names them; delta shows `+0`). Acceptable — show up to score.
-- ROUND_END banner unchanged; the deltas line already communicates `+0` honestly.
+- **L2 — the punchline (stays comedic, stops winning):** aim 0.5, lead 0.15, 1.0s hangs in AIM —
+  its supers are dodgeable fireworks. Its income streams stay dry (SD <25%, survival gate §4,
+  L4/L5 `leader_focus` hunts any lucky lead). Suicides stay.
+- **L3 — the fair fight:** a new human trades rounds with it roughly evenly.
+- **L4 — the menace:** leads at 0.85, snap-aims in 0.3s, dodge-supers half the time, edge-guards
+  at 0.7, focuses the leader. Being ahead should feel *hunted*.
+- **L5 — reserved** (campaign/hard mode); table ships so `bot_levels` stays hot-swappable.
 
 ---
 
-## 4. Sudden death pacing — demote the lasers to a backstop
+## 4. Scoring guard — idle accrual (carried from v1 unchanged)
 
-Target: **<25% of rounds ever reach SUDDEN_DEATH** (was 55–60%). §1 + §2 do the heavy lifting;
-these changes cap the damage when SD does fire:
+Primary fix is §3.2 rule 3 (idlers get attacked). Backstop that also ships:
+
+- **NEW `survival_requires_contact = true`** (Tuning, bool): the survival point requires the
+  survivor to have **dealt or received ≥1 smash** (a `smashed` event; shoves don't count) during
+  the round. Contact flags persist across a double-KO revive; reset at ROUND_INTRO.
+- Counting *received* smashes keeps skilled evasion legal — surviving under fire scores, hiding
+  untouched doesn't. Edge case: rival insta-suicides with zero contact → survivor +0 (banner still
+  names them, deltas show `+0` honestly). Show up to score.
+
+---
+
+## 5. Sudden death pacing — demote the lasers to a backstop (carried from v1 unchanged)
+
+Target: **<25% of rounds reach SUDDEN_DEATH** (was 55–60%). §1–§3 do the heavy lifting.
 
 | Constant | Current | New | Rationale |
 |---|---|---|---|
-| `sudden_death_time` | 20.0 | **unchanged** | Lowering it would *raise* the share of laser-decided rounds. 20s stays the "you two cowards" line; combat lethality is what keeps rounds under it. |
-| `laser_close_time` | 10.0 | **6.0** | Max combat clock drops 30s → 26s. Wall speed on the new bounds: ~1580px to center / 6s ≈ **263 px/s** — visibly scary, still dodgeable. |
-| **NEW `laser_revive_start_frac`** | — | **0.4** | Double-KO revive path: lasers spawn **already 40% closed** (walls at ≈ the visible screen edges — immediately on-camera, solving half the visibility problem for free) and close over the remaining ≤3.6s. If lasers were already active and further than 40% (timer-SD then double-KO), keep the current positions: `frac = max(current, laser_revive_start_frac)`. |
+| `sudden_death_time` | 20.0 | **unchanged** | Lowering it would *raise* the laser-decided share. |
+| `laser_close_time` | 10.0 | **6.0** | Wall speed on new bounds ≈ 263 px/s — visibly scary, dodgeable. Max combat clock 26s. |
+| **NEW `laser_revive_start_frac`** | — | **0.4** | Double-KO revive: lasers spawn already 40% closed (≈ visible screen edges — instantly on-camera) and close over ≤3.6s. If already further closed, keep current: `frac = max(current, 0.4)`. |
 
-**Revive-path timing fix (the 36.3s breach):** worst case is now double-KO at ~20s → 0.8s banner →
-≤3.6s close → decided ≤ ~25s combat, ≤30s wall-clock BOUNCE→ROUND_END including freezes. Revived
-players spawn at the **two spawn points nearest stage center** (never inside/behind a part-closed
-wall). One revive max per round, unchanged.
-
----
-
-## 5. SD wall visibility — edge warning flicker (decided: cheapest that reads)
-
-Chosen over camera pull-back (camera is fixed single-screen by design, FEEL §7 — don't touch it).
-
-- **NEW `sd_warning_lead = 3.0`** (Tuning): starting at `round_clock = sudden_death_time −
-  sd_warning_lead`, two full-height **~24px translucent danger columns** (laser-red, on a
-  CanvasLayer — two ColorRects, no shader) pulse at 2Hz (alpha 0.15 ↔ 0.45) at the screen's left
-  and right edges. This is the "3s warning flicker" the round-loop spec §3 pre-authorized.
-- At SD start the columns stop pulsing and become **wall trackers**: each column clamps to the
-  screen edge while its laser is off-screen, then snaps onto the wall's real x once it enters the
-  frame (the real wall render replaces/overlaps it). Players always know where death is.
-- Revive path: no lead pulse needed (walls spawn at ≈ screen edges, instantly visible); trackers on.
+**Revive-path timing (the 36.3s breach):** worst case double-KO at ~20s → 0.8s banner → ≤3.6s
+close → decided ≤ ~25s combat, ≤30s wall-clock BOUNCE→ROUND_END including freezes. Revived players
+spawn at the two spawn points nearest stage center (never inside/behind a part-closed wall). One
+revive max per round, unchanged.
 
 ---
 
-## 6. Match-end readability
+## 6. SD wall visibility — edge warning flicker (carried from v1 unchanged)
 
-- **Backing panel:** MATCH_END banner + final scoreline + `A — REMATCH  B — QUIT` prompt sit on a
-  single chunky rounded panel (Theme StyleBoxFlat: dark fill ~#141428 at **85% opacity**, corner
-  radius ~24px, 48px padding, thin outline in the winner's color). Built in the .tscn as a scene,
-  per studio UI rules. Text must be legible over ANY frozen chaos behind it.
-- **Laser/SD cleanup:** on **ROUND_END entry**, free (not just halt) all SD nodes — laser walls,
-  their glow/particles, and the §5 warning columns. QA screenshots MATCH_END: zero laser pixels.
+- **NEW `sd_warning_lead = 3.0`** (Tuning): from `round_clock = sudden_death_time − 3.0`, two
+  full-height ~24px translucent laser-red columns (two ColorRects on a CanvasLayer, no shader)
+  pulse at 2Hz (alpha 0.15 ↔ 0.45) at the screen's left/right edges — the round-loop spec §3
+  pre-authorized "3s warning flicker."
+- At SD start the columns become **wall trackers**: clamped to the screen edge while the laser is
+  off-screen, snapping onto the wall's real x when it enters frame. Players always know where
+  death is. Revive path: no lead pulse (walls spawn ≈ on-screen); trackers on.
 
 ---
 
-## 7. New/changed constants — one block (implementation checklist)
+## 7. Match-end readability (carried from v1 unchanged)
+
+- **Backing panel:** MATCH_END banner + final scoreline + `A — REMATCH  B — QUIT` on a chunky
+  rounded panel (Theme StyleBoxFlat: ~#141428 at 85% opacity, corner radius ~24px, 48px padding,
+  thin outline in the winner's color). Built as a .tscn scene per studio UI rules. Legible over
+  ANY frozen chaos.
+- **Cleanup:** on ROUND_END entry, free (not halt) all SD nodes — walls, glow/particles, warning
+  columns. QA screenshots MATCH_END: zero laser pixels.
+
+---
+
+## 8. New/changed constants — one block (implementation checklist)
 
 ```
 # Tuning.gd — changed
 smash_impulse_base          600  -> 500
 smash_impulse_from_attacker 1.1  -> 1.35
+super_boost_min_fuel        15.0 -> 5.0
 laser_close_time            10.0 -> 6.0
 
-# Tuning.gd — new
-smash_impact_min        = 620.0   # was Player.gd const IMPACT_MIN=800; MOVE into Tuning (INV-6)
+# Tuning.gd — REMOVED (charge model dies; delete fuel-fraction launch scaling in Player.gd too)
+super_charge_time, super_charge_min_frac, super_charge_freeze, super_charge_glide_damp
+
+# Tuning.gd — new (super v2)
+super_aim_max             = 2.0
+super_aim_gravity         = 0.25
+super_aim_damp            = 2.5
+super_aim_velocity_keep   = 1.0
+super_active_time         = 0.45    # replaces hardcoded _super_recent = 0.6
+super_refire_lockout      = 0.25
+pu_unlimited_super_lockout = 1.0
+
+# Tuning.gd — new (contact)
+smash_impact_min        = 900.0   # was Player.gd const IMPACT_MIN=800; MOVE into Tuning (INV-6)
 smash_sting_fuel        = 30.0
 smash_sting_min_impulse = 1500.0
-soft_bump_scale         = 0.4     # replaces hardcoded 300.0 in Player._soft_separate
+soft_bump_scale         = 0.5     # replaces hardcoded 300.0 in Player._soft_separate
 soft_bump_min           = 250.0
-soft_bump_max           = 550.0
-laser_revive_start_frac = 0.4
-sd_warning_lead         = 3.0
-idle_hunt_after         = 4.0
+soft_bump_max           = 700.0
+shove_credit_min_rel    = 500.0
+
+# Tuning.gd — new (round/SD/scoring)
+laser_revive_start_frac   = 0.4
+sd_warning_lead           = 3.0
+idle_hunt_after           = 4.0
 survival_requires_contact = true
 
-# BotProfile.gd — new dials (per-level values in §2.1 table)
-target_lead, commit_time, attack_range, strike_fuel, edge_guard, leader_focus
+# DO-NOT-TOUCH (by design): hitstun_base/per_impulse/max, smash_self_retain, max_speed,
+#   super_boost_impulse_full, sudden_death_time, fuel_per_bounce (keep >= 2x super_boost_min_fuel)
+
+# BotProfile.gd — new dials (per-level values in §3.1)
+target_lead, commit_time, attack_range, refuel_floor, super_aim_time, edge_guard,
+leader_focus, dodge_super          # (v1's strike_fuel is DEAD — do not implement it)
 
 # levels/dev_arena.json — bounds
 left -1000 -> -620 · right 2900 -> 2520 · top -1350 -> -950 · bottom unchanged
 
 # Arena — expose for QA (read-only via eval)
-round_stats: per-round {length_s, end_cause, entered_sd, kills[], survivor_had_contact}
+round_stats: per-round {length_s, end_cause, entered_sd, kills[{killer,victim,off_stage}],
+  survivor_had_contact, supers_fired[{who,fuel_at_fire,aim_time,auto_fired}]}
 ```
 
 ---
 
-## 8. Success criteria (QA-verifiable via gbplay eval + screenshots)
+## 9. Success criteria (QA-verifiable via gbplay eval + screenshots)
 
-Sample harness: 10-round bot-driven sample = standard lineup with P1 given an L3 bot brain via
-eval; "idle match" = P1 untouched. Arena must expose `round_stats` (§7).
+Harness: 10-round bot-driven sample = standard lineup with P1 given an L3 brain via eval; "idle
+match" = P1 untouched. Arena must expose `round_stats` (§8).
 
-**Lethality & pacing**
-1. **Kills carry the game:** across the 10-round sample, **≥70% of rounds end by ring-out/hazard
-   kill with `round_clock < 20s`** (`end_cause != "laser"`, `entered_sd == false`).
-2. **SD is rare:** **≤25% of rounds** ever enter SUDDEN_DEATH (was 55–60%).
-3. **Round length:** median combat length (BOUNCE→decided) **10–22s**; every round decided by
-   combat clock **≤26s** and wall-clock BOUNCE→ROUND_END **≤30s** — including one QA-forced
-   double-KO revive round (this retests the 36.3s breach).
-4. **Decisive-hit micro-test:** eval-place a no-input victim (40 fuel) at stage center and a
-   scripted attacker 400px away; attacker fires a full-tank, full-charge super flat at the victim →
-   **victim dies by ring-out within 2.5s in ≥7/10 trials**. Repeat with victim at 100 fuel + a
-   scripted stun-end counter-boost → **victim survives in ≥3/10** (the GDD §4.6 recovery window
-   still exists — if this fails, lethality went too far; dial `smash_impulse_from_attacker` down,
-   not hitstun up).
-5. **Sting:** a qualifying smash (impulse ≥ 1500) drops victim fuel by exactly `smash_sting_fuel`
-   (eval before/after); a soft bump changes fuel by 0; a spawn-protected victim takes no sting.
+**The new super**
+1. **Full power at any fuel:** eval attacker fires at 100 fuel, then at 6 fuel → victim launch
+   speeds identical within 5%. Attacker at 4 fuel (< min) → aim state never starts.
+2. **Drain-all + chain rhythm:** scripted: super at a wall → bounce → fuel reads ≥20 → second
+   super fires within 1.5s of the first at identical launch speed. (The Chimney course in
+   `v1_movement_courses.md` is the full acceptance test of this loop — run its wall-climb script
+   as part of this QA pass.)
+3. **Aim is bounded:** hold super 3s → auto-fire at 2.0 ± 0.1s, in last-stick direction (straight
+   up if never aimed). No state where a player hangs past 2.1s.
+4. **Aim is not a brake:** eval a body at 3000 px/s entering aim → after 0.3s its speed is
+   1300–1550 px/s (decay curve §1.3, ±10%).
+5. **Smashed-while-aiming:** victim in AIM takes a smash → aim cancels, no super fires, fuel =
+   pre-hit fuel − sting (eval), normal hitstun applies.
+
+**Lethality & the protected recovery window**
+6. **Both directions (GDD §4.6 — the spec fails if EITHER side fails):**
+   a. *Kill:* no-input victim at **4 fuel** mid-stage; scripted full super from 400px, flat →
+      ring-out ≤2.5s in **≥8/10**.
+   b. *Recovery:* same hit, victim at **100 fuel** with a scripted counter-super fired within
+      0.25s of stun end, aimed opposite → survives in **≥5/10**. Same victim, no counter → dies
+      in ≥7/10. If (b) fails low, dial `smash_impulse_from_attacker` down — never hitstun up.
+7. **Sting:** qualifying smash drops victim fuel by exactly 30; a shove changes fuel by 0; a
+   spawn-protected victim takes no sting. Sting-starve: victim at 34 fuel takes one super → fuel
+   4 → their super press does nothing (aim never starts).
+8. **Two-tier reads:** two players boost-ram (rel closing 650–750) → zero hitstun events, both
+   receive a shove ≥ `soft_bump_min`; a shove at rel ≥500 that carries the victim out credits the
+   shover as killer (not a suicide).
+9. **Chain smash (Pillar 3):** A, B, C eval-placed in a line; A supers B; B's stunned body
+   reaches C → C enters hitstun (a real `smashed` event) in **≥7/10** alignments.
+
+**Pacing**
+10. **Kills carry the game:** ≥70% of the 10-round sample ends by ring-out/hazard kill with
+    `round_clock < 20s` (`end_cause != "laser"`, `entered_sd == false`).
+11. **SD is rare:** ≤25% of rounds enter SUDDEN_DEATH (was 55–60%).
+12. **Round length:** median combat length 10–22s; every round decided ≤26s combat clock and ≤30s
+    wall-clock BOUNCE→ROUND_END — including one QA-forced double-KO revive round (retests the
+    36.3s breach).
 
 **Skill hierarchy**
-6. **L4 > L2:** across **5 full idle-P1 matches** (standard [2,3,4] lineup), **L4 finishes above
-   L2 in ≥4/5 matches and L2 wins 0/5**. L2 still suicides ≥1×/match (comedy regression check).
-7. **Idle human punished:** in a full idle match, **P1 total score ≤2**, and P1 receives a smash
-   within **8s of BOUNCE in ≥70% of rounds** (idle-hunt firing).
-8. **Edge-guarding observable:** in the 10-round sample, **≥3 kills where the killing smash
-   connected while the victim was off-stage** (log flag in `round_stats.kills[]`).
+13. **L4 > L2:** across 5 full idle-P1 matches, L4 finishes above L2 in ≥4/5 and L2 wins 0/5. L2
+    still suicides ≥1×/match (comedy regression check).
+14. **Idle human punished:** full idle match → P1 total ≤2, and P1 receives a smash within 8s of
+    BOUNCE in ≥70% of rounds (idle-hunt firing).
+15. **Edge-guarding observable:** ≥3 kills in the sample where the killing smash connected while
+    the victim was off-stage (`kills[].off_stage`).
+16. **Dodge-super observable:** ≥2 logged events in the sample where an L4 bot fired a super
+    within 0.4s of an enemy entering AIM within 500px (`supers_fired[]` cross-referenced).
 
 **Sudden death & readability**
-9. **Warning reads:** in a QA-stalled round, a screenshot at `round_clock ≈ 18s` shows the pulsing
-   edge columns; at ≈20.5s shows the SD banner + wall trackers/walls.
-10. **Revive path:** forced double-KO → eval wall positions show **≥40% closed on the revive
-    frame**, both revived players spawn between the walls, and the round is decided **≤5s after
-    revive**.
-11. **MATCH_END clean:** screenshot shows the backing panel behind banner/scoreline/prompt (text
-    legible) and **zero laser/warning-column pixels**.
-12. **Survival gate:** eval-force a round where the survivor had no smash dealt/received → survivor
-    score unchanged (+0); a survivor who was hit once still gets +1.
+17. **Warning reads:** QA-stalled round screenshot at `round_clock ≈ 18s` shows the pulsing edge
+    columns; at ≈20.5s shows SD banner + wall trackers/walls.
+18. **Revive path:** forced double-KO → walls ≥40% closed on the revive frame, both revived
+    players spawn between the walls, round decided ≤5s after revive.
+19. **MATCH_END clean:** backing panel behind banner/scoreline/prompt, text legible, zero
+    laser/warning pixels.
+20. **Survival gate:** survivor with no smash dealt/received → +0; survivor who was hit once → +1.
 
-**Regressions (must still hold from v0_round_loop.md)**
-13. Round turnaround last-death→next BOUNCE ≤4.5s; 60fps criterion (avg ≥55, no hitch >100ms)
+**Regressions (from v0_round_loop.md)**
+21. Round turnaround last-death→next BOUNCE ≤4.5s; 60fps criterion (avg ≥55, no hitch >100ms)
     during a smash-heavy round; countdown lock and no-mid-round-respawn unchanged.
 
-## Out of scope
+## Out of scope / fallback knobs
 
-Powerup rebalance, new arenas/arena geometry beyond the `bounds` numbers, audio announcer, L5 in
-the default lineup, any hitstun/recovery-window changes (§4.6 triad is protected), camera changes,
-online. If criteria 1–3 pass but rounds now feel *too* short (<8s median), the first knob back is
-`smash_impulse_from_attacker` 1.35 → 1.2 — not the bot dials.
+Powerup rebalance beyond `pu_unlimited_super_lockout`, new arena geometry beyond `bounds`, audio,
+L5 in the default lineup, hitstun/recovery-window changes (§4.6 protected), camera changes, online.
+
+**If rounds get too short (<8s median) or feel random:** first knob is
+`smash_impulse_from_attacker` 1.35 → 1.2; second is `super_refire_lockout` 0.25 → 0.5. **If
+everyone always recovers (kills too rare):** first knob is `smash_sting_fuel` 30 → 40 (starves
+the escape super faster); second is `soft_bump_max` up (edge pressure). Never touch hitstun, and
+never re-introduce power scaling on the super — that decision is closed
+(`docs/DECISIONS.md` 2026-07-02) unless the movement-courses loop produces evidence against it.
