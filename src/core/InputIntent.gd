@@ -5,13 +5,11 @@ extends RefCounted
 
 var aim: Vector2 = Vector2.ZERO   # desired thrust direction, screen-relative, length 0..1
 var boost: bool = false           # normal boost held
-var super_boost: bool = false     # super boost pressed (edge) — legacy, unused by chargeable model
-var super_hold: bool = false      # super boost HELD (charge while held, fire on release)
+var super_hold: bool = false      # super HELD: press = enter AIM, release (or 2s cap) = fire
 var use_powerup: bool = false     # use powerup pressed (edge)
 var flap: bool = false            # wings flap pressed (edge)
 
 func clear_edges() -> void:
 	# call after consuming one-frame presses
-	super_boost = false
 	use_powerup = false
 	flap = false

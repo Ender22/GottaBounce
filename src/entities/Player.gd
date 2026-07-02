@@ -10,8 +10,6 @@ extends CharacterBody2D
 const LAYER_PLAYERS := 1 << 0
 const MASK_SURFACES := 1 << 2
 const BODY_RADIUS := 44.0
-const IMPACT_MIN := 800.0            # min RELATIVE closing speed for a body hit to count as a smash
-                                     # (below this, players just softly bounce apart — no knockback)
 const TUMBLE_SPEED := 9.4            # rad/s spin while stunned (~540 deg/s)
 
 var provider
@@ -20,6 +18,7 @@ var _last_aim := Vector2.UP
 var _supercharge_timer := 0.0
 var _stun_timer := 0.0
 var _smash_cd := 0.0
+var _shove_cd := 0.0           # rate-limits the mutual body-check push (spec §2.3)
 var _dead := false
 var _flash_timer := 0.0
 var _squash_timer := 0.0
@@ -45,12 +44,19 @@ var wings_flaps := 0         # Wings powerup (deferred; flap count remaining)
 var _channel_timer := 0.0    # Black Hole channel
 var _pulled := 0.0           # being pulled by a black hole right now (drift auto-brake off)
 var _aim_active := false     # stick past deadzone this frame (Ring of Fire launch direction)
-var _super_recent := 0.0     # just fired a super boost (deliberate-attack window vs channelers)
+var _super_recent := 0.0     # super_active window: just fired a super (smash license, spec §2.1;
+                             # also the deliberate-attack flag vs Black Hole channelers)
 var _boosting_now := false
-var _sb_charging := false    # chargeable super-boost: currently charging
-var _sb_charge := 0.0        # 0..1 charge level
+# --- un-charged super boost v2 (lethality spec §1): press = AIM hover, release/2s = full blast ---
+var _sb_aiming := false      # in the AIM state right now
+var _sb_aim_t := 0.0         # seconds spent aiming (auto-fire at Tuning.super_aim_max)
+var _sb_aim_dir := Vector2.UP  # last-stick aim during THIS aim window (never steered = straight up)
+var _sb_lockout := 0.0       # refire lockout countdown (buffer-spam guard)
+var _sb_buffer := 0.0        # buffered super press during hitstun (fires aim on first free frame)
 var _sb_was_held := false
 var _boost_was_held := false
+var secs_since_input := 0.0  # idle-hunt bookkeeping (spec §3.2 rule 3): reset on boost/super input,
+                             # ticked by the match mode during COMBAT only
 const WINGS_FLAP_IMPULSE := 540.0
 var _down_angle := PI * 0.5    # local-gravity direction angle (for body orientation, P8)
 var last_attacker = null       # for kill credit (P9); cleared after a couple seconds
@@ -68,6 +74,18 @@ func is_boosting() -> bool:
 
 func get_aim() -> Vector2:
 	return _last_aim
+
+func is_super_aiming() -> bool:
+	return _sb_aiming
+
+func get_super_aim_dir() -> Vector2:
+	return _sb_aim_dir
+
+func is_super_active() -> bool:
+	return _super_recent > 0.0
+
+func in_hitstun() -> bool:
+	return _stun_timer > 0.0
 
 var _body: Node2D                  # body root (squash/tumble applies here)
 var _skin_flip: Node2D             # facing flip (scale.x = ±1), separate from squash scale
@@ -248,6 +266,7 @@ func _physics_process(delta: float) -> void:
 		_frozen_preaim()
 		return
 	_smash_cd = maxf(0.0, _smash_cd - delta)
+	_shove_cd = maxf(0.0, _shove_cd - delta)
 	_super_recent = maxf(0.0, _super_recent - delta)
 	_pulled = maxf(0.0, _pulled - delta)
 	_spawn_protect = maxf(0.0, _spawn_protect - delta)
@@ -272,18 +291,27 @@ func _physics_process(delta: float) -> void:
 		_update_visual(_last_aim, false, false, false, delta)
 		return
 
+	_sb_lockout = maxf(0.0, _sb_lockout - delta)
+	_sb_buffer = maxf(0.0, _sb_buffer - delta)
 	var intent: InputIntent = provider.poll() if provider != null else InputIntent.new()
 	var stunned := _stun_timer > 0.0
 	var just_activated := intent.use_powerup
 	if stunned:
 		_stun_timer -= delta
+		# Buffered super press during hitstun (spec §1 edge case): remember it for input_buffer
+		# so it fires the AIM state on the first free frame — the recovery gamble input.
+		# (_sb_was_held reads false through a stun — the zeroed intent below keeps it false —
+		# so a held button re-buffers every frame and press-edges fire on the first free frame.)
+		if intent.super_hold and not _sb_was_held:
+			_sb_buffer = Tuning.input_buffer
 		intent = InputIntent.new()   # no control while stunned (FEEL §4.6)
 	elif intent.use_powerup:
 		PowerupSystem.try_use(self)   # never during hitstun (intent zeroed above) or dead (spec §2)
+	if intent.boost or intent.super_hold:
+		secs_since_input = 0.0       # idle-hunt tracking (spec §3.2 rule 3)
 
 	var g := GravityField.get_gravity_at(global_position)
 	_down_angle = g.angle()
-	velocity += g * delta
 
 	# Default thrust is straight UP (jetpack nozzle points down) whenever the stick is centered, so
 	# holding boost with no direction always lifts you straight up — easy recovery.
@@ -293,28 +321,30 @@ func _physics_process(delta: float) -> void:
 	if aiming:
 		_last_aim = aim_dir
 
-	# --- Chargeable super-boost: press to nearly freeze + aim, hold to charge, release to blast ---
+	# --- Un-charged super boost (lethality spec §1): press = AIM, release / 2s cap = full blast ---
 	var sh: bool = intent.super_hold
-	if sh and not _sb_was_held and not _sb_charging and fuel >= Tuning.super_boost_min_fuel:
-		_sb_charging = true
-		_sb_charge = 0.0
-		velocity *= Tuning.super_charge_freeze        # near-freeze the instant you start charging
-	if _sb_charging:
-		if sh:
-			_sb_charge = minf(1.0, _sb_charge + delta / Tuning.super_charge_time)
-			# Glide while aiming: ease the speed proportionally (never to a dead stop) so you keep
-			# drifting slightly as you line up the blast, instead of freezing in place.
-			velocity *= maxf(0.0, 1.0 - Tuning.super_charge_glide_damp * delta)
-		else:
-			var frac: float = lerpf(Tuning.super_charge_min_frac, 1.0, _sb_charge)
-			velocity += aim_dir * Tuning.super_boost_impulse_full * frac * clampf(fuel / Tuning.fuel_max, 0.0, 1.0) * speed_mult
-			fuel = 0.0
-			_sb_charging = false
-			_super_recent = 0.6
-			EventBus.super_boosted.emit(self)
+	var want_aim: bool = (sh and not _sb_was_held) or (_sb_buffer > 0.0 and not stunned)
+	if want_aim and not _sb_aiming and _sb_lockout <= 0.0 and _channel_timer <= 0.0 \
+			and fuel >= Tuning.super_boost_min_fuel:
+		_sb_aiming = true
+		_sb_aim_t = 0.0
+		_sb_aim_dir = aim_dir if aiming else Vector2.UP   # never steered = straight up (the funny default)
+		_sb_buffer = 0.0
+		velocity *= Tuning.super_aim_velocity_keep   # NOT a brake (§1.3) — decay below is honest
+	if _sb_aiming:
+		_sb_aim_t += delta
+		if aiming:
+			_sb_aim_dir = aim_dir   # the stick steers the aim arrow
+		# proportional decay toward a hover; no thrust, no drift, no fuel drain while aiming
+		velocity *= maxf(0.0, 1.0 - Tuning.super_aim_damp * delta)
+		if (not sh) or _sb_aim_t >= Tuning.super_aim_max:
+			_fire_super(_sb_aim_t >= Tuning.super_aim_max)
 	_sb_was_held = sh
 
-	var boosting := intent.boost and fuel > 0.0 and not _sb_charging   # no normal thrust while charging
+	# gravity — floaty while aiming (§1.1), full otherwise
+	velocity += g * (Tuning.super_aim_gravity if _sb_aiming else 1.0) * delta
+
+	var boosting := intent.boost and fuel > 0.0 and not _sb_aiming   # no normal thrust while aiming
 	_boosting_now = boosting
 	# Starting a fresh boost cuts momentum, so a tap of boost lets you reclaim control of your path.
 	if boosting and not _boost_was_held:
@@ -333,7 +363,7 @@ func _physics_process(delta: float) -> void:
 			velocity += aim_dir * add
 		if not fuel_locked:
 			fuel = maxf(0.0, fuel - Tuning.normal_boost_drain() * delta)
-	elif not _sb_charging and _pulled <= 0.0:
+	elif not _sb_aiming and _pulled <= 0.0:
 		# (skipped while black-hole-pulled: the auto-brake toward vx=0 would fight the pull)
 		var target_x := Tuning.air_drift_max_speed * clampf(intent.aim.x, -1.0, 1.0)
 		velocity.x = move_toward(velocity.x, target_x, Tuning.air_drift_accel * delta)
@@ -360,6 +390,21 @@ func _physics_process(delta: float) -> void:
 	# Re-cap after bounce/smash resolution (a bounce adds launch speed on top of tangential).
 	velocity = velocity.limit_length(Tuning.max_speed)
 	_update_visual(aim_dir, boosting, aiming, stunned, delta)
+
+## Fire the super (lethality spec §1.1): full power at ANY fuel >= min — the tank level never
+## scales the launch. Dumps the whole tank (every super chain routes through a bounce), opens the
+## super_active smash-license window, and starts the refire lockout.
+func _fire_super(auto_fired: bool) -> void:
+	var fuel_at_fire := fuel
+	var aim_time := _sb_aim_t
+	velocity += _sb_aim_dir * Tuning.super_boost_impulse_full * speed_mult
+	fuel = 0.0                    # drain-all identity (§1.2); Unlimited Boost refills via fuel_locked
+	_sb_aiming = false
+	_sb_aim_t = 0.0
+	_super_recent = Tuning.super_active_time
+	_sb_lockout = Tuning.pu_unlimited_super_lockout if fuel_locked else Tuning.super_refire_lockout
+	EventBus.super_boosted.emit(self)
+	EventBus.super_fired.emit(self, fuel_at_fire, aim_time, auto_fired)
 
 ## Suspension pre-aim (spec §1 COUNTDOWN): while frozen there is no physics, thrust, drift or fuel
 ## drain — but the stick still rotates the jetpack arrow so you can pre-aim the opening bounce.
@@ -525,10 +570,14 @@ func _handle_smashes() -> void:
 			if b.is_channeling() and not (_boosting_now or _super_recent > 0.0):
 				_soft_separate(b)
 				continue
-			# A real hit needs a hard CLOSING speed AND we must be the faster body (no double-apply).
-			# Otherwise the two just softly bounce apart — normal contact, no knockback/hitstun.
+			# Two-tier contact (lethality spec §2.1). SMASH iff:
+			#   (I am a fired super OR a flying stunned body)   -- the smash license
+			#   AND relative closing speed >= smash_impact_min   -- anti-graze safety gate
+			#   AND I am the faster body                         -- tiebreak, no double-apply
+			# Everything else is a SHOVE (§2.3): honest physics, no hitstun.
+			var eligible: bool = _super_recent > 0.0 or _stun_timer > 0.0
 			var rel: float = (velocity - b.velocity).length()
-			if _smash_cd <= 0.0 and rel >= IMPACT_MIN and (my_speed > b.velocity.length() or (is_equal_approx(my_speed, b.velocity.length()) and get_instance_id() < b.get_instance_id())):
+			if eligible and _smash_cd <= 0.0 and rel >= Tuning.smash_impact_min and (my_speed > b.velocity.length() or (is_equal_approx(my_speed, b.velocity.length()) and get_instance_id() < b.get_instance_id())):
 				var impulse := velocity.normalized() * (Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker)
 				b.receive_smash(impulse, self)
 				# Cancel most of your own momentum: you stop on impact rather than riding them off the edge.
@@ -539,21 +588,34 @@ func _handle_smashes() -> void:
 			else:
 				_soft_separate(b)
 		else:
-			# props (ball / crate / support): push them on a solid hit
-			if _smash_cd <= 0.0 and my_speed >= IMPACT_MIN and b.has_method("receive_smash"):
+			# props (ball / crate / support): plain speed gate — a fast heavy ball doesn't need a
+			# super license, it IS one (spec §2.1)
+			if _smash_cd <= 0.0 and my_speed >= Tuning.smash_impact_min and b.has_method("receive_smash"):
 				var impulse := velocity.normalized() * (Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker)
 				b.receive_smash(impulse, self)
 				_smash_cd = 0.3
 				return
 
-## Gentle mutual push so overlapping players slide apart instead of registering as hits.
-## Applied only to self each frame; the other player mirrors it, so separation is smooth.
+## The SHOVE (lethality spec §2.3): momentum-scaled body-check along the separation axis.
+## Visible, positional, NO hitstun/sting — the victim keeps full control and can boost back.
+## Applied to self each frame it triggers; the other player mirrors it in their own frame, so the
+## push is mutual. Rate-limited (_shove_cd) so an overlap doesn't machine-gun kicks.
 func _soft_separate(other) -> void:
+	if _shove_cd > 0.0:
+		return
 	var d: Vector2 = global_position - other.global_position
 	var dist: float = d.length()
-	var min_d := BODY_RADIUS * 2.0
-	if dist > 0.01 and dist < min_d:
-		velocity += (d / dist) * 300.0 * ((min_d - dist) / min_d)
+	if dist <= 0.01:
+		return
+	var rel: float = (velocity - other.velocity).length()
+	var push := clampf(rel * Tuning.soft_bump_scale, Tuning.soft_bump_min, Tuning.soft_bump_max)
+	velocity += (d / dist) * push
+	_shove_cd = 0.3
+	# Body-check credit (§2.3): a shove that carries someone over the line must credit the
+	# checker, not read as a suicide. Standard kill_credit_window via credit_attacker.
+	if rel >= Tuning.shove_credit_min_rel and other is Player \
+			and other._spawn_protect <= 0.0 and not other.invincible:
+		other.credit_attacker(self)
 
 func receive_smash(impulse: Vector2, attacker) -> void:
 	if _dead:
@@ -573,11 +635,17 @@ func receive_smash(impulse: Vector2, attacker) -> void:
 				attacker.receive_counter_launch(dir * Tuning.pu_counter_reflect_impulse, self)
 		return
 	if invincible or _spawn_protect > 0.0:
-		return   # Star / fresh-spawn: take zero knockback, zero hitstun
+		return   # Star / fresh-spawn: take zero knockback, zero hitstun, zero sting
 	if _channel_timer > 0.0:
 		# Black Hole: any hit during the channel cancels it — no fuel refill (spec 3.6)
 		_channel_timer = 0.0
 		channel_broken = true
+	# Smash sting (lethality spec §2.2): qualifying hits chunk the victim's tank BEFORE hitstun.
+	# Dropping below super_boost_min_fuel starves the escape super — sting -> starve -> kill.
+	if impulse.length() >= Tuning.smash_sting_min_impulse and not fuel_locked:
+		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel)
+	# Smashed while aiming (spec §1.1): aim CANCELS, (stung) fuel retained, no super fires.
+	cancel_super_aim()
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
 	if attacker != null and attacker is Player:
 		last_attacker = attacker
@@ -595,6 +663,10 @@ func receive_counter_launch(impulse: Vector2, holder) -> void:
 	if _channel_timer > 0.0:
 		_channel_timer = 0.0
 		channel_broken = true
+	# sting line applies here too — Counter reflect (1400) sits below it BY DATA (spec §2.2)
+	if impulse.length() >= Tuning.smash_sting_min_impulse and not fuel_locked:
+		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel)
+	cancel_super_aim()   # it stuns: any hitstun-applying hit cancels an in-progress aim
 	velocity = impulse.limit_length(Tuning.max_speed)
 	if holder != null and holder is Player:
 		last_attacker = holder
@@ -618,28 +690,33 @@ func apply_impulse_vector(v: Vector2) -> void:
 	# blocks explosion knockback on the holder (spec 3.3/3.4). Hazards still instakill.
 	if _dead or invincible or counter_active:
 		return
+	# Explosion sting (lethality §2.2): impulse arrives with linear falloff (Forces.gd), so the
+	# threshold means only near-epicenter blasts starve fuel — bombs should scare people.
+	if v.length() >= Tuning.smash_sting_min_impulse and _spawn_protect <= 0.0 and not fuel_locked:
+		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel)
 	velocity = (velocity + v).limit_length(Tuning.max_speed)
 
 func force_super_boost() -> void:
 	# Ring of Fire (spec 3.7): instant full-power super-boost — current aim if the stick is past
 	# deadzone, else current velocity direction, else straight up. Full control kept (no hitstun),
-	# actual fuel untouched; any in-progress super charge is consumed/replaced.
+	# actual fuel untouched; any in-progress aim is consumed/replaced. Fully consistent with the
+	# un-charged model: every super is full power (lethality §1.5 edge cases).
 	if _dead:
 		return
-	cancel_super_charge()
+	cancel_super_aim()
 	var dir := Vector2.UP
 	if _aim_active:
 		dir = _last_aim
 	elif velocity.length() > 40.0:
 		dir = velocity.normalized()
 	velocity = dir * Tuning.super_boost_impulse_full
-	_super_recent = 0.6   # a ring launch is a super — it can break a channel like one
+	_super_recent = Tuning.super_active_time   # a ring launch is a super — smash license + channel-break
 	EventBus.super_boosted.emit(self)
 
-func cancel_super_charge() -> void:
-	# cancel an in-progress super-boost charge, fuel retained (Black Hole / Ring of Fire)
-	_sb_charging = false
-	_sb_charge = 0.0
+func cancel_super_aim() -> void:
+	# cancel an in-progress super AIM, fuel retained (smashed mid-aim / Black Hole / Ring of Fire)
+	_sb_aiming = false
+	_sb_aim_t = 0.0
 
 func start_channel(dur: float) -> void:
 	# Black Hole
@@ -682,10 +759,14 @@ func respawn(pos: Vector2) -> void:
 	_stun_timer = 0.0
 	last_attacker = null            # a new life never owes kill credit to the old one
 	_attacker_timer = 0.0
-	_sb_charging = false
-	_sb_charge = 0.0
+	_sb_aiming = false
+	_sb_aim_t = 0.0
+	_sb_aim_dir = Vector2.UP
+	_sb_lockout = 0.0
+	_sb_buffer = 0.0
 	_sb_was_held = false
 	_boost_was_held = false
+	secs_since_input = 0.0
 	_spawn_protect = SPAWN_PROTECT_TIME
 	# clear powerup state (PowerupSystem's death sweep also runs; this covers round respawns)
 	held_powerup = ""
@@ -726,7 +807,7 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 		var sx := 1.0
 		var sy := 1.0
 		# subtle grounded breathe while idle (kept under the bounce-squash multiply below)
-		if not boosting and not stunned and not _sb_charging:
+		if not boosting and not stunned and not _sb_aiming:
 			sy *= 1.0 + 0.02 * sin(_anim_t * 3.0)
 		if _squash_timer > 0.0:
 			_squash_timer = maxf(0.0, _squash_timer - delta)
@@ -760,22 +841,25 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			else:
 				_sprite.self_modulate = Color.WHITE
 	_update_contact_shadow()
+	# telegraphy (lethality §1.4): the ring is a 2s FUSE (fills toward auto-fire, yellow -> red),
+	# the arrow shows the aim at full size from frame 1 (power never scales), exhaust revs up.
+	var fuse := clampf(_sb_aim_t / Tuning.super_aim_max, 0.0, 1.0) if _sb_aiming else 0.0
 	if _fire:
 		var nozzle := -aim_dir * 44.0
 		var thrust_dir := -aim_dir
-		if _sb_charging:
-			# Engines revving up: smoke billows out the nozzle and a small flame grows as you charge,
-			# telegraphing the blast. Direction is -aim (out the nozzle, opposite where you'll launch).
+		if _sb_aiming:
+			# Engines revving up: smoke billows out the nozzle and a flame grows as the fuse burns,
+			# telegraphing the blast. Direction is out the nozzle, opposite where you'll launch.
 			_fire.emitting = true
 			_smoke.emitting = true
-			_fire.position = nozzle
-			_smoke.position = nozzle
-			_fire.direction = thrust_dir
-			_smoke.direction = thrust_dir
-			var rev := 0.4 + 0.9 * _sb_charge
+			_fire.position = -_sb_aim_dir * 44.0
+			_smoke.position = -_sb_aim_dir * 44.0
+			_fire.direction = -_sb_aim_dir
+			_smoke.direction = -_sb_aim_dir
+			var rev := 0.4 + 0.9 * fuse
 			_fire.initial_velocity_max = 300.0 * rev
 			_fire.scale = Vector2(rev, rev)
-			_smoke.scale = Vector2(1.0 + _sb_charge, 1.0 + _sb_charge)
+			_smoke.scale = Vector2(1.0 + fuse, 1.0 + fuse)
 		else:
 			_fire.emitting = boosting
 			_smoke.emitting = boosting
@@ -798,28 +882,31 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_fire.scale = Vector2(boost_amt, boost_amt)
 			_smoke.scale = Vector2.ONE
 	if _arrow:
-		var show_arrow := (aiming or _sb_charging) and not stunned
+		var show_arrow := (aiming or _sb_aiming) and not stunned
 		_arrow.visible = show_arrow
 		if show_arrow:
-			if _sb_charging:
-				_arrow.color = Color(1.0, 0.9, 0.3).lerp(Color(1.0, 0.2, 0.1), _sb_charge)
-				_arrow.scale = Vector2.ONE * (1.0 + 0.9 * _sb_charge)
-				_arrow.position = aim_dir * (70.0 + 95.0 * _sb_charge)
+			if _sb_aiming:
+				# full size from frame 1 — the arrow shows WHERE, the ring shows WHEN (§1.4)
+				_arrow.color = Color(1.0, 0.9, 0.3).lerp(Color(1.0, 0.2, 0.1), fuse)
+				_arrow.scale = Vector2.ONE * 1.9
+				_arrow.position = _sb_aim_dir * 165.0
+				_arrow.rotation = _sb_aim_dir.angle()
 			else:
 				_arrow.color = Color(1, 1, 1, 0.85)
 				_arrow.scale = Vector2.ONE
 				_arrow.position = aim_dir * 70.0
-			_arrow.rotation = aim_dir.angle()
+				_arrow.rotation = aim_dir.angle()
 	if _charge_ring:
-		if _sb_charging:
+		if _sb_aiming:
+			# the ring fills over super_aim_max: ring appearing = a blast within 2s (§1.4)
 			_charge_ring.visible = true
-			var ang := _sb_charge * TAU
+			var ang := fuse * TAU
 			var pts := PackedVector2Array()
 			for i in range(29):
 				var aa := -PI * 0.5 + ang * (float(i) / 28.0)
 				pts.append(Vector2(cos(aa), sin(aa)) * (BODY_RADIUS + 16.0))
 			_charge_ring.points = pts
-			_charge_ring.default_color = Color(1.0, 0.9, 0.2).lerp(Color(1.0, 0.25, 0.1), _sb_charge)
+			_charge_ring.default_color = Color(1.0, 0.9, 0.2).lerp(Color(1.0, 0.25, 0.1), fuse)
 		else:
 			_charge_ring.visible = false
 

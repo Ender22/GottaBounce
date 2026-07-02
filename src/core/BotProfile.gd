@@ -1,19 +1,44 @@
 class_name BotProfile
 extends RefCounted
-## The 4 difficulty dials (GAME_DESIGN §8). L1 = funny/flailing (self-rings-out a lot),
-## L5 = scary/precise. Difficulty is execution quality only — bots never cheat (INV-8).
+## Bot difficulty dials (lethality spec §3.1). L1 = funny/flailing (self-rings-out a lot),
+## L5 = scary/precise (reserved for campaign/hard mode — table ships so bot_levels stays
+## hot-swappable). Difficulty is execution quality only — bots never cheat (INV-8).
+## The v2 rhythm the dials serve: bounce -> hunt -> AIM -> BLAST -> dive to refuel -> repeat.
 
 var aim_error := 0.3        # radians of random aim jitter
 var reaction_time := 0.28   # seconds between decisions
-var recovery_skill := 0.6   # 0..1 chance of a clean edge recovery (low → panic-boosts off the map)
-var aggression := 0.6       # 0..1 hunt vs passive + super-boost eagerness
+var recovery_skill := 0.6   # 0..1 recovery-super aim/timing quality (low -> panic-boosts off the map)
+var aggression := 0.6       # 0..1 hunt-roll probability
+var target_lead := 0.5      # 0..1 lead the target by dist/super_impulse * this (the hit-rate dial)
+var commit_time := 0.8      # s a rolled hunt stays TRUE (no re-rolling every tick)
+var attack_range := 340.0   # px: enter AIM when hunting inside this
+var refuel_floor := 25.0    # below this fuel: dive to a bounce surface; also gates attack runs
+var super_aim_time := 0.6   # s max spent in AIM before firing at the best current solution
+var edge_guard := 0.0       # 0..1 pursue off-stage victims and smash them outward
+var leader_focus := 0.0     # 0..1 chance to target the score leader (within 1.5x attack_range)
+var dodge_super := 0.0      # 0..1 per-reaction-tick chance to counter-super an incoming aim
 
 static func for_level(level: int) -> BotProfile:
 	var p := BotProfile.new()
 	match clampi(level, 1, 5):
-		1: p.aim_error = 0.70; p.reaction_time = 0.50; p.recovery_skill = 0.20; p.aggression = 0.25
-		2: p.aim_error = 0.50; p.reaction_time = 0.38; p.recovery_skill = 0.40; p.aggression = 0.45
-		3: p.aim_error = 0.32; p.reaction_time = 0.28; p.recovery_skill = 0.60; p.aggression = 0.60
-		4: p.aim_error = 0.18; p.reaction_time = 0.18; p.recovery_skill = 0.80; p.aggression = 0.78
-		5: p.aim_error = 0.06; p.reaction_time = 0.10; p.recovery_skill = 0.95; p.aggression = 0.95
+		1:
+			p.aim_error = 0.70; p.reaction_time = 0.50; p.recovery_skill = 0.20; p.aggression = 0.25
+			p.target_lead = 0.0; p.commit_time = 0.0; p.attack_range = 240.0; p.refuel_floor = 15.0
+			p.super_aim_time = 1.4; p.edge_guard = 0.0; p.leader_focus = 0.0; p.dodge_super = 0.0
+		2:
+			p.aim_error = 0.50; p.reaction_time = 0.38; p.recovery_skill = 0.40; p.aggression = 0.45
+			p.target_lead = 0.15; p.commit_time = 0.4; p.attack_range = 280.0; p.refuel_floor = 20.0
+			p.super_aim_time = 1.0; p.edge_guard = 0.0; p.leader_focus = 0.0; p.dodge_super = 0.0
+		3:
+			p.aim_error = 0.32; p.reaction_time = 0.28; p.recovery_skill = 0.60; p.aggression = 0.65
+			p.target_lead = 0.5; p.commit_time = 0.8; p.attack_range = 340.0; p.refuel_floor = 25.0
+			p.super_aim_time = 0.6; p.edge_guard = 0.3; p.leader_focus = 0.25; p.dodge_super = 0.0
+		4:
+			p.aim_error = 0.16; p.reaction_time = 0.16; p.recovery_skill = 0.82; p.aggression = 0.85
+			p.target_lead = 0.85; p.commit_time = 1.3; p.attack_range = 460.0; p.refuel_floor = 35.0
+			p.super_aim_time = 0.3; p.edge_guard = 0.7; p.leader_focus = 0.6; p.dodge_super = 0.5
+		5:
+			p.aim_error = 0.06; p.reaction_time = 0.10; p.recovery_skill = 0.95; p.aggression = 0.95
+			p.target_lead = 1.0; p.commit_time = 1.5; p.attack_range = 520.0; p.refuel_floor = 35.0
+			p.super_aim_time = 0.18; p.edge_guard = 0.9; p.leader_focus = 0.8; p.dodge_super = 0.8
 	return p

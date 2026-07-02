@@ -47,7 +47,7 @@ class ScriptProvider:
 				break
 		_intent.aim = cur[1]
 		_intent.boost = cur[2]
-		_intent.super_boost = cur[3]
+		_intent.super_hold = cur[3]
 		_intent.use_powerup = false
 		_intent.flap = false
 		return _intent

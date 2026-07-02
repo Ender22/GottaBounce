@@ -14,6 +14,8 @@ var paused := false    # true during the sudden-death revive lock and the ROUND_
 var _left_x := 0.0
 var _right_x := 0.0
 var _center_x := 0.0
+var _start_l := 0.0
+var _start_r := 0.0
 var _speed_l := 0.0
 var _speed_r := 0.0
 var _top := 0.0
@@ -27,6 +29,8 @@ func setup(b: Rect2, center_x: float, close_time: float) -> void:
 	_bottom = b.end.y
 	_left_x = b.position.x
 	_right_x = b.end.x
+	_start_l = _left_x
+	_start_r = _right_x
 	_center_x = center_x
 	var ct := maxf(close_time, 0.01)
 	_speed_l = (center_x - _left_x) / ct
@@ -75,6 +79,16 @@ func left_x() -> float:
 
 func right_x() -> float:
 	return _right_x
+
+## Double-KO revive path (lethality spec §5): walls spawn already `frac` closed so they're
+## instantly on-camera. If a wall is already further closed (timer SD -> double-KO), keep it:
+## frac = max(current, frac). Remaining close time shrinks accordingly (speeds unchanged).
+func ensure_closed_frac(frac: float) -> void:
+	var l := lerpf(_start_l, _center_x, frac)
+	var r := lerpf(_start_r, _center_x, frac)
+	_left_x = maxf(_left_x, l)
+	_right_x = minf(_right_x, r)
+	_update_lines()
 
 func _update_lines() -> void:
 	var pulse := 1.0 + 0.18 * sin(_t * 14.0)

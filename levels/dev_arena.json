@@ -4,7 +4,7 @@
   "theme": "grass",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
-  "bounds": { "left": -1000, "right": 2900, "top": -1350, "bottom": 1780 },
+  "bounds": { "left": -620, "right": 2520, "top": -950, "bottom": 1780 },
   "platforms": [
     { "x": 64,   "y": 980, "w": 1792, "h": 128, "tier": "trampoline" },
     { "x": 64,   "y": 660, "w": 64,   "h": 320, "tier": "bumper" },

@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=6 format=3]
+[gd_resource type="Theme" load_steps=7 format=3]
 
 [sub_resource type="SystemFont" id="SystemFont_gbchunky"]
 font_names = PackedStringArray("Arial Rounded MT Bold", "Segoe UI Black", "Arial Black", "Verdana")
@@ -49,6 +49,22 @@ corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_matchend"]
+content_margin_left = 48.0
+content_margin_top = 48.0
+content_margin_right = 48.0
+content_margin_bottom = 48.0
+bg_color = Color(0.0784314, 0.0784314, 0.156863, 0.85)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
 [resource]
 default_font = SubResource("SystemFont_gbchunky")
 default_font_size = 24
@@ -77,6 +93,8 @@ CardName/colors/font_color = Color(1, 1, 1, 1)
 CardName/colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
 CardName/constants/outline_size = 8
 CardName/font_sizes/font_size = 26
+MatchEndPanel/base_type = &"PanelContainer"
+MatchEndPanel/styles/panel = SubResource("StyleBoxFlat_matchend")
 FuelBG/base_type = &"Panel"
 FuelBG/styles/panel = SubResource("StyleBoxFlat_fuel_bg")
 FuelFill/base_type = &"Panel"

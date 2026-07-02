@@ -39,16 +39,20 @@ var normal_boost_accel: float = 4600.0       # snappier thrust response
 var normal_boost_max_speed: float = 760.0     # a bit more top thrust speed for control
 var boost_rampup: float = 0.06
 
-# --- Super boost (FEEL §3.3) — now CHARGEABLE: press to nearly freeze + aim, hold to charge, release to blast ---
-var super_boost_impulse_full: float = 2800.0   # full-charge launch (committal, telegraphed)
-var super_boost_duration: float = 0.30
-var super_boost_min_fuel: float = 15.0
-var super_charge_time: float = 1.0             # full power after 1s; holding longer just buys aim time
-var super_charge_min_frac: float = 0.7         # power floor if released instantly — punchy even on a quick release (fuel ratio remains the power knob)
-var super_charge_freeze: float = 0.25          # momentum kept the instant you start charging (cut to 25%)
-var super_charge_glide_damp: float = 3.0       # per-sec proportional damping while charging — eases your
-                                               # speed but NEVER to a dead stop, so you keep drifting as you
-                                               # aim (gravity still nudges you). Higher = stops sooner.
+# --- Super boost v2: UN-CHARGED (docs/specs/v0_combat_lethality.md §1) ---
+# Press super (fuel >= min) -> AIM state (floaty hover, stick steers the arrow), release or
+# 2s auto-fire -> full-power blast that ALWAYS dumps the whole tank. Power never scales with
+# fuel or hold time — aim and timing are the only skill axes. DO NOT re-introduce power
+# scaling (docs/DECISIONS.md 2026-07-02).
+var super_boost_impulse_full: float = 2800.0   # constant launch impulse (5 fuel fires as hard as 100)
+var super_boost_min_fuel: float = 5.0          # "even 5%" — keep fuel_per_bounce >= 2x this
+var super_aim_max: float = 2.0                 # aim-hover hard cap; auto-fire, never a camp (Pillar 2)
+var super_aim_gravity: float = 0.25            # gravity scale while aiming — sag, don't plummet
+var super_aim_damp: float = 2.5                # per-sec proportional velocity decay while aiming (§1.3)
+var super_aim_velocity_keep: float = 1.0       # velocity kept on aim ENTRY — 1.0 = not a brake (§1.3)
+var super_active_time: float = 0.45            # smash-license window after firing (replaces _super_recent=0.6)
+var super_refire_lockout: float = 0.25         # min gap before another aim can start (buffer-spam guard)
+var pu_unlimited_super_lockout: float = 1.0    # refire lockout while fuel_locked (Unlimited Boost)
 
 # --- Boost control-retake ---
 var boost_enter_keep: float = 0.25             # starting a normal boost cuts momentum to this, so a
@@ -59,14 +63,26 @@ var supercharge_window: float = 0.20
 var supercharge_thrust_mult: float = 1.6
 var supercharge_bounce_mult: float = 1.4
 
-# --- Knockback & hitstun (FEEL §4) ---
-var smash_impulse_base: float = 600.0
-var smash_impulse_from_attacker: float = 1.1
+# --- Two-tier contact: SHOVE vs SMASH (lethality spec §2) ---
+# A body contact SMASHES (knockback + hitstun + sting + kill credit) only if the attacker is a
+# fired super (super_active) or a flying stunned body, AND closing speed >= smash_impact_min.
+# Everything else is a SHOVE: momentum-scaled push, no hitstun, honest physics.
+var smash_impact_min: float = 900.0          # min relative closing speed for an ELIGIBLE hit to smash
+var smash_impulse_base: float = 500.0
+var smash_impulse_from_attacker: float = 1.35 # first knob DOWN (->1.2) if rounds get too short (<8s median)
 var smash_self_retain: float = 0.1           # on a landed smash you keep only this much of YOUR momentum,
                                              # so you stop on impact instead of flying off the edge with them
-var hitstun_base: float = 0.15
+var smash_sting_fuel: float = 30.0           # sting: qualifying smashes chunk the victim's tank (§2.2)
+var smash_sting_min_impulse: float = 1500.0  # supers/chains sting; Star (900) & Counter (1400) don't
+var hitstun_base: float = 0.15               # DO-NOT-TOUCH (GDD §4.6 recovery triad is protected)
 var hitstun_per_impulse: float = 0.00025
 var hitstun_max: float = 0.55
+
+# --- The SHOVE — sub-super contact (lethality spec §2.3) ---
+var soft_bump_scale: float = 0.5             # push = clamp(rel_speed * scale, min, max), mutual
+var soft_bump_min: float = 250.0
+var soft_bump_max: float = 700.0
+var shove_credit_min_rel: float = 500.0      # shove at rel >= this sets last_attacker (body-check credit)
 
 # --- Explosions (FEEL §4.1) ---
 var explosion_radius: float = 280.0
@@ -88,8 +104,12 @@ var input_buffer: float = 0.10               # seconds
 var intro_pop_stagger: float = 0.35    # s between ROUND_INTRO spawn pop-ins
 var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat
 var round_end_freeze: float = 1.8      # s of KO freeze-frame + pip animation (hard cap 2.0)
-var sudden_death_time: float = 20.0    # s of combat before the laser walls activate
-var laser_close_time: float = 10.0     # s for the laser walls to fully meet at stage center
+var sudden_death_time: float = 20.0    # s of combat before the laser walls activate (DO-NOT-TOUCH)
+var laser_close_time: float = 6.0      # s for the laser walls to fully meet at stage center
+var laser_revive_start_frac: float = 0.4  # double-KO revive: lasers spawn already this far closed
+var sd_warning_lead: float = 3.0       # s before SD: pulsing edge-column warning (lethality §6)
+var idle_hunt_after: float = 4.0       # s of no input before the nearest bot hunts the idler (§3.2)
+var survival_requires_contact: bool = true  # survival point needs >=1 smash dealt/received (§4)
 var double_ko_window: float = 0.25     # s — simultaneous-death tiebreak window (GDD §7)
 var kill_credit_window: float = 2.5    # s — last-attacker kill credit (replaces Player.gd's 2.0)
 var match_target_score: int = 10       # first to this with a strict lead wins the match

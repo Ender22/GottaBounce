@@ -94,7 +94,7 @@ func _activate(id: String, player) -> void:
 			player.add_child(bubble)
 			_begin_effect(player, id, [bubble])
 		"black_hole":
-			player.cancel_super_charge()   # channeling replaces the charge, fuel retained (spec 3.6)
+			player.cancel_super_aim()   # channeling replaces an in-progress aim, fuel retained (spec 3.6)
 			player.channel_broken = false
 			player.silhouette = true
 			player.start_channel(Tuning.pu_black_hole_dur)

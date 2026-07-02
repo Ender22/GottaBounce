@@ -121,3 +121,33 @@ layout_mode = 2
 theme_type_variation = &"BannerPrompt"
 text = ""
 horizontal_alignment = 1
+
+[node name="MatchPanel" type="PanelContainer" parent="Root/CenterC"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+
+[node name="MatchBox" type="VBoxContainer" parent="Root/CenterC/MatchPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="MatchText" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchSub" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchPrompt" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerPrompt"
+text = ""
+horizontal_alignment = 1
