@@ -11,3 +11,4 @@ Desktop.ini
 # Tool output (screenshots, playtest logs)
 tools/out/
 *.log
+tools/__pycache__/

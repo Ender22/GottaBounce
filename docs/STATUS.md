@@ -25,7 +25,19 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
    5 levels, LevelLoader (JSON) + ArenaRenderer + ThreeSlice (diorama painting), Juice,
    CameraController, KillPipeline, EventBus. DevArena = current match scene (1v3, no scoring yet).
 
-## Session 2 progress
+## Session 2 progress (LATEST at bottom of this list)
+- [x] **v1 powerups SHIPPED** (all 7 + spawn director + telegraphy + HUD slot; every spec
+  criterion measured PASS; committed). Gaps: mutual-shield/star edge cases code-reviewed only,
+  unlimited-boost flame telegraph modest, no black-hole vignette. C1 comedy check unrun.
+- [x] **QA full round-loop pass done**: 18/19 PASS, zero crashes. KEY FINDING → combat lethality
+  is the #1 fun gap (kills = "traffic accidents", lasers decide ~60% of rounds, L2 bot won a
+  match, idle human scored 9). Full report in the QA agent transcript; criteria in spec.
+- [x] **Combat lethality + bot intent spec written & committed**
+  (docs/specs/v0_combat_lethality.md). Root cause found in code: smash_impact_min(800) >
+  normal_boost_max(760) — deliberate rams can't smash. Spec has exact Tuning changes, 6 new
+  BotProfile dials + L1-L5 table, smash sting (fuel erosion), survival_requires_contact,
+  laser_close 10→6 + part-closed revive lasers, SD edge flicker, match-end panel, 13 QA criteria.
+  **NOT YET IMPLEMENTED — this is the immediate next task.**
 - [x] Decals/props verified rendering (zero warnings).
 - [x] **v0 round loop SHIPPED** (docs/specs/v0_round_loop.md implemented in full): PartyMatch
   state machine, scoring w/ all edge cases, MatchHUD corner cards + banner system, sudden-death
@@ -35,19 +47,24 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
 - Screenshots: tools/out/rl_*.png (combat/round-end/sudden-death/etc).
 
 ## NEXT STEPS in priority order
-1. **QA full pass** on the round loop: the 19 criteria in docs/specs/v0_round_loop.md via
-   qa-playtester agent (programmer verified most technically; QA re-verifies + feel judgment +
-   bug hunt). Fix what it finds.
-2. **Implement docs/specs/v1_powerups.md** (icons ready in assets/powerups/): PowerupSystem +
-   pickups + the 7 powerups + spawner pacing; port/adapt from old project's PowerupSystem.gd.
-3. **Feel-tuning loop** (docs/reference/FEEL_REFERENCE.md targets): gbplay eval live Tuning
-   writes; measure bounce rhythm/heights; old values "controlled but not fun-verified".
-4. **Art fix list** (small): (a) far-zoom floor mat thin; (b) trampoline-floor "rope" up close;
-   (c) tumble rotation reads sideways; (d) Juice square particles → assets/fx/puff_soft.png +
-   star_sparkle.png now exist, wire them; (e) real font asset to replace SystemFont stack in
-   theme.tres; (f) art skull icon for PlayerCard; (g) name-tag blink inherit.
-5. Then: more arenas (level-designer, JSON), audio (assets/music + AudioManager port), title
-   screen + minimal menu (.tscn + Theme ONLY), Steam prep.
+1. **Implement docs/specs/v0_combat_lethality.md** (gameplay-programmer agent; spec is complete
+   and numbers-first — Tuning changes, InputBot/BotProfile overhaul, scoring guard, SD pacing/
+   visibility, match-end panel; expose round_stats via eval for QA). This converts "works" into
+   "fun" per QA. Touches Player/Tuning/InputBot/PartyMatch — nothing else in flight.
+2. **Combined QA pass**: the 13 lethality criteria + powerup C1 comedy check + powerup edge cases
+   flagged untested (two counter shields colliding, counter vs storm balls, two-star clang) +
+   3-match feel judgment. Fix findings.
+3. **Art fix list** (small): (a) far-zoom floor mat thin; (b) trampoline-floor "rope" up close;
+   (c) tumble rotation reads sideways; (d) wire assets/fx/puff_soft.png + star_sparkle.png into
+   Juice particles; (e) real font asset to replace SystemFont stack in theme.tres; (f) art skull
+   icon for PlayerCard; (g) name-tag blink inherit; (h) unlimited-boost flame telegraph pass;
+   (i) black-hole vignette.
+4. **More arenas** (level-designer role): 3-5 grass-theme JSON arenas with distinct hooks
+   (levels/dev_arena.json is the only one; schema in ARCHITECTURE/reference; spikes_strip.png
+   asset exists for a hazard arena). Then a second THEME (new art set via the pipeline).
+5. Then: audio (assets/music + AudioManager/MusicManager port from old project), title screen +
+   minimal menu (.tscn + Theme ONLY), settings/rebinding, Steam prep (docs/reference/
+   MASTER_BUILD_PLAN.md P19-P20 for the checklist).
 
 ## Watch out for (hard-won this session)
 - Start Chrome before art generation (extension connects only when Chrome runs).
