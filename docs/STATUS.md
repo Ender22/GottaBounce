@@ -2,7 +2,18 @@
 
 > The single always-current handoff doc. Update after EVERY commit. A fresh context reads this first.
 
-**Last updated:** 2026-07-02 (session 1)
+**Last updated:** 2026-07-02 (session 1, midday)
+
+## Session 1 progress snapshot
+- Core port from v1 DONE & verified (physics seams, Player, bots, LevelLoader, camera, Juice,
+  headless harness; DevArena dev scene = main).
+- Full v0 art set generated & committed ("Glossy Toybox"): 4 Bouncers + squash pose, grass
+  platform body (3-slice), 4 tier mats, bumper post, sky/hills/clouds, decals, bush/fence,
+  owner music copied. Prompts + intake gotchas in assets/CATALOG.md.
+- docs/briefs/arena_rendering.md (art-director): 3-slice+tiled centers, tier-mat readability
+  system, 7-layer diorama, shadows. IMPLEMENTATION IN FLIGHT (agent building ArenaRenderer).
+- docs/specs/v0_round_loop.md (game-designer): boot-to-match, state machine, sudden-death
+  lasers, scoring edge cases, HUD spec, 19 QA criteria. NOT yet implemented — next after renderer.
 
 ## Where we are
 Session 1: studio foundation. Repo initialized, validation tooling built and **proven end-to-end**

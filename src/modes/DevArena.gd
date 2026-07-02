@@ -1,7 +1,7 @@
 class_name DevArena
 extends Node2D
 ## Minimal dev match (v0 throwaway glue on keeper seams — ARCHITECTURE §3): loads one JSON level,
-## spawns 1 human (P1, action-map input) + 1 bot, wires CameraController + Juice + KillPipeline,
+## spawns 1 human (P1, action-map input) + 3 bots, wires CameraController + Juice + KillPipeline,
 ## and respawns the dead at a spawn point after a short delay. NO menus, NO scoring yet.
 ## Exposes the arena contract InputBot + Playtest rely on: players / scores / bounds /
 ## nearest_opponent() / stage_rect() / stage_center().
@@ -9,11 +9,9 @@ extends Node2D
 const LEVEL_PATH := "res://levels/dev_arena.json"
 const RESPAWN_DELAY := 1.0
 const BOT_LEVEL := 3
-# Per-player accent colors (P1 blue, bot desaturated grey-blue) + placeholder body fills.
-const P1_ACCENT := Color(0.30, 0.55, 1.0)
-const BOT_ACCENT := Color(0.6, 0.62, 0.7)
-const P1_BODY := Color(0.55, 0.75, 1.0)
-const BOT_BODY := Color(0.85, 0.62, 0.62)
+const NUM_BOTS := 3
+# Character skins: P1 is always pink; bots take blue/green/yellow in order.
+const BOT_SKINS: Array[String] = ["blue", "green", "yellow"]
 
 var bounds: Rect2
 var players: Array = []
@@ -43,14 +41,14 @@ func _ready() -> void:
 	_juice.setup(_camera)
 	KillPipeline.killed.connect(_on_killed)
 
-	# P1 human + 1 bot
+	# P1 human + bots
 	_spawn_player(0, true)
-	_spawn_player(1, false)
+	for b in range(NUM_BOTS):
+		_spawn_player(1 + b, false)
 
 func _spawn_player(i: int, human: bool) -> void:
 	var p := Player.new()
-	p.accent = P1_ACCENT if human else BOT_ACCENT
-	p.body_color = P1_BODY if human else BOT_BODY
+	p.skin = "pink" if human else BOT_SKINS[(i - 1) % BOT_SKINS.size()]
 	add_child(p)
 	p.global_position = _spawn_at(i)
 	players.append(p)

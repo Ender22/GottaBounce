@@ -4,6 +4,7 @@ extends Node
 
 signal bounced(body)
 signal bounced_juicy(body, launch_speed, contact_point)
+signal surface_bounced(surface, player, normal, contact_point)   # which SURFACE got hit (tier FX)
 signal smashed(attacker, victim, impulse)
 signal super_boosted(player)
 signal exploded(center, radius)

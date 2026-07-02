@@ -3,8 +3,8 @@ extends CharacterBody2D
 ## The creature. P1 bounce · P2 jetpack/fuel/super-boost · P3 smash knockback + hitstun + death.
 ## Consumes an InputIntent provider (INV-8). Smashable/Killable via shared contracts.
 ##
-## v0 port note: visuals are a clean code-drawn placeholder (flat circle body + accent ring +
-## jetpack fin + textureless exhaust particles) — real sprites return with the art pipeline.
+## Visuals: bouncer character sprites (assets/characters/bouncer_<skin>_idle.png), facing flip,
+## code squash/stretch + squash-pose swap on bounce, contact shadow, textureless exhaust.
 ## The physics below is the hard-won tuned core: ported unchanged.
 
 const LAYER_PLAYERS := 1 << 0
@@ -49,9 +49,14 @@ const BLACK_HOLE_PULL := 950.0
 const BLACK_HOLE_RADIUS := 720.0
 var _down_angle := PI * 0.5    # local-gravity direction angle (for body orientation, P8)
 var last_attacker = null       # for kill credit (P9); cleared after a couple seconds
-var accent: Color = Color(0.4, 0.7, 1.0)   # per-player ring tint (set by the mode before add_child)
-var body_color: Color = Color(0.93, 0.93, 0.98)   # placeholder body fill (set before add_child)
+var skin := "pink"             # character sprite color (set by the mode before add_child)
 var _attacker_timer := 0.0
+
+# --- character sprite constants (art brief: eyeballed in-game vs the 44px collider) ---
+const SPRITE_BALL_FRAC := 0.66      # the round body is ~66% of the idle texture width (rest = jetpack)
+const SPRITE_BALL_CENTER := Vector2(0.57, 0.51)   # ball center as a fraction of the texture
+const SQUASH_SWAP_TIME := 0.12      # pink swaps to its squash pose for this long on bounce
+const SHADOW_MAX_HEIGHT := 120.0    # contact shadow fades out above this height (art brief §3)
 
 func is_boosting() -> bool:
 	return _boosting_now
@@ -59,11 +64,16 @@ func is_boosting() -> bool:
 func get_aim() -> Vector2:
 	return _last_aim
 
-var _body: Node2D                  # placeholder body root (squash/tumble/flash applies here)
-var _body_circle: Polygon2D
-var _body_eye: Polygon2D           # direction indicator dot on the rim
+var _body: Node2D                  # body root (squash/tumble applies here)
+var _skin_flip: Node2D             # facing flip (scale.x = ±1), separate from squash scale
+var _sprite: Sprite2D              # character sprite (idle / squash pose)
+var _idle_tex: Texture2D
+var _squash_tex: Texture2D         # squash pose (pink only for now; null = scale-squash only)
+var _sprite_scale := 1.0
+var _using_squash := false
+var _facing := 1
+var _shadow: Polygon2D             # contact shadow ellipse (top_level, sits on the surface below)
 var _anim_t := 0.0
-var _jetpack: Polygon2D            # code-rotated jetpack fin (seam §1.10: separate from body anim)
 var _fire: CPUParticles2D
 var _smoke: CPUParticles2D
 var _arrow: Polygon2D
@@ -84,41 +94,45 @@ func _ready() -> void:
 	cs.shape = circle
 	add_child(cs)
 
-	# Jetpack: separate code-rotated node (seam §1.10) — a small dark fin behind the body.
-	_jetpack = Polygon2D.new()
-	_jetpack.polygon = PackedVector2Array([
-		Vector2(-14, 30), Vector2(14, 30), Vector2(10, 58), Vector2(-10, 58)
-	])
-	_jetpack.color = Color(0.22, 0.24, 0.30)
-	_jetpack.z_index = -1
-	add_child(_jetpack)
+	# Contact shadow: soft ellipse on the surface below (top_level so it never rotates/squashes
+	# with the body). Added first so everything else draws over it. Art brief §3 — do not skip.
+	_shadow = Polygon2D.new()
+	_shadow.top_level = true
+	var spts := PackedVector2Array()
+	for i in range(24):
+		var a := TAU * (float(i) / 24.0)
+		spts.append(Vector2(cos(a) * BODY_RADIUS * 1.35, sin(a) * BODY_RADIUS * 0.36))
+	_shadow.polygon = spts
+	_shadow.color = Color(0.118, 0.169, 0.251, 0.30)   # #1E2B40
+	_shadow.visible = false
+	add_child(_shadow)
 
 	# Jetpack exhaust: smoke behind, fire in front. Both world-space so they trail behind movement.
+	# (The jetpack itself is baked into the character sprite.)
 	_smoke = _make_exhaust(false)
 	add_child(_smoke)
 	_fire = _make_exhaust(true)
 	add_child(_fire)
 
-	# Placeholder body: flat circle + a rim dot showing facing/aim.
+	# Character sprite: per-skin idle texture; pink also carries a squash pose for bounces.
+	# Scaled so the round body reads ~2.2x the collider radius wide (art bleeds past physics —
+	# toys are fluffy). Facing lives on its own node so squash scale and flip never fight.
 	_body = Node2D.new()
 	add_child(_body)
-	_body_circle = Polygon2D.new()
-	var pts := PackedVector2Array()
-	for i in range(40):
-		var a := TAU * (float(i) / 40.0)
-		pts.append(Vector2(cos(a), sin(a)) * BODY_RADIUS)
-	_body_circle.polygon = pts
-	_body_circle.color = body_color
-	_body.add_child(_body_circle)
-	_body_eye = Polygon2D.new()
-	var epts := PackedVector2Array()
-	for i in range(16):
-		var a := TAU * (float(i) / 16.0)
-		epts.append(Vector2(cos(a), sin(a)) * 9.0)
-	_body_eye.polygon = epts
-	_body_eye.color = Color(0.12, 0.13, 0.18)
-	_body_eye.position = Vector2(0, -BODY_RADIUS * 0.55)
-	_body.add_child(_body_eye)
+	_skin_flip = Node2D.new()
+	_body.add_child(_skin_flip)
+	var idle_path := "res://assets/characters/bouncer_%s_idle.png" % skin
+	if not ResourceLoader.exists(idle_path):
+		push_warning("Player: missing sprite " + idle_path + " — falling back to pink")
+		idle_path = "res://assets/characters/bouncer_pink_idle.png"
+	_idle_tex = load(idle_path)
+	var squash_path := "res://assets/characters/bouncer_%s_squash.png" % skin
+	if ResourceLoader.exists(squash_path):
+		_squash_tex = load(squash_path)
+	_sprite = Sprite2D.new()
+	_sprite_scale = (2.2 * BODY_RADIUS) / (_idle_tex.get_width() * SPRITE_BALL_FRAC)
+	_apply_idle_sprite()
+	_skin_flip.add_child(_sprite)
 
 	_arrow = Polygon2D.new()
 	_arrow.polygon = PackedVector2Array([Vector2(0, -8), Vector2(0, 8), Vector2(22, 0)])
@@ -142,18 +156,21 @@ func _ready() -> void:
 	_hit_area.add_child(hcs)
 	add_child(_hit_area)
 
-	# Per-player accent ring behind the body, so you can tell who is who at a glance.
-	var ring := Line2D.new()
-	ring.width = 5.0
-	ring.closed = true
-	ring.default_color = accent
-	ring.z_index = -1
-	var rpts := PackedVector2Array()
-	for ri in range(32):
-		var ra := TAU * (float(ri) / 32.0)
-		rpts.append(Vector2(cos(ra), sin(ra)) * (BODY_RADIUS + 6.0))
-	ring.points = rpts
-	add_child(ring)
+func _apply_idle_sprite() -> void:
+	_sprite.texture = _idle_tex
+	_sprite.scale = Vector2.ONE * _sprite_scale
+	# offset so the BALL (not the texture rect) is centered on the collider
+	_sprite.offset = Vector2((0.5 - SPRITE_BALL_CENTER.x) * _idle_tex.get_width(),
+		(0.5 - SPRITE_BALL_CENTER.y) * _idle_tex.get_height())
+
+func _apply_squash_sprite() -> void:
+	_sprite.texture = _squash_tex
+	# match the idle pose's world width; sit the flattened blob low, against the surface
+	var k := (_idle_tex.get_width() * _sprite_scale) / float(_squash_tex.get_width())
+	_sprite.scale = Vector2.ONE * k
+	var world_h := _squash_tex.get_height() * k
+	_sprite.offset = Vector2(-0.05 * _squash_tex.get_width(),
+		(BODY_RADIUS - world_h * 0.5) / k)
 
 func _make_exhaust(is_fire: bool) -> CPUParticles2D:
 	# Textureless in v0 (default square particles, scaled small) — texture wiring returns with art.
@@ -341,11 +358,13 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			velocity += tangent * aim_in.dot(tangent) * Tuning.bounce_di
 			var launch_speed: float = maxf(0.0, velocity.dot(n))
 			_squash_surface(collider, n, col.get_position())
+			EventBus.surface_bounced.emit(collider, self, n, col.get_position())   # tier mat FX
 			_on_bounced(boost_held, tier_h, launch_speed, col.get_position())
 			return
 		elif collider.has_meta("bumper"):
 			velocity = BounceResolver.resolve_bumper(velocity, n)
 			_squash_surface(collider, n, col.get_position())
+			EventBus.surface_bounced.emit(collider, self, n, col.get_position())
 			return
 
 ## Trampoline "give". For squishy pads, only the tiles near the contact dent in (with a falloff),
@@ -541,11 +560,14 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 		else:
 			# orient feet toward local gravity (P8); plain down = upright
 			_body.rotation = lerp_angle(_body.rotation, _down_angle - PI * 0.5, 0.25)
-		# rim dot leans toward the aim so the placeholder still reads a facing direction
-		if _body_eye:
-			var local_aim := aim_dir.rotated(-_body.rotation)
-			_body_eye.position = local_aim * (BODY_RADIUS * 0.55)
-		# squash on bounce (code-driven, FEEL §5.3)
+		# facing flips with aim (or, drifting, with velocity). Native art faces RIGHT.
+		if aiming and absf(aim_dir.x) > 0.15:
+			_facing = 1 if aim_dir.x > 0.0 else -1
+		elif absf(velocity.x) > 60.0:
+			_facing = 1 if velocity.x > 0.0 else -1
+		if _skin_flip:
+			_skin_flip.scale.x = float(_facing)
+		# squash on bounce / stretch while rising (code-driven, FEEL §5.3 + art brief)
 		var sx := 1.0
 		var sy := 1.0
 		# subtle grounded breathe while idle (kept under the bounce-squash multiply below)
@@ -553,18 +575,30 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			sy *= 1.0 + 0.02 * sin(_anim_t * 3.0)
 		if _squash_timer > 0.0:
 			_squash_timer = maxf(0.0, _squash_timer - delta)
-			var t := _squash_timer / 0.12
+			var t := _squash_timer / SQUASH_SWAP_TIME
 			sx *= lerpf(1.0, 1.25, t)
 			sy *= lerpf(1.0, 0.75, t)
-		_body.scale = Vector2(sx, sy)
-		# hit flash (FEEL §5.2)
-		if _flash_timer > 0.0:
-			_flash_timer = maxf(0.0, _flash_timer - delta)
-			_body_circle.color = Color(2.5, 2.5, 2.5)
 		else:
-			_body_circle.color = body_color
-	if _jetpack:
-		_jetpack.rotation = aim_dir.angle() + PI * 0.5
+			var rise := clampf(-velocity.y / 1100.0, 0.0, 1.0)   # fast ascent = slight stretch
+			sx *= lerpf(1.0, 0.9, rise)
+			sy *= lerpf(1.0, 1.12, rise)
+		_body.scale = Vector2(sx, sy)
+		# squash-pose swap on bounce (skins with a squash texture, currently pink)
+		if _sprite:
+			var want_squash := _squash_timer > 0.0 and _squash_tex != null
+			if want_squash != _using_squash:
+				_using_squash = want_squash
+				if want_squash:
+					_apply_squash_sprite()
+				else:
+					_apply_idle_sprite()
+			# hit flash (FEEL §5.2)
+			if _flash_timer > 0.0:
+				_flash_timer = maxf(0.0, _flash_timer - delta)
+				_sprite.self_modulate = Color(2.6, 2.6, 2.6)
+			else:
+				_sprite.self_modulate = Color.WHITE
+	_update_contact_shadow()
 	if _fire:
 		var nozzle := -aim_dir * 44.0
 		var thrust_dir := -aim_dir
@@ -618,3 +652,27 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_charge_ring.default_color = Color(1.0, 0.9, 0.2).lerp(Color(1.0, 0.25, 0.1), _sb_charge)
 		else:
 			_charge_ring.visible = false
+
+## Soft ellipse contact shadow on the surface below (art brief §3): anchors the toy to the set and
+## helps players judge landings. Fades 30%->0% across the last SHADOW_MAX_HEIGHT px of height.
+func _update_contact_shadow() -> void:
+	if _shadow == null:
+		return
+	var space := get_world_2d().direct_space_state
+	var from := global_position
+	var to := from + Vector2(0.0, SHADOW_MAX_HEIGHT + BODY_RADIUS + 4.0)
+	var q := PhysicsRayQueryParameters2D.create(from, to, MASK_SURFACES)
+	var hit := space.intersect_ray(q)
+	if hit.is_empty():
+		_shadow.visible = false
+		return
+	var height: float = maxf(0.0, (hit["position"].y - from.y) - BODY_RADIUS)
+	var k := clampf(1.0 - height / SHADOW_MAX_HEIGHT, 0.0, 1.0)
+	if k <= 0.02 or _dead:
+		_shadow.visible = false
+		return
+	_shadow.visible = true
+	_shadow.global_position = hit["position"] + Vector2(0.0, 3.0)
+	_shadow.rotation = 0.0
+	_shadow.scale = Vector2.ONE * lerpf(0.55, 1.0, k)
+	_shadow.color.a = 0.30 * k
