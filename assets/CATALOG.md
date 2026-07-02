@@ -20,6 +20,11 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `bg/cloud_a.png` | SHIP-CANDIDATE | 854x515 soft, no outline, layer 3 |
 | `world/grass/decals/tuft_a.png`, `flower_white.png` | SHIP-CANDIDATE | scatter decals |
 
+| `powerups/icon_*.png` (x7) | SHIP-CANDIDATE | mega_bounce, unlimited_boost, star, counter_shield, ball_storm, black_hole, ring_of_fire — briefs in docs/specs/v1_powerups.md |
+| `world/spikes_strip.png` | SHIP-CANDIDATE | 987x254 hazard row, repeating |
+| `fx/puff_soft.png`, `fx/star_sparkle.png` | procedural | PIL-generated particle sprites |
+| `bg/bush_round.png`, `bg/fence_wood.png` | SHIP-CANDIDATE | layer-4 mid props |
+
 Intake gotchas learned: some generations bake a FAKE checkerboard bg instead of alpha —
 `art.py check` catches it; fix with `art.py keyout --tol 40`. ChatGPT viewer download flow:
 click image → viewer → download icon top-right; verify Downloads timestamp BEFORE intake

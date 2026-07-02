@@ -1,0 +1,223 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/ui/PlayerCard.gd" id="1_pcard"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="sb_skull_dome"]
+bg_color = Color(0.97, 0.96, 0.93, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="sb_skull_eye"]
+bg_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_skull_jaw"]
+bg_color = Color(0.97, 0.96, 0.93, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="PlayerCard" type="Panel"]
+custom_minimum_size = Vector2(240, 136)
+offset_right = 240.0
+offset_bottom = 136.0
+theme = ExtResource("2_theme")
+theme_type_variation = &"PlayerCard"
+mouse_filter = 2
+script = ExtResource("1_pcard")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="IdentityRow" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeadSlot" type="Control" parent="Margin/VBox/IdentityRow"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Head" type="TextureRect" parent="Margin/VBox/IdentityRow/HeadSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Skull" type="Control" parent="Margin/VBox/IdentityRow/HeadSlot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Dome" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 2.0
+offset_right = 34.0
+offset_bottom = 28.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_skull_dome")
+
+[node name="EyeL" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 11.0
+offset_right = 19.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_skull_eye")
+
+[node name="EyeR" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
+layout_mode = 0
+offset_left = 21.0
+offset_top = 11.0
+offset_right = 28.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_skull_eye")
+
+[node name="Jaw" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 26.0
+offset_right = 28.0
+offset_bottom = 37.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_skull_jaw")
+
+[node name="NameLabel" type="Label" parent="Margin/VBox/IdentityRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardName"
+text = "P1"
+
+[node name="Pips" type="GridContainer" parent="Margin/VBox"]
+layout_mode = 2
+columns = 5
+theme_override_constants/h_separation = 7
+theme_override_constants/v_separation = 5
+
+[node name="Pip0" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip1" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip2" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip3" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip4" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip5" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip6" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip7" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip8" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="Pip9" type="Panel" parent="Margin/VBox/Pips"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PipEmpty"
+
+[node name="FuelSlot" type="Control" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="FuelBG" type="Panel" parent="Margin/VBox/FuelSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"FuelBG"
+
+[node name="FuelFill" type="Panel" parent="Margin/VBox/FuelSlot"]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = 120.0
+offset_bottom = 13.0
+mouse_filter = 2
+theme_type_variation = &"FuelFill"

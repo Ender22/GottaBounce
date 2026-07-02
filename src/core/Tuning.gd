@@ -84,6 +84,17 @@ var trauma_decay: float = 1.4
 var stick_deadzone: float = 0.22
 var input_buffer: float = 0.10               # seconds
 
+# --- v0 round loop (docs/specs/v0_round_loop.md §6) ---
+var intro_pop_stagger: float = 0.35    # s between ROUND_INTRO spawn pop-ins
+var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat
+var round_end_freeze: float = 1.8      # s of KO freeze-frame + pip animation (hard cap 2.0)
+var sudden_death_time: float = 20.0    # s of combat before the laser walls activate
+var laser_close_time: float = 10.0     # s for the laser walls to fully meet at stage center
+var double_ko_window: float = 0.25     # s — simultaneous-death tiebreak window (GDD §7)
+var kill_credit_window: float = 2.5    # s — last-attacker kill credit (replaces Player.gd's 2.0)
+var match_target_score: int = 10       # first to this with a strict lead wins the match
+var bot_levels: Array[int] = [2, 3, 4] # P2 punchline / P3 fair fight / P4 menace (spec §4)
+
 # --- Powerups (GAME_DESIGN §5) ---
 var powerup_spawn_interval: float = 8.0
 var pu_unlimited_boost_dur: float = 10.0

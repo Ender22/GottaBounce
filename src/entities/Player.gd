@@ -223,7 +223,7 @@ func get_fuel_ratio() -> float:
 func is_dead() -> bool:
 	return _dead
 
-var frozen := false       # held in place during the round-start countdown
+var frozen := false       # suspended: intro pop-in, countdown, sudden-death revive, KO freeze
 
 func _physics_process(delta: float) -> void:
 	if _dead:
@@ -232,6 +232,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		if _fire: _fire.emitting = false
 		if _smoke: _smoke.emitting = false
+		_frozen_preaim()
 		return
 	_smash_cd = maxf(0.0, _smash_cd - delta)
 	_spawn_protect = maxf(0.0, _spawn_protect - delta)
@@ -338,6 +339,47 @@ func _physics_process(delta: float) -> void:
 	# Re-cap after bounce/smash resolution (a bounce adds launch speed on top of tangential).
 	velocity = velocity.limit_length(Tuning.max_speed)
 	_update_visual(aim_dir, boosting, aiming, stunned, delta)
+
+## Suspension pre-aim (spec §1 COUNTDOWN): while frozen there is no physics, thrust, drift or fuel
+## drain — but the stick still rotates the jetpack arrow so you can pre-aim the opening bounce.
+## Deliberately never touches _body.scale: the intro pop-in / win-pop tweens own it while frozen.
+func _frozen_preaim() -> void:
+	var intent: InputIntent = provider.poll() if provider != null else InputIntent.new()
+	var aiming := intent.aim.length() > 0.001
+	if aiming:
+		_last_aim = intent.aim.normalized()
+		if absf(_last_aim.x) > 0.15:
+			_facing = 1 if _last_aim.x > 0.0 else -1
+			if _skin_flip:
+				_skin_flip.scale.x = float(_facing)
+	if _arrow:
+		_arrow.visible = aiming
+		if aiming:
+			_arrow.color = Color(1, 1, 1, 0.85)
+			_arrow.scale = Vector2.ONE
+			_arrow.position = _last_aim * 70.0
+			_arrow.rotation = _last_aim.angle()
+	if _charge_ring:
+		_charge_ring.visible = false
+
+## ROUND_INTRO pop-in: scale 0 -> 1.15 -> 1.0 (FEEL §5.3 energy). Runs while frozen, so nothing
+## else writes _body.scale until the countdown unlocks.
+func play_pop_in() -> void:
+	if _body == null:
+		return
+	_body.scale = Vector2.ZERO
+	var tw := create_tween()
+	tw.tween_property(_body, "scale", Vector2(1.15, 1.15), 0.17).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_body, "scale", Vector2.ONE, 0.08)
+
+## MATCH_END winner celebration: the win pop (scale 1.3 -> 1.0, twice — FEEL §5.3).
+func play_win_pop() -> void:
+	if _body == null:
+		return
+	var tw := create_tween()
+	for i in range(2):
+		tw.tween_property(_body, "scale", Vector2(1.3, 1.3), 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_body, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 
 func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZERO) -> void:
 	for i in range(get_slide_collision_count()):
@@ -482,7 +524,7 @@ func receive_smash(impulse: Vector2, attacker) -> void:
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
 	if attacker != null and attacker is Player:
 		last_attacker = attacker
-		_attacker_timer = 2.0
+		_attacker_timer = Tuning.kill_credit_window
 	var st := Tuning.hitstun_base + impulse.length() * Tuning.hitstun_per_impulse
 	_stun_timer = minf(st, Tuning.hitstun_max)
 	_flash_timer = 0.12
@@ -526,12 +568,17 @@ func mark_dead() -> void:
 func respawn(pos: Vector2) -> void:
 	_dead = false
 	visible = true
+	modulate.a = 1.0                # clear any mid-blink alpha from the previous life
+	if _shadow:
+		_shadow.visible = false     # top_level shadow: hide until physics places it fresh
 	if _hit_area:
 		_hit_area.monitoring = true
 	global_position = pos
 	velocity = Vector2.ZERO
 	fuel = Tuning.fuel_max
 	_stun_timer = 0.0
+	last_attacker = null            # a new life never owes kill credit to the old one
+	_attacker_timer = 0.0
 	_sb_charging = false
 	_sb_charge = 0.0
 	_sb_was_held = false

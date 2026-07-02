@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/NameTag.gd" id="1_tag"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[node name="NameTag" type="Node2D"]
+z_index = 40
+script = ExtResource("1_tag")
+
+[node name="Label" type="Label" parent="."]
+offset_left = -80.0
+offset_top = -30.0
+offset_right = 80.0
+offset_bottom = 28.0
+theme = ExtResource("2_theme")
+theme_type_variation = &"NameTag"
+text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1
