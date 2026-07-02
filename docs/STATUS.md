@@ -2,7 +2,7 @@
 
 > The single always-current handoff doc. Update after EVERY commit. A fresh context reads this first.
 
-**Last updated:** 2026-07-02 end of session 1. Everything below is committed (git log = the history).
+**Last updated:** 2026-07-02 session 3 (mid-session). Everything below is committed (git log = the history).
 
 ## Where we are — end of session 1
 The game LOOKS like a real game and RUNS. Boot `scenes/Arena.tscn` (main scene): Glossy Toybox
@@ -46,15 +46,35 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   7 pickup icons generated (assets/powerups/). Spike strip + fx particle sprites in.
 - Screenshots: tools/out/rl_*.png (combat/round-end/sudden-death/etc).
 
+## Session 3 progress (LATEST at bottom)
+- [x] **OWNER DESIGN DIRECTIVE received & recorded** → `docs/feedback/owner_2026-07-02_movement_feel.md`.
+  Thesis: movement/combat FEEL is the product (TowerFall bar). Un-charged super hypothesis,
+  super = the kill move, movement courses as tuning instrument, goat theming seed, sports modes.
+  Every future gameplay spec review reconciles against this doc.
+- [x] **Lethality spec amended to v2 pre-build** (game-designer): super redesigned UN-CHARGED
+  (aim-hover ≤2s, full 2800 power at any fuel ≥5, drain-all → every chain routes through a
+  bounce), two-tier SHOVE/SMASH contact (smash license = super-active OR stunned bodies), bot
+  refuel-rhythm replaces bank-then-strike. 21 QA criteria. Also NEW
+  `docs/specs/v1_movement_courses.md` (5 courses, Chimney = super acceptance test) + DECISIONS
+  entries (goat identity = candidate, needs art-director eval vs Glossy Toybox blobs).
+- [x] **Lethality v2 IMPLEMENTED** (gameplay-programmer; committed 03894ac). Parse gate clean;
+  rendered smoke PASS (aim ring/arrow, drain-all fuel bar, SD warning/trackers, match-end panel
+  — screenshots tools/out/lethality_*.png). round_stats live: 8-round bot match = 7 ring-out /
+  1 laser (12.5% SD vs <25% target). 12 spec interpretations listed in agent report for designer
+  review. Watch items: fuse-ring frame-1 arc minimal, resting-overlap shove jitter, bot
+  self-destruct rate off the lowered ceiling.
+
 ## NEXT STEPS in priority order
-1. **Implement docs/specs/v0_combat_lethality.md** (gameplay-programmer agent; spec is complete
-   and numbers-first — Tuning changes, InputBot/BotProfile overhaul, scoring guard, SD pacing/
-   visibility, match-end panel; expose round_stats via eval for QA). This converts "works" into
-   "fun" per QA. Touches Player/Tuning/InputBot/PartyMatch — nothing else in flight.
-2. **Combined QA pass**: the 13 lethality criteria + powerup C1 comedy check + powerup edge cases
-   flagged untested (two counter shields colliding, counter vs storm balls, two-star clang) +
-   3-match feel judgment. Fix findings.
-3. **Art fix list** (small): (a) far-zoom floor mat thin; (b) trampoline-floor "rope" up close;
+1. **Full QA pass on lethality v2**: the 21 criteria in spec §9 (esp. test 6 BOTH directions —
+   kill ≥8/10 fuel-starved / survive ≥5/10 full-tank counter; L4>L2 5-match; forced double-KO
+   revive timing; 60fps regression) + powerup C1 comedy check + powerup edge cases still untested
+   (two counter shields colliding, counter vs storm balls, two-star clang) + 3-match feel
+   judgment vs the owner thesis. Fix findings.
+2. **Build movement courses 1–3** (docs/specs/v1_movement_courses.md) — the feel-tuning
+   instrument; Chimney validates the un-charged super. Level-designer + gameplay-programmer.
+3. **Art-director evaluation: goat identity candidate** (see DECISIONS + owner feedback doc) —
+   crazy goats w/ horns + goat scream on super vs the shipped Glossy Toybox blobs. Art fix list
+   (small): (a) far-zoom floor mat thin; (b) trampoline-floor "rope" up close;
    (c) tumble rotation reads sideways; (d) wire assets/fx/puff_soft.png + star_sparkle.png into
    Juice particles; (e) real font asset to replace SystemFont stack in theme.tres; (f) art skull
    icon for PlayerCard; (g) name-tag blink inherit; (h) unlimited-boost flame telegraph pass;
