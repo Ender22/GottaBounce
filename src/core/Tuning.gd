@@ -33,6 +33,9 @@ var air_drift_max_speed: float = 340.0
 var fuel_max: float = 100.0
 var tank_seconds: float = 3.5
 var fuel_per_bounce: float = 20.0
+var fuel_per_bumper: float = 20.0    # bumper walls refund fuel too — enables the miss -> wall-rebound
+                                     # -> return-shot chain (lethality spec player fantasy). Same as
+                                     # fuel_per_bounce for now: FLAGGED FOR DESIGNER REVIEW.
 
 # --- Normal boost (FEEL §3.2) ---
 var normal_boost_accel: float = 4600.0       # snappier thrust response
@@ -53,6 +56,13 @@ var super_aim_velocity_keep: float = 1.0       # velocity kept on aim ENTRY — 
 var super_active_time: float = 0.45            # smash-license window after firing (replaces _super_recent=0.6)
 var super_refire_lockout: float = 0.25         # min gap before another aim can start (buffer-spam guard)
 var pu_unlimited_super_lockout: float = 1.0    # refire lockout while fuel_locked (Unlimited Boost)
+
+# --- Aim-ring readability (§1.4 telegraphy — the fuse must read from across the couch) ---
+# The ring's line width is CONSTANT in screen px (world width = screen width / camera zoom), sits
+# on a dark backing ring for contrast on any background, and always shows a minimum arc from frame 1.
+var super_ring_screen_width: float = 9.0     # fuse-ring line width in SCREEN px, zoom-independent
+var super_ring_outline_extra: float = 6.0    # dark backing ring: this many EXTRA screen px of width
+var super_ring_min_arc: float = 0.15         # min visible fuse-arc fraction (frame-1 visibility)
 
 # --- Boost control-retake ---
 var boost_enter_keep: float = 0.25             # starting a normal boost cuts momentum to this, so a

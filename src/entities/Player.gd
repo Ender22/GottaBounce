@@ -46,6 +46,10 @@ var _pulled := 0.0           # being pulled by a black hole right now (drift aut
 var _aim_active := false     # stick past deadzone this frame (Ring of Fire launch direction)
 var _super_recent := 0.0     # super_active window: just fired a super (smash license, spec §2.1;
                              # also the deliberate-attack flag vs Black Hole channelers)
+var _stunned_by = null       # who put me in the CURRENT hitstun (Player or null). Pairwise smash
+                             # immunity: my stunned flying body is a weapon against everyone EXCEPT
+                             # my stunner (never a free counter-smash back at them), and THEY get
+                             # the kill credit for anyone my body hits. Cleared when hitstun ends.
 var _boosting_now := false
 # --- un-charged super boost v2 (lethality spec §1): press = AIM hover, release/2s = full blast ---
 var _sb_aiming := false      # in the AIM state right now
@@ -104,6 +108,7 @@ var _fire_grad_cyan: Gradient          # Unlimited Boost: cyan afterburner (spec
 var _fire_cyan_now := false            # transition latch (lifetime writes restart the emitter)
 var _arrow: Polygon2D
 var _charge_ring: Line2D
+var _ring_bg: Line2D               # dark backing ring under the fuse ring (contrast on any bg, §1.4)
 var _hit_area: Area2D
 
 func _ready() -> void:
@@ -170,6 +175,14 @@ func _ready() -> void:
 	_arrow.color = Color(1, 1, 1, 0.85)
 	_arrow.visible = false
 	add_child(_arrow)
+	# Fuse ring readability (§1.4 + QA fix): dark backing ring first (draws under), bright fuse
+	# ring on top. Widths are set per-frame in SCREEN px (divided by camera zoom) so the aim
+	# state reads from across the couch at any gameplay zoom.
+	_ring_bg = Line2D.new()
+	_ring_bg.default_color = Color(0.07, 0.07, 0.12, 0.85)
+	_ring_bg.visible = false
+	_ring_bg.z_index = 4
+	add_child(_ring_bg)
 	_charge_ring = Line2D.new()
 	_charge_ring.width = 7.0
 	_charge_ring.visible = false
@@ -298,6 +311,8 @@ func _physics_process(delta: float) -> void:
 	var just_activated := intent.use_powerup
 	if stunned:
 		_stun_timer -= delta
+		if _stun_timer <= 0.0:
+			_stunned_by = null   # hitstun over: pairwise smash immunity / chain credit end with it
 		# Buffered super press during hitstun (spec §1 edge case): remember it for input_buffer
 		# so it fires the AIM state on the first free frame — the recovery gamble input.
 		# (_sb_was_held reads false through a stun — the zeroed intent below keeps it false —
@@ -323,6 +338,12 @@ func _physics_process(delta: float) -> void:
 
 	# --- Un-charged super boost (lethality spec §1): press = AIM, release / 2s cap = full blast ---
 	var sh: bool = intent.super_hold
+	# Chain buffer (QA fix): a super press/hold while blocked by the refire lockout — or by the
+	# empty tank right after firing — is never eaten. It re-buffers every held frame (mirroring
+	# the hitstun buffer above), so the next AIM starts automatically on the first legal frame:
+	# fast super->bounce->super chains don't require a frame-perfect release + re-press.
+	if sh and not _sb_aiming and (_sb_lockout > 0.0 or fuel < Tuning.super_boost_min_fuel):
+		_sb_buffer = Tuning.input_buffer
 	var want_aim: bool = (sh and not _sb_was_held) or (_sb_buffer > 0.0 and not stunned)
 	if want_aim and not _sb_aiming and _sb_lockout <= 0.0 and _channel_timer <= 0.0 \
 			and fuel >= Tuning.super_boost_min_fuel:
@@ -427,6 +448,8 @@ func _frozen_preaim() -> void:
 			_arrow.rotation = _last_aim.angle()
 	if _charge_ring:
 		_charge_ring.visible = false
+	if _ring_bg:
+		_ring_bg.visible = false
 
 ## ROUND_INTRO pop-in: scale 0 -> 1.15 -> 1.0 (FEEL §5.3 energy). Runs while frozen, so nothing
 ## else writes _body.scale until the countdown unlocks.
@@ -467,12 +490,16 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			var launch_speed: float = maxf(0.0, velocity.dot(n))
 			_squash_surface(collider, n, col.get_position())
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())   # tier mat FX
-			_on_bounced(boost_held, tier_h, launch_speed, col.get_position())
+			_on_bounced(boost_held, Tuning.fuel_per_bounce * sqrt(tier_h / Tuning.bounce_height_trampoline), launch_speed, col.get_position())
 			return
 		elif collider.has_meta("bumper"):
 			velocity = BounceResolver.resolve_bumper(velocity, n)
+			var rebound_speed: float = maxf(0.0, velocity.dot(n))
 			_squash_surface(collider, n, col.get_position())
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())
+			# Bumpers refund fuel too (QA fix): a dry rebound made the spec's miss -> wall-rebound
+			# -> return-shot chain impossible. Same refuel/telegraphy path as tier bounces.
+			_on_bounced(boost_held, Tuning.fuel_per_bumper, rebound_speed, col.get_position())
 			return
 
 ## Trampoline "give". For squishy pads, only the tiles near the contact dent in (with a falloff),
@@ -520,13 +547,14 @@ func _axis_snap(n: Vector2) -> Vector2:
 		return Vector2(signf(n.x), 0.0)
 	return Vector2(0.0, signf(n.y))
 
-func _on_bounced(boost_held: bool, tier_height: float = Tuning.bounce_height_trampoline, launch_speed: float = 0.0, contact: Vector2 = global_position) -> void:
-	fuel = minf(Tuning.fuel_max, fuel + Tuning.fuel_per_bounce * sqrt(tier_height / Tuning.bounce_height_trampoline))
+func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, launch_speed: float = 0.0, contact: Vector2 = global_position) -> void:
+	fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
 	if boost_held:
 		_supercharge_timer = Tuning.supercharge_window
 	# Bouncing is your recovery: contacting a surface clears hitstun so you snap back to control.
 	# A bounce never CAUSES the hit state — it only ever ends it.
 	_stun_timer = 0.0
+	_stunned_by = null
 	_squash_timer = 0.12
 	EventBus.bounced.emit(self)
 	EventBus.bounced_juicy.emit(self, launch_speed, contact)
@@ -575,14 +603,28 @@ func _handle_smashes() -> void:
 			#   AND relative closing speed >= smash_impact_min   -- anti-graze safety gate
 			#   AND I am the faster body                         -- tiebreak, no double-apply
 			# Everything else is a SHOVE (§2.3): honest physics, no hitstun.
-			var eligible: bool = _super_recent > 0.0 or _stun_timer > 0.0
+			# Pairwise immunity (QA critical fix): a stunned flying body is a weapon against
+			# everyone EXCEPT its own stunner. Without this, every landed super was suicide —
+			# the victim exits at cap while the attacker keeps smash_self_retain (10%), so the
+			# victim's own out-flying body counter-smashed the attacker the very next frame.
+			# B smashing C still works (Pillar 3 chains protected).
+			var eligible: bool = _super_recent > 0.0 or (_stun_timer > 0.0 and b != _stunned_by)
 			var rel: float = (velocity - b.velocity).length()
 			if eligible and _smash_cd <= 0.0 and rel >= Tuning.smash_impact_min and (my_speed > b.velocity.length() or (is_equal_approx(my_speed, b.velocity.length()) and get_instance_id() < b.get_instance_id())):
 				var impulse := velocity.normalized() * (Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker)
 				b.receive_smash(impulse, self)
 				# Cancel most of your own momentum: you stop on impact rather than riding them off the edge.
 				velocity *= Tuning.smash_self_retain
-				EventBus.smashed.emit(self, b, impulse)
+				# Chain-body credit (QA fix): when a stunned flying BODY smashes someone, the
+				# kill/score/round_stats credit belongs to the LAUNCHER who smashed the body —
+				# an uncontrolled projectile can't farm points. (Pairwise immunity in
+				# receive_smash still keys off the physical body: b's stunner is `self`.)
+				var attacker_for_credit: Player = self
+				if _super_recent <= 0.0 and _stun_timer > 0.0 \
+						and _stunned_by != null and is_instance_valid(_stunned_by):
+					attacker_for_credit = _stunned_by
+					b.credit_attacker(attacker_for_credit)
+				EventBus.smashed.emit(attacker_for_credit, b, impulse)
 				_smash_cd = 0.3
 				return
 			else:
@@ -650,6 +692,9 @@ func receive_smash(impulse: Vector2, attacker) -> void:
 	if attacker != null and attacker is Player:
 		last_attacker = attacker
 		_attacker_timer = Tuning.kill_credit_window
+	# pairwise smash immunity: while THIS hitstun lasts, my flying body never smashes my stunner
+	# back, and any smash my body lands is credited to them (chain launcher credit)
+	_stunned_by = attacker if (attacker != null and attacker is Player) else null
 	var st := Tuning.hitstun_base + impulse.length() * Tuning.hitstun_per_impulse
 	_stun_timer = minf(st, Tuning.hitstun_max)
 	_flash_timer = 0.12
@@ -671,6 +716,7 @@ func receive_counter_launch(impulse: Vector2, holder) -> void:
 	if holder != null and holder is Player:
 		last_attacker = holder
 		_attacker_timer = Tuning.kill_credit_window
+	_stunned_by = holder if (holder != null and holder is Player) else null   # pairwise immunity
 	var st := Tuning.hitstun_base + impulse.length() * Tuning.hitstun_per_impulse
 	_stun_timer = minf(st, Tuning.hitstun_max)
 	_flash_timer = 0.12
@@ -757,6 +803,7 @@ func respawn(pos: Vector2) -> void:
 	velocity = Vector2.ZERO
 	fuel = Tuning.fuel_max
 	_stun_timer = 0.0
+	_stunned_by = null
 	last_attacker = null            # a new life never owes kill credit to the old one
 	_attacker_timer = 0.0
 	_sb_aiming = false
@@ -898,17 +945,29 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 				_arrow.rotation = aim_dir.angle()
 	if _charge_ring:
 		if _sb_aiming:
-			# the ring fills over super_aim_max: ring appearing = a blast within 2s (§1.4)
+			# the ring fills over super_aim_max: ring appearing = a blast within 2s (§1.4).
+			# Readability (QA fix): constant SCREEN-space line width (world width = screen px /
+			# camera zoom), a dark backing ring for contrast, and a minimum visible arc from
+			# frame 1 — at gameplay zoom (0.4-0.9) the old 7px line was ~3px on screen.
+			var cam := get_viewport().get_camera_2d()
+			var inv_zoom: float = (1.0 / cam.zoom.x) if (cam != null and cam.zoom.x > 0.001) else 1.0
 			_charge_ring.visible = true
-			var ang := fuse * TAU
+			_charge_ring.width = Tuning.super_ring_screen_width * inv_zoom
+			var ang := maxf(fuse, Tuning.super_ring_min_arc) * TAU
 			var pts := PackedVector2Array()
 			for i in range(29):
 				var aa := -PI * 0.5 + ang * (float(i) / 28.0)
 				pts.append(Vector2(cos(aa), sin(aa)) * (BODY_RADIUS + 16.0))
 			_charge_ring.points = pts
-			_charge_ring.default_color = Color(1.0, 0.9, 0.2).lerp(Color(1.0, 0.25, 0.1), fuse)
+			_charge_ring.default_color = Color(1.0, 0.95, 0.25).lerp(Color(1.0, 0.16, 0.05), fuse)
+			if _ring_bg:
+				_ring_bg.visible = true
+				_ring_bg.width = (Tuning.super_ring_screen_width + Tuning.super_ring_outline_extra) * inv_zoom
+				_ring_bg.points = pts
 		else:
 			_charge_ring.visible = false
+			if _ring_bg:
+				_ring_bg.visible = false
 
 ## Soft ellipse contact shadow on the surface below (art brief §3): anchors the toy to the set and
 ## helps players judge landings. Fades 30%->0% across the last SHADOW_MAX_HEIGHT px of height.
