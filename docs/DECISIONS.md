@@ -2,6 +2,16 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** DAMAGE MODEL DECIDED — transient "damaged/vulnerable" STATE, not persistent %.
+  Owner picked the reeling-window form: a character pulses RED when damaged (read on the body, not
+  a HUD meter) and SLOWLY HEALS; while damaged it is more launchable → run-and-chase dynamics
+  (finish the wounded before they heal / flee to survive). Persistent Smash-style accumulation
+  REJECTED (conflicts with no-HP identity, competes with fuel, whittling meta). Guardrails: stays
+  transient + heals FULLY + non-stacking (must not become the rejected HP model); watch flee-to-
+  heal vs Pillar 2. THE open dial = heal duration (~1–2s juggle window vs ~4–8s flee/chase state;
+  owner leans long). SEQUENCING: next slice AFTER `v0_kill_zone_recovery.md` lands+validates (it's
+  built on the hit-solidity mechanic now in build) — depth-first, do not spec against an unproven
+  base. Full record: `docs/feedback/owner_2026-07-03_kill_zone.md` Idea B resolution.
 - **2026-07-03** KILL ZONE TOO TIGHT — OWNER FEEDBACK, lethality sign-off HELD, spec §2.4 reopened
   (`docs/feedback/owner_2026-07-03_kill_zone.md`). Owner watched gameplay: a single hard knock
   (even straight up) kills instead of arcing back; angled knocks are never survivable-with-fly-back;

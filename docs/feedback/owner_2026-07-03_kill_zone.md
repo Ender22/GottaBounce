@@ -92,3 +92,27 @@ owner explicitly "not sure yet."
   with Idea A: glancing hit → spin/reel → follow-up center hit finishes.
 - **Action:** scoped OUT of the kill-zone spec as an explicit open decision for the owner. Not
   built. If pursued, prefer the reeling-window form over persistent %.
+
+### Idea B — RESOLVED 2026-07-03: transient "damaged/vulnerable" state ADOPTED (direction); persistent-% REJECTED
+Owner picked the reeling-window form and evolved it: a character **pulses red when damaged and
+slowly heals**; while damaged it is more launchable; this creates **run-and-chase mechanics**
+(chase the wounded to finish before they heal / flee to survive and heal).
+- **Why this is the right shape:** the red pulse is read ON THE BODY (Pillar 6 personality +
+  Pillar 5 readable chaos) — NOT a HUD % bar competing with the fuel gauge. It stays transient and
+  FULLY HEALS, so it does not become the rejected accumulating-HP model. Chasing/fleeing is
+  movement skill (owner thesis) and is motion, not camping (Pillar 2 OK). Composes with hit-
+  solidity (a knocked+damaged victim is doubly vulnerable → the finisher).
+- **THE dial that decides what this is — heal duration / "slowly":**
+  - ~1–2s fast decay = a tight JUGGLE window (combo enabler within one exchange; smallest, safest).
+  - ~4–8s = the FLEE/CHASE STATE the owner is describing (bigger upside, bigger surface).
+  The owner's "running and chasing" language points at the longer end; the spec must pick and tune it.
+- **Guardrails for the eventual spec (keep it from drifting into the HP model we rejected):**
+  (1) transient + heals FULLY to baseline; (2) does NOT stack unboundedly (cap the vulnerability);
+  (3) "flee to heal" must not become disengagement/stalling — heal slow enough to matter, but in a
+  4-player pit fleeing one attacker runs you into others; watch vs Pillar 2 (constant motion, no
+  stall). (4) launchability boost must not trivialize the recovery gamble the kill-zone build sets up.
+- **Action / SEQUENCING (Director):** this is the NEXT slice AFTER the kill-zone recovery rebalance
+  (`v0_kill_zone_recovery.md`) lands AND validates — it is built ON the hit-solidity mechanic that
+  is only now being implemented. Depth-first (the rule that sank the last attempt): do NOT spec/
+  build against an unproven foundation. Recorded as the decided next direction; game-designer specs
+  the "vulnerable/reeling state" once solidity is proven in-engine. NOT part of the current build.
