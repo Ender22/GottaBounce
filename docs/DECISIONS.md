@@ -2,6 +2,20 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** §2.3a DRY-REFLECT FIX COMMITTED + `smash_sting_fuel` 30→40 REJECTED. QA
+  (idle-P1, spec §9 harness, 29-round aggregate) confirmed the fix is a net win: kill-decided 72%
+  (PASS), median 16.0s (PASS), SD 28% (marginal — one round over ≤25%), edge kills 2.07/10 (up
+  ~5× from the pre-fix 1/23, short of ≥3/10). A prediction-first `smash_sting_fuel` 30→40
+  experiment fixed edge kills (3.64/10) but regressed SD to 41% and kill-decided to 59% —
+  **refuting the spec §2.4 "edge-lethality cascades into lower SD" assumption.** Not adopted.
+  Diagnosis: SD rounds resolve with all 3 kills (not stalemates) but slowly (22.5s vs 12.9s), so
+  the residual gap is late super→kill conversion. Next lever for t15 is the bot `edge_guard`
+  dial, NOT a physics constant. Lethality v2.1 = fix landed, full 21-criteria sign-off still open.
+- **2026-07-03** OPERATOR SKILL LIBRARY added under `.claude/skills/` (16 skills) as the studio's
+  onboarding/runbook layer for cheaper future sessions. Authored parallel, 3-way reviewed, fixed.
+  Non-load-bearing on gameplay; documents ground truth as of HEAD and routes all change through
+  the existing change-control doctrine (no new gates, no routing around STATUS/DECISIONS).
+
 - **2026-07-03** BUMPER/BOUNCE RECOVERY GATE RULED (v2.1 fix to combat lethality, closes QA
   re-verification FAILs 11/13/14/15): governing principle **"hitstun ends by TIME, never by
   touching a surface."** Root cause was fix-round 587d0a1 making `_on_bounced()` unconditionally

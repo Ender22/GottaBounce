@@ -2,7 +2,7 @@
 
 > The single always-current handoff doc. Update after EVERY commit. A fresh context reads this first.
 
-**Last updated:** 2026-07-02 session 3 (mid-session). Everything below is committed (git log = the history).
+**Last updated:** 2026-07-03 session 4. Everything below is committed (git log = the history).
 
 ## Where we are — end of session 1
 The game LOOKS like a real game and RUNS. Boot `scenes/Arena.tscn` (main scene): Glossy Toybox
@@ -107,12 +107,41 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   6d wall-return shot fires ≥9/10. Fallback knob if dry reflect feels silent: bigger FX/SFX,
   NEVER reopen the refund/clear gate. **Programmer fix = immediate next task.**
 
+## Session 4 progress (2026-07-03) — skill library + §2.3a fix committed + lethality QA verdict
+- [x] **Operator skill library shipped** under `.claude/skills/` (16 skills: change-control,
+  debugging-playbook, failure-archaeology, architecture-contract, game-feel-reference,
+  tuning-and-flags, build-and-env, run-and-playtest, diagnostics-and-tooling, validation-and-qa,
+  docs-and-writing, art-pipeline, feel-campaign, analysis-toolkit, research-frontier,
+  research-methodology). Authored parallel, then 3-way reviewed (factual/doctrine/usability) —
+  0 blocking, 5 important + clear-cut minors fixed. Ships 3 diagnostic scripts under
+  diagnostics-and-tooling/scripts/ (match_stats.py, perf_gate.py, feel_probe.jsonl).
+- [x] **§2.3a dry-reflect fix COMMITTED** (`_on_bounced` guards refund+stun-clear behind
+  `if _stun_timer <= 0.0:`). Parse-clean. Was the pending programmer fix; verified good.
+- [x] **Lethality QA verdict filed** (idle-P1 harness = spec §9; 29-round aggregate with the fix):
+  t10 kill-decided **72% PASS**, t12 median **16.0s / max 24.5s PASS**, t11 SD **28%** (8/29 =
+  one round over the ≤25% line — marginal), t15 edge-guard **2.07/10** (up ~5× from the pre-fix
+  1/23, but short of ≥3/10). DIAGNOSIS: SD rounds are NOT stalemates — every round (SD and
+  non-SD) resolves with all 3 kills; SD rounds are slow-burn (22.5s, 23 supers) vs normal
+  (12.9s, 15 supers). So the residual pacing gap is late super→kill conversion, not fuel-starve
+  stalling or bots-not-closing.
+- [x] **Prediction-first experiment: `smash_sting_fuel` 30→40 REJECTED.** Predicted it would fix
+  t15 AND lower SD (spec §2.4 cascade). Result (22-round idle-P1): t15 → 3.64/10 (fixed) BUT SD
+  → 41% and kill-decided → 59% (both regressed). The §2.4 edge-lethality→SD cascade is REFUTED —
+  deepening the sting fixes edge kills by starving victims but drags rounds. Not adopted; live
+  eval only, no commit. Baselines: tools/out/idle_sting30_baseline.json, idle_sting40.json.
+- [x] Fixed a skill defect found by dogfooding: feel-campaign Phase 0.4 harness said "P1=L3
+  brain" — contradicts spec §9's idle-P1 harness (tests 13/14 require idle P1) and roughly
+  doubled apparent SD. Corrected to idle-P1 + multi-match aggregation.
+
 ## NEXT STEPS in priority order
-1. **Full QA pass on lethality v2**: the 21 criteria in spec §9 (esp. test 6 BOTH directions —
-   kill ≥8/10 fuel-starved / survive ≥5/10 full-tank counter; L4>L2 5-match; forced double-KO
-   revive timing; 60fps regression) + powerup C1 comedy check + powerup edge cases still untested
-   (two counter shields colliding, counter vs storm balls, two-star clang) + 3-match feel
-   judgment vs the owner thesis. Fix findings.
+1. **Close the last lethality gap (t15 edge-guarding 2.07 → ≥3/10) WITHOUT a physics knob.**
+   sting-up is rejected (regresses t10/t11). t15 is likely bot-behavior-bound: run a
+   prediction-first experiment on the bot `edge_guard` dial (BotProfile L3 0.3 / L4 0.7) — does a
+   higher edge_guard raise off-stage kills toward 3/10 without lengthening rounds? Re-measure
+   idle-P1 ≥30 rounds. t11 (28%, one round over) is within noise of target — do NOT chase it with
+   a knob; recheck it rides along. Then file the full 21-criteria sign-off (remaining: 6a/6b/6c/6d
+   staged, 13/14/16/17/19/21) + powerup C1/edge checks + 3-match feel judgment. Use skill
+   `gottabounce-feel-campaign` (Phase 1) — its harness is now correct.
 2. **Build movement courses 1–3** (docs/specs/v1_movement_courses.md) — the feel-tuning
    instrument; Chimney validates the un-charged super. Level-designer + gameplay-programmer.
 3. **Art-director evaluation: goat identity candidate** (see DECISIONS + owner feedback doc) —

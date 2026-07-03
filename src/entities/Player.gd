@@ -548,13 +548,18 @@ func _axis_snap(n: Vector2) -> Vector2:
 	return Vector2(0.0, signf(n.y))
 
 func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, launch_speed: float = 0.0, contact: Vector2 = global_position) -> void:
-	fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
-	if boost_held:
-		_supercharge_timer = Tuning.supercharge_window
-	# Bouncing is your recovery: contacting a surface clears hitstun so you snap back to control.
-	# A bounce never CAUSES the hit state — it only ever ends it.
-	_stun_timer = 0.0
-	_stunned_by = null
+	# v2.1 ruling (spec §2.3a): hitstun ends by TIME, never by touching a surface.
+	# If opponent-inflicted hitstun is active on contact, this is a DRY REFLECT — the physical
+	# bounce/ricochet still resolves upstream (BounceResolver), squash FX and the juicy-bounce
+	# event still fire, but there is NO fuel refund and hitstun is NOT cleared here (it keeps
+	# ticking down on its own clock in _physics_process). Neutral/self-triggered contact (includes
+	# the owner's wall-return shot, which by construction never involves hitstun) is unchanged.
+	if _stun_timer <= 0.0:
+		fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
+		if boost_held:
+			_supercharge_timer = Tuning.supercharge_window
+		_stun_timer = 0.0
+		_stunned_by = null
 	_squash_timer = 0.12
 	EventBus.bounced.emit(self)
 	EventBus.bounced_juicy.emit(self, launch_speed, contact)
