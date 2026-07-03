@@ -145,16 +145,26 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   doubled apparent SD. Corrected to idle-P1 + multi-match aggregation.
 
 ## NEXT STEPS in priority order
-1. **DESIGNER DECISION on t15 (edge-guarding), then finish the 21-criteria sign-off.** Both
-   natural tuning levers are now spent and rejected with evidence (sting-up: STATUS above;
-   edge_guard-up: STATUS above) — do NOT keep turning knobs (methodology: two mechanisms tried,
-   both refuted). The open question is a DESIGN call for the game-designer role: is ≥3/10
-   off-stage kills the right bar for the idle-P1 / L2-L3-L4 config (baseline delivers ~2/10, up
-   ~5× from the pre-fix 1/23), or does edge-guarding need a mechanic change (e.g. a dedicated
-   off-stage-lethality bonus) rather than a dial? t11 (28% SD = one round over) rides within
-   noise of target and needs no action. Once the t15 bar is resolved, file the remaining
-   21-criteria sign-off (6a/6b/6c/6d staged, 13/14/16/17/19/21) + powerup C1/edge checks +
-   3-match feel judgment. Use skill `gottabounce-feel-campaign` (Phase 1) — harness now correct.
+1. **KILL-ZONE REBALANCE (owner feedback 2026-07-03, `docs/feedback/owner_2026-07-03_kill_zone.md`)
+   — this HOLDS the lethality sign-off.** Owner watched real gameplay: the kill zone is too tight,
+   a single hard knock (even straight up) kills instead of arcing back into the fight, and an
+   angled (45°) knock is never survivable-with-a-fly-back. The recovery gamble (movement-feel
+   thesis applied to death) is absent. Diagnosis (math + in-engine): the super (2800) overshoots
+   the top bound (−950) by 500–800px, and — the deeper cause — SMASHES are licensed only to
+   super-speed attackers and scale by `smash_impulse_from_attacker=1.35`, so landed smashes are
+   ~3000–4000 impulse (harder than the super) → one-shot ring-outs at ANY angle; widening bounds
+   alone can't fix that (a 3500 impulse at 45° travels ~7600px). Reopens spec §2.4 (which tightened
+   bounds to fix kill-rarity — reconcile, don't blind-revert). Fix model: kills come from FAILED
+   RECOVERY, not tight walls — wider bounds (top+sides) + softer/capped smash impulse so knocks are
+   survivable-and-recoverable, kept frequent because recovery is a real gamble (fuel, second knock,
+   bad angle); lasers stay the backstop. Also needs camera work (it currently frames the tight
+   stage). Game-designer is speccing the target; then a tuning search + re-run the whole lethality
+   QA (the 29-round metrics were measured against the geometry the owner says is wrong).
+2. **THEN finish the 21-criteria lethality sign-off** (after the kill-zone re-QA): t15 is RESOLVED
+   (ruling applied → spec v2.2: t15a ≥2/10 ships = PASS 2.07, t15b ≥3/10 deferred to the feel
+   campaign); t11 (28% SD, one round over) rides within noise. Remaining to file: 6a/6b/6c/6d
+   staged, 13/14/16/17/19/21 + powerup C1/edge checks + 3-match feel judgment. Use skill
+   `gottabounce-feel-campaign` (Phase 1) — harness now correct.
 2. **Build movement courses 1–3** (docs/specs/v1_movement_courses.md) — the feel-tuning
    instrument; Chimney validates the un-charged super. Level-designer + gameplay-programmer.
 3. **Art-director evaluation: goat identity candidate** (see DECISIONS + owner feedback doc) —

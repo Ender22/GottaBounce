@@ -1,6 +1,14 @@
 # Spec: v0 Combat Lethality — rounds end by KILLS, not lasers
 
-> **Owner:** Lead Game Designer. **Status:** READY FOR BUILD. **Version 2.1 — 2026-07-03.**
+> **Owner:** Lead Game Designer. **Status:** READY FOR BUILD. **Version 2.2 — 2026-07-03.**
+>
+> **v2.2 changelog (t15 ruling, 2026-07-03 — `docs/briefs/edge_guard_t15_ruling.md`):** t15 split
+> into t15a (idle-P1 anti-regression floor, ≥2/10, ships — delivered 2.07 → PASS) and t15b
+> (all-L4 / human skill-ceiling bar, ≥3/10, follow-up in the movement-courses feel campaign, does
+> NOT block v0 sign-off). ≥3/10 was mis-set for the idle-P1 / L2-L3-L4 field and both tuning
+> levers that reach it regress pacing (DECISIONS 2026-07-03). NOTE: lethality sign-off is HELD by
+> owner feedback `docs/feedback/owner_2026-07-03_kill_zone.md` — the §2.4 blast-zone geometry is
+> being revisited (kill zone too tight, recovery gamble missing); re-QA after that rebalance.
 >
 > **v2.1 changelog (QA re-verification fix, 2026-07-03):** QA's re-verification of the v2 build
 > found the core hinge PASSES (6a/6b/9) but 4 criteria fail from ONE root cause: fix-round
@@ -537,10 +545,21 @@ match" = P1 untouched. Arena must expose `round_stats` (§8).
 14. **Idle human punished:** full idle match → P1 total ≤2, and P1 receives a smash within 8s of
     BOUNCE in ≥70% of rounds (idle-hunt firing). (Regression-tested: P1 scored 3 once with the
     bumper-save bug — §2.3a fix must bring the score cap back under ≤2; re-run required.)
-15. **Edge-guarding observable:** ≥3 kills in the sample where the killing smash connected while
-    the victim was off-stage (`kills[].off_stage`). (Regression-tested: 1/23 with the bumper-save
-    bug — §2.3a fix is the direct target of this test; re-run required and is the primary
-    acceptance gate for the fix.)
+15. **Edge-guarding — observability floor (ships) + skill-ceiling bar (follow-up).**
+    a. **t15a — SHIPS with this slice (idle-P1 harness, anti-regression floor):** ≥2 off-stage kills
+       per 10 rounds (`kills[].off_stage`) in the idle-P1 aggregate. Gates "the mechanic lands past
+       the bumper line" — the direct target of the §2.3a dry-reflect fix. Current: 2.07/10 = PASS
+       (up ~5× from the pre-fix 1/23). A future drop below 2/10 = the dry-reflect fix regressed.
+    b. **t15b — FOLLOW-UP, does NOT block v0 lethality sign-off (high-skill harness):** in an all-L4
+       field (or a human/L4-driven harness where edge-guarding dominates), ≥3 off-stage kills per 10
+       rounds. Validate during the movement-courses feel campaign (L4-menace check). If it fails
+       there, it is a bot-AI / off-stage-lethality question for a FUTURE spec — NOT a reason to hold
+       v0 lethality, whose job ("kills carry the game, lasers are the backstop") is proven by t10/t12.
+    Rationale for the split: the idle field is ~1-in-4 a stationary center-stage free-kill
+    (`off_stage:false`) and only L4 (edge_guard 0.7) is meaningfully wired to edge-guard (L2 = 0.0);
+    both levers that reach ≥3/10 there regress pillar-critical pacing (t10/t11) with evidence
+    (DECISIONS 2026-07-03). Edge-guarding is a Pillar-1 ceiling behavior — measure it at the ceiling.
+    See docs/briefs/edge_guard_t15_ruling.md.
 16. **Dodge-super observable:** ≥2 logged events in the sample where an L4 bot fired a super
     within 0.4s of an enemy entering AIM within 500px (`supers_fired[]` cross-referenced).
 

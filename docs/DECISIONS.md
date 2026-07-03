@@ -2,6 +2,20 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** KILL ZONE TOO TIGHT — OWNER FEEDBACK, lethality sign-off HELD, spec §2.4 reopened
+  (`docs/feedback/owner_2026-07-03_kill_zone.md`). Owner watched gameplay: a single hard knock
+  (even straight up) kills instead of arcing back; angled knocks are never survivable-with-fly-back;
+  the recovery gamble is missing. Diagnosis: super (2800) overshoots top bound (−950) by 500–800px,
+  and smashes — licensed only to super-speed attackers, scaled ×1.35 — land at ~3000–4000 impulse,
+  one-shotting at any angle (bounds-widening alone can't fix). Fix model: kills = FAILED RECOVERY,
+  not tight walls (wider bounds + softer/capped smash impulse + camera follow; lasers stay backstop).
+  Reconcile vs §2.4 (tightened bounds to fix kill-rarity — don't blind-revert). Re-run lethality QA
+  after: the 29-round metrics were measured against geometry the owner says is wrong.
+- **2026-07-03** t15 RULING APPLIED → spec v2.2 (`docs/briefs/edge_guard_t15_ruling.md`). Edge-guard
+  criterion split: t15a (idle-P1 floor ≥2/10, ships — PASS 2.07) + t15b (all-L4/human ≥3/10,
+  follow-up in feel campaign, non-blocking). ≥3/10 was mis-set for the idle-P1 / L2-L3-L4 field;
+  both tuning levers to reach it regress pacing. Not goalpost-moving — the skill bar is preserved,
+  relocated to the harness where edge-guarding actually lives.
 - **2026-07-03** §2.3a DRY-REFLECT FIX COMMITTED + `smash_sting_fuel` 30→40 REJECTED. QA
   (idle-P1, spec §9 harness, 29-round aggregate) confirmed the fix is a net win: kill-decided 72%
   (PASS), median 16.0s (PASS), SD 28% (marginal — one round over ≤25%), edge kills 2.07/10 (up
