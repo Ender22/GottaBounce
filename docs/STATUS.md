@@ -144,6 +144,21 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   brain" — contradicts spec §9's idle-P1 harness (tests 13/14 require idle P1) and roughly
   doubled apparent SD. Corrected to idle-P1 + multi-match aggregation.
 
+- [x] **Kill-zone rebalance BUILT + QA'd (c6229c4) — recovery gamble WORKS, but pacing regressed;
+  solidity GATE model needs revision.** Smoke test: solid hits launch (capped 2200), glances spin,
+  a 45° solid smash arcs back alive-in-bounds (the owner's ask — CONFIRMED). BUT idle-P1 QA at the
+  new geometry: solidity_min=0.25 → 83% SD / 17% kill-decided and only **1 recorded smash in 13
+  rounds**; lowering to 0.1 (live eval) → 50% SD / 50% kill-decided, still only 2 smashes/8 rounds
+  (both s≈0.9). ROOT CAUSE: `solidity=dot(velocity, line-of-centers)` is low for most real bouncy-
+  motion hits (attackers rarely travel straight through center at contact), so the GATE (launch=0
+  below `smash_solidity_min`) neutralizes ~all real hits → kills vanish → SD dominates. Lowering the
+  floor is a partial patch, not a fix. ROUTED to game-designer: revise solidity from a GATE to a
+  BASELINE+BONUS model (every eligible smash launches a baseline; solidity adds a center-hit bonus
+  toward the cap) so kills stay frequent AND center hits still "really send them flying" (owner) AND
+  glances stay survivable. Then re-build + re-QA. Samples were thin (6–8 rounds, matches end fast/
+  slow) — the re-QA needs ≥24 aggregated. HEAD left at solidity_min=0.25 (the build value); the
+  curve revision will set real values.
+
 ## NEXT STEPS in priority order
 1. **KILL-ZONE REBALANCE (owner feedback 2026-07-03, `docs/feedback/owner_2026-07-03_kill_zone.md`)
    — this HOLDS the lethality sign-off.** Owner watched real gameplay: the kill zone is too tight,
