@@ -878,6 +878,12 @@ func kill(cause: StringName, attacker = null) -> void:
 		attacker = last_attacker   # knocked into a hazard / off the map = the smasher's kill
 	KillPipeline.kill(self, cause, attacker)
 
+## Seed a transient damage level (killrace §5: double-KO SD revives both pre-damaged at Lv2 so the
+## first clean near-edge hit resolves the 1v1 — the damage system is the timer). Re-arms the heal.
+func seed_damage(level: int) -> void:
+	damage_level = clampi(level, 0, 2)
+	_dmg_heal_t = Tuning.dmg_heal_time
+
 func mark_dead() -> void:
 	_dead = true
 	visible = false

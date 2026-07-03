@@ -138,21 +138,21 @@ var trauma_decay: float = 1.4
 var stick_deadzone: float = 0.22
 var input_buffer: float = 0.10               # seconds
 
-# --- v0 round loop (docs/specs/v0_round_loop.md §6) ---
-var intro_pop_stagger: float = 0.35    # s between ROUND_INTRO spawn pop-ins
+# --- v1 kill-race match / stage loop (docs/specs/v1_party_killrace.md §7) ---
+var intro_pop_stagger: float = 0.35    # s between STAGE_INTRO spawn pop-ins
 var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat
 var round_end_freeze: float = 1.8      # s of KO freeze-frame + pip animation (hard cap 2.0)
-var sudden_death_time: float = 20.0    # s of combat before the laser walls activate (DO-NOT-TOUCH)
-var laser_close_time: float = 6.0      # s for the laser walls to fully meet at stage center
-var laser_revive_start_frac: float = 0.4  # double-KO revive: lasers spawn already this far closed
-var sd_warning_lead: float = 3.0       # s before SD: pulsing edge-column warning (lethality §6)
 var idle_hunt_after: float = 4.0       # s of no input before the nearest bot hunts the idler (§3.2)
-var survival_requires_contact: bool = true  # survival point needs >=1 smash dealt/received (§4)
-var double_ko_window: float = 0.25     # s — simultaneous-death tiebreak window (GDD §7)
+var double_ko_window: float = 0.50     # s — the ONLY sudden-death trigger: last two lose their last
+                                       #   life within this window (v1 §5; was 0.25 in the laser era)
 var kill_credit_window: float = 4.0    # s — last-attacker kill credit (kill-zone v2.1 §11.2 RULING 3:
                                        #   2.5 -> 4.0 INTERIM; covers the failed-recovery arc across the v2
                                        #   widened runway. PREFERRED end-state = persist through launch state.
-var match_target_score: int = 10       # first to this with a strict lead wins the match
+var match_target_kills: int = 10       # v1 §2: first to this many CUMULATIVE kills with a strict lead wins
+var match_target_score: int = 10       # RETIRED alias of match_target_kills (v0 back-compat; unused)
+var lives_per_player: int = 1          # v1 §3: default 1 (dead = out for the stage). >1 enables the
+                                       #   configurable mid-stage respawn path (non-default, not this slice)
+var respawn_delay: float = 1.0         # s before a multi-life respawn (only used when lives_per_player > 1)
 var bot_levels: Array[int] = [2, 3, 4] # P2 punchline / P3 fair fight / P4 menace (spec §4)
 
 # --- Level-relative bounds (kill-zone recovery spec v3 §14) ---

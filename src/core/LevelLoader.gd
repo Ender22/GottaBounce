@@ -65,6 +65,7 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 	else:
 		result["bounds"] = _derive_bounds(play_rect)
 	result["objects_raw"] = json.get("objects", [])   # so modes can read custom objects (campaign etc.)
+	result["name"] = str(json.get("name", path.get_file().get_basename()))  # v1 rotation QA readout
 	return result
 
 ## Derive blast-line bounds from the walkable AABB (kill-zone recovery spec v3 §14). Side margin

@@ -1,21 +1,28 @@
 class_name PartyMatch
 extends Node2D
-## The real Party match (docs/specs/v0_round_loop.md). Boots straight into 1 human (P1, pink) +
-## 3 bots (levels 2/3/4 — punchline / fair fight / menace) on one arena, first to 10.
+## The real Party match (docs/specs/v1_party_killrace.md — kill-race rework of v0_round_loop.md).
+## Boots straight into 1 human (P1, pink) + 3 bots (levels 2/3/4 — punchline / fair fight / menace).
 ##
-## Round drumbeat: staggered pop-in intro w/ name tags -> "3-2-1-BOUNCE!" -> one-life combat ->
-## sudden death (20s anti-stall lasers, or double-KO revive-once tiebreak) -> 1.8s KO freeze +
-## banner + pip animation -> next round, or MATCH_END (>=10 with a strict lead) w/ rematch|quit.
-## Scoring: +1 kill (2.5s last-attacker credit, beyond-the-grave counts) · +1 sole survivor ·
-## -1 suicide floored at 0. NO mid-round respawn (the old DevArena dev-glue is gone).
+## Stage drumbeat: rotate to the next level -> staggered pop-in intro w/ name tags ->
+## "3-2-1-BOUNCE!" -> lives-based combat (default 1 life) -> a stage ends when <=1 player is
+## not-eliminated (last-one-standing; NO round clock, NO timer) -> 1.8s KO freeze + "Pn SURVIVES!"
+## banner -> next stage (new level), or MATCH_END when a player reaches match_target_kills with a
+## strict lead. Sudden death fires ONLY on a simultaneous double-KO (last two lose their last life
+## within double_ko_window) -> both revive at center spawns pre-damaged Lv2 for a timer-free 1v1.
 ##
-## QA contract (round-loop spec §5 + lethality spec §8, read via gbplay eval): state /
-## round_index / round_clock / scores / last_death_msec / combat_start_msec / round_stats
-## (per-round {length_s, end_cause, entered_sd, kills[], survivor_had_contact, supers_fired[]}).
-## Arena contract (InputBot/Playtest): players / scores / bounds / nearest_opponent() /
-## stage_rect() / stage_center() / idle_hunt_target().
+## Scoring: score = CUMULATIVE KILLS across stages (never reset per stage). +1 per credited kill
+## (4.0s last-attacker credit, beyond-the-grave counts); suicide = -1 to your own total floored at 0.
+## Match ends on the winning KILL (immediate freeze + punch-zoom). NO survival point.
+##
+## QA contract (killrace §8, read via gbplay eval): state / stage_index (round_index alias) /
+## scores (cumulative kills) / level_index / level_name / bounds / lives_left / round_stats
+## (per-stage {stage_index, level_name, length_s, end_cause, entered_sd, kills[], survivor_had_contact,
+## supers_fired[], smashes[]}). Arena contract (InputBot/Playtest): players / scores / bounds /
+## nearest_opponent() / stage_rect() / stage_center() / idle_hunt_target().
 
-const LEVEL_PATH := "res://levels/dev_arena.json"
+# Level pool for the shuffle-bag rotation (killrace §6). v0 ships one file; slice D adds more and
+# the bag then avoids immediate repeats. With a 1-level pool rotation degenerates to a replay.
+const LEVEL_POOL: Array[String] = ["res://levels/dev_arena.json"]
 const NUM_BOTS := 3
 # Character skins: P1 is always pink; bots take blue/green/yellow in order.
 const BOT_SKINS: Array[String] = ["blue", "green", "yellow"]
@@ -23,8 +30,6 @@ const PLAYER_COLORS: Array[Color] = [
 	Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f")]
 const HUD_SCENE := preload("res://scenes/ui/MatchHUD.tscn")
 const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
-const SD_WARNING_SCENE := preload("res://scenes/ui/SDWarning.tscn")
-const LASER_WALLS := preload("res://src/entities/LaserWalls.gd")
 
 const CAM_MIN_ZOOM := 0.37     # most zoomed-out. Kill-zone spec v2 §6.3: the pulled-back 3660x2930
                                # bounds (-900..2760, -1150..1780) need ~0.37 to show the full vertical
@@ -36,24 +41,26 @@ const MATCH_END_ZOOM := 1.1    # winner punch-zoom (FEEL §7)
 const BOUNCE_HOLD := 0.4       # "BOUNCE!" banner hold (spec §1)
 const NAME_TAG_LINGER := 1.0   # name tags fade this long into COMBAT
 const NAME_TAG_FADE := 0.4
-const SD_REVIVE_LOCK := 0.8    # "SUDDEN DEATH!" revive banner hold, inputs locked (spec §1)
+const SD_REVIVE_LOCK := 0.8    # "SUDDEN DEATH!" revive banner hold, inputs locked (spec §5)
 const PROMPT_GUARD := 1.0      # MATCH_END input guard before REMATCH/QUIT arms (spec §1)
 const GOLD := Color("#ffd23f")
 const DANGER := Color("#ff4b3a")
 
-# --- QA contract (spec §5 + lethality §8) ---
+# --- QA contract (killrace §8) ---
 var state := "BOOT"
-var round_index := 0
-var round_clock := 0.0           # hidden combat clock (drives sudden death; never rendered)
-var scores: Array = []
+var stage_index := 0
+var round_index := 0             # alias of stage_index (QA/tools may read either)
+var round_clock := 0.0           # stat-only combat clock; gates NOTHING (no timer SD anymore)
+var scores: Array = []           # CUMULATIVE kills per player, never reset between stages
+var lives_left: Array = []       # per-player remaining lives this stage (0 = eliminated)
+var level_index := -1            # index into LEVEL_POOL of the current stage's level
+var level_name := ""             # display name of the current stage's level (rotation QA readout)
 var last_death_msec := 0         # ticks_msec of the most recent death (turnaround measurement)
 var combat_start_msec := 0       # ticks_msec of the last "BOUNCE!" physics unlock
-var round_stats: Array = []      # per-round QA record (lethality §8 + kill-zone §8): {length_s, end_cause,
+var round_stats: Array = []      # per-stage QA record: {stage_index, level_name, length_s, end_cause,
                                  # entered_sd, kills[{killer,victim,off_stage,t}], survivor_had_contact,
-                                 # supers_fired[{who,fuel_at_fire,aim_time,auto_fired,t}],
-                                 # smashes[{t,attacker,victim,solidity,launch_scale,launch_speed,angle_deg,
-                                 #          by_super,victim_fuel_after,starved,spin}]}
-var _cur_stats: Dictionary = {}  # the round currently being recorded
+                                 # supers_fired[...], smashes[...]}
+var _cur_stats: Dictionary = {}  # the stage currently being recorded
 
 # --- arena contract (InputBot / Playtest) ---
 var players: Array = []
@@ -67,25 +74,27 @@ var _camera: CameraController
 var _juice: Juice
 var _level_root: Node2D
 var _hud
-var _lasers
-var _sd_warning                  # SDWarning CanvasLayer (edge pulse + wall trackers, lethality §6)
-var _had_contact: Array = []     # per-player: dealt/received >=1 smash this round (lethality §4)
+var _had_contact: Array = []     # per-player: dealt/received >=1 smash this stage (stats)
 var _smash_off_stage: Array = [] # per-player: was the LAST smash they received taken off-stage?
 
-# round/match bookkeeping
+# level rotation (shuffle-bag)
+var _bag: Array = []
+var _last_level_path := ""
+
+# stage/match bookkeeping
 var _state_t := 0.0
 var _popped := 0
 var _cd_beat := -1
 var _sd_lock := 0.0              # sudden-death revive input lock countdown
-var _end_check := -1.0           # pending round-decision timer (double-KO window)
-var _recent_dead: Array = []     # simultaneous-death group (double-KO tiebreak, spec §2)
+var _end_check := -1.0          # pending stage-decision timer (double-KO window)
+var _recent_dead: Array = []    # simultaneous-elimination group (double-KO SD, spec §5)
 var _last_death_clock := 0.0
-var _revived_this_round := false # one sudden-death revive max per round (no recursion)
-var _round_deltas: Array = []    # applied score deltas this round (for the ROUND_END sub-line)
-var _round_start_alive := 0
-var _round_winner := -1
+var _revived_this_stage := false # one sudden-death revive max per stage (no recursion)
+var _stage_deltas: Array = []   # applied kill deltas this stage (for the STAGE_END sub-line)
+var _stage_start_alive := 0
+var _stage_winner := -1
 var _two_left_fired := false
-var _first_blood_fired := false  # once per MATCH (spec §3)
+var _first_blood_fired := false  # once per MATCH (spec §4)
 var _match_point_announced := {} # player idx -> true, fires once per player per match
 var _pending_match_point: Array = []
 var _tiebreaker_next := false
@@ -97,12 +106,13 @@ func _ready() -> void:
 	bounds = Rect2(-120, -120, 2160, 1380)
 	_level_root = Node2D.new()
 	add_child(_level_root)
-	_load_stage(LEVEL_PATH)
+	_reset_bag()
+	_load_stage(LEVEL_POOL[0])   # a level exists before the camera/HUD reference _stage_rect
 
 	_camera = CameraController.new()
 	_camera.position = _stage_rect.get_center()
 	_camera.dynamic = true   # Smash-style: follow the action, zoom to keep everyone on screen
-	_camera.follow_speed = 8.0   # kill-zone spec §6.4: was 6.0 — tighter follow so a fresh launch doesn't outrun the frame
+	_camera.follow_speed = 8.0   # kill-zone spec §6.4: tighter follow so a fresh launch doesn't outrun the frame
 	add_child(_camera)
 	_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
 	_juice = Juice.new()
@@ -137,6 +147,7 @@ func _spawn_player(i: int, human: bool) -> void:
 	p.global_position = _spawn_at(i)
 	players.append(p)
 	scores.append(0)
+	lives_left.append(Tuning.lives_per_player)
 	if human:
 		p.set_provider(InputHuman.new())
 		p.add_to_group("human")
@@ -150,6 +161,23 @@ func _skins() -> Array:
 		out.append(BOT_SKINS[b % BOT_SKINS.size()])
 	return out
 
+# ------------------------------------------------------------------- level rotation (§6)
+
+func _reset_bag() -> void:
+	_bag = LEVEL_POOL.duplicate()
+	_bag.shuffle()
+
+## Draw the next level from the shuffle-bag; reshuffle when empty, avoiding an immediate repeat when
+## the pool has >=2 entries. With a 1-level pool this returns that level every time (graceful replay).
+func _next_level_path() -> String:
+	if _bag.is_empty():
+		_reset_bag()
+		if LEVEL_POOL.size() >= 2 and _bag.size() > 1 and str(_bag[0]) == _last_level_path:
+			_bag.append(_bag.pop_front())
+	var path: String = str(_bag.pop_front())
+	_last_level_path = path
+	return path
+
 func _load_stage(path: String) -> void:
 	for c in _level_root.get_children():
 		c.queue_free()
@@ -158,6 +186,8 @@ func _load_stage(path: String) -> void:
 	_pu_points = data.get("powerup_spawners", [])
 	bounds = data.get("bounds", Rect2(-120, -120, 2160, 1380))
 	_stage_rect = data.get("play_rect", Rect2(bounds.get_center() - Vector2(900, 160), Vector2(1800, 320)))
+	level_index = maxi(0, LEVEL_POOL.find(path))
+	level_name = str(data.get("name", path.get_file().get_basename()))
 
 # ------------------------------------------------------------------- state machine
 
@@ -166,24 +196,25 @@ func _physics_process(delta: float) -> void:
 	# contract (last death -> next BOUNCE <= 4.5s) is measured on the wall clock.
 	var rdelta := delta / maxf(Engine.time_scale, 0.05)
 	match state:
-		"ROUND_INTRO":
+		"STAGE_INTRO":
 			_tick_intro(rdelta)
 		"COUNTDOWN":
 			_tick_countdown(rdelta)
 		"COMBAT", "SUDDEN_DEATH":
 			_tick_combat(delta, rdelta)
-		"ROUND_END":
-			_tick_round_end(rdelta)
+		"STAGE_END":
+			_tick_stage_end(rdelta)
 		"MATCH_END":
 			_tick_match_end(rdelta)
 	if state != "MATCH_END":
 		_update_camera()
 
-## BOOT/rematch entry: zero everything match-scoped, then straight into ROUND_INTRO (spec §1).
+## BOOT/rematch entry: zero everything match-scoped, then straight into the first STAGE_INTRO (spec §1).
 func _start_match() -> void:
 	state = "MATCH_START"
 	for i in range(scores.size()):
 		scores[i] = 0
+	stage_index = 0
 	round_index = 0
 	round_stats.clear()
 	_cur_stats = {}
@@ -192,12 +223,15 @@ func _start_match() -> void:
 	_pending_match_point.clear()
 	_tiebreaker_next = false
 	_match_winner = -1
+	_reset_bag()               # fresh shuffle-bag each match (spec §6)
 	_hud.reset_scores()
-	_begin_round()
+	_begin_stage()
 
-## ROUND_INTRO: everyone suspended + invisible at spawns, popped in one at a time (spec §1).
-func _begin_round() -> void:
-	round_index += 1
+## STAGE_INTRO: rotate to the next level FIRST (spec §3/§6), then the pop-in — everyone suspended &
+## invisible at the new level's spawns, popped in one at a time with name tags.
+func _begin_stage() -> void:
+	stage_index += 1
+	round_index = stage_index
 	round_clock = 0.0
 	_state_t = 0.0
 	_popped = 0
@@ -205,27 +239,30 @@ func _begin_round() -> void:
 	_sd_lock = 0.0
 	_end_check = -1.0
 	_recent_dead.clear()
-	_revived_this_round = false
+	_revived_this_stage = false
 	_two_left_fired = false
-	_round_winner = -1
-	_round_deltas.clear()
-	_had_contact.clear()      # survival-gate contact flags reset at ROUND_INTRO (lethality §4)
+	_stage_winner = -1
+	_stage_deltas.clear()
+	_had_contact.clear()
 	_smash_off_stage.clear()
-	_clear_lasers()
-	_clear_sd_warning()
+	# rotate the level BEFORE the pop-in so the establishing shot frames the new level (§6)
+	_load_stage(_next_level_path())
+	if _camera != null:
+		_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
 	_hud.hide_center()
 	_clear_name_tags()
 	for i in range(players.size()):
 		var p = players[i]
-		_round_deltas.append(0)
+		_stage_deltas.append(0)
 		_had_contact.append(false)
 		_smash_off_stage.append(false)
+		lives_left[i] = Tuning.lives_per_player
 		p.respawn(_spawn_at(i))
 		p.frozen = true
 		p.visible = false
 		_hud.set_dead(i, false)
-	_round_start_alive = players.size()
-	state = "ROUND_INTRO"
+	_stage_start_alive = players.size()
+	state = "STAGE_INTRO"
 	if _tiebreaker_next:
 		_tiebreaker_next = false
 		_hud.show_center("TIEBREAKER!", GOLD, 1.0)
@@ -254,7 +291,7 @@ func _start_countdown() -> void:
 	state = "COUNTDOWN"
 	_state_t = 0.0
 	_cd_beat = -1
-	if _pending_match_point.size() > 0:   # announced at the next round's countdown (spec §3)
+	if _pending_match_point.size() > 0:   # announced at the next stage's countdown (spec §4)
 		var names: Array[String] = []
 		for i in _pending_match_point:
 			names.append("P%d" % (int(i) + 1))
@@ -277,28 +314,27 @@ func _bounce_go() -> void:
 	round_clock = 0.0
 	combat_start_msec = Time.get_ticks_msec()
 	_cur_stats = {
+		"stage_index": stage_index, "level_name": level_name,
 		"length_s": 0.0, "end_cause": "none", "entered_sd": false,
 		"kills": [], "survivor_had_contact": false, "supers_fired": [],
 		"smashes": [],   # kill-zone spec §8: hit-solidity distribution + recovery correlation feed
 	}
 	for p in players:
 		p.frozen = false
-		p.fuel = Tuning.fuel_max   # every round starts on a full tank
+		p.fuel = Tuning.fuel_max   # every stage starts on a full tank
 	if _pu_director != null:
 		_pu_director.reset()       # first telegraph pu_first_spawn after BOUNCE! (spec §4)
 	_hud.show_center("BOUNCE!", GOLD, BOUNCE_HOLD)
 	get_tree().create_timer(NAME_TAG_LINGER).timeout.connect(_fade_name_tags)
 
 func _tick_combat(delta: float, rdelta: float) -> void:
-	round_clock += delta
-	# sudden-death revive lock: banner holds, everyone suspended, lasers paused (spec §1)
+	round_clock += delta   # stat only; gates nothing
+	# sudden-death revive lock: banner holds, both revived players suspended (spec §5)
 	if _sd_lock > 0.0:
 		_sd_lock -= rdelta
 		if _sd_lock <= 0.0:
 			for p in _alive_players():
 				p.frozen = false
-			if _lasers != null:
-				_lasers.paused = false
 		return
 	# idle-hunt bookkeeping (lethality §3.2 rule 3): ticks only during combat; the Player
 	# resets its own counter on boost/super input
@@ -309,26 +345,17 @@ func _tick_combat(delta: float, rdelta: float) -> void:
 	for p in players:
 		if is_instance_valid(p) and not p.is_dead() and not bounds.has_point(p.global_position):
 			p.kill(&"ring_out", null)
-	# SD warning flicker (lethality §6): pulsing edge columns from sd_warning_lead before SD
-	if state == "COMBAT" and _alive_count() >= 2 \
-			and round_clock >= Tuning.sudden_death_time - Tuning.sd_warning_lead:
-		_show_sd_warning()
-	# anti-stall: lasers activate in place, mid-combat — no freeze, no revive (spec §1)
-	if state == "COMBAT" and round_clock >= Tuning.sudden_death_time and _alive_count() >= 2:
-		_enter_sudden_death_timer()
-	if _lasers != null:
-		_lasers.tick(delta, players)
-	# deferred round decision: wait double_ko_window after a death that left <=1 alive
+	# deferred stage decision: wait double_ko_window after a death that left <=1 not-eliminated
 	if _end_check >= 0.0:
 		_end_check -= rdelta
 		if _end_check <= 0.0:
 			_end_check = -1.0
-			_decide_round_end(true)
+			_decide_stage_end(true)
 
 # ------------------------------------------------------------------- deaths & scoring
 
-## Contact bookkeeping (lethality §4 + §8): a `smashed` event flags BOTH sides for the survival
-## gate (shoves never emit it), and records whether the victim took the hit off-stage (test 15).
+## Contact bookkeeping (stats): a `smashed` event flags BOTH sides (shoves never emit it), and
+## records whether the victim took the hit off-stage (test 15 edge-kill correlation).
 func _on_smashed(attacker, victim, _impulse) -> void:
 	if state != "COMBAT" and state != "SUDDEN_DEATH":
 		return
@@ -348,11 +375,10 @@ func _on_super_fired(player, fuel_at_fire, aim_time, auto_fired) -> void:
 	var fired: Array = _cur_stats["supers_fired"]
 	fired.append({
 		"who": who, "fuel_at_fire": fuel_at_fire, "aim_time": aim_time, "auto_fired": auto_fired,
-		"t": round_clock,   # kill-zone spec §8: enables recovery-super correlation
+		"t": round_clock,
 	})
 
-## Hit-solidity QA feed (kill-zone spec §8): one entry per qualifying smash, carrying the solidity
-## distribution + starve/survival correlation inputs. Read-only QA data; no gameplay effect.
+## Hit-solidity QA feed (kill-zone spec §8): one entry per qualifying smash. Read-only QA data.
 func _on_smash_landed(attacker, victim, info: Dictionary) -> void:
 	if _cur_stats.is_empty() or (state != "COMBAT" and state != "SUDDEN_DEATH"):
 		return
@@ -369,9 +395,9 @@ func _on_smash_landed(attacker, victim, info: Dictionary) -> void:
 		"victim_fuel_after": info.get("victim_fuel_after", 0.0),
 		"starved": info.get("starved", false),
 		"spin": info.get("spin", 0.0),
-		"victim_damage_level": info.get("victim_damage_level", 0),  # v3 §8/§12: victim PRE-HIT dmg level (0/1/2)
-		"launch_mult": info.get("launch_mult", 1.0),                # v3: launch multiplier applied (1.0/1.33/1.66)
-		"sting_applied": info.get("sting_applied", 0.0),            # §8: fuel actually removed by the sting
+		"victim_damage_level": info.get("victim_damage_level", 0),
+		"launch_mult": info.get("launch_mult", 1.0),
+		"sting_applied": info.get("sting_applied", 0.0),
 	})
 
 func _on_killed(victim, cause, attacker) -> void:
@@ -381,71 +407,113 @@ func _on_killed(victim, cause, attacker) -> void:
 	last_death_msec = Time.get_ticks_msec()
 	if state != "COMBAT" and state != "SUDDEN_DEATH":
 		return
-	# round_stats kill record (lethality §8): off_stage = the killing smash connected while the
-	# victim was off-stage (last received smash position, tracked in _on_smashed)
+	# stage_stats kill record: off_stage = the killing smash connected while the victim was off-stage
 	if not _cur_stats.is_empty():
 		var ki: int = players.find(attacker) if attacker != null else -1
 		var kills: Array = _cur_stats["kills"]
 		kills.append({
 			"killer": ki, "victim": idx,
 			"off_stage": _smash_off_stage[idx] if idx < _smash_off_stage.size() else false,
-			"t": round_clock,   # kill-zone spec §8: enables smash→kill time correlation
+			"t": round_clock,
 		})
-		_cur_stats["end_cause"] = str(cause)   # the round-deciding death overwrites last
-	# simultaneous-death grouping for the double-KO tiebreak (spec §2)
-	if _recent_dead.size() > 0 and (round_clock - _last_death_clock) <= Tuning.double_ko_window:
-		_recent_dead.append(victim)
-	else:
-		_recent_dead = [victim]
-	_last_death_clock = round_clock
+		_cur_stats["end_cause"] = str(cause)   # the stage-deciding death overwrites last
 	# kill credit vs suicide (spec §2). Every cause counts; dead attackers still score
-	# ("beyond the grave"); being killed is never -1.
+	# ("beyond the grave"); being killed is never -1. Score is CUMULATIVE kills.
 	var ai: int = players.find(attacker) if attacker != null else -1
 	if ai >= 0 and ai != idx:
 		scores[ai] = int(scores[ai]) + 1
-		_round_deltas[ai] = int(_round_deltas[ai]) + 1
+		_stage_deltas[ai] = int(_stage_deltas[ai]) + 1
 		if not _first_blood_fired:
 			_first_blood_fired = true
 			_hud.show_top("FIRST BLOOD!", PLAYER_COLORS[ai], 1.0)
-	elif int(scores[idx]) > 0:   # suicide: -1, floored at 0 (v0 decision)
+	elif int(scores[idx]) > 0:   # suicide: -1 to your own kill total, floored at 0 (spec §2)
 		scores[idx] = int(scores[idx]) - 1
-		_round_deltas[idx] = int(_round_deltas[idx]) - 1
-	_hud.set_dead(idx, true)
-	var alive := _alive_count()
-	if alive == 2 and not _two_left_fired and _round_start_alive >= 3:
+		_stage_deltas[idx] = int(_stage_deltas[idx]) - 1
+	# kill-race feedback: pips track cumulative kills and pop the INSTANT a kill is credited (spec §4)
+	_hud.animate_scores(scores.duplicate())
+	# MATCH-END on the winning KILL (spec §2): the final kill IS the hero moment — freeze here,
+	# do not wait for STAGE_END. Requires a strict single leader at >= target.
+	var widx := _match_over_leader()
+	if widx >= 0:
+		_enter_match_end(widx)
+		return
+	# lives / elimination (spec §3)
+	lives_left[idx] = int(lives_left[idx]) - 1
+	var eliminated: bool = int(lives_left[idx]) <= 0
+	if not eliminated:
+		_respawn_after_death(idx)   # configurable multi-life path (non-default)
+	else:
+		_hud.set_dead(idx, true)
+		# simultaneous-ELIMINATION grouping for the double-KO SD (spec §5)
+		if _recent_dead.size() > 0 and (round_clock - _last_death_clock) <= Tuning.double_ko_window:
+			_recent_dead.append(victim)
+		else:
+			_recent_dead = [victim]
+		_last_death_clock = round_clock
+	var ne := _not_eliminated_count()
+	if ne == 2 and not _two_left_fired and _stage_start_alive >= 3:
 		_two_left_fired = true
 		_hud.show_top("TWO LEFT!", Color.WHITE, 1.0)
-	if alive == 0:
+	if ne == 0:
 		_end_check = -1.0
-		_decide_round_end(false)   # nobody left to die — decide immediately
-	elif alive == 1:
+		_decide_stage_end(false)   # nobody left — decide immediately (double-KO SD or NOBODY SURVIVES)
+	elif ne == 1:
 		_end_check = Tuning.double_ko_window   # the survivor might still be mid-double-KO
 
-## `deferred` = we already sat out the double-KO window after the last death; credit that wait
+## The single leader at >= match_target_kills, or -1 if no one leads at target (spec §2 strict lead).
+func _match_over_leader() -> int:
+	var mx := -1
+	var leaders := 0
+	var widx := -1
+	for i in range(scores.size()):
+		var s := int(scores[i])
+		if s > mx:
+			mx = s
+			leaders = 1
+			widx = i
+		elif s == mx:
+			leaders += 1
+	if mx >= Tuning.match_target_kills and leaders == 1:
+		return widx
+	return -1
+
+## Configurable multi-life respawn (spec §3 — dormant at lives_per_player = 1). Respawns at a spawn
+## point after respawn_delay with the existing _spawn_protect invuln and a fresh (healed) damage level.
+func _respawn_after_death(i: int) -> void:
+	var p = players[i]
+	get_tree().create_timer(Tuning.respawn_delay).timeout.connect(func() -> void:
+		if not is_instance_valid(p):
+			return
+		if state != "COMBAT" and state != "SUDDEN_DEATH":
+			return
+		if int(lives_left[i]) <= 0:
+			return
+		p.respawn(_spawn_at(i))
+		_hud.set_dead(i, false))
+
+## `deferred` = we already sat out the double-KO window since the last death; credit that wait
 ## against the freeze so the pillar-4 turnaround contract (death -> next BOUNCE <= 4.5s) holds.
-func _decide_round_end(deferred: bool) -> void:
-	var alive := _alive_players()
-	if alive.size() >= 2:
+func _decide_stage_end(deferred: bool) -> void:
+	var ne := _not_eliminated_players()
+	if ne.size() >= 2:
 		return
-	# double-KO: the tied players (only them) revive ONCE into sudden death (spec §1/§2)
-	if alive.size() == 0 and _recent_dead.size() >= 2 and not _revived_this_round:
+	# double-KO: the tied (just-eliminated) players revive ONCE into sudden death (spec §5)
+	if ne.size() == 0 and _recent_dead.size() >= 2 and not _revived_this_stage:
 		_sudden_death_revive()
 		return
-	_round_winner = players.find(alive[0]) if alive.size() == 1 else -1
-	# survival point: sole survivor only (spec §2), gated on having dealt/received >=1 smash
-	# this round (lethality §4) — surviving under fire scores, hiding untouched doesn't.
-	# The banner still names the winner either way (deltas show +0 honestly).
-	if _round_winner >= 0 and (not Tuning.survival_requires_contact or _had_contact[_round_winner]):
-		scores[_round_winner] = int(scores[_round_winner]) + 1
-		_round_deltas[_round_winner] = int(_round_deltas[_round_winner]) + 1
-	_enter_round_end(deferred)
+	_stage_winner = players.find(ne[0]) if ne.size() == 1 else -1
+	# NO survival point in a kill-race (spec §2/§3): the eliminating kill already scored; survival
+	# is a celebration beat only. The banner still names the survivor.
+	_enter_stage_end(deferred)
 
+## Sudden death — the ONLY SD (spec §5): revive both tied players at the two spawn points nearest
+## stage center, full fuel, pre-damaged Lv2 (fast pulse) so the first clean near-edge hit resolves
+## the 1v1. No lasers, no timer — the damage system IS the clock. One revive max per stage.
 func _sudden_death_revive() -> void:
-	_revived_this_round = true
+	_revived_this_stage = true
 	state = "SUDDEN_DEATH"
 	if not _cur_stats.is_empty():
 		_cur_stats["entered_sd"] = true
-	# revive at the spawn points nearest stage center (lethality §5 — never behind a closing wall)
 	var center_spawns := _spawns_by_center()
 	var k := 0
 	for v in _recent_dead:
@@ -455,124 +523,84 @@ func _sudden_death_revive() -> void:
 		var pos: Vector2 = center_spawns[k % center_spawns.size()] if center_spawns.size() > 0 else _spawn_at(i)
 		k += 1
 		v.respawn(pos)
-		v.frozen = true   # suspended while the banner holds — no 3-2-1, keep it panicky
+		lives_left[i] = 1        # both are back in the fight for the 1v1
+		v.seed_damage(2)         # pre-damaged Lv2: first clean near-edge hit sends the loser out (§5)
+		v.frozen = true          # suspended while the banner holds — no 3-2-1, keep it panicky
 		_hud.set_dead(i, false)
 	_recent_dead.clear()
-	_activate_lasers()
-	# revive pacing (lethality §5): walls spawn already laser_revive_start_frac closed —
-	# instantly on-camera, decided in <=3.6s of closing. Keeps further-closed walls as-is.
-	_lasers.ensure_closed_frac(Tuning.laser_revive_start_frac)
-	_lasers.paused = true
 	_sd_lock = SD_REVIVE_LOCK
 	_hud.show_center("SUDDEN DEATH!", DANGER, SD_REVIVE_LOCK)
 
-func _enter_sudden_death_timer() -> void:
-	state = "SUDDEN_DEATH"
-	if not _cur_stats.is_empty():
-		_cur_stats["entered_sd"] = true
-	_hud.show_top("SUDDEN DEATH!", DANGER, 1.0)
-	_activate_lasers()
-
-func _activate_lasers() -> void:
-	if _lasers != null:
-		return
-	_lasers = LASER_WALLS.new()
-	add_child(_lasers)
-	_lasers.setup(bounds, _stage_rect.get_center().x, Tuning.laser_close_time)
-	# warning columns become wall trackers at SD start (lethality §6); on the revive path this
-	# is their first appearance (no lead pulse — the walls spawn ~on-screen)
-	_show_sd_warning()
-	_sd_warning.start_tracking(_lasers)
-	# powerup sudden-death cutoff (spec §2/§4): spawner off, live bubbles pop, rings cleared;
-	# active effects and in-flight balls keep running (a Star finale is hilarious)
-	if _pu_director != null:
-		_pu_director.on_sudden_death()
-	PowerupSystem.clear_rings()
-
-## The two spawn points nearest stage center, for double-KO revives (lethality §5).
+## The two spawn points nearest stage center, for double-KO revives (spec §5).
 func _spawns_by_center() -> Array:
 	var out: Array = _spawns.duplicate()
 	var c := _stage_rect.get_center()
 	out.sort_custom(func(a, b): return a.distance_to(c) < b.distance_to(c))
 	return out
 
-func _show_sd_warning() -> void:
-	if _sd_warning != null:
-		return
-	_sd_warning = SD_WARNING_SCENE.instantiate()
-	add_child(_sd_warning)
-	_sd_warning.start_warning()
+# ------------------------------------------------------------------- stage end / match end
 
-func _clear_sd_warning() -> void:
-	if _sd_warning != null:
-		if is_instance_valid(_sd_warning):
-			_sd_warning.queue_free()
-		_sd_warning = null
-
-# ------------------------------------------------------------------- round end / match end
-
-## KO freeze-frame: gameplay halts, banner + pips animate in real time (spec §1).
-func _enter_round_end(deferred := false) -> void:
-	state = "ROUND_END"
+## KO freeze-frame: gameplay halts, banner + pips already animated in real time (spec §1).
+func _enter_stage_end(deferred := false) -> void:
+	state = "STAGE_END"
 	# the double-KO wait already elapsed since the last death — it counts as freeze time
 	_state_t = Tuning.double_ko_window if deferred else 0.0
-	# finalize the round_stats record (lethality §8)
+	# finalize the round_stats record
 	if not _cur_stats.is_empty():
 		_cur_stats["length_s"] = round_clock
-		_cur_stats["survivor_had_contact"] = _round_winner >= 0 \
-			and _round_winner < _had_contact.size() and _had_contact[_round_winner]
+		_cur_stats["survivor_had_contact"] = _stage_winner >= 0 \
+			and _stage_winner < _had_contact.size() and _had_contact[_stage_winner]
 		round_stats.append(_cur_stats)
 		_cur_stats = {}
-	# SD cleanup (lethality §7): FREE (not halt) all sudden-death nodes — walls, glow,
-	# warning columns. MATCH_END must screenshot with zero laser pixels.
-	_clear_lasers()
-	_clear_sd_warning()
-	# powerup round-end sweep (spec §2): all active effects, held slots, and field objects
-	# (balls / rings / bubbles / telegraphs) are cleared — every round starts clean
+	# powerup stage-end sweep (spec §2): all active effects, held slots, and field objects
+	# (balls / rings / bubbles / telegraphs) are cleared — every stage starts clean
 	if _pu_director != null:
 		_pu_director.stop()
 	PowerupSystem.round_sweep()
 	for p in players:
 		if is_instance_valid(p) and not p.is_dead():
 			p.frozen = true
-	var txt := "NOBODY WINS"
+	var txt := "NOBODY SURVIVES"
 	var col := Color.WHITE
-	if _round_winner >= 0:
-		txt = "P%d WINS THE ROUND" % (_round_winner + 1)
-		col = PLAYER_COLORS[_round_winner]
+	if _stage_winner >= 0:
+		txt = "P%d SURVIVES!" % (_stage_winner + 1)
+		col = PLAYER_COLORS[_stage_winner]
 	_hud.show_center(txt, col, Tuning.round_end_freeze - 0.35, _deltas_line())
 	_hud.animate_scores(scores.duplicate())
 
-func _tick_round_end(delta: float) -> void:
+func _tick_stage_end(delta: float) -> void:
 	_state_t += delta
 	if _state_t < Tuning.round_end_freeze:
 		return
-	# match end iff someone is at target AND strictly leads; a tie at >=10 plays another
-	# full round ("TIEBREAKER!") and re-checks — points past 10 count (spec §2)
+	# Safety match-end check (spec §2): normally the match already ended on the winning kill; this
+	# only catches a strict leader that appeared without a live match-end check (defensive).
+	var widx := _match_over_leader()
+	if widx >= 0:
+		_enter_match_end(widx)
+		return
+	# a tie at >= target (double-KO crediting two to target in the window) does NOT end — play on
 	var mx := -1
-	var leaders := 0
 	for s in scores:
-		if int(s) > mx:
-			mx = int(s)
-			leaders = 1
-		elif int(s) == mx:
-			leaders += 1
-	if mx >= Tuning.match_target_score:
-		if leaders == 1:
-			_enter_match_end(scores.find(mx))
-			return
+		mx = maxi(mx, int(s))
+	if mx >= Tuning.match_target_kills:
 		_tiebreaker_next = true
-	for i in range(scores.size()):   # MATCH POINT: first time a player hits target-1 (spec §3)
-		if int(scores[i]) >= Tuning.match_target_score - 1 and not _match_point_announced.has(i):
+	# MATCH POINT: first time a player hits target-1 kills (spec §4)
+	for i in range(scores.size()):
+		if int(scores[i]) >= Tuning.match_target_kills - 1 and not _match_point_announced.has(i):
 			_match_point_announced[i] = true
 			_pending_match_point.append(i)
-	_begin_round()
+	_begin_stage()
 
 func _enter_match_end(widx: int) -> void:
 	state = "MATCH_END"
 	_state_t = 0.0
 	_match_winner = widx
 	_prompt_shown = false
+	# finalize any in-flight stage record so QA can read the winning stage
+	if not _cur_stats.is_empty():
+		_cur_stats["length_s"] = round_clock
+		round_stats.append(_cur_stats)
+		_cur_stats = {}
 	var w = players[widx]
 	if is_instance_valid(w):
 		if w.is_dead():   # won on points while dead — bring them back for the bow
@@ -597,8 +625,8 @@ func _tick_match_end(delta: float) -> void:
 
 func _deltas_line() -> String:
 	var parts: Array[String] = []
-	for i in range(_round_deltas.size()):
-		var d: int = _round_deltas[i]
+	for i in range(_stage_deltas.size()):
+		var d: int = _stage_deltas[i]
 		if d != 0:
 			parts.append("P%d %+d" % [i + 1, d])
 	return "  ·  ".join(parts)
@@ -621,11 +649,17 @@ func _alive_players() -> Array:
 func _alive_count() -> int:
 	return _alive_players().size()
 
-func _clear_lasers() -> void:
-	if _lasers != null:
-		if is_instance_valid(_lasers):
-			_lasers.queue_free()
-		_lasers = null
+## Players still in the stage: lives remaining > 0 (currently alive OR waiting on a multi-life
+## respawn). Eliminated = 0 lives. Stage-end/SD logic reads THIS, not dead-this-instant (spec §3).
+func _not_eliminated_players() -> Array:
+	var out: Array = []
+	for i in range(players.size()):
+		if int(lives_left[i]) > 0 and is_instance_valid(players[i]):
+			out.append(players[i])
+	return out
+
+func _not_eliminated_count() -> int:
+	return _not_eliminated_players().size()
 
 func _clear_name_tags() -> void:
 	for t in _name_tags:
