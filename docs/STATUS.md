@@ -159,6 +159,23 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   slow) — the re-QA needs ≥24 aggregated. HEAD left at solidity_min=0.25 (the build value); the
   curve revision will set real values.
 
+- [x] **Kill-zone v2 (baseline+bonus, 2b7363a) BUILT + QA'd — zero-launch cliff FIXED, but pacing
+  still fails; launch-floor lever REFUTED (2 cycles).** Smoke sweep perfect: s=0→1320 baseline,
+  monotonic to 2200 cap, never zero; sting 0 glance / 30 center. But idle-P1 aggregate pacing
+  gradient: baseline(pre-rebalance) 28% SD / 72% kill-decided / 14% suicide → v1 gate0.25 83%/17%
+  → gate0.1 50%/50% → **v2 floor0.6 53% SD / 47% kill / 39% suicide** → **floor0.8 54% / 46% /
+  31%**. Raising the launch floor 0.6→0.8 moved SD 53%→54% (NOTHING) — launch magnitude is not the
+  bottleneck. FINDING: the recovery gamble (survivable knocks, the owner's ask) STRUCTURALLY pins
+  SD ~50% — median round sits at the 20s SD line because most exchanges are non-lethal by design,
+  and ~1/3 of kills are self-destructs. This is a design TENSION (recovery-gamble vs ≤25% SD
+  target), not a tunable knob. Two candidate resolutions ROUTED to game-designer: (a) make the
+  STING the executioner (starve solid-hit victims so failed-recovery kills fire fast — the untried
+  lever, targets the right death, but trades against the gamble); (b) reconsider whether ≤25% SD is
+  even the right target for a recovery-gamble design, vs accepting ~35% if SD rounds are exciting;
+  PLUS (c) a likely CREDIT-WINDOW bug — long recovery arcs exceed the 2.5s kill_credit_window, so
+  failed-recovery kills are mis-recorded as suicides (the 31–39% unattributed) — fix likely
+  independent of the tension. Samples 13–17 rounds (thin; re-QA at ≥24). HEAD = v2 floor 0.6.
+
 ## NEXT STEPS in priority order
 1. **KILL-ZONE REBALANCE (owner feedback 2026-07-03, `docs/feedback/owner_2026-07-03_kill_zone.md`)
    — this HOLDS the lethality sign-off.** Owner watched real gameplay: the kill zone is too tight,
