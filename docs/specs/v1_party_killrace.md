@@ -1,6 +1,7 @@
 # Spec: v1 Party Kill-Race — lives-based Duck-Game match across rotating levels
 
-> **Owner:** Lead Game Designer. **Status:** READY FOR BUILD (slice C — see §10). **v1 — 2026-07-03.**
+> **Owner:** Lead Game Designer. **Status:** READY FOR BUILD (slice C.2 — see §10; slice C + C.1
+> shipped). **v1 — 2026-07-03.**
 >
 > Authority: owner directive `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` +
 > `docs/DECISIONS.md` (2026-07-03 top entry). This spec **replaces the match/round structure of
@@ -9,9 +10,15 @@
 > companion amendment `docs/specs/v0_kill_zone_recovery.md` **§12–§14 (v3)**. Read that for anything
 > about launch/sting/damage/bounds; read THIS for match/stage/lives/SD/rotation/scoring/HUD.
 >
+> **AMENDMENT LOG:** §5.5 (2026-07-03 session-4 finding #1) fixed the 1v1 closeout stall via bot
+> finisher mode — SHIPPED (slice C.1), closeout 73s → 4.9s median (criterion 15 PASS). §5.6
+> (2026-07-03 session-4 finding #2) **REOPENS and OVERTURNS §5.5's premise** that "3–4-player pacing
+> is already good": QA data falsified it — the 3–4p MELEE, not the closeout, is what keeps a
+> full match at 6.6–8 min vs the 2.5–5 min target. §5.6 is the ruling on that. Read §5.5 then §5.6.
+>
 > Code surface: `src/modes/PartyMatch.gd` (state machine, scoring, bounds, SD), `src/core/LevelLoader.gd`
 > (bounds + level load), `src/entities/Player.gd` (`kill`/`respawn`/`is_dead`/`damage_level`),
-> `levels/dev_arena.json`.
+> `src/core/InputBot.gd` + `src/core/BotProfile.gd` (targeting — §5.5/§5.6), `levels/dev_arena.json`.
 
 ## The player fantasy
 
@@ -114,7 +121,8 @@ kill total (0 at MATCH_START, never reset between stages). The corner-card pips 
   last-one-standing, a stage yields ~2–3 credited kills; a leader nets ~1/stage → **~8–11 stages ≈
   3–5 min** to reach 10 — the Duck-Game set length, and it keeps the 10-slot pip card (§4) exactly
   full. 15 pushes matches to ~6–7 min and needs a 3-row card. Left as Tuning so a "long set" is a
-  one-number change. (Retire `match_target_score`; alias if cheap.)
+  one-number change. (Retire `match_target_score`; alias if cheap.) **Confirmed by the owner (session-4
+  directive re-read): 10 is fine — the lever for match length is STAGE LENGTH, not the kill count (§5.6).**
 
 ### Match-end trigger — fires on the winning KILL
 
@@ -219,15 +227,22 @@ as a resolution moment, not an anticlimax.
 
 ---
 
-## 5.5 The 1v1 stage-closeout — bot "finisher" mode (RULING, 2026-07-03 session-4 finding)
+## 5.5 The 1v1 stage-closeout — bot "finisher" mode (RULING, 2026-07-03 session-4 finding #1) — SHIPPED
+
+> **⚠ PREMISE PARTLY OVERTURNED — read §5.6.** This ruling correctly diagnosed and FIXED the 1v1
+> closeout stall (SHIPPED, slice C.1; closeout 73s → 4.9s median, criterion 15 PASS). But its
+> framing sentence — *"Stages resolve fine at 3–4 players (the melee produces kills); only the
+> closeout drags"* — was **falsified by the session-4 C.1 QA** (4-bot self-play). The 3–4-player
+> melee does NOT resolve fast: stages dwell 16–102s at ≥3 alive, which is what keeps a full match
+> at 6.6–8 min vs the 2.5–5 min target. §5.6 is the ruling on the melee. The finisher fix below
+> stands unchanged; §5.6 is additive.
 
 **The finding (QA, 4-bot self-play watched to stage 9):** the match STRUCTURE is sound — stages
 rotate, kills accumulate across stages (reached `[2,7,5,6]`), lives reset per stage, last-one-standing
 resolves, match-end fires on the winning kill, zero laser SD. But the **2→1 endgame STALLS**: once a
 stage is down to the final two players (1 life each), two L3 bots circle and refuel and neither commits
-to the kill — **stage 1 sat 2-alive for ~73s.** Stages resolve fine at 3–4 players (the melee produces
-kills); only the closeout drags. Net: ~7 kills across 8 stages in ~7 min → a full match to 10 would run
-~10–12 min against the spec's 2.5–5 min target (§2, §8 t7).
+to the kill — **stage 1 sat 2-alive for ~73s.** Only the closeout drags. Net: ~7 kills across 8 stages
+in ~7 min → a full match to 10 would run ~10–12 min against the spec's 2.5–5 min target (§2, §8 t7).
 
 ### RULING 1 — NOT acceptable. This must be fixed for v0.
 
@@ -259,14 +274,15 @@ break-off gates form a stable orbit. **The lethality/damage system is NOT the pr
 *does* eventually force the kill, just too slowly; and note the 8s heal (`dmg_heal_time`) means that in
 a slow circle the `damage_level` heals back to 0 between sparse hits, so escalation never compounds. The
 fix is to make hits *frequent and committed* (bot behavior), not to make each hit more lethal (which
-would regress the 3–4-player melee that already works).
+would regress the 3–4-player melee that already works). *(§5.6 note: the 3–4p melee does NOT already
+work — it has the same "hits scatter, victims heal" failure mode, at a different scale; §5.6 fixes it
+the same way — bot behavior, not lethality.)*
 
 **THE FIX — a scoped "finisher" mode in `InputBot`, active only when the bot has ≤1 living opponent
 left (i.e., 2 players remain).** The bot counts living opponents from the existing `arena.players`
 (no new arena contract — preserves the §9 InputBot/Playtest field contract). While
 `_alive_opponents(me) <= finisher_opponents_left`, the bot OVERRIDES its profile dials with the
-finisher values below; outside the endgame it behaves exactly as today (the 3–4-player pacing is
-already good and must NOT change).
+finisher values below; outside the endgame it behaves exactly as today.
 
 Finisher overrides (applied on top of any level's profile — floors/caps/mults so they scale sanely for
 L2/L3/L4, the shipped lineup):
@@ -329,6 +345,195 @@ arena field; the §9 InputBot/Playtest contract is untouched.
 
 ---
 
+## 5.6 The 3–4-player melee pacing — CHASE-THE-WOUNDED targeting (RULING, 2026-07-03 session-4 finding #2)
+
+> **This ruling REOPENS §5.5's off-limits premise** ("3–4-player pacing is already good; only the
+> closeout drags") because QA data has FALSIFIED it. Per the studio's change-control doctrine a
+> premise declared off-limits is reopened only when new evidence contradicts it — that condition
+> is met. The reopening is decisive, not tentative.
+
+### The finding (slice C.1 QA, 4-bot self-play)
+
+The finisher fix (§5.5) WORKED — closeout 73s → **4.9s median / p90 12.8s / max 21s** (criterion 15
+PASS), gating verified correct across 240 samples (finisher engages only at ≤1 opponent; 3–4p behaviour
+byte-identical). **But a full match to 10 kills still runs 6.6–8 min vs the 2.5–5 min target.** The
+cause is NOT the closeout — it is the **3–4-PLAYER MELEE**: stages dwell **16–102s while ≥3 are alive**
+before the first eliminations. §5.5's premise is falsified.
+
+### The match-length MATH (this bounds the fix — the lever is STAGE LENGTH, not kill count)
+
+To bring ONE leader to 10 kills in a 4-way race takes ~8 stages (kills split ~evenly across 4 players).
+- At **~50s/stage** → ~6.7 min (out of target, matches the observed 6.6–8 min).
+- At **~15s/stage** → ~2.7 min (in the 2.5–5 min target).
+
+So the ONLY lever that moves match length into target without changing structure is **stage length**:
+the melee must produce its first 2–3 eliminations in **~10–15s**, not ~50–100s. The kill target (10) is
+CONFIRMED-FINE by the owner (§2); do not touch it. Do not add a round timer (directive §1; §5.5 hard-reject).
+
+### WHY the melee is slow (from the code — the SAME failure as the closeout, at melee scale)
+
+In a 3–4-body scrum the bots **spread soft hits across different targets** and rarely stack **2+ hits
+on ONE victim within the 8s `dmg_heal_time` window**. So a victim escalates to Lv1, then heals back to
+Lv0 before the next hit lands on *them* — `damage_level` never compounds to the lethal Lv2. Kills
+therefore depend on rare dead-on **edge** hits. This is by design in one half (survivable knocks — a
+single hit almost never kills; the recovery gamble the owner wants preserved) but broken in the other:
+the intended kill economy is *damage escalation from repeat hits* (directive §2/§3), and the bots never
+execute the follow-up. **No bot targeting logic weights `damage_level` at all** — `_pick_target`
+(`InputBot.gd` ~265) chooses on idle-hunt → leader_focus → edge_guard → nearest, none of which know or
+care that a nearby opponent is already at Lv1 and about to heal. The bots are not doing the owner's
+explicit dynamic: **"chase the wounded to finish before they heal / flee to survive."**
+
+### RULING — the fix is ON-DESIGN bot CHASE-THE-WOUNDED targeting. This is the prime candidate, CONFIRMED.
+
+Make bots **prioritize already-damaged opponents** and **commit to a wounded target** until it dies,
+heals, or escapes range. This converts the melee's scattered hits into kills faster **via the damage
+system exactly as the owner designed it** — repeat hits on one victim inside the 8s window compound to
+Lv2 → the next near-edge hit rings them out. It changes **WHO** a bot targets, never **HOW LETHAL** a
+hit is: no lethality constant changes, and — critically — it **cannot regress the recovery gamble for a
+healthy player**, because it only re-weights targeting toward players who are *already past their first
+hit*. A healthy, full-fuel player still eats a single hit and arcs back exactly as today; the danger is
+the *second* hit landing before they heal — which IS the owner's flee/chase gamble ("flee to survive").
+This is the surgical, on-design lever. It is BUILD-READY (see "build-ready vs owner-input" below).
+
+**THE CHANGE — one new BotProfile dial + one Tuning constant + a targeting priority in `_pick_target`:**
+
+1. **New per-difficulty dial `wounded_focus`** (add to `BotProfile`, alongside `edge_guard` /
+   `leader_focus`): 0..1 probability that, on a reaction tick, the bot ACQUIRES the most-damaged
+   opponent in chase range as its target. Difficulty-scaled table (comedy at the bottom, relentless at
+   the top):
+
+   | Level | `wounded_focus` | intent |
+   |---|---|---|
+   | L1 | **0.0** | oblivious flailer — never coordinates a finish (comedy preserved) |
+   | L2 | **0.35** | notices sometimes; sloppy follow-up |
+   | L3 | **0.6**  | the shipped-lineup workhorse — reliably chases the wounded |
+   | L4 | **0.85** | relentless hunter — finishes what it starts |
+   | L5 | **0.95** | (hard-mode) near-certain finisher |
+
+2. **New Tuning constant `wounded_focus_range_mult = 2.0`** — a bot chases a wounded target within
+   `_eff_attack_range() * wounded_focus_range_mult` (L3: 340 × 2.0 = **680px**). This is deliberately
+   **wider than attack_range** so the bot pursues a *fleeing* wounded target across most of the stage
+   (the owner's "chase before they heal"), not just one already in blast range. Scales with tier via
+   attack_range (L2 560 / L3 680 / L4 920 — better bots chase further). A wounded target that flees
+   past this radius / off-stage is released to `edge_guard`'s existing logic.
+
+3. **`_pick_target` priority insertion** — insert the wounded logic **immediately after the idle-hunt
+   override** (idle-hunt stays absolute top — anti-camp is a pillar) and **before `leader_focus`**:
+
+   ```
+   # (after the idle_hunt_target override, before leader_focus)
+
+   # COMMIT / follow-up: stick to a wounded target you already committed to, so repeat hits land
+   # inside the 8s heal window (the owner's "finish before they heal"). Release when it heals to
+   # Lv0, dies, or flees past the chase radius.
+   if _target != null and is_instance_valid(_target) and not _target.is_dead() \
+           and _target.damage_level >= 1 \
+           and me.global_position.distance_to(_target.global_position) <= _eff_attack_range() * Tuning.wounded_focus_range_mult:
+       return _target
+
+   # ACQUIRE: roll wounded_focus; on success, target the MOST-damaged opponent in chase range
+   # (tie-break: nearest). This is the chase-the-wounded dynamic.
+   if profile.wounded_focus > 0.0 and randf() < profile.wounded_focus:
+       var prey = _most_wounded_in_range()   # new helper below
+       if prey != null:
+           return prey
+   ```
+
+   with the helper:
+
+   ```
+   func _most_wounded_in_range():
+       var best = null
+       var best_dmg := 0
+       var best_d := INF
+       var reach := _eff_attack_range() * Tuning.wounded_focus_range_mult
+       for p in arena.players:
+           if p == me or not is_instance_valid(p) or p.is_dead() or p.damage_level < 1:
+               continue
+           var d: float = me.global_position.distance_to(p.global_position)
+           if d > reach:
+               continue
+           if p.damage_level > best_dmg or (p.damage_level == best_dmg and d < best_d):
+               best_dmg = p.damage_level; best = p; best_d = d
+       return best
+   ```
+
+**How the two clauses cooperate (the commit is the point):** the ACQUIRE roll (`randf < wounded_focus`,
+re-rolled each `reaction_time` tick) makes a bot latch onto a fresh Lv1 victim within ~1–2 ticks; the
+COMMIT clause then *holds* that target every subsequent tick as long as it stays wounded and in range,
+regardless of the roll — so the bot doesn't flip-flop to `nearest` and abandon the half-finished kill.
+This is the "commit to a wounded target" follow-up the directive asked for. When the victim heals to
+Lv0 (they successfully fled — the gamble paying off) or dies or escapes the radius, the commit releases
+and the bot returns to normal targeting.
+
+**Interaction with §5.5 finisher & existing dials:** wounded-focus composes cleanly — in finisher mode
+`_eff_attack_range()` is already ×1.4, so the chase radius widens further (correct: press the lone
+survivor harder if they're hurt); if the lone opponent is healthy, `_most_wounded_in_range()` returns
+null and targeting falls through to the finisher's "nearest + always-chase" path unchanged.
+`edge_guard` (off-stage prey) still runs *below* wounded-focus in the chain and picks up any wounded
+target that flees off-stage. `leader_focus` still runs below it — the villain-focus survives but no
+longer competes with a live finish. No new arena contract field; the §9 InputBot/Playtest contract is
+untouched (reads only `arena.players[i].damage_level`, which the amendment §13 already exposes for QA).
+
+**Why probability < 1.0 (not a hard "always chase wounded"):** a hard gate would make all 3 surviving
+bots dogpile the first Lv1 victim every time → an instant, un-flee-able Lv2 kill → the melee collapses
+to single trades (fails criterion 16) and the recovery gamble dies (fails the flee-to-survive feel).
+The difficulty-scaled probability + reaction_time spread means bots converge on the wounded *often but
+not in lockstep*, so a wounded player with fuel can still sometimes flee and heal (criterion 21). This
+is the knob to LOWER first (L3 0.6 → 0.45, or `wounded_focus_range_mult` 2.0 → 1.5) if QA shows a
+bloodbath — NOT any global lethality constant.
+
+### REJECTED alternatives (per the directive's request to accept/reject each)
+
+- **REJECTED (primary) — damage-system tuning (faster escalation / longer heal).** Making hits compound
+  across the scattered melee by lowering `dmg_heal_time` or raising `dmg_launch_mult` is a **global
+  lethality change**. STATUS session-4 records that every global lethality lever tried regressed
+  pacing (sting 30→40: fixed edge-kills but SD 28→41% and kill-decided 72→59%; edge_guard-up: worse on
+  every axis). It ALSO erodes the healthy-player recovery gamble (a longer/heavier damage state makes a
+  single hit closer to lethal). The whole value of wounded-focus is that it hits the melee-pacing target
+  **without** this cost. Do not touch `dmg_heal_time` / `dmg_launch_mult`. *(If, and only if,
+  wounded-focus alone underperforms in QA, the least-bad secondary would be a SMALL `dmg_heal_time`
+  8→6 — it lengthens the window to land the follow-up without changing per-hit lethality — but this is
+  a fallback to prototype only after wounded-focus is measured, never a first move, and it must re-pass
+  criterion 20.)*
+
+- **REJECTED (primary) — extend finisher-mode to ≤2 or ≤3 opponents.** Blunter and off-design: the full
+  §5.5 override cranks aggression/range/commit/refuel/dodge for ALL bots across the whole melee, which
+  is exactly the "everyone over-commits and whiffs / self-destructs" pattern that DRAGGED rounds in the
+  edge_guard-up experiment (STATUS session-4). It also ignores the owner's articulated mechanic (chase
+  the *wounded*, not "attack constantly"). Wounded-focus is more surgical and uses the damage system as
+  designed. *(Kept as a flagged secondary ONLY: if wounded-focus underperforms, a MILD extension —
+  `finisher_opponents_left` 1 → 2 with just the `aggression_floor` and `commit_time_floor`, NOT the
+  attack_range/refuel/dodge overrides — would firm up the 3-player phase without the whiff-drag risk.
+  Prototype after wounded-focus, not instead of it.)*
+
+### Build-ready vs owner-input (directive point 3)
+
+**BUILD-READY.** Wounded-focus is a small additive `InputBot`/`BotProfile` change that (a) directly
+implements the owner's explicitly-stated dynamic, (b) is inherently feel-safe for the healthy-player
+recovery gamble (it only re-weights targeting toward the already-damaged), and (c) has a clear
+lower-only backoff knob if it over-shortens. No owner decision is required to build it.
+
+**The one escalation trigger (do NOT force a fix past this):** if QA finds that NO setting of
+`wounded_focus` + `wounded_focus_range_mult` can bring melee stages to ~15s **without** failing
+criterion 20 (healthy full-fuel player survives a single mid-stage hit ≥8/10) or criterion 21
+(flee-to-survive stays real) — i.e., the only way to hit 15s stages is to turn the melee into a
+recovery-gamble-killing bloodbath — then STOP and escalate to the owner as a **target-vs-feel
+calibration**: *is a ~40–50s 4-player brawl-stage actually acceptable for the Duck-Game churn (accept a
+longer match or fewer target kills), or is the 2.5–5 min / 10-kill target the thing to bend?* Present
+it as a values fork, do not thrash knobs. (This mirrors the earlier SD-rate escalation that resolved
+cleanly once routed to the owner.)
+
+### Tuning constants (add to §7)
+
+```
+# NEW (bot chase-the-wounded — 3-4p melee pacing, §5.6)
+wounded_focus_range_mult = 2.0     # chase a wounded target within attack_range * this (fleers included)
+# + per-difficulty dial `wounded_focus` in BotProfile: L1 0.0 / L2 0.35 / L3 0.6 / L4 0.85 / L5 0.95
+```
+
+---
+
 ## 6. Level rotation
 
 - **`_load_stage()`** already loads a level by path into `_level_root`. Generalize `PartyMatch` to
@@ -359,6 +564,11 @@ finisher_commit_time_floor = 1.5
 finisher_refuel_floor      = 10.0  # > super_boost_min_fuel (5)
 finisher_dodge_super_cap   = 0.15
 
+# NEW (bot chase-the-wounded — 3-4p melee pacing, §5.6)
+wounded_focus_range_mult   = 2.0   # chase a wounded (damage_level>=1) target within attack_range * this
+# + per-difficulty dial `wounded_focus` added to BotProfile (NOT Tuning — matches the aggression/
+#   edge_guard/leader_focus per-level pattern): L1 0.0 / L2 0.35 / L3 0.6 / L4 0.85 / L5 0.95
+
 # CHANGED
 double_ko_window     = 0.25 -> 0.50   # directive §2: last-two-within-0.5s = the ONLY SD trigger
 match_target_score   -> RETIRED (renamed match_target_kills; alias if cheap)
@@ -370,7 +580,8 @@ survival_requires_contact               # no survival point in a kill-race
 # UNCHANGED / reaffirmed
 intro_pop_stagger, countdown_beat, round_end_freeze (1.8), kill_credit_window (4.0, persist),
 bot_levels [2,3,4], round_end_freeze cap 2.0
-dmg_heal_time (8.0), dmg_launch_mult [1.0,1.33,1.66]   # §5.5: NOT touched — the closeout fix is bot behavior, not lethality
+dmg_heal_time (8.0), dmg_launch_mult [1.0,1.33,1.66]   # §5.5 AND §5.6: NOT touched — both pacing fixes are
+                                                       # bot behavior (targeting/commitment), never lethality
 ```
 
 (Damage-system, bounds-derivation, and sting constants live in the amendment §12–§14.)
@@ -401,7 +612,7 @@ heal timer for the damage tests (amendment §13).
    the same window → match does **not** end (strict-lead required); play continues.
 7. **Match-to-target timing (bot-driven):** a full idle-P1 match to `match_target_kills=10` completes
    in **~2.5–5 min** wall-clock across the 2/3/4 lineup (measure ≥3 matches). A match dragging past
-   ~7 min flags a stage-length or kill-rate problem.
+   ~7 min flags a stage-length or kill-rate problem. **(Re-verified post-§5.6 by criterion 17.)**
 
 **Sudden death (double-KO only)**
 8. **SD fires only on true simultaneity:** eval-kill the final two players within 0.5s of each other →
@@ -420,30 +631,47 @@ heal timer for the damage tests (amendment §13).
 **Stage-length & kill distribution (aggregate, ≥24 idle-P1 stages)**
 11. **Stage length:** median COMBAT length **8–18s**; 90th-percentile ≤ **25s**; no laser/timer ends a
     stage (all end by elimination or double-KO SD). A stage > 35s wall-clock flags for review (soft —
-    Pillar 2 + damage should prevent it; there is no hard cap by design).
+    Pillar 2 + damage should prevent it; there is no hard cap by design). **(Post-§5.6 this must hold
+    driven by the melee-pacing fix, not just the closeout — see criteria 18/19.)**
 12. **Kills per stage:** median **≥ 2 credited kills/stage**; suicides ≤ ~1/stage median (L2 comedy
     still lands ≥1 suicide/match). Unattributed kills ≤ 18% (credit-fix, kill-zone §11.2).
 
-**1v1 stage-closeout (bot finisher, §5.5 — the session-4 stall fix; measured in a 4-bot match, the stress case)**
+**1v1 stage-closeout (bot finisher, §5.5 — the session-4 finding-#1 fix; measured in a 4-bot match)**
 15. **2-left closeout duration:** instrument the wall-clock from the moment a stage reaches exactly
     **2 not-eliminated players** (the `TWO LEFT!` trigger) to the deciding death. Across ≥20 such
     closeouts in 4-bot matches (2/3/4 lineup): **median ≤ 8s, 90th-percentile ≤ 15s.** A single
     closeout > 20s is a **soft flag** for review; **> 30s is a HARD FAIL** (this is the 73s regression
-    guard). Compare against the pre-fix baseline (stage-1 = 73s) — the fix must cut the closeout tail
-    by an order of magnitude.
+    guard). **SHIPPED result: median 4.9s / p90 12.8s / max 21s — PASS.**
 16. **Finisher does not over-shorten the 3–4-player melee:** the 4→2 phase (COMBAT start → `TWO LEFT!`)
     still yields the bulk of kills; whole-stage median stays **8–18s** (criterion 11) and per-stage
     kills stay **≥ 2** (criterion 12) — i.e. finisher speeds the *closeout*, it must not make the
     early melee a single trade nor spike bot self-destructs (idle-P1 suicide rate stays ≤ ~1/stage,
-    criterion 12). If finisher whiff-and-drag or self-destruct appears, re-check `attack_range × 1.4`
-    (lower toward × 1.2) before touching any global knob.
-17. **Full-match timing re-verified post-fix:** with the finisher live, criterion 7 must now hold —
-    a full 4-bot idle-P1 match to 10 kills completes in **2.5–5 min** (≥3 matches), NOT the ~10–12 min
-    observed pre-fix. **Human-play note (not automatable this slice, judge by inspection):** a
-    human-vs-1-bot closeout must also resolve — the finisher bot pushes and trades rather than orbits,
-    and with no standable ground the human cannot camp the finish either; a designer/QA spot-check of
-    one human-driven 1v1 closeout should confirm it ends within a few seconds of sustained contact,
-    with no "the bot won't engage" feel.
+    criterion 12).
+17. **Full-match timing re-verified post-fix:** with the finisher AND wounded-focus (§5.6) live,
+    criterion 7 must hold — a full 4-bot idle-P1 match to 10 kills completes in **2.5–5 min** (≥3
+    matches), NOT the 6.6–8 min observed after C.1-alone. **Human-play note (judge by inspection):** a
+    human-vs-1-bot closeout must also resolve — the finisher bot pushes and trades rather than orbits.
+
+**3–4-player melee pacing (bot chase-the-wounded, §5.6 — the session-4 finding-#2 fix; measured in a 4-bot match, the stress case)**
+18. **First-elimination timing (the core §5.6 target):** instrument the wall-clock from COMBAT start
+    (BOUNCE) to the FIRST elimination in a 4-player stage. Across ≥20 four-player stages (2/3/4 lineup):
+    **median ≤ 10s, 90th-percentile ≤ 18s.** A first-elimination > 30s is a **HARD FAIL** (this is the
+    16–102s-dwell regression guard). Baseline to beat: the pre-§5.6 melee dwelled 16–102s.
+19. **≥3-alive melee-phase dwell:** instrument the wall-clock from COMBAT start until the stage drops
+    to exactly 2 not-eliminated players (`TWO LEFT!`). Across the same ≥20 stages: **median ≤ 12s,
+    90th-percentile ≤ 20s.** Combined with criterion 15 (closeout ≤8s median) this yields the whole-stage
+    ~8–18s of criterion 11. A ≥3-alive dwell whose median exceeds 20s means wounded-focus is not
+    converting hits — re-check `wounded_focus` values and `wounded_focus_range_mult` BEFORE any global knob.
+20. **Recovery gamble PRESERVED (the feel guardrail — must not regress):** a **healthy** (`damage_level
+    == 0`), **full-fuel** player struck by a single qualifying **mid-stage** (NOT near-edge) hit
+    survives — arcs back in bounds, not eliminated — in **≥ 8/10** scripted trials. (Reuse the amendment
+    §15 edge-vs-mid harness; wounded-focus must not have changed this at all, since it only re-weights
+    targeting toward the already-damaged.) A result < 8/10 is the escalation trigger of §5.6.
+21. **Flee-to-survive stays real (bloodbath guardrail, soft):** across the aggregate stages, **≥ 25% of
+    Lv1-damage events heal back to Lv0 without the player dying** — i.e. the chase is a *gamble*, not a
+    guaranteed dogpile-kill. If < 25% (wounded players almost always die once hit), the melee has become
+    a bloodbath: LOWER `wounded_focus` (L3 → 0.45) and/or `wounded_focus_range_mult` (→ 1.5) and re-run;
+    do not touch lethality. (Soft flag; read alongside criterion 20 — both must hold together.)
 
 **Readability & performance**
 13. **Corner HUD only:** mid-combat screenshot — 4 corner cards (kill pips + fuel), no persistent UI
@@ -461,7 +689,8 @@ rate. The damage/edge/bounds combat criteria live in the amendment §15.)
 Powerup rebalance, title/lobby/menus, local-MP join, audio announcer/music, pause menu, persistent
 stats. The `InputBot`/`Playtest` contract fields (`players`, `scores`, `bounds`, `nearest_opponent()`,
 `stage_rect()`, `stage_center()`, `idle_hunt_target()`) must survive the refactor unchanged. The
-finisher mode (§5.5) reads only existing `arena.players` — it adds no new contract field. The
+finisher mode (§5.5) and the chase-the-wounded targeting (§5.6) read only existing `arena.players`
+(and `players[i].damage_level`, already exposed for QA) — they add no new contract field. The
 damage/edge/bounds combat internals are the amendment's scope, not this file's.
 
 ---
@@ -471,24 +700,25 @@ damage/edge/bounds combat internals are the amendment's scope, not this file's.
 The directive suggested (a) combat core incl. lives/elimination + bounds, (b) match mode + rotation,
 (c) more levels. **Improved ordering — feel-riskiest thing first, and split bounds from match-mode:**
 
-- **Slice A — DAMAGE COMBAT FEEL (make-or-break; amendment §12–§13).** On the EXISTING single arena
-  and EXISTING fixed bounds and EXISTING round loop: add the damage state (Lv1/Lv2, 8s heal, red
-  pulse) + the post-cap launch multiplier; remove the compounding sting; keep the base sting. Validate
-  the FEEL first: does hitting a damaged player near the edge kill? does a fresh mid-stage player arc
-  back? does the flee/chase read on the body? **If this feel is wrong, nothing else matters** — do not
-  proceed. (No match-mode rework needed to feel-test this; the current 1-life round loop already ends
-  by elimination.)
-- **Slice B — LEVEL-RELATIVE BOUNDS + edge-relative validation (amendment §14).** Derive bounds from
-  play_rect + margins (values reproduce dev_arena's validated bounds). Re-verify edge-kill-vs-mid-
-  survive rates. Low risk once A feels right; unblocks auto-bounding for new levels.
-- **Slice C — KILL-RACE MATCH MODE (THIS spec).** Rework PartyMatch: cumulative kills, target 10,
-  remove survival point, remove the 20s laser SD + nodes, double-KO SD = revive-both-Lv2 1v1, level
-  rotation cadence, match-end on the winning kill, HUD pips → kills, banner table.
-- **Slice C.1 — BOT FINISHER (§5.5; follows the session-4 QA finding).** Small additive `InputBot`
-  change: `_alive_opponents()` count + the finisher dial-overrides gated on
-  `<= Tuning.finisher_opponents_left`, plus the 6 new Tuning constants. Re-run criteria 15–17 in a
-  4-bot match. This is the immediate closeout-stall fix; it does not touch PartyMatch or the damage
-  system.
+- **Slice A — DAMAGE COMBAT FEEL (make-or-break; amendment §12–§13).** SHIPPED. On the EXISTING single
+  arena / bounds / round loop: damage state (Lv1/Lv2, 8s heal, red pulse) + post-cap launch multiplier;
+  removed compounding sting; kept base sting. Feel validated first.
+- **Slice B — LEVEL-RELATIVE BOUNDS + edge-relative validation (amendment §14).** SHIPPED. Bounds from
+  play_rect + margins; edge-kill-vs-mid-survive rates re-verified.
+- **Slice C — KILL-RACE MATCH MODE (THIS spec).** SHIPPED. Cumulative kills, target 10, survival point
+  removed, laser SD + nodes removed, double-KO SD = revive-both-Lv2 1v1, level rotation, match-end on
+  the winning kill, HUD pips → kills, banner table.
+- **Slice C.1 — BOT FINISHER (§5.5; session-4 finding #1).** SHIPPED (08041b6). `_alive_opponents()` +
+  finisher dial-overrides gated on `<= Tuning.finisher_opponents_left` + 6 new Tuning constants.
+  Criterion 15 PASS (closeout 73s → 4.9s median). REVEALED finding #2 → slice C.2.
+- **Slice C.2 — BOT CHASE-THE-WOUNDED (§5.6; session-4 finding #2 — THE CURRENT TASK).** Small additive
+  `InputBot`/`BotProfile` change: new `wounded_focus` per-level dial + `wounded_focus_range_mult` Tuning
+  constant + `_most_wounded_in_range()` helper + the two-clause (commit + acquire) insertion in
+  `_pick_target` (after idle-hunt, before leader_focus). Does NOT touch PartyMatch, the damage system,
+  or any lethality constant. Re-run criteria **18, 19, 20, 21** (new) and re-verify **7, 11, 17** hold.
+  This is the immediate melee-pacing fix. Backoff knob if it over-shortens: lower `wounded_focus` /
+  `wounded_focus_range_mult` (never lethality). Escalate to owner ONLY on the §5.6 trigger (can't hit
+  ~15s stages without failing criterion 20/21).
 - **Slice D — MORE LEVELS (level-designer).** A pool of ≥4–6 hand-built levels feeding the shuffle-bag;
   each auto-bounds via §14. Only meaningful once A–C prove the loop is fun on one level.
 
