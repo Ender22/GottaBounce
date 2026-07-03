@@ -167,6 +167,15 @@ var finisher_attack_range_mult: float = 1.4 # arm the super from further; close-
 var finisher_commit_time_floor: float = 1.5 # a rolled hunt sticks through the whole approach
 var finisher_refuel_floor: float = 10.0     # dive/attack-gate floor; > super_boost_min_fuel (5) so it can always fire
 var finisher_dodge_super_cap: float = 0.15  # cap the counter-super dance so two high-tiers don't infinitely dodge
+# v1_kill_economy §2b: scale the finisher AIM-entry range with arena width so a bot arms its super
+# from proportionally further on a huge map (close-then-blast like a human) instead of needing to get
+# pixel-close. factor = clampf(bounds.size.x / ref, 1.0, max). grassy width 5680 -> ~1.55; dev -> 1.0.
+var finisher_range_width_ref: float = 3660.0  # dev_arena blast-bounds width (the no-regression baseline)
+var finisher_range_width_max: float = 1.6     # cap on the width multiplier
+# v1_kill_economy §2c: flee-to-heal RETREAT anti-permanent-evasion caps. A wounded bot cannot flee
+# forever (Pillar 2); after the cap it MUST re-engage so the finisher PURSUE always resolves the closeout.
+var flee_max: float = 8.0            # s cap on RETREAT outside finisher (= the heal window; then force re-engage)
+var finisher_flee_max: float = 3.0   # s cap on RETREAT in the 2-left endgame (guarantees the closeout resolves)
 
 # --- Bot chase-the-wounded: the 3-4p melee pacing fix (v1 §5.6, session-4 finding #2) ---
 # A bot chases a wounded (damage_level >= 1) opponent within _eff_attack_range() * this, so scattered
@@ -175,6 +184,12 @@ var finisher_dodge_super_cap: float = 0.15  # cap the counter-super dance so two
 # probability is BotProfile.wounded_focus (L1 0.0 / L2 0.35 / L3 0.6 / L4 0.85 / L5 0.95). Backoff knob
 # on a bloodbath: lower this to 1.5 (or lower wounded_focus) — NEVER a lethality constant (§5.6).
 var wounded_focus_range_mult: float = 1.5
+# v1_kill_economy §3: the chase-the-wounded radius must SCALE with arena width, else on a 3760px-walkable
+# arena players spread 1500-2400px apart are never inside the ~510px attack-range term and melee kills
+# don't land. reach = clampf(maxf(attack_range*mult, frac*bounds.width), 0, max). grassy -> ~1988px.
+# Backoff knob on a bloodbath: lower wounded_focus_frac (0.35 -> 0.25) — NEVER a lethality constant.
+var wounded_focus_frac: float = 0.35       # fraction of blast-bounds width a bot will chase a wounded target across
+var wounded_focus_range_max: float = 2600.0  # camera/sanity cap on the width-scaled chase radius
 
 # --- Level-relative bounds (kill-zone recovery spec v3 §14) ---
 # Bounds are DERIVED in LevelLoader from play_rect (the merged platform AABB / walkable extent) plus
@@ -185,7 +200,9 @@ var wounded_focus_range_mult: float = 1.5
 var bounds_side_frac: float = 0.52       # §14: fraction of walkable width per side (dev_arena: 0.52*1792=932)
 var bounds_side_min: float = 700.0       # §14: floor so a short level isn't un-survivably tight
 var bounds_side_max: float = 1400.0      # §14: cap so a very long level's runway stays camera/recovery-sane
-var bounds_top_margin: float = 1700.0    # §14: fixed vertical headroom above walkable (dev_arena top 540 -> -1160)
+var bounds_top_margin: float = 2650.0    # v1_kill_economy §1: 1700->2650 = self_super_rise(2450)+200 clearance,
+                                         # so a straight-up self-super arcs back from the highest platform on
+                                         # EVERY circuit level (no routine upward self-destruct). (dev_arena top 540 -> -2110)
 var bounds_bottom_margin: float = 670.0  # §14: fixed drop below walkable (dev_arena bottom 1108 -> 1778)
 
 # --- Powerups (docs/specs/v1_powerups.md §6) ---

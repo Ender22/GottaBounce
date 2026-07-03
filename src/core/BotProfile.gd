@@ -19,6 +19,9 @@ var leader_focus := 0.0     # 0..1 chance to target the score leader (within 1.5
 var dodge_super := 0.0      # 0..1 per-reaction-tick chance to counter-super an incoming aim
 var wounded_focus := 0.0    # 0..1 (§5.6) chance to ACQUIRE the most-damaged opponent in chase range;
                             # chase-the-wounded melee-pacing dial. Commit clause holds it once acquired.
+var flee_skill := 0.0       # 0..1 (v1_kill_economy §2c) chance, on a reaction tick where the flee
+                            # trigger holds, to enter the RETREAT (flee-to-heal) state. L1/L2 barely
+                            # flee (brawl on, comedy preserved); high tiers gamble a heal.
 
 static func for_level(level: int) -> BotProfile:
 	var p := BotProfile.new()
@@ -28,24 +31,29 @@ static func for_level(level: int) -> BotProfile:
 			p.target_lead = 0.0; p.commit_time = 0.0; p.attack_range = 240.0; p.refuel_floor = 15.0
 			p.super_aim_time = 1.4; p.edge_guard = 0.0; p.leader_focus = 0.0; p.dodge_super = 0.0
 			p.wounded_focus = 0.0    # §5.6: oblivious flailer — never coordinates a finish (comedy)
+			p.flee_skill = 0.0       # §2c: never flees — brawls on (comedy)
 		2:
 			p.aim_error = 0.50; p.reaction_time = 0.38; p.recovery_skill = 0.40; p.aggression = 0.45
 			p.target_lead = 0.15; p.commit_time = 0.4; p.attack_range = 280.0; p.refuel_floor = 20.0
 			p.super_aim_time = 1.0; p.edge_guard = 0.0; p.leader_focus = 0.0; p.dodge_super = 0.0
 			p.wounded_focus = 0.25   # §5.6 (crit-21 backoff): notices sometimes; sloppy follow-up
+			p.flee_skill = 0.15      # §2c: rarely flees
 		3:
 			p.aim_error = 0.32; p.reaction_time = 0.28; p.recovery_skill = 0.60; p.aggression = 0.65
 			p.target_lead = 0.5; p.commit_time = 0.8; p.attack_range = 340.0; p.refuel_floor = 25.0
 			p.super_aim_time = 0.6; p.edge_guard = 0.3; p.leader_focus = 0.25; p.dodge_super = 0.0
-			p.wounded_focus = 0.45   # §5.6 (crit-21 backoff): shipped-lineup workhorse — chases the wounded
+			p.wounded_focus = 0.6    # §5.6 -> v1_kill_economy §3: restored wide-arena start (0.45->0.6)
+			p.flee_skill = 0.5       # §2c: gambles a heal about half the time
 		4:
 			p.aim_error = 0.16; p.reaction_time = 0.16; p.recovery_skill = 0.82; p.aggression = 0.85
 			p.target_lead = 0.85; p.commit_time = 1.3; p.attack_range = 460.0; p.refuel_floor = 35.0
 			p.super_aim_time = 0.3; p.edge_guard = 0.7; p.leader_focus = 0.6; p.dodge_super = 0.5
-			p.wounded_focus = 0.6    # §5.6 (crit-21 backoff): relentless hunter — finishes what it starts
+			p.wounded_focus = 0.85   # §5.6 -> v1_kill_economy §3: restored wide-arena start (0.6->0.85)
+			p.flee_skill = 0.8       # §2c: disciplined — retreats to heal when hurt
 		5:
 			p.aim_error = 0.06; p.reaction_time = 0.10; p.recovery_skill = 0.95; p.aggression = 0.95
 			p.target_lead = 1.0; p.commit_time = 1.5; p.attack_range = 520.0; p.refuel_floor = 35.0
 			p.super_aim_time = 0.18; p.edge_guard = 0.9; p.leader_focus = 0.8; p.dodge_super = 0.8
 			p.wounded_focus = 0.75   # §5.6 (crit-21 backoff): (hard-mode) near-certain finisher
+			p.flee_skill = 0.9       # §2c: (hard-mode) reliably retreats to heal
 	return p

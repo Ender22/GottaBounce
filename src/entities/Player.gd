@@ -99,6 +99,10 @@ func get_super_aim_dir() -> Vector2:
 func is_super_active() -> bool:
 	return _super_recent > 0.0
 
+## Seconds left on the transient-damage heal countdown (v1_kill_economy §2c: the bot's flee-worth gate).
+func heal_time_left() -> float:
+	return _dmg_heal_t
+
 func in_hitstun() -> bool:
 	return _stun_timer > 0.0
 

@@ -34,6 +34,10 @@ var _dodge_dir := Vector2.ZERO   # pending dodge-super direction (fires snap, §
 var _dodged := {}            # enemy instance_id -> fired a dodge for their current aim window
 var _finisher := false       # §5.5: down to <= finisher_opponents_left living opponents -> commit-mode
                              # runtime-only dial overrides (never mutates profile; reverts on stage reset)
+# --- v1_kill_economy §2c flee-to-heal RETREAT state ---
+var _retreat := false        # currently fleeing to safe ground to heal
+var _retreat_t := 0.0        # seconds spent in the current RETREAT (anti-permanent-evasion cap)
+var _retreat_target := Vector2.ZERO  # the safe-platform position being fled to
 
 func _init(player: Player, arena_ref, bot_level := 3) -> void:
 	me = player
@@ -60,7 +64,12 @@ func _eff_aggression() -> float:
 	return maxf(profile.aggression, Tuning.finisher_aggression_floor) if _finisher else profile.aggression
 
 func _eff_attack_range() -> float:
-	return profile.attack_range * Tuning.finisher_attack_range_mult if _finisher else profile.attack_range
+	if not _finisher:
+		return profile.attack_range
+	# §2b: scale the finisher AIM-entry range with arena width (close-then-blast on a huge map).
+	# Width factor clamps to 1.0 on the small arena -> byte-identical to the shipped §5.5 there.
+	var wf: float = clampf(_bounds().size.x / Tuning.finisher_range_width_ref, 1.0, Tuning.finisher_range_width_max)
+	return profile.attack_range * Tuning.finisher_attack_range_mult * wf
 
 func _eff_commit_time() -> float:
 	return maxf(profile.commit_time, Tuning.finisher_commit_time_floor) if _finisher else profile.commit_time
@@ -79,6 +88,8 @@ func poll() -> InputIntent:
 	it.super_hold = false
 	_react -= dt
 	_commit_t = maxf(0.0, _commit_t - dt)
+	if _retreat:
+		_retreat_t += dt   # anti-permanent-evasion cap counts on the wall clock (§2c)
 	if me == null or not is_instance_valid(me) or me.is_dead():
 		it.aim = Vector2.ZERO
 		it.boost = false
@@ -224,13 +235,48 @@ func _decide() -> void:
 	# --- refuel rhythm (rule 2): below the floor, dive to a bounce surface — one bounce re-arms
 	if me.fuel < _eff_refuel_floor():
 		var sr := _stage()
-		var target := Vector2(clampf(pos.x, sr.position.x + 100.0, sr.end.x - 100.0), sr.end.y)
+		var desired_x := pos.x
+		# §2a: a finisher refuels IN-TRANSIT — bias the dive x toward the lone opponent so every
+		# refuel bounce advances the chase (never retreat away from the lone target to refuel).
+		if _finisher:
+			var opp = arena.nearest_opponent(me)
+			if opp != null and is_instance_valid(opp):
+				desired_x = opp.global_position.x
+		# §4/§2 pathing: dive to a real bounce SURFACE, never straight down into the OPEN pit (the
+		# removed mid-pit bridge left empty air at mid-x — a naive current-x dive self-destructs).
+		# Ray-probe for ground below; snap to the nearest floored column if over a gap.
+		var tx := _refuel_x(desired_x, sr, pos.y)
+		var target := Vector2(tx, sr.end.y)
 		var dir := (target - pos).normalized()
 		_cached_aim = dir
-		# boost only if falling AWAY from the surface; otherwise let gravity deliver the bounce
-		_cached_boost = me.velocity.dot(dir) < -60.0 and me.fuel > 2.0
+		# boost if falling AWAY from the surface, OR if we must TRANSLATE horizontally to reach
+		# ground (over the pit): otherwise the bot just drops straight into the gap.
+		var must_cross: bool = absf(tx - pos.x) > 120.0
+		_cached_boost = me.fuel > 2.0 and (me.velocity.dot(dir) < -60.0 or must_cross)
 		_hunt = false
 		return
+	# §2c flee-to-heal RETREAT: a wounded bot may break off to safe ground to heal, bounded by
+	# flee_max / finisher_flee_max so the chaser always closes. Evaluated AFTER refuel (secure fuel
+	# first) and AFTER reflexive _danger_recover (checked in poll — safety always wins).
+	if _update_retreat(pos):
+		return
+	# §2a finisher PURSUE: beeline straight at the lone survivor — no stage-center diversion, never
+	# disengage on distance. Reflexive _danger_recover already preempted this in poll (safety first).
+	if _finisher:
+		var fopp = _pick_target()
+		if fopp == null or not is_instance_valid(fopp) or fopp.is_dead():
+			fopp = arena.nearest_opponent(me)
+		if fopp != null and is_instance_valid(fopp):
+			_target = fopp
+			var fd: Vector2 = fopp.global_position - pos
+			var fdist := fd.length()
+			_cached_aim = _jitter(fd.normalized())
+			_hunt = true
+			_commit_t = _eff_commit_time()
+			_cached_boost = fdist > _eff_attack_range() * 0.8 and me.fuel > _eff_refuel_floor()
+			if fdist < _eff_attack_range() and me.fuel >= _eff_refuel_floor():
+				_cached_super = true
+			return
 	var on_stage := _stage().grow(360.0).has_point(pos)
 	var target = _pick_target()
 	_target = target
@@ -261,6 +307,99 @@ func _decide() -> void:
 		_cached_boost = me.fuel > 35.0 and to_stage.length() > 360.0
 		_hunt = false
 
+## §2c RETREAT state machine. Returns true when RETREAT is driving movement this tick (caller returns).
+## Entry: damaged + no attack opportunity + a heal window worth fleeing for, rolled on flee_skill.
+## Hold: boost toward the safe platform; on arrival hold in place and heal. Exit (any): healed to Lv0,
+## the anti-evasion cap fired, a kill opportunity appeared, or idle-hunt overrides.
+func _update_retreat(pos: Vector2) -> bool:
+	var cap: float = Tuning.finisher_flee_max if _finisher else Tuning.flee_max
+	if _retreat:
+		var force_engage := _retreat_t >= cap
+		var healed := me.damage_level < 1
+		var opportunity := _has_kill_opportunity()
+		var idle_override = arena.has_method("idle_hunt_target") and arena.idle_hunt_target(me) != null
+		if force_engage or healed or opportunity or idle_override:
+			_retreat = false
+			return false
+	else:
+		if not _should_flee():
+			return false
+		_retreat = true
+		_retreat_t = 0.0
+		_retreat_target = _safe_platform(pos)
+	# drive the flight to safe ground (re-pick if the target went stale)
+	if _retreat_target == Vector2.ZERO:
+		_retreat_target = _safe_platform(pos)
+	var d: Vector2 = _retreat_target - pos
+	if d.length() < 220.0:
+		# arrived: hold and heal — stop pushing, let the bounce rhythm carry it (no camp: capped)
+		_cached_aim = Vector2.ZERO
+		_cached_boost = false
+	else:
+		_cached_aim = _steer(d.normalized())
+		_cached_boost = me.fuel > 6.0
+	_cached_super = false
+	_hunt = false
+	return true
+
+## §2c flee trigger: wounded, a heal window worth fleeing for (> 2s left), no strong attack
+## opportunity, rolled on the per-difficulty flee_skill dial. Aim quality is never touched (INV-8).
+func _should_flee() -> bool:
+	if me.damage_level < 1 or profile.flee_skill <= 0.0:
+		return false
+	if me.heal_time_left() <= 2.0:
+		return false
+	if _has_kill_opportunity():
+		return false
+	return randf() < profile.flee_skill
+
+## A "strong attack opportunity" that suppresses/breaks a flee: already committed to a finishing AIM,
+## a wounded prey inside the §3 chase radius, or the nearest opponent inside my effective attack range.
+func _has_kill_opportunity() -> bool:
+	if me.is_super_aiming():
+		return true
+	if _most_wounded_in_range() != null:
+		return true
+	var opp = arena.nearest_opponent(me)
+	return opp != null and is_instance_valid(opp) \
+		and me.global_position.distance_to(opp.global_position) <= _eff_attack_range()
+
+## Pick the safe spawn/platform that MAXIMIZES distance from the nearest opponent, lightly penalizing
+## far travel so it stays reachable by boost (spawns sit on the level's platforms; no new contract).
+func _safe_platform(pos: Vector2) -> Vector2:
+	var opp = arena.nearest_opponent(me)
+	var threat: Vector2 = opp.global_position if (opp != null and is_instance_valid(opp)) else _stage_center()
+	var candidates: Array = arena._spawns if ("_spawns" in arena) else []
+	if candidates.is_empty():
+		return _stage_center()
+	# §4 pit-safety: only flee to platforms REACHABLE on the current tank, else a wounded bot flies
+	# across the 960px pit, runs dry mid-air, and self-destructs (the dominant uncredited death).
+	# budget scales with fuel; nearest reachable is the fallback so we always return a real target.
+	var budget: float = clampf(me.fuel / Tuning.fuel_max, 0.15, 1.0) * 2400.0
+	var best := Vector2.ZERO
+	var best_score := -INF
+	var fallback := Vector2.ZERO
+	var fb_d := INF
+	for s in candidates:
+		var sp: Vector2 = s
+		var d_me: float = sp.distance_to(pos)
+		if d_me < fb_d:
+			fb_d = d_me
+			fallback = sp
+		if d_me > budget:
+			continue
+		var score: float = sp.distance_to(threat) - 0.35 * d_me
+		if score > best_score:
+			best_score = score
+			best = sp
+	return best if best != Vector2.ZERO else fallback
+
+## §3: the chase-the-wounded radius, SCALED with arena width (floored on the attack-range term).
+func _wounded_reach() -> float:
+	return clampf(maxf(_eff_attack_range() * Tuning.wounded_focus_range_mult,
+			Tuning.wounded_focus_frac * _bounds().size.x),
+			0.0, Tuning.wounded_focus_range_max)
+
 ## Target selection (§3.1): idle-hunt override > leader_focus > edge_guard prey > nearest.
 func _pick_target():
 	# rule 3: past idle_hunt_after, the nearest living bot overrides targeting to the idler
@@ -273,7 +412,7 @@ func _pick_target():
 	# dies, or flees past the chase radius. Held every tick regardless of the acquire roll below.
 	if _target != null and is_instance_valid(_target) and not _target.is_dead() \
 			and _target.damage_level >= 1 \
-			and me.global_position.distance_to(_target.global_position) <= _eff_attack_range() * Tuning.wounded_focus_range_mult:
+			and me.global_position.distance_to(_target.global_position) <= _wounded_reach():
 		return _target
 	# §5.6 ACQUIRE: roll wounded_focus; on success, target the MOST-damaged opponent in chase range
 	# (tie-break nearest). null falls through to leader_focus / edge_guard / nearest as today.
@@ -312,7 +451,7 @@ func _most_wounded_in_range():
 	var best = null
 	var best_dmg := 0
 	var best_d := INF
-	var reach := _eff_attack_range() * Tuning.wounded_focus_range_mult
+	var reach := _wounded_reach()
 	for p in arena.players:
 		if p == me or not is_instance_valid(p) or p.is_dead() or p.damage_level < 1:
 			continue
@@ -396,6 +535,34 @@ func _tick_powerup(it: InputIntent, dt: float) -> void:
 
 func _jitter(dir: Vector2) -> Vector2:
 	return dir.rotated(randf_range(-profile.aim_error, profile.aim_error))
+
+## Is there a bounce surface directly below this world x (within a generous drop)? Ray-probe, so
+## the pit-avoidance is GEOMETRY-generic (no hardcoded pit coords — works on any level).
+func _ground_below(x: float, from_y: float) -> bool:
+	if me == null or not is_instance_valid(me):
+		return true
+	var space := me.get_world_2d().direct_space_state
+	var q := PhysicsRayQueryParameters2D.create(Vector2(x, from_y), Vector2(x, from_y + 2200.0), Player.MASK_SURFACES)
+	q.exclude = [me.get_rid()]
+	return not space.intersect_ray(q).is_empty()
+
+## Choose a refuel dive column that actually has ground below it (§4 pit-avoidance). Start from the
+## desired x; if that column is over a gap, scan outward for the nearest floored column.
+func _refuel_x(desired_x: float, sr: Rect2, from_y: float) -> float:
+	var lo := sr.position.x + 100.0
+	var hi := sr.end.x - 100.0
+	desired_x = clampf(desired_x, lo, hi)
+	if _ground_below(desired_x, from_y):
+		return desired_x
+	var step := 120.0
+	var off := step
+	while off <= (hi - lo):
+		if desired_x + off <= hi and _ground_below(desired_x + off, from_y):
+			return desired_x + off
+		if desired_x - off >= lo and _ground_below(desired_x - off, from_y):
+			return desired_x - off
+		off += step
+	return desired_x
 
 ## Lightweight obstacle avoidance: probe feeler rays fanning out from the desired heading and
 ## return the nearest CLEAR one, so the bot steers around surfaces instead of slamming into them.
