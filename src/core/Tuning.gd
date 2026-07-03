@@ -168,6 +168,14 @@ var finisher_commit_time_floor: float = 1.5 # a rolled hunt sticks through the w
 var finisher_refuel_floor: float = 10.0     # dive/attack-gate floor; > super_boost_min_fuel (5) so it can always fire
 var finisher_dodge_super_cap: float = 0.15  # cap the counter-super dance so two high-tiers don't infinitely dodge
 
+# --- Bot chase-the-wounded: the 3-4p melee pacing fix (v1 §5.6, session-4 finding #2) ---
+# A bot chases a wounded (damage_level >= 1) opponent within _eff_attack_range() * this, so scattered
+# melee hits stack on ONE victim inside the 8s heal window and compound to a kill. Deliberately WIDER
+# than attack_range (chase a fleeing target across most of the stage). Per-difficulty acquire
+# probability is BotProfile.wounded_focus (L1 0.0 / L2 0.35 / L3 0.6 / L4 0.85 / L5 0.95). Backoff knob
+# on a bloodbath: lower this to 1.5 (or lower wounded_focus) — NEVER a lethality constant (§5.6).
+var wounded_focus_range_mult: float = 1.5
+
 # --- Level-relative bounds (kill-zone recovery spec v3 §14) ---
 # Bounds are DERIVED in LevelLoader from play_rect (the merged platform AABB / walkable extent) plus
 # these margins, so horizontally-long levels get horizontally-further blast lines. The side margin

@@ -268,6 +268,19 @@ func _pick_target():
 		var idler = arena.idle_hunt_target(me)
 		if idler != null:
 			return idler
+	# §5.6 COMMIT / follow-up: stick to a wounded target already committed to, so repeat hits land
+	# inside the 8s heal window (the owner's "finish before they heal"). Release when it heals to Lv0,
+	# dies, or flees past the chase radius. Held every tick regardless of the acquire roll below.
+	if _target != null and is_instance_valid(_target) and not _target.is_dead() \
+			and _target.damage_level >= 1 \
+			and me.global_position.distance_to(_target.global_position) <= _eff_attack_range() * Tuning.wounded_focus_range_mult:
+		return _target
+	# §5.6 ACQUIRE: roll wounded_focus; on success, target the MOST-damaged opponent in chase range
+	# (tie-break nearest). null falls through to leader_focus / edge_guard / nearest as today.
+	if profile.wounded_focus > 0.0 and randf() < profile.wounded_focus:
+		var prey = _most_wounded_in_range()
+		if prey != null:
+			return prey
 	var nearest = arena.nearest_opponent(me)
 	# leader_focus: with this probability, target the score leader if within 1.5x attack_range —
 	# gives the race a villain; keeps a lucky L2 honest
@@ -292,6 +305,25 @@ func _pick_target():
 		if prey != null:
 			return prey
 	return nearest
+
+## §5.6: among valid, non-dead, non-self opponents within the chase radius with damage_level >= 1,
+## return the most-damaged (tie-break nearest); null if none. Uses arena.players (no new contract).
+func _most_wounded_in_range():
+	var best = null
+	var best_dmg := 0
+	var best_d := INF
+	var reach := _eff_attack_range() * Tuning.wounded_focus_range_mult
+	for p in arena.players:
+		if p == me or not is_instance_valid(p) or p.is_dead() or p.damage_level < 1:
+			continue
+		var d: float = me.global_position.distance_to(p.global_position)
+		if d > reach:
+			continue
+		if p.damage_level > best_dmg or (p.damage_level == best_dmg and d < best_d):
+			best_dmg = p.damage_level
+			best = p
+			best_d = d
+	return best
 
 func _is_edge_guard_prey(p) -> bool:
 	return not _stage().grow(360.0).has_point(p.global_position)
