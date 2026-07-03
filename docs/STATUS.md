@@ -188,6 +188,20 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   stays a FEEL knob, never pacing. Predicted SD 53%→~40–45%. Build per §10, re-QA whole §9 +
   tests 22–33 at ≥24 rounds.
 
+- [x] **Kill-zone v2.1 (compounding sting + credit fix, f27a695) QA'd — credit FIXED, pacing did
+  NOT converge; ESCALATED to owner as a core-vision fork.** Credit fix WORKED: unattributed
+  suicides 39%→13% (baseline ~14%). Edge kills strong: 5.3/10 (t15b passes). BUT SD 68% /
+  kill-decided 32% / median 23.8s — compounding sting did NOT move SD (rarely triggers: sustained
+  same-victim juggles are uncommon in a 4-body scrum). FULL GRADIENT across 6 configs: SD =
+  28%(baseline) / 83%(gate.25) / 50%(gate.1) / 53%(v2 floor.6) / 54%(floor.8) / 68%(v2.1). Pacing
+  is STUCK at 50–68% SD regardless of lever — the recovery gamble (survivable knocks) STRUCTURALLY
+  makes rounds resolve by laser, not kills. Even the recalibrated ≤40% target is not met. This is
+  now a VALUES fork on the owner's core combat vision (how lethal should hits really be — TowerFall
+  "positioning avoids lethal hits" vs "most knocks survivable, recover-or-laser"), NOT a tuning
+  problem. Tuning has been exhausted (6 configs); further studio knob-turning would be thrashing /
+  goalpost-moving. AWAITING OWNER DIRECTION (see the fork presented 2026-07-03). What's KEEPER
+  regardless: the runway (wider bounds), hit-solidity launch model, credit fix, edge kills.
+
 ## NEXT STEPS in priority order
 1. **KILL-ZONE REBALANCE (owner feedback 2026-07-03, `docs/feedback/owner_2026-07-03_kill_zone.md`)
    — this HOLDS the lethality sign-off.** Owner watched real gameplay: the kill zone is too tight,
