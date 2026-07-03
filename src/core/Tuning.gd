@@ -96,12 +96,15 @@ var smash_self_retain: float = 0.1           # on a landed smash you keep only t
                                              # so you stop on impact instead of flying off the edge with them
 var smash_sting_fuel: float = 30.0           # sting: qualifying smashes chunk the victim's tank (§2.2)
 var smash_sting_min_impulse: float = 1500.0  # supers/chains sting; Star (900) & Counter (1400) don't
-# --- Compounding sting (kill-zone recovery spec v2.1 §5.2, RULING 2 — THE pacing lever) ---
-# A follow-up qualifying sting within the window compounds; isolated hits are UNCHANGED (gamble intact).
-# At s=1 the chained sequence is 30 / 52.5 / 75  (1st x1.0, 2nd x1.75, 3rd+ x2.5).
-var sting_compound_window: float = 1.5       # §5.2: a qualifying sting within this of the victim's previous compounds
-var sting_compound_step: float = 0.75        # §5.2: Nth chained hit stings base * (1 + step * min(stack, cap))
-var sting_compound_cap: int = 2              # §5.2: max stack -> at s=1: 30 / 52.5 / 75
+# --- Damage system (kill-zone recovery spec v3 §12 — REPLACES the compounding sting) ---
+# A qualifying smash (impulse >= smash_sting_min_impulse, same gate as sting) escalates the victim's
+# transient damage_level 0->1->2 (caps at 2) and re-arms an 8s full-heal timer. A damaged victim's
+# launch is multiplied (index by damage_level): Lv0 x1.0 / Lv1 x1.33 / Lv2 x1.66, applied AFTER the
+# smash_impulse_max clamp and BEFORE the max_speed limit. Read ON THE BODY (red pulse), never a HUD.
+var dmg_launch_mult: Array[float] = [1.0, 1.33, 1.66]  # §12.3: launch multiplier indexed by damage_level
+var dmg_heal_time: float = 8.0               # §12.5: seconds with no qualifying hit -> full heal to Lv0
+var dmg_pulse_slow_hz: float = 1.5           # §12.4: Lv1 red-pulse frequency (g 0.85<->0.55)
+var dmg_pulse_fast_hz: float = 4.0           # §12.4: Lv2 red-pulse frequency (g 0.75<->0.30)
 var hitstun_base: float = 0.15               # DO-NOT-TOUCH (GDD §4.6 recovery triad is protected)
 var hitstun_per_impulse: float = 0.00025
 var hitstun_max: float = 0.55

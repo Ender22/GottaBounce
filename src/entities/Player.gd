@@ -68,12 +68,15 @@ var _down_angle := PI * 0.5    # local-gravity direction angle (for body orienta
 var last_attacker = null       # for kill credit (P9); cleared after a couple seconds
 var skin := "pink"             # character sprite color (set by the mode before add_child)
 var _attacker_timer := 0.0
-# --- Compounding sting (kill-zone recovery spec v2.1 §5.2) ---
-var _sting_stack: int = 0          # follow-up sting stack (0=isolated, capped at sting_compound_cap)
-var _sting_window_timer := 0.0     # countdown; a qualifying sting while this is >0 compounds. When it
-                                   # lapses the juggle is over and the stack resets (see _physics_process).
-var _last_compound_stack: int = 0  # §8 QA feed: the stack the last qualifying sting resolved at
+# --- Damage system (kill-zone recovery spec v3 §12 — replaces the compounding sting) ---
+var damage_level: int = 0          # §12.1: transient reeling state 0 (healthy) / 1 / 2. Caps at 2, heals
+                                   # FULLY to 0 (never partial) after dmg_heal_time with no qualifying hit.
+var _dmg_heal_t: float = 0.0       # §12.1/12.5: heal countdown; a qualifying hit re-arms it to dmg_heal_time.
 var _last_sting_applied := 0.0     # §8 QA feed: the fuel the last qualifying sting actually drained
+
+func damage_launch_mult() -> float:
+	# §12.3: victim's pre-hit launch multiplier (x1.0 / x1.33 / x1.66), indexed by damage_level.
+	return Tuning.dmg_launch_mult[damage_level]
 
 # --- character sprite constants (art brief: eyeballed in-game vs the 44px collider) ---
 const SPRITE_BALL_FRAC := 0.66      # the round body is ~66% of the idle texture width (rest = jetpack)
@@ -295,12 +298,13 @@ func _physics_process(delta: float) -> void:
 	_attacker_timer = maxf(0.0, _attacker_timer - delta)
 	if _attacker_timer <= 0.0:
 		last_attacker = null
-	# Compounding sting (§5.2): the window is the "active juggle" boundary. It (1.5s) outlasts any
-	# single hitstun (<=0.55s), so hits 2/3 that land while the victim is still scrambling still
-	# compound. When it lapses the juggle is over (victim back under control) -> reset the stack.
-	_sting_window_timer = maxf(0.0, _sting_window_timer - delta)
-	if _sting_window_timer <= 0.0:
-		_sting_stack = 0
+	# Damage heal (v3 §12.5): a damaged player heals FULLY to Lv0 after dmg_heal_time with no
+	# qualifying hit. No partial step-down (never 2->1) — it drops straight to 0. Any qualifying
+	# smash re-arms the full timer in receive_smash.
+	if damage_level > 0:
+		_dmg_heal_t = maxf(0.0, _dmg_heal_t - delta)
+		if _dmg_heal_t <= 0.0:
+			damage_level = 0
 
 	# Black Hole channel (spec 3.6): hover frozen (velocity zeroed, gravity off, input locked)
 	# and pull all other players in-zone at a CONSTANT accel — readable, not 1/r^2. The pull is
@@ -640,6 +644,12 @@ func _handle_smashes() -> void:
 				var raw_impulse: float = Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker  # physical ceiling
 				var launch_scale: float = Tuning.smash_launch_floor + (1.0 - Tuning.smash_launch_floor) * s  # baseline..cap (v2, no gate)
 				var impulse_mag: float = minf(raw_impulse, Tuning.smash_impulse_max * launch_scale)   # baseline -> cap, never above physical
+				# v3 §12.3: read the victim's PRE-HIT damage level (before receive_smash escalates it) and
+				# multiply the launch AFTER the smash_impulse_max clamp, BEFORE the max_speed limit in
+				# receive_smash. Lv0 x1.0 / Lv1 x1.33 / Lv2 x1.66 -> a Lv2 center hit (2200*1.66=3652)
+				# is then clamped to max_speed (3000) by receive_smash. The ONLY sanctioned exceedance of 2200.
+				var victim_dmg_level: int = b.damage_level
+				impulse_mag *= b.damage_launch_mult()
 				var impulse := vdir * impulse_mag   # launch direction unchanged (along attacker travel)
 				var angular_kick: float = Tuning.smash_spin_max * (1.0 - s) * signf(vdir.cross(n))
 				b.receive_smash(impulse, self, s, angular_kick)
@@ -667,8 +677,9 @@ func _handle_smashes() -> void:
 						"victim_fuel_after": b.fuel,
 						"starved": b.fuel < Tuning.super_boost_min_fuel,
 						"spin": angular_kick,
-						"compound_stack": b._last_compound_stack,   # v2.1 §8: stack this sting resolved at
-						"sting_applied": b._last_sting_applied,      # v2.1 §8: fuel actually drained
+						"victim_damage_level": victim_dmg_level,     # v3 §8/§12: victim's PRE-HIT damage level (0/1/2)
+						"launch_mult": Tuning.dmg_launch_mult[victim_dmg_level],  # v3: the 1.0/1.33/1.66 applied
+						"sting_applied": b._last_sting_applied,      # §8: fuel actually drained by the sting
 					})
 				_smash_cd = 0.3
 				return
@@ -685,6 +696,10 @@ func _handle_smashes() -> void:
 				var raw_impulse: float = Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker  # physical ceiling
 				var launch_scale: float = Tuning.smash_launch_floor + (1.0 - Tuning.smash_launch_floor) * s  # baseline..cap (v2, no gate)
 				var impulse_mag: float = minf(raw_impulse, Tuning.smash_impulse_max * launch_scale)   # baseline -> cap, never above physical
+				# v3 §12.3: launch multiplier by victim's pre-hit damage level. Props have no damage_level
+				# (never escalate), so this is x1.0 for them; guarded so a future damageable prop composes.
+				if b.has_method("damage_launch_mult"):
+					impulse_mag *= b.damage_launch_mult()
 				var impulse := vdir * impulse_mag
 				var angular_kick: float = Tuning.smash_spin_max * (1.0 - s) * signf(vdir.cross(n))
 				b.receive_smash(impulse, self, s, angular_kick)
@@ -740,25 +755,21 @@ func receive_smash(impulse: Vector2, attacker, s: float = 1.0, angular_kick: flo
 	# Kill-zone spec v2 §3.2: sting scales with SOLIDITY s (not launch_scale, whose 0.6 floor would
 	# starve everyone). Gated on impulse >= smash_sting_min_impulse: a baseline graze (~1320 < 1500)
 	# stings NOTHING; sting rises with s from s~=0.21 up; a dead-center hit (s=1) stings the full amount.
-	# v2.1 §5.2: the sting COMPOUNDS on follow-ups. A qualifying sting landed while the sting window
-	# is still open (a hit that caught the victim mid-scramble) stacks: base * (1 + step * stack),
-	# capped at sting_compound_cap. At s=1 the chained sequence is 30 / 52.5 / 75. Isolated hits
-	# (window lapsed) resolve at stack 0 = the UNCHANGED 30*s gamble; grazes (below the gate) sting 0
-	# and do NOT advance the stack or refresh the window (the glance-0 property holds).
+	# v3 §12: the ISOLATED sting (smash_sting_fuel * s) is UNCHANGED — the compounding multiplier is gone,
+	# replaced by the damage system below. Grazes (below the gate) sting 0 (the glance-0 property holds).
 	if impulse.length() >= Tuning.smash_sting_min_impulse and not fuel_locked:
-		if _sting_window_timer > 0.0:
-			_sting_stack = mini(_sting_stack + 1, Tuning.sting_compound_cap)
-		else:
-			_sting_stack = 0
-		_sting_window_timer = Tuning.sting_compound_window
-		var sting: float = Tuning.smash_sting_fuel * s \
-				* (1.0 + Tuning.sting_compound_step * mini(_sting_stack, Tuning.sting_compound_cap))
+		var sting: float = Tuning.smash_sting_fuel * s
 		fuel = maxf(0.0, fuel - sting)
-		_last_compound_stack = _sting_stack
 		_last_sting_applied = sting
 	else:
-		_last_compound_stack = 0
 		_last_sting_applied = 0.0
+	# v3 §12.2: damage escalation on a QUALIFYING smash (same 1500 gate as the sting — glances don't
+	# escalate). Increment damage_level (caps at 2) and re-arm the full 8s heal timer. The launch
+	# multiplier was already read from the PRE-HIT level in _handle_smashes, so the hit that takes you
+	# to Lv1 launches x1.0 and the hit received WHILE at Lv1 launches x1.33.
+	if impulse.length() >= Tuning.smash_sting_min_impulse:
+		damage_level = mini(damage_level + 1, 2)
+		_dmg_heal_t = Tuning.dmg_heal_time
 	# Smashed while aiming (spec §1.1): aim CANCELS, (stung) fuel retained, no super fires.
 	cancel_super_aim()
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
@@ -881,9 +892,8 @@ func respawn(pos: Vector2) -> void:
 	_spin_vel = 0.0
 	last_attacker = null            # a new life never owes kill credit to the old one
 	_attacker_timer = 0.0
-	_sting_stack = 0                # §5.2: a fresh life never carries a juggle stack
-	_sting_window_timer = 0.0
-	_last_compound_stack = 0
+	damage_level = 0                # v3 §12.5: a fresh life is always healthy (no carried damage)
+	_dmg_heal_t = 0.0
 	_last_sting_applied = 0.0
 	_sb_aiming = false
 	_sb_aim_t = 0.0
@@ -971,6 +981,14 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 				_sprite.self_modulate = Color.from_hsv(fmod(_anim_t * 6.0, 1.0), 0.62, 1.0)  # 6 cycles/s
 			elif silhouette:
 				_sprite.self_modulate = Color(0.2, 0.13, 0.28)
+			elif damage_level == 1:
+				# v3: Lv1 reeling — gentle red throb, g 0.85<->0.55 at dmg_pulse_slow_hz. On-body, no HUD.
+				var g1: float = 0.70 + 0.15 * sin(_anim_t * TAU * Tuning.dmg_pulse_slow_hz)
+				_sprite.self_modulate = Color(1.0, g1, g1)
+			elif damage_level == 2:
+				# v3: Lv2 reeling — deeper, faster throb, g 0.75<->0.30 at dmg_pulse_fast_hz.
+				var g2: float = 0.525 + 0.225 * sin(_anim_t * TAU * Tuning.dmg_pulse_fast_hz)
+				_sprite.self_modulate = Color(1.0, g2, g2)
 			else:
 				_sprite.self_modulate = Color.WHITE
 	_update_contact_shadow()
