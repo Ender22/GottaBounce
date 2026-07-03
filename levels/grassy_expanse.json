@@ -1,0 +1,29 @@
+{
+  "name": "Grassy Expanse",
+  "version": 2,
+  "theme": "grass",
+  "design_intent": "Spread-out 3760px grass island: two trampoline floors split by a spring GEYSER pit, three boost-only elevated pads (bubblegum shoulders + a spring THRONE over the pit). Every gap beats a spring bounce's 527px drift, so the jetpack is mandatory to traverse; super earns the cross-map and the throne.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "bounds": { "left": -960, "right": 4720, "top": -1560, "bottom": 2034 },
+  "platforms": [
+    { "x": 0,    "y": 1000, "w": 1520, "h": 128, "tier": "trampoline" },
+    { "x": 2240, "y": 1000, "w": 1520, "h": 128, "tier": "trampoline" },
+    { "x": 1520, "y": 1300, "w": 720,  "h": 64,  "tier": "spring" },
+    { "x": 540,  "y": 430,  "w": 320,  "h": 48,  "tier": "bubblegum" },
+    { "x": 2900, "y": 430,  "w": 320,  "h": 48,  "tier": "bubblegum" },
+    { "x": 1700, "y": 140,  "w": 360,  "h": 48,  "tier": "spring" },
+    { "x": 0,    "y": 620,  "w": 56,   "h": 380, "tier": "bumper" },
+    { "x": 3704, "y": 620,  "w": 56,   "h": 380, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "player_spawn", "x": 400,  "y": 780 },
+    { "type": "player_spawn", "x": 3360, "y": 780 },
+    { "type": "player_spawn", "x": 700,  "y": 280 },
+    { "type": "player_spawn", "x": 3060, "y": 280 },
+    { "type": "player_spawn", "x": 1880, "y": -60 },
+    { "type": "powerup_spawner", "x": 1880, "y": 560 },
+    { "type": "powerup_spawner", "x": 1180, "y": 760 },
+    { "type": "powerup_spawner", "x": 2580, "y": 760 }
+  ]
+}

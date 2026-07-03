@@ -22,7 +22,10 @@ extends Node2D
 
 # Level pool for the shuffle-bag rotation (killrace §6). v0 ships one file; slice D adds more and
 # the bag then avoids immediate repeats. With a 1-level pool rotation degenerates to a replay.
-const LEVEL_POOL: Array[String] = ["res://levels/dev_arena.json"]
+# Circuit (owner: test/play on a rotating pool of ~10 spaced-out levels; docs/feedback/
+# owner_2026-07-03_arena_size.md). grassy_expanse (2x, flight-required) is the primary; dev_arena
+# is the too-tight "mini" variant kept for reference. More levels land as the circuit is built out.
+const LEVEL_POOL: Array[String] = ["res://levels/grassy_expanse.json"]
 const NUM_BOTS := 3
 # Character skins: P1 is always pink; bots take blue/green/yellow in order.
 const BOT_SKINS: Array[String] = ["blue", "green", "yellow"]
