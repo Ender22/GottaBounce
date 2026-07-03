@@ -1,5 +1,15 @@
 # Spec: v0 Kill Zone & the Recovery Gamble — hit-solidity, runway, and the failed-recovery death
 
+> **v3 ADDENDUM (2026-07-03, owner directive `owner_2026-07-03_lives_damage_killrace.md`): see
+> §12–§15 at the end of this file.** v3 (a) **REPLACES the compounding sting (§5.2) with the DAMAGE
+> SYSTEM** (transient Lv1/Lv2 reeling state, red pulse, 8s heal, +33%/+66% launch multiplier), (b)
+> makes lethality **edge-relative** and (c) makes **bounds level-relative** (derived from geometry, not
+> the fixed §4 / §2.4 constants). The compounding-sting §5.2, the SD-rate rulings §11.1 / test 31, and
+> the t10–t12 SD-pacing gates are **MOOT** — there is no timer SD any more; match structure moved to
+> `docs/specs/v1_party_killrace.md`. The DO-NOT-TOUCH fence below is UNCHANGED and still governs. Read
+> §12–§15 as the current combat-interior truth; the §3/§3.2 solidity model, §5.1 drain-all, and the
+> runway *concept* (§4, now generalized to level-relative) all carry forward.
+>
 > **Owner:** Lead Game Designer. **Status:** READY FOR RE-BUILD+RE-QA. **v2.1 — 2026-07-03.**
 > **This is an amendment to `docs/specs/v0_combat_lethality.md`.** It SUPERSEDES that spec's §2.1
 > smash-impulse formula and §2.4 blast-zone bounds, and it EXTENDS §9 with new tests (22–33). It is
@@ -33,9 +43,9 @@
 > 54%/46%/31%. Raising `smash_launch_floor` 0.6→0.8 moved SD 53%→54% (nothing) — **the
 > launch-magnitude lever is REFUTED as a pacing fix (2 cycles, no movement).** FINDING (STATUS
 > session 4): the recovery gamble (survivable knocks — the owner's explicit ask) STRUCTURALLY pins SD
-> ~50% — most exchanges are non-lethal BY DESIGN and the median round sits right on the 20s SD line.
-> This is a genuine design TENSION, not a knob. **Three rulings (new §11), which SUPERSEDE the §9
-> t11/t30 ≤25% SD target and EXTEND §5 with a compounding sting:**
+> ~50% and the median round sits right on the 20s SD line. This is a genuine design TENSION, not a knob.
+> **Three rulings (new §11), which SUPERSEDE the §9 t11/t30 ≤25% SD target and EXTEND §5 with a
+> compounding sting:**
 > 1. **RULING 1 — recalibrate ≤25% SD → ≤40% SD / ≥60% kill-decided** for the recovery-gamble model,
 >    GATED by a new "SD rounds are active recovery climaxes, not stalls" QA check (§11.1, test 31).
 > 2. **RULING 2 — the STING becomes the executioner via COMPOUNDING** (§5.2): a follow-up hit within a
@@ -46,7 +56,8 @@
 >    failed-recovery kill takes >2.5s, so the launcher's credit expires and the earned kill is mis-logged
 >    as a suicide (the inflated 31–39% unattributed). Credit now persists through the launch state.
 > Rulings 1 and 3 are independent of the launch lever; ruling 2 is the mechanism that spends SD down
-> toward the recalibrated line.
+> toward the recalibrated line. **[v3: RULING 1 / test 31 / §5.2 compounding are MOOT — no timer SD.
+> RULING 3 credit-persist CARRIES FORWARD. See §12.]**
 >
 > Sources: `docs/feedback/owner_2026-07-03_kill_zone.md` (feedback + diagnosis + the hit-solidity
 > Addendum), `docs/feedback/owner_2026-07-02_movement_feel.md` (the thesis), `docs/STATUS.md`
@@ -165,7 +176,9 @@ and no floor gate.** With `smash_launch_floor = 0.6` and `smash_impulse_max = 22
 - **Launch is a spectrum with a floor:** s=0.0 (graze) → `0.60 × 2200 ≈ 1320`; s=0.2 → ~1408;
   s=0.5 → ~1760; s=0.7 → ~1936; s=1.0 → **2200 (capped)**. Every eligible smash launches ≥ ~1320
   (a real, readable knock — restores kill frequency), and a dead-center hit "really sends them
-  flying" at the cap. Linear between.
+  flying" at the cap. Linear between. **[v3 §12: this baseline `impulse_mag` is then multiplied by
+  the victim's damage-launch multiplier (×1.0/1.33/1.66) BEFORE the `max_speed` cap — the escalating
+  lethality mechanism.]**
 - **Sting (parent §2.2) scales with SOLIDITY directly** — NOT with `launch_scale` (whose floor would
   starve everyone). New rule: `sting = smash_sting_fuel * s`, applied only when
   `impulse_mag ≥ smash_sting_min_impulse` (1500). At `smash_launch_floor = 0.6` the baseline launch
@@ -176,7 +189,10 @@ and no floor gate.** With `smash_launch_floor = 0.6` and `smash_impulse_max = 22
   gate also preserves the parent's weapon-type distinction — Star @900 / Counter @1400 still never
   sting, unchanged.) **v2.1: this ISOLATED-hit sting formula is UNCHANGED; a compounding multiplier is
   ADDED ON TOP for follow-up hits (§5.2) — that, not isolated depth, is the executioner. The
-  single-knock gamble and the glances-sting-0 property are both left untouched.**
+  single-knock gamble and the glances-sting-0 property are both left untouched. [v3 §12: the
+  COMPOUNDING multiplier (§5.2) is REMOVED and REPLACED by the damage system; the ISOLATED sting
+  `smash_sting_fuel * s` gated at 1500 STAYS unchanged — it is the fuel-starve half of the recovery
+  gamble.]**
 - **Hitstun is UNCHANGED and needs no new constant:** it already reads `impulse.length()`
   (parent §2.1, `Player.receive_smash` line ~703). Feed it the solidity-scaled `impulse_mag` and a
   graze naturally produces shorter hitstun (impulse ~1320 → ~0.48s), a center hit the max (impulse
@@ -221,6 +237,8 @@ wider than §2.4's lethal geometry (which killed the recovery gamble), but tight
 baseline launch + sting can convert to kills near the walls. Sizing target: a **dead-center** capped
 smash (2200) must have *just* enough room to be recoverable-with-skill from mid-stage, and be lethal
 from a committed near-wall position; the common low-solidity baseline launch arcs back from mid-stage.
+**[v3 §14: these fixed per-arena bounds are SUPERSEDED by level-relative derivation — the margins in
+§14 reproduce these exact dev_arena values, and generalize them to every level.]**
 
 | Bound | §2.4 | v1 (§2.5) | **v2 (this spec)** | Rationale |
 |---|---|---|---|---|
@@ -235,7 +253,8 @@ near the walls while the baseline launch (§3) + sting (§5) keep kills frequent
 spawn at the new bounds (parent §5). Tighten order in the fence (§7): `smash_launch_floor` up FIRST,
 then bounds tighter, then sting. **v2.1 correction to that order: because launch-floor is refuted as a
 pacing lever, the SD-tightening order is now sting-compound FIRST (§5.2), then bounds tighter, then
-isolated `smash_sting_fuel` — never launch-floor for pacing (§11.1).**
+isolated `smash_sting_fuel` — never launch-floor for pacing (§11.1). [v3: pacing order is MOOT — no
+timer SD. Bounds are now derived per §14.]**
 
 ---
 
@@ -245,6 +264,8 @@ isolated `smash_sting_fuel` — never launch-floor for pacing (§11.1).**
   launch_scale` in §3.2, *before* the `max_speed` limit, in both the player and prop branches of
   `_handle_smashes`, ~lines 619/641). A perfect dead-center super is clamped to 2200 so even the best
   hit stays inside the runway math in §4. This is the ceiling; solidity shapes baseline→cap below it.
+  **[v3 §12: the damage-launch multiplier is applied to `impulse_mag` AFTER this cap and is the ONLY
+  sanctioned way to exceed 2200 — never above `max_speed` (3000), which still caps the final velocity.]**
 - **The sting is the kill-rate backstop, not the wall.** With baseline+bonus+cap+runway, a *fueled*
   victim usually survives a single mid-solidity smash from mid-stage. Kills stay frequent because
   (a) EVERY landed smash launches ≥ baseline (~1320) so near-wall/committed positions ring out, and
@@ -262,9 +283,14 @@ After a successful counter-super the victim is at **0 fuel** and must bounce to 
 lethal. A victim who survives one smash has spent everything and is vulnerable flying back in — that
 IS the failed-recovery drama. Do NOT add a flat-cost or partial-drain escape super (re-introduces
 hoarding, Pillar 2, and removes the second-hit window). `super_boost_min_fuel` stays 5.0;
-`fuel_per_bounce`/`fuel_per_bumper` stay 20.
+`fuel_per_bounce`/`fuel_per_bumper` stay 20. **[v3: KEEPER — unchanged.]**
 
 ### 5.2 Lever C+ (v2.1, PRIMARY pacing lever) — the COMPOUNDING sting: the executioner that moves SD
+
+> **[v3 SUPERSEDES §5.2 ENTIRELY. The compounding sting is REMOVED and replaced by the DAMAGE SYSTEM
+> (§12). The `sting_compound_window/step/cap` constants and the `_sting_stack`/`_sting_window_timer`
+> juggle-stack logic are deleted. The isolated sting `smash_sting_fuel * s` (gated at 1500) STAYS.
+> The text below is retained for provenance only — it is no longer the mechanism.]**
 
 **Why this exists (RULING 2).** The v2 finding is decisive: raising launch magnitude does NOTHING to
 SD (0.6→0.8 floor gave 53%→54%), and the ISOLATED single-hit sting is deliberately survivable (that IS
@@ -283,44 +309,11 @@ last_sting_time = round_clock                # record for the next hit's window 
 # a graze (below the 1500 gate) stings 0, does NOT update last_sting_time, does NOT advance the stack.
 ```
 
-- **`sting_compound_window` = 1.5** (s). A follow-up qualifying sting within 1.5s of the victim's
-  previous one compounds. Sized ≈ max hitstun (0.55) + a recovery beat: long enough to catch a hit
-  landed during the recovery arc / mid-scramble, short enough that an unrelated later exchange starts
-  fresh (stack resets).
-- **`sting_compound_step` = 0.75**, **`sting_compound_cap` = 2**. The Nth chained qualifying hit
-  stings `base × (1 + 0.75 × min(N, 2))`: 1st = **×1.0**, 2nd = **×1.75**, 3rd+ = **×2.5**. At s=1
-  (solid): sting sequence **30 → 52.5 → 75**.
-
-**Exact effect (predicted):**
-- A single solid hit (s=1) on a FULL (100) victim strips 30 → leaves 70. Survivable — the isolated
-  gamble is UNTOUCHED (test 26a bar preserved). Glances still sting 0 (below the 1500 gate). Nothing
-  the owner asked for is weakened.
-- A solid FOLLOW-UP within 1.5s strips 52.5 more → 70 − 52.5 = **17.5**; a third strips 75 → **starved
-  below `super_boost_min_fuel` (5)** → **no escape super exists** → the launch carries them out on a
-  failed-recovery arc, and it fires FAST (within one exchange, well before the 20s SD line). This is
-  the exact death the owner named ("a second knock caught you mid-recovery"), and it composes with the
-  ADOPTED-next-slice reeling/vulnerable red-pulse state (a compound-stung victim IS the "damaged"
-  body — the chase-the-wounded-to-finish mechanic, `owner_2026-07-03_kill_zone.md` Idea B RESOLVED).
-- A mid-solidity chain also works: two s=0.7 hits strip 21 + 36.75 = 57.75 → starves a half-tank
-  victim.
-
-**Why this does NOT reproduce the refuted `smash_sting_fuel` 30→40 drag** (STATUS session 4: isolated
-sting-up gave **41% SD**, kill-decided 59% — BOTH regressed): that experiment deepened EVERY hit's
-sting → over-starved LONE victims → they had no fuel to fight → passive drift → MORE SD (a stall, not a
-kill). Compounding leaves isolated-hit sting at 30 (unchanged) and only bites when an attacker is
-ACTIVELY following up — which by definition is engagement, not drift. It SHORTENS active exchanges into
-kills; it does NOT pacify lone victims. That structural difference is the whole reason this lever can
-move SD the direction the 30→40 lever could not. **Predicted SD: 53% → ~40–45%**, kill-decided → ~55–60%,
-with the remaining SD rounds staying active (§11.1 test 31).
-
-**Prediction-first + tuning order (extends §7, and REPLACES the pacing-tighten order in §4/§5):** this
-is a hypothesis with a contrary prior (the 30→40 rejection), so QA MUST verify it prediction-first
-(test 32: compound-stung victims ring out more; test 31: the residual SD rounds are still active). If
-SD still >40% after compounding: raise `sting_compound_step` 0.75→1.0 (2nd hit ×2.0) FIRST, then
-`smash_sting_fuel` 30→36 (stay UNDER the refuted 40), then bounds tighter — **never** hitstun, **never**
-isolated sting to 40, **never** launch-floor for pacing. If SD collapses <25% or single knocks start
-one-shotting full-fuel victims (test 26a/32c fail), lower `sting_compound_step` → 0.5 or shorten
-`sting_compound_window` → 1.0.
+- **`sting_compound_window` = 1.5** (s). *(v3: removed.)*
+- **`sting_compound_step` = 0.75**, **`sting_compound_cap` = 2**. *(v3: removed.)* At s=1 (solid):
+  sting sequence **30 → 52.5 → 75**. The compound-stung victim was "the damaged body" the next slice
+  would pulse red — **v3 makes that literal: the damage system replaces this stack with an explicit
+  Lv1/Lv2 state.**
 
 ---
 
@@ -340,10 +333,12 @@ test 29):
    viewport shows 2571px tall < 2930 needed. Programmer's call: (a) lower `CAM_MIN_ZOOM` to ~**0.37**
    (shows ~2919px tall — verify blob readability at that scale, Pillar 5), OR (b) bias the frame
    toward the fastest-moving / knocked player + the nearest wall instead of fitting everyone. Either
-   is fine if it satisfies (1)+(2).
+   is fine if it satisfies (1)+(2). **[v3 §14: with level-relative bounds, the camera must re-fit to
+   each new level's derived bounds at STAGE_INTRO — already handled by re-reading `bounds`.]**
 4. **Follow lag on a fast launch.** `follow_speed = 6.0` with fixed `margin = (420,340)` may let a
    fresh capped (2200) launch outrun the frame. Confirm it stays in-frame (raise `follow_speed`,
-   widen the leading margin in the launch direction, or lead the velocity).
+   widen the leading margin in the launch direction, or lead the velocity). **[v3: a Lv2 launch
+   reaches `max_speed` (3000) — the camera must hold THAT, not just 2200. Re-verify at 3000.]**
 
 NEW gameplay-programmer dependency; changes no Tuning feel constant. Ship bounds+impulse+camera
 together, or the burst-screenshot tests (25/26/29) show recovery in a black off-screen void.
@@ -356,17 +351,20 @@ together, or the burst-screenshot tests (25/26/29) show recovery in a black off-
   fails too often: lower `smash_launch_floor` or `smash_impulse_from_attacker`, never hitstun.
 - **Do NOT re-introduce super power scaling** (`docs/DECISIONS.md` 2026-07-02, closed).
 - **Do NOT lower `super_boost_impulse_full` (2800) or `max_speed` (3000).** The self-super void kill
-  (path 1) needs the 2800 self-super to out-rise the 2200 smash cap past the −1150 ceiling.
+  (path 1) needs the 2800 self-super to out-rise the 2200 smash cap past the −1150 ceiling. **[v3: the
+  damage multiplier may drive a Lv2 smash launch UP TO `max_speed`, never past it — the 3000 cap is the
+  hard ceiling on all launches including damaged ones.]**
 - **Do NOT re-introduce a launch GATE / zero-launch floor** (the v1 model). Every eligible smash MUST
   launch ≥ baseline; that is the whole v2 fix. `smash_launch_floor` never goes to 0.
-- **Do NOT chase SD with the launch-floor** (v2.1: refuted, 2 cycles). Pacing is the compounding
-  sting's job (§5.2 / §11.1). If post-build SD > 40% (t11 recalibrated): FIRST raise
-  `sting_compound_step`, THEN `smash_sting_fuel` 30→36, THEN tighten bounds toward −800/2660/−1100.
-- **Do NOT lower `sudden_death_time`** (20; DO-NOT-TOUCH). Lowering it raises the laser-decided share.
+- **Do NOT chase SD with the launch-floor** (v2.1: refuted, 2 cycles). *(v3: SD pacing is MOOT.)*
+- **Do NOT lower `sudden_death_time`** *(v3: REMOVED — there is no timer SD.)*
 - **Do NOT reopen §2.3a** (bumper/tier dry-reflect). Hitstun ends by TIME, never by touching a
   surface. MORE load-bearing now: wider bounds mean more bumper→wall gaps a stunned flier crosses.
 - **Do NOT remove the drain-all super or add a cheap escape** (§5.1).
 - **Do NOT add standable ground, health bars, air-brakes, or any camping affordance** (Pillars).
+- **[v3] Do NOT make the damage state a persistent HP % or a HUD meter.** It is TRANSIENT, HEALS
+  FULLY, is read ON THE BODY (red pulse), and caps at Lv2 (non-stacking beyond +66%). That is the
+  agreed form (`docs/DECISIONS.md` 2026-07-03 transient-vulnerable-state).
 
 ### 7.1 Explicitly deferred / scoped-OUT (owner Addendum)
 
@@ -374,13 +372,9 @@ together, or the burst-screenshot tests (25/26/29) show recovery in a black off-
   It reopens the deliberate sphere-blob decisions (AI-generatability, circle-collider match). A
   SEPARATE gated art+collider bet, noted here as a **future option only**. The impact-parameter
   solidity in §3 delivers the head/center/feet *spectrum* on the current sphere with zero new art.
-- **Smash-style persistent damage accumulation — SCOPED OUT (resolved: the transient "damaged/
-  vulnerable" red-pulse state is ADOPTED as the NEXT slice, built ON proven hit-solidity — owner
-  Addendum, `owner_2026-07-03_kill_zone.md`). NOT part of this build.** Persistent-% HP is REJECTED
-  (conflicts with no-HP identity, competes with fuel). Do not build the reeling/vulnerable state in
-  this pass — it depends on solidity being proven in-engine first (depth-first). **v2.1 note: the
-  compounding sting (§5.2) is the transient-state's mechanical seed — a compound-stung victim is
-  exactly the "damaged" body the next slice will pulse red; the two must stay consistent.**
+- **Smash-style persistent damage accumulation — SCOPED OUT.** Persistent-% HP is REJECTED (conflicts
+  with no-HP identity, competes with fuel). **[v3: the transient Lv1/Lv2 damage state (§12) is now
+  ADOPTED and specced — it is NOT persistent %; it heals fully in 8s and caps at Lv2.]**
 
 ---
 
@@ -389,290 +383,355 @@ together, or the burst-screenshot tests (25/26/29) show recovery in a black off-
 To measure the solidity distribution and "survived a knock / attempted recovery," extend
 `round_stats` (parent §8; read-only QA feeds, not feel constants):
 
-- **`smashes[]`** (NEW), **one entry per ELIGIBLE `receive_smash`** (eligibility unchanged: super-
-  active/stunned attacker + rel ≥ 900 + faster than victim — since baseline+bonus means EVERY eligible
-  hit now launches ≥ baseline, log all of them; the v1 `launch_scale > 0` condition is now always
-  true, so gate logging on eligibility, not on launch magnitude): `{ t (round_clock s), attacker,
-  victim, solidity (s, §3.1), launch_scale, launch_speed (victim |velocity| the frame after),
-  angle_deg (impulse dir, 0°=+x, −90°=up), by_super (attacker.super_active), victim_fuel_after
-  (post-sting), starved (victim_fuel_after < super_boost_min_fuel), spin (angular_kick applied),
-  compound_stack (v2.1, §5.2 — the stack this hit resolved at: 0=isolated, 1=2nd-in-window, 2=3rd+),
-  sting_applied (v2.1 — the fuel actually removed, after the compound multiplier) }`.
-- **Add `t` (round_clock s)** to the existing `kills[]` and `supers_fired[]` entries — the enabler
-  for correlation metrics. **v2.1: also add `arc_time` to `kills[]`** (round_clock at ring-out minus
-  the `t` of the credited smash, or −1 if no credited launch) — the direct measurement that drove
-  RULING 3 (arcs exceeding the old 2.5s window).
-- QA then computes: a smash is **survived** if the victim is alive 2.5s after its `t` AND x inside
-  `[left, right]` at that time; a **recovery was attempted** if that victim has a `supers_fired[]`
-  entry with `t` within 1.0s after the smash `t`; a smash is a **compound hit** if `compound_stack ≥ 1`.
+- **`smashes[]`** (NEW), **one entry per ELIGIBLE `receive_smash`**: `{ t, attacker, victim, solidity,
+  launch_scale, launch_speed (victim |velocity| the frame after), angle_deg, by_super, victim_fuel_after
+  (post-sting), starved (victim_fuel_after < super_boost_min_fuel), spin }`. **[v3 §12: ADD
+  `dmg_before` (victim damage_level pre-hit, 0/1/2), `dmg_after` (post-escalation), `launch_mult` (the
+  1.0/1.33/1.66 applied). REMOVE `compound_stack` / `sting_applied` (compounding gone).]**
+- **Add `t` (round_clock s)** to `kills[]` and `supers_fired[]`. **v2.1: also add `arc_time` to
+  `kills[]`. [v3: ADD `victim_dmg_at_death` to `kills[]` — the damage level the victim died at.]**
+- QA derived: a smash is **survived** if the victim is alive 2.5s later AND x inside `[left,right]`; a
+  **recovery was attempted** if that victim has a `supers_fired[]` entry within 1.0s after the smash.
 
-The single most important regression guard is now **smash FREQUENCY** (the v1 build recorded ~1 smash
-per 13 rounds). QA must confirm smashes are logged at the eligible-hit rate again (test 28d).
-
-If instrumentation slips, the deterministic eval+burst-screenshot tests (22–26, 29, 32a, 33a) still
-gate the build without the aggregate.
+If instrumentation slips, the deterministic eval+burst-screenshot tests still gate the build.
 
 ---
 
 ## 9. Success criteria (additions to parent §9 — re-run the WHOLE of §9 too)
 
+> **[v3: the PACING criteria (t10/t11/t12/t30/t31 SD-rate + active-climax) and the compounding-sting
+> tests (32) are MOOT — no timer SD. The hit-solidity tests (22–29), self-super void kill (27), and
+> the credit-attribution test (33, RULING 3) CARRY FORWARD. New v3 combat criteria are §15.]**
+
 Harness as parent §9. "Deterministic case" = eval-placed idle victim, scripted single smash, burst
 screenshots at 0.2s for 3s + eval of victim `is_dead()`, `global_position`, `fuel`, angular velocity.
-"Idle-P1 aggregate" = standard lineup, P1 untouched, **≥24 rounds** (v1 samples of 6–8 were too thin
-to read pacing), reading `smashes[]`.
 
-**Hit-solidity (the new baseline+bonus lever)**
-22. **Solidity scales launch ABOVE A FLOOR (deterministic sweep).** Script the same super into a
-    victim placed to yield `s ≈ {1.0, 0.7, 0.4, 0.1}` (offset victim center off the attacker's travel
-    line). Measured `launch_speed` must be **monotonic** in `s`, **never zero**, and match
-    `smash_impulse_max × (0.6 + 0.4·s)` within ±10%: s=1.0 → ~2200 (capped); s=0.7 → ~1936; s=0.4 →
-    ~1672; s=0.1 (near-graze) → ~1408 (a REAL launch, NOT ≤ a shove) + visible spin (victim angular
-    velocity > 4 rad/s). A zero-launch or gated result at low s FAILS (that was the v1 bug).
-23. **Glancing hits are survivable everywhere; center hits can kill.** Deterministic:
-    a. A glancing smash (`s ≈ 0.15`) on a full-fuel **mid-stage** victim → victim alive at 3s AND x
-       inside bounds in **≥9/10**, from any launch angle (baseline ~1320 arcs back from mid-stage — a
-       glance never rings out from mid-stage).
-    b. A dead-center smash (`s ≥ 0.9`) aimed 45°-outward on a victim placed 800px from the near wall,
-       starved to 4 fuel → rings out ≤2.5s in **≥8/10**.
-24. **Sting scales with solidity (glances don't secretly starve).** Deterministic + eval: a glancing
-    hit (`s ≈ 0.15`, impulse ~1320 < 1500 gate) drops victim fuel by **0** (≤ 2 tolerance); a
-    dead-center hit (`s ≥ 0.9`) drops it by **≥ 27** (≥ 0.9 × `smash_sting_fuel`, ±2). (This is the
-    ISOLATED first-hit sting — compounding is tested separately in 32.)
+**Hit-solidity (the baseline+bonus lever) — CARRY FORWARD**
+22. **Solidity scales launch ABOVE A FLOOR (deterministic sweep).** s ≈ {1.0, 0.7, 0.4, 0.1} →
+    `launch_speed` monotonic in s, never zero, matches `2200 × (0.6 + 0.4·s)` within ±10%.
+23. **Glancing hits survivable everywhere; center hits can kill.** (a) glance s≈0.15 on full-fuel
+    mid-stage → alive & in-bounds ≥9/10. (b) center s≥0.9 45°-outward, 800px from wall, 4 fuel →
+    rings out ≤2.5s ≥8/10.
+24. **Sting scales with solidity.** glance (s≈0.15) fuel −0 (±2); center (s≥0.9) fuel −≥27.
 
-**The recovery gamble (kill paths)**
-25. **Straight-up center smash arcs back (owner's direct ask).** Deterministic: full-fuel mid-stage
-    victim, dead-center super within ±20° of straight up → alive at 3.0s AND apex y stays below (>)
-    `top` (−1150) in **≥8/10** (must NOT ring out off the top).
-26. **45°-outward recovery gamble (fails if EITHER part fails):**
-    a. *Survivable mid-solidity knock:* full-fuel **mid-stage** victim, a MID hit (`s ≈ 0.5`, impulse
-       ~1760) 45°-outward → arcs back and survives WITHOUT any counter (alive 3s, x inside bounds) in
-       **≥7/10**; AND the SAME mid hit on a victim placed 900px from the near wall, with a scripted
-       inbound counter-super within 0.30s of stun end → survives in **≥5/10** (skill extends the
-       envelope).
-    b. *Lethal committed center:* dead-center (`s ≥ 0.9`) 45°-outward smash, victim placed 900px from
-       the near wall, starved to 4 fuel (no counter possible) → rings out ≤2.5s in **≥8/10**; AND the
-       SAME hit on a full-fuel victim that fires NO counter → rings out in **≥7/10**.
-27. **Self-super void kill preserved (path 1).** Deterministic: a player fires their OWN super
-    straight up from mid/high stage → self-destructs off `top` (−1150) ≤2.5s in **≥8/10**.
+**The recovery gamble (kill paths) — CARRY FORWARD**
+25. **Straight-up center smash arcs back.** full-fuel mid-stage, ±20° up → alive 3.0s AND apex below
+    `top` ≥8/10.
+26. **45°-outward recovery gamble.** (a) mid s≈0.5 mid-stage → survives no-counter ≥7/10. (b)
+    center s≥0.9 900px-from-wall starved-to-4 → rings out ≤2.5s ≥8/10.
+27. **Self-super void kill preserved (path 1).** own super straight up → self-destructs off `top`
+    ≤2.5s ≥8/10.
 
-**Aggregate — solidity distribution, the baseline floor, and the sting-as-executioner**
-28. Across the idle-P1 sample (≥24 rounds):
-    a. **Distribution exists (not all center):** `smashes[].solidity` spans a real range — ≥30% of
-       landed smashes have `s < 0.5` (glances happen) AND ≥15% have `s ≥ 0.8` (solid hits happen). A
-       degenerate all-1.0 or all-0 distribution FAILS.
-    b. **Baseline floor holds (the v1-regression guard):** `min(smashes[].launch_speed) ≥ 1000` — NO
-       zero/near-zero-launch smashes (the v1 gate produced ~0-launch hits; the fix must show a real
-       floor across the whole sample).
-    c. **Sting, not wall, kills:** of `smashes[]` with `starved == true`, **≥60%** are NOT survived;
-       of those with victim fuel ≥ `super_boost_min_fuel` after, **≥40%** ARE survived (re-enter
-       bounds within 3s). Both bands must hold.
-    d. **Smashes are frequent again (THE regression this build fixes):** the sample records a **median
-       ≥ 1.5 qualifying smashes per round** (v1 recorded ~1 per 13 rounds / ~2 per 8 rounds — an order
-       of magnitude too few). Below ~1/round → the baseline is not landing; FAIL.
-    e. **Recovery is attempted, not luck:** in ≥50% of surviving non-starved smashes the victim fired
-       a recovery super within 1.0s of the smash `t`.
+*(Aggregate solidity-distribution 28, camera 29 — carry forward. Pacing 30/31, compounding 32 — MOOT.)*
 
-**Camera**
-29. **Recovery stays on-screen (§6).** Deterministic: script a 45°-outward center smash carrying the
-    victim to within 200px of a blast line; burst screenshots show the victim's blob AND that blast
-    line both on-frame for the ENTIRE flight (**10/10** frames). Also: at the widest player spread in
-    the aggregate sample, no living player is off-frame.
-
-**Pacing guardrails — RECALIBRATED for the recovery-gamble model (v2.1, §11.1; supersedes the parent
-§9 t11/t30 ≤25% SD line)**
-30. t10 kills carry **≥60%** (`end_cause != laser`, `<20s`); t11 **SD ≤40%** (RECALIBRATED from ≤25% —
-    see §11.1); t12 median combat 10–22s AND every round ≤27s combat / ≤30s wall-clock; t13 L4 > L2
-    (0/5 L2 wins); t15a ≥2 off-stage kills/10. **This is the headline reconciliation:** at v2.1
-    (baseline 0.6 + bounds −900/2760/−1150 + **compounding sting** + self-super) the target is
-    **≥60% kill-decided / ≤40% SD, GATED by test 31 (SD rounds are active climaxes, not stalls).** The
-    baseline launch restores frequency; the compounding sting (§5.2) converts follow-ups into fast
-    failed-recovery kills to spend SD down from 53% toward ≤40%. If SD > 40%, apply the §5.2/§7
-    tightening order (`sting_compound_step` UP → `smash_sting_fuel` 30→36 → bounds tighter). Never
-    hitstun, never launch-floor for pacing. If SD collapses < 20% / rounds one-shot / recovery never
-    attempted (test 26a/28e/32c fail), lower `sting_compound_step` and/or `smash_launch_floor` (→0.5)
-    and/or bounds back toward −1000/2860.
-
-**v2.1 additions — the compounding sting, SD-round quality, and kill attribution**
-31. **SD rounds are ACTIVE recovery climaxes, not stalls (§11.1 — the GATE on the ≤40% recalibration).**
-    Across the ≥24-round idle-P1 aggregate, for the rounds that enter SUDDEN_DEATH: **median supers
-    fired ≥ 12** AND **every SD round resolves ≤27s combat clock** (SD rounds finish shortly after the
-    20s laser — they do not grind to the 30s wall). A SD round with **< 6 supers**, OR any SD round
-    that runs past 27s combat, FAILS — that is a stall, and the ≤40% budget does NOT cover it. (Session-4
-    evidence: SD rounds ran 22.5s with 23 supers ≈ 1 super/sec — active. This test locks that property
-    so the higher SD budget is only ever spent on climaxes, protecting Pillars 2/4.)
-32. **The compounding sting is the executioner (§5.2 / RULING 2):**
-    a. *Deterministic — compounding fires:* two scripted solid supers (`s ≥ 0.9`) on the SAME full-fuel
-       victim **1.0s apart** → the SECOND hit's `sting_applied` is **≥ 45** (≥ 1.75 × 0.9 × 30, ±3) and
-       victim is starved (< 5 fuel) → rings out ≤2.5s after the second hit in **≥8/10**.
-    b. *Aggregate — compound hits close rounds:* of `smashes[]` with `compound_stack ≥ 1`, **≥55%** are
-       NOT survived (fast failed-recovery kills); of isolated first-hits (`compound_stack == 0`) on
-       full-fuel victims, **≥40%** ARE survived (the isolated gamble intact).
-    c. *Isolated gamble UNREGRESSED (the guard against re-creating the 30→40 drag):* a single solid hit
-       (`s ≥ 0.9`, `compound_stack == 0`) on a mid-stage full-fuel victim → survives WITHOUT a counter
-       in **≥7/10** (same bar as test 26a). Compounding must NOT leak into isolated hits.
-33. **Kill attribution is correct across the recovery arc (§11.2 / RULING 3):**
-    a. *Deterministic:* a scripted solid smash launches a starved victim who fails recovery and rings
-       out at `arc_time ≈ 3–4s` (beyond the old 2.5s window) → the kill is credited to the LAUNCHER
-       (`kills[].killer == attacker`, NOT −1) in **≥9/10**.
-    b. *Aggregate:* unattributed kills (`killer == -1`, true suicides) drop to **≤18%** of all kills
-       (from the 31–39% credit-bug inflation), and the reported suicide rate is now trustworthy for
-       reading against §11.1. (A residual ~14% matching the pre-rebalance genuine self-destruct rate is
-       EXPECTED and correct — that is path 1, the clean-super-into-void gag, which must stay.)
+33. **Kill attribution correct across the recovery arc (RULING 3 — CARRY FORWARD).** a solid smash
+    launches a starved victim who rings out at `arc_time ≈ 3–4s` → credited to the LAUNCHER ≥9/10;
+    aggregate unattributed kills ≤18%.
 
 ---
 
 ## 10. New/changed constants — one block (implementation checklist)
 
 ```
-# Tuning.gd — NEW (hit-solidity baseline+bonus, Lever A)
-smash_launch_floor          = 0.6      # baseline fraction of the cap EVERY eligible smash launches
-                                       #   (baseline impulse = 0.6 * 2200 = 1320). FEEL knob, NOT a pacing knob (v2.1).
+# Tuning.gd — NEW (hit-solidity baseline+bonus, Lever A) — CARRY FORWARD
+smash_launch_floor          = 0.6
 
-# Tuning.gd — NEW (v2.1 compounding sting, §5.2 — RULING 2, THE pacing lever)
-sting_compound_window       = 1.5      # s; a qualifying sting within this of the victim's previous compounds
-sting_compound_step         = 0.75     # Nth chained hit stings base * (1 + 0.75 * min(N, cap))
-sting_compound_cap          = 2        # 1st x1.0, 2nd x1.75, 3rd+ x2.5  -> at s=1: 30 / 52.5 / 75
+# Tuning.gd — v2.1 compounding sting — [v3: REMOVED, replaced by damage system §12]
+sting_compound_window, sting_compound_step, sting_compound_cap   # DELETE
 
-# Tuning.gd — CHANGED (v2.1 credit-window scoring fix, §11.2 — RULING 3)
-kill_credit_window          = 2.5 -> 4.0   # INTERIM stopgap; PREFERRED = persist credit through the launch state (§11.2)
-kill_credit_window_max      = 6.0          # NEW; safety cap for the state-based version (prevents pathological mis-credit)
+# Tuning.gd — CHANGED (RULING 3 credit fix) — CARRY FORWARD
+kill_credit_window          = 4.0    # persist through launch state preferred; cap kill_credit_window_max = 6.0
 
-# Tuning.gd — REMOVED (v1 gate, superseded)
-smash_solidity_min          = <delete> # was 0.25 — no longer in the launch formula
+# Tuning.gd — REMOVED
+smash_solidity_min          = <delete>
 
-# Tuning.gd — UNCHANGED but load-bearing here
-smash_spin_max              = 12.0     # now applied prop. to (1 - s), not (1 - launch_scale)
-smash_impulse_max           = 2200.0   # hard cap on impulse magnitude (DO-NOT-TOUCH)
-smash_impulse_from_attacker = 1.1      # sets raw_impulse ceiling only; lower to 0.9 if too lethal, never up
-smash_impulse_base          = 500.0
-smash_sting_fuel            = 30.0     # full ISOLATED sting at s=1; scales down with s. DO NOT raise to 40 (refuted);
-                                       #   compounding (above) deepens follow-ups instead. Ceiling if needed: 36.
-smash_sting_min_impulse     = 1500.0   # sting gate (also keeps Star/Counter no-sting); grazes below it don't compound
-sudden_death_time           = 20.0     # DO-NOT-TOUCH
+# Tuning.gd — UNCHANGED but load-bearing
+smash_spin_max=12.0 · smash_impulse_max=2200 · smash_impulse_from_attacker=1.1 · smash_impulse_base=500
+smash_sting_fuel=30 (isolated s-scaled sting STAYS) · smash_sting_min_impulse=1500
 
-# Player.gd — _handle_smashes (both player ~619 and prop ~641 branches):
-#   s            = clampf(velocity.normalized().dot((b.global_position - global_position).normalized()), 0, 1)
-#   raw_impulse  = smash_impulse_base + my_speed * smash_impulse_from_attacker
-#   launch_scale = smash_launch_floor + (1.0 - smash_launch_floor) * s
-#   impulse_mag  = minf(raw_impulse, smash_impulse_max * launch_scale)      # baseline -> cap, never above physical
-#   impulse      = velocity.normalized() * impulse_mag                      # direction unchanged
-#   angular_kick = smash_spin_max * (1.0 - s) * signf(velocity.normalized().cross(n))   # -> victim spin (LESS solid = more spin)
-# Player.gd — receive_smash: sting scales with SOLIDITY + COMPOUNDS on follow-ups, gated on impulse:
-#   base gate: apply only when impulse_mag >= smash_sting_min_impulse (grazes: sting 0, no stack advance)
-#   if (round_clock - last_sting_time) <= sting_compound_window: compound_stack = min(compound_stack+1, sting_compound_cap)
-#   else: compound_stack = 0
-#   sting = smash_sting_fuel * s * (1.0 + sting_compound_step * compound_stack);  last_sting_time = round_clock
-#   hitstun UNCHANGED (already reads impulse.length() = impulse_mag) — feed it the scaled impulse, touch no constant
+# Player.gd — _handle_smashes: s / raw_impulse / launch_scale / impulse_mag as §3.2
+#   [v3 §12: impulse_mag *= b.damage_launch_mult()  AFTER the smash_impulse_max clamp, BEFORE max_speed]
+# Player.gd — receive_smash: isolated sting smash_sting_fuel*s gated at 1500 (NO compounding)
+#   [v3 §12: escalate victim damage_level + reset 8s heal on qualifying hits (impulse >= 1500)]
 
-# levels/dev_arena.json — bounds (supersedes §2.4 AND v1; pulled PARTWAY back from v1)
-left  -620 -> -900 (was -1100) · right 2520 -> 2760 (was 3000) · top -950 -> -1150 (was -1200) · bottom unchanged
-
-# CameraController / PartyMatch — §6 dependency (no Tuning constant):
-#   CAM_MIN_ZOOM 0.42 -> ~0.37 (or targeted framing); keep knocked-alive players + approaching wall visible
-
-# round_stats — §8 additions: smashes[] per ELIGIBLE hit (+ compound_stack, sting_applied), t on kills[]/supers_fired[],
-#   arc_time on kills[]. Frequency is the key regression guard (test 28d).
+# levels/dev_arena.json — bounds  [v3 §14: DERIVED from geometry; explicit bounds becomes an override]
 
 # DO-NOT-TOUCH: hitstun_base/per_impulse/max, smash_self_retain, max_speed, super_boost_impulse_full,
-#   smash_impulse_max (2200), sudden_death_time (20), drain-all super, fuel_per_bounce/fuel_per_bumper,
-#   §2.3a dry-reflect, no-power-scaling decision, no HP/damage-meter, no humanoid/damage-accum.
+#   smash_impulse_max (2200), drain-all super, fuel_per_bounce/fuel_per_bumper, §2.3a dry-reflect,
+#   no-power-scaling, no HP/damage-meter, no humanoid/damage-accum.
 ```
 
 ---
 
 ## 11. v2.1 RULINGS — the SD target, and the credit-window scoring fix
 
-Three rulings resolve the tension surfaced by the v2 pacing QA (STATUS session 4): the recovery gamble
-STRUCTURALLY pins SD ~50%, the launch-magnitude lever is refuted (2 cycles), and ~1/3 of "kills" are
-mis-attributed self-destructs. RULING 2 (the compounding sting) is specified in §5.2; RULINGS 1 and 3
-follow.
+> **[v3: RULING 1 (SD ≤40% recalibration) and its gate test 31 are MOOT — the timer SD is removed
+> (`v1_party_killrace.md` §5). RULING 3 (credit persists through the launch state) CARRIES FORWARD —
+> it is still the correct scoring shape for a failed-recovery kill in the kill-race, and t33 still
+> gates it. RULING 2 (compounding sting) is SUPERSEDED by the damage system (§12).]**
 
-### 11.1 RULING 1 — ≤25% SD is recalibrated to ≤40% SD / ≥60% kill-decided (gated by a stall check)
+*(§11.1 / §11.2 text retained above in the header changelog + §5.2 for provenance; only RULING 3's
+credit-persist mechanism remains in force.)*
 
-**The tension (not a knob).** The ≤25% SD target (parent §9 t11) was set for the PRE-recovery model
-where a hard knock KILLED. In THAT model an SD round meant "nobody could close — the laser had to do
-the job," i.e. the "kills feel like traffic accidents" disease (parent QA #1, 55–60% laser-decided).
-The owner then explicitly REVERSED the premise (`owner_2026-07-03_kill_zone.md`): knocks must be
-SURVIVABLE so players arc out and fight back — the recovery gamble, the movement-feel thesis applied to
-death. That change makes MOST exchanges non-lethal BY DESIGN, which structurally lengthens rounds. Two
-build cycles proved the launch-magnitude lever cannot pull SD under 25% without re-tightening walls
-(which re-kills the gamble the owner asked for). **So the ≤25% number is measuring the OLD design's
-failure mode against the NEW design's intended feel.** We recalibrate — and we make the recalibration
-honest with a quality gate so it can't be used to excuse a stall.
+---
 
-**The ruling: SD ≤ 40% / kill-decided ≥ 60%, GATED by "SD rounds are active recovery climaxes, not
-stalls" (test 31).** This is the HYBRID (prompt option c): raise the SD budget (25%→40%) AND deploy the
-untried executioner (the compounding sting, §5.2) to spend down toward it from 53%, AND forbid the
-budget from being spent on stalls.
+## 12. v3 — THE DAMAGE SYSTEM (replaces the compounding sting)
 
-**Justification against the pillars — why ≤40% does NOT surrender anything the old 25% protected:**
-- **Pillar 2 (constant motion, no camping):** structurally guaranteed by no-standable-ground — a long
-  round is not a camping round; you literally cannot stop. Session-4 data confirms it: SD rounds ran
-  22.5s with 23 supers (~1 super/sec) — players FIGHTING, not parked. Test 31 makes this a hard gate
-  (median ≥ 12 supers in SD rounds; every SD round resolved ≤ 27s combat), so the SD budget can only be
-  spent on active rounds. A LOW-action SD round FAILS the build regardless of the 40% line.
-- **Pillar 4 (death cheap and funny; 10–30s rounds):** an SD round resolving at ~22.5s is INSIDE the
-  10–30s vision window; the ≤27s combat / ≤30s wall-clock (t12) still holds. "One more round" survives
-  at 40% SD with a ~16–20s median.
-- **Pillar 1 (low floor, high ceiling):** the recovery gamble IS the ceiling. A wounded player
-  scrambling back with the lasers closing is the single most skill-expressive moment the design
-  produces — an SD climax is a FEATURE, not a stall. The higher budget buys those climaxes.
+**Player fantasy:** you land a hit and your rival flashes red and *reels* — now they are fragile, and
+the clock is on. Chase them down and the next hit sends them screaming off the edge; let them run and
+in a few seconds they shrug it off and it is a fair fight again. You, freshly hit, are the one
+fleeing — bounce, aim, buy time, heal. This is the flee/chase dynamic, and it is the escalating
+lethality that makes "nothing kills" become "hitting a wounded rival kills."
 
-**What stays a FAIL (the disease guard, so ≤40% is not a license):** if SD rounds are LOW-action (test
-31 fails — players fuel-starved and drifting, or waiting out the clock), OR kill-decided drops below
-60%, the build FAILS — that is the traffic-accident disease returning, and ≤40% does not excuse it. And
-the floor is real: SD must not EXCEED 40%; if it does after the compounding sting, apply the §5.2/§7
-tightening order (sting-compound UP → `smash_sting_fuel` 30→36 → bounds tighter — never hitstun, never
-launch-floor).
+### 12.1 State model (on `Player`)
 
-**The QA-checkable numbers (the answer QA drives against):**
-- **SD ≤ 40%** of rounds enter SUDDEN_DEATH (was ≤25%; measured over ≥24 idle-P1 rounds).
-- **Kill-decided ≥ 60%** (`end_cause != laser`, `round_clock < 20s`).
-- **Test 31 PASS** (SD rounds active: median supers ≥ 12, every SD round ≤ 27s combat).
-- **t12 round-length wall UNCHANGED** (≤27s combat / ≤30s wall-clock, every round).
-- *Aspiration, NOT a gate:* drive SD toward 30–35% via §5.2 while the stall gate keeps passing. Do not
-  sacrifice the isolated-knock gamble (test 32c / 26a) chasing a lower SD number.
+- **`damage_level: int`** ∈ {0 (healthy), 1 (Lv1 reeling), 2 (Lv2 reeling)}. Starts 0; reset to 0 on
+  `respawn()` (add to the respawn clear-block alongside the sting-stack removal).
+- **`_dmg_heal_t: float`** — heal countdown. When > 0 it ticks down each physics frame; at ≤0 with
+  `damage_level > 0`, drop `damage_level` straight to **0** (full heal — non-stacking, no partial
+  step-down; the transient-state decision requires it heal FULLY).
 
-### 11.2 RULING 3 — kill_credit_window: persist credit through the LAUNCH STATE (scoring-correctness)
+### 12.2 Escalation — driven by qualifying smashes (in `receive_smash`)
 
-**The bug (independent of the pacing tension).** `kill_credit_window = 2.5s` (Tuning) sets how long a
-smash keeps the launcher as the victim's `last_attacker`. The SIGNATURE kill of this design — the
-failed recovery — is also the SLOWEST: the victim is launched, scrambles, fails, and DRIFTS across the
-widened runway (up to ~960px, §4) before ringing out. That arc routinely exceeds 2.5s (a starved
-victim carried out at modest speed; or one that arcs up, falls, and drifts out). When it does, the
-launcher's credit has already expired → the kill is logged as `killer = -1` (a suicide). This is the
-**31–39% unattributed kills** (vs 14% pre-rebalance, whose arcs were short because the walls were
-tight). It corrupts (a) the suicide rate we read against §11.1, and (b) the killer field that t15a
-(off-stage kills) depends on — an EARNED edge-guard kill is being erased into a "suicide."
+Gate on the **same `impulse.length() >= smash_sting_min_impulse` (1500) qualifying condition as the
+isolated sting** — a graze does NOT escalate damage (keeps glances pure scares; fence "glances/gamble
+intact"). On a qualifying hit, AFTER applying the isolated sting:
 
-**Why it is INDEPENDENT of RULINGS 1/2 (why fixing it does not itself move SD):** re-attributing a kill
-from `-1` to the launcher does NOT change whether the round was kill-decided vs SD — a suicide ring-out
-and an attributed ring-out BOTH end the round before 20s as a non-laser kill. It only fixes WHO gets
-credit and the reported suicide %. So this fix cleans the metrics we judge §11.1 by (and will likely
-reveal the TRUE suicide rate is far below 39% — much of it is mis-logged failed-recovery KILLS, which
-further supports that this design is not a suicide-fest), but it does not by itself shift the SD line.
+```
+if impulse.length() >= smash_sting_min_impulse and not invincible and _spawn_protect <= 0.0:
+    if damage_level == 0:      damage_level = 1        # first hit: heal-arm at 8s, slow pulse
+    elif damage_level == 1:    damage_level = 2        # hit while Lv1: escalate, fast pulse
+    # (damage_level == 2 stays 2)
+    _dmg_heal_t = dmg_heal_time                         # ANY qualifying hit re-arms the full 8s
+```
 
-**The ruling: credit persists through the LAUNCH STATE, not a fixed 2.5s clock.** A fixed timer is the
-wrong SHAPE — the correct duration is "until the victim recovers or rings out," which is a STATE, not a
-clock. Concretely:
-- On a qualifying smash, set `last_attacker` and mark the victim `_launched_by = attacker`.
-- Clear it ONLY when the victim RECOVERS — defined as: `_stun_timer <= 0` AND has landed a
-  fuel-granting bounce since the hit AND speed has dropped below a control threshold (back under
-  control, re-stabilized inside bounds).
-- If the victim rings out BEFORE recovering → the launcher is credited, regardless of wall-clock (the
-  failed-recovery kill is *defined* by not recovering, so credit should persist exactly as long as the
-  launch state does).
-- If the victim recovers and LATER dies to something else → credit has already cleared; no mis-credit.
-- **Safety cap `kill_credit_window_max = 6.0s`:** if a pathological never-recovered state persists past
-  6s, drop the credit (prevents a bug from mis-crediting a much-later death). 6s comfortably exceeds any
-  legitimate arc (test 33a's 3–4s) with margin.
+- **Order matters (see 12.3):** the launch MULTIPLIER is read from the victim's **pre-hit**
+  `damage_level` (computed in `_handle_smashes` BEFORE `receive_smash` runs), so the hit that *takes
+  you to* Lv1 launches at ×1.0, and the hit you receive *while at* Lv1 launches at ×1.33. This is the
+  directive's reading: "Lv1 → +33% launch" = while you are Lv1, hits on you fly +33% further.
+- Star `invincible` / `_spawn_protect` early-outs already return before this point → no escalation
+  (consistent with sting). SD-revived players are seeded `damage_level = 2` directly (killrace §5).
 
-**Simpler INTERIM (if the launch-state flag is out of scope for this build):** raise `kill_credit_window`
-2.5 → **4.0s**. Rationale: covers a full launch → apex → fall → drift-out arc within the v2 bounds (a
-~960px runway crossed at ~250–400 px/s outward drift = 2.4–3.8s, plus the ≤0.55s hitstun). 4.0s is the
-minimum that reliably captures the failed-recovery arc; do NOT push the fixed timer past ~4.5s or
-unrelated later deaths start mis-crediting. The state-based version above is the correct END STATE; the
-4.0s bump is an acceptable stopgap that gets test 33 passing.
+### 12.3 The launch multiplier — WHERE it goes in the formula (precise)
 
-**QA-checkable:** test 33 — attribution correct across a 3–4s arc (≥9/10 credited to launcher);
-unattributed kills ≤18% of all kills in the aggregate.
+In `_handle_smashes`, the victim `b`'s pre-hit damage level scales `impulse_mag` **after** the
+`smash_impulse_max` clamp and **before** `receive_smash` applies the `max_speed` limit:
+
+```
+# ... existing §3.2 lines ...
+impulse_mag = minf(raw_impulse, smash_impulse_max * launch_scale)   # baseline -> 2200 cap (UNCHANGED)
+impulse_mag *= b.damage_launch_mult()                               # v3: ×1.0 / ×1.33 / ×1.66 (pre-hit dmg)
+impulse      = vdir * impulse_mag
+b.receive_smash(impulse, self, s, angular_kick)                     # applies .limit_length(max_speed=3000)
+```
+
+with `func damage_launch_mult() -> float: return Tuning.dmg_launch_mult[damage_level]` and
+**`dmg_launch_mult = [1.0, 1.33, 1.66]`**.
+
+**Why here, and why it is fence-safe:**
+- The base `impulse_mag` is capped at `smash_impulse_max` (2200) FIRST — solidity still shapes
+  baseline→2200. The damage multiplier is the **only** sanctioned exceedance of 2200, and it is
+  still hard-capped by `max_speed` (3000) on the victim's velocity. So `max_speed` and
+  `smash_impulse_max` are BOTH untouched as constants; the damage state is what unlocks the headroom
+  between them.
+- Worked numbers (victim near rest, center hit, `impulse_mag` = 2200 before the mult):
+  - **Lv0:** 2200 → exit ~2200 px/s. Arcs back from mid-stage (recovery gamble intact — the §4/§14
+    runway math is exactly the validated Lv0 case).
+  - **Lv1:** 2200 × 1.33 = 2926 → exit ~2926 px/s. Flies ~33% farther → from mid-stage it now
+    *reaches* the near-edge band a fresh hit would not; near-edge it rings out.
+  - **Lv2:** 2200 × 1.66 = 3652 → `limit_length(3000)` → exit **3000 px/s (capped)**. The maximum
+    launch in the game; a near-edge or even mid-stage Lv2 victim rings out unless they still have a
+    fast fuelled counter. This is the "finish the wounded" payoff.
+- **Hitstun stays capped, triad untouched:** hitstun reads `impulse.length()`. A Lv2 impulse (up to
+  3652) feeds the UNCHANGED formula `min(base + impulse·per_impulse, hitstun_max=0.55)` — center hits
+  are already at the 0.55 cap, so damage nudges only sub-max hits up toward 0.55 and never past it. No
+  hitstun CONSTANT changes; the §4.6 triad is intact. (State this in QA: hitstun ≤ 0.55 always.)
+- Lower-solidity hits scale identically: a mid s=0.5 hit (impulse ~1760) on a Lv1 victim → 1760×1.33 =
+  2341 → exit ~2341. So the multiplier composes cleanly with the whole solidity spectrum.
+- **Scope:** the multiplier is applied ONLY in the two SMASH branches of `_handle_smashes` (player +
+  prop). Powerup-specific launches (Star contact 900, Counter reflect 1400, explosion) keep their
+  current behavior — they are below the 1500 gate anyway (no escalation) and are separate balance;
+  amplifying them by damage is out of scope (consistent, tight). Escalation itself lives in
+  `receive_smash` gated at 1500, so Star/Counter also never *cause* escalation.
+
+### 12.4 The red-pulse visual (readability > prettiness; on the body, not a HUD meter)
+
+Reuse the `self_modulate` chain in `Player`'s process (currently: flash > rainbow > silhouette >
+white). Insert the damage pulse **below flash, above the powerup tints**? No — the Star rainbow means
+`invincible` (can't be damaged) and Black-Hole silhouette is a channeler; both are rare and dominant
+identity states. Priority: **hit-flash (0.12s) > Star rainbow > Black-Hole silhouette > DAMAGE PULSE >
+white.** A damaged player normally shows the pulse; it only yields to those rare powerup states.
+
+- **Lv1 — slow pulse:** `self_modulate = Color(1.0, g, g)` where `g` oscillates **0.85 ↔ 0.55** at
+  **`dmg_pulse_slow_hz = 1.5`** Hz. A gentle, unmistakable "reeling" throb toward pink-red.
+- **Lv2 — fast pulse:** `g` oscillates **0.75 ↔ 0.30** (deeper red) at **`dmg_pulse_fast_hz = 4.0`**
+  Hz. Reads instantly as "this one is about to die."
+- Must be legible at `CAM_MIN_ZOOM` (0.37) — a whole-body tint is (a small HUD bar would not be); this
+  is why the state lives on the body. No new node; drive `g` from `_anim_t` like the rainbow line.
+
+### 12.5 Reset / heal rules
+
+- Heal fully (→0) after `dmg_heal_time = 8.0` s with no qualifying hit. Any qualifying hit re-arms the
+  full 8s (both Lv1→Lv2 and a re-hit at Lv2). Directive: "heals after 8s; a hit while Lv1 resets the
+  heal timer to 8s."
+- Death / respawn → 0. Stage start → 0 (respawn covers it). SD revive → seeded to 2 (killrace §5).
+- Shoves, bounces, powerup pickups, healing over time — none affect it except the timer. The base
+  fuel-sting still fires independently on qualifying hits (it is the fuel-starve half of the gamble;
+  damage is the launch-distance half).
+- **Non-stacking guarantee:** `damage_level` never exceeds 2; there is no Lv3. This is the fence
+  against the rejected persistent-HP model.
+
+### 12.6 Interaction with the sting, credit, and the recovery gamble (unchanged pieces)
+
+- **Isolated fuel-sting KEPT** (`smash_sting_fuel * s`, gated 1500). Sting starves the escape super;
+  damage multiplies the launch. A solid hit on a Lv1 mid-tank victim both starves them AND launches
+  them +33% → the failed-recovery kill, now with an explicit escalation the player can READ and race
+  against (the 8s). This is the directive's "escalating lethality."
+- **Glances (below 1500) neither sting nor escalate** — still pure scares (fence intact).
+- **Kill credit / drain-all super / §2.3a dry-reflect — all unchanged.** A damaged player who fires a
+  fuelled counter can still fly back (the gamble); a *starved* damaged player cannot (the kill).
+
+---
+
+## 13. v3 — EDGE-RELATIVE LETHALITY (emergent, not a new coded check)
+
+The directive's "a dead-on hit near the edge kills; the same hit mid-stage does not; damaged players
+fly further → out; fuelled players fly back" is **already how the physics resolve** — it is the
+consequence of (launch speed × hitstun, minus fuelled recovery) vs (distance to the blast line). **It
+is NOT a separate mechanic and must not be coded as one** (no "if near edge, kill" special case). The
+damage multiplier (§12) and solidity (§3) set the launch; the runway (§14) sets the distance; whoever
+runs out of runway before regaining control dies. The programmer owns making the physics land; the
+design contract is the outcome rates in §15.
+
+**"Near the edge" — the definition (a DESIGN/QA reference band, not a constant):**
+
+```
+edge_band_width(dmg) ≈ exit_speed(dmg) × hitstun_max − fuelled_recovery_reach
+```
+
+the distance from a blast line within which a **center** hit outward rings the victim out before they
+can recover. Approximate reference values on dev_arena geometry (for QA test placement, not code):
+
+| victim state | exit_speed (center) | ~band width (no counter) | reading |
+|---|---|---|---|
+| Lv0 healthy, full fuel | ~2200 | ~700–900 px | must arc back from mid-stage |
+| Lv0 healthy, starved | ~2200 | ~1100 px | sting-starve kill near/inside the band |
+| Lv1 reeling | ~2926 | ~1100–1300 px | "hit a damaged player → out" reaches deeper inward |
+| Lv2 reeling | ~3000 (cap) | ~1300–1500 px | near-edge = dead; even mid-stage is dangerous |
+
+- **Mid-stage** (victim > band from the nearest blast line) + Lv0 + fuelled = arcs back / flies back
+  (the DEFAULT non-kill outcome the directive wants).
+- **Near-edge** (within the band) OR **damaged** OR **starved** = the launch exceeds the recoverable
+  reach → out. "Most kills = hit-a-damaged-player OR dead-on-near-edge" falls out of this directly.
+- The band SCALES with the level because the runway does (§14) — a wide level has a wider recoverable
+  reach, so the near-edge band sits proportionally further out.
+
+QA measures the kill/survive boundary at fixed test positions (§15) rather than asserting the band
+width; the band table above is the design intent those tests confirm.
+
+---
+
+## 14. v3 — LEVEL-RELATIVE BOUNDS (derived from geometry, not per-arena constants)
+
+Bounds are **derived in `LevelLoader.load_level`** from `play_rect` (the merged AABB of all
+platforms — the walkable extent, already computed) plus Tuning margins. Horizontally-long levels get
+horizontally-further blast lines (directive §6): the side margin scales with walkable width.
+
+```
+walkable = play_rect                                                   # merged platform AABB
+side     = clamp(bounds_side_frac * walkable.size.x, bounds_side_min, bounds_side_max)
+bounds.left   = walkable.position.x - side
+bounds.right  = walkable.end.x      + side
+bounds.top    = walkable.position.y - bounds_top_margin
+bounds.bottom = walkable.end.y      + bounds_bottom_margin
+```
+
+**Constants (NEW, Tuning) — chosen to REPRODUCE dev_arena's validated v2 bounds so slice B changes
+nothing on the tuned level:**
+
+| Constant | Value | Rationale / dev_arena check |
+|---|---|---|
+| `bounds_side_frac` | **0.52** | fraction of walkable width per side. dev_arena walkable width = 1856−64 = **1792** → side = 0.52×1792 = **932** ≈ the validated ~904–964 runway. Scales the side kill zone with level length (directive §6). |
+| `bounds_side_min` | **700.0** | floor so a short level is not un-survivably tight (a tiny level would otherwise kill on any knock). |
+| `bounds_side_max` | **1400.0** | cap so a very long level's runway does not exceed camera/recovery sanity. |
+| `bounds_top_margin` | **1700.0** | fixed vertical headroom (super/spring physics, NOT width-dependent). dev_arena walkable top y = 540 → top = 540 − 1700 = **−1160 ≈ −1150** (self-super void kill + 2200-arc-back both preserved, §4). |
+| `bounds_bottom_margin` | **670.0** | dev_arena walkable bottom y = 1108 → bottom = 1108 + 670 = **1778 ≈ 1780**. Floor ring-outs stay rare. |
+
+- **Derivation is the DEFAULT.** An explicit `bounds` block in level JSON is now an **optional
+  override** (back-compat for hand-tuned levels like dev_arena). Recommendation: **new levels OMIT
+  `bounds`** and rely on derivation; dev_arena may keep or drop its explicit block (the derived values
+  match within ~10px either way). `LevelLoader` returns derived bounds unless an override is present.
+- Side scaling is per-side symmetric off the walkable AABB; asymmetric levels get asymmetric runways
+  automatically (a platform cluster hugging the left gets a longer left runway — correct).
+- Vertical margins are fixed (not width-scaled) because the vertical kill geometry is governed by the
+  super/spring launch physics, which do not change with level width. If a level has an unusually high
+  or low platform, `play_rect` tracks it and the top/bottom bounds move with the geometry — desired.
+- Camera (§6) re-reads `bounds` at each STAGE_INTRO (killrace §6) and re-fits — no per-arena camera
+  constant.
+
+---
+
+## 15. v3 — Success criteria (combat interior; supersedes the MOOT pacing tests)
+
+Harness: deterministic eval placement + burst screenshots + eval of `is_dead()`, `global_position`,
+`fuel`, `damage_level`, `_dmg_heal_t`. Aggregate = idle-P1, ≥24 stages, reading `smashes[]` (with v3
+`dmg_before`/`dmg_after`/`launch_mult`).
+
+**Damage state — trigger & heal (deterministic)**
+D1. **Escalation ladder:** a qualifying smash (impulse ≥ 1500) on a healthy victim → `damage_level==1`,
+    slow pulse visible (screenshot), `_dmg_heal_t ≈ 8` (±0.2). A second qualifying smash within 8s →
+    `damage_level==2`, fast pulse, `_dmg_heal_t` reset to ≈8. A third qualifying smash → stays 2,
+    timer re-armed. A glance (impulse < 1500) → `damage_level` unchanged (no escalation).
+D2. **Full heal:** after a hit, wait 8.0s with no further qualifying hit → `damage_level==0`, pulse
+    gone (screenshot). No partial step-down (never 2→1); it drops straight to 0.
+D3. **Reset on death/respawn/SD:** killed → respawn → `damage_level==0`. SD-revived players →
+    `damage_level==2` with fast pulse (killrace §5, cross-check).
+
+**Launch multiplier (deterministic sweep)**
+D4. **Multiplier magnitudes:** same scripted center super (base `impulse_mag`≈2200) into a victim at
+    Lv0 / Lv1 / Lv2 → exit `launch_speed` ≈ **2200 / 2926 / 3000** (Lv2 capped by `max_speed`), within
+    ±8%. `smashes[].launch_mult` reads 1.0 / 1.33 / 1.66 respectively. Hitstun ≤ 0.55 in ALL cases
+    (triad intact — eval `_stun_timer` never exceeds `hitstun_max`).
+D5. **Pre-hit read:** the hit that TAKES a healthy victim to Lv1 records `launch_mult==1.0` and
+    `dmg_before==0`/`dmg_after==1`; the next hit records `launch_mult==1.33`/`dmg_before==1`.
+
+**Edge-relative kill economy (deterministic + rates) — the directive §5 claims**
+D6. **Mid-stage healthy survives; near-edge / damaged dies:**
+    a. **T-mid:** Lv0 full-fuel victim at stage center, center hit outward, no counter → survives
+       (alive 3s, in-bounds) **≥8/10**.
+    b. **T-edge:** Lv0 victim placed ~150px inside the near walkable edge (inside the §13 band),
+       center hit outward, starved to 4 fuel → rings out ≤2.5s **≥8/10**; same at full fuel, no
+       counter → rings out **≥6/10**.
+    c. **T-dmg-mid (the headline):** Lv1 full-fuel victim at stage CENTER, center hit outward, no
+       counter → rings out **≥5/10** — versus T-mid's ≤2/10 for Lv0. Proves "hit a damaged player →
+       they fly further → out" from mid-stage.
+    d. **T-dmg2:** Lv2 victim, center hit from ~mid-inner stage → rings out **≥8/10**.
+    e. **T-fly-back (gamble preserved):** T-edge full-fuel victim WITH a scripted snap counter-super
+       within 0.3s of stun end, aimed inward → survives **≥4/10** (fuelled fly-back is still real).
+D7. **Self-super void kill preserved:** own super straight up → self-destructs off `top` ≤2.5s ≥8/10
+    (parent t27 — must still hold under level-relative top bound).
+
+**Aggregate (≥24 idle-P1 stages)**
+D8. **Kill economy composition:** of credited kills, **≥50%** have the victim at `damage_level ≥ 1`
+    at death (`kills[].victim_dmg_at_death`) OR occurred with the victim inside the §13 near-edge band
+    — i.e. most kills are "damaged OR near-edge," the directive's intended economy. Purely-mid-stage-
+    healthy kills are the minority.
+D9. **Damage churns, not sticks:** median time-at-`damage_level>0` per damaged player per stage is a
+    real but transient window (players do reach Lv0 again via the 8s heal within stages that run long
+    enough) — no player is pinned at Lv2 for an entire stage by design; and no Lv3 ever appears.
+D10. **Attribution (RULING 3 carry-forward):** unattributed kills ≤18%; a 3–4s failed-recovery arc
+     credits the launcher ≥9/10 (parent t33).
+
+**Level-relative bounds**
+D11. **Derivation reproduces dev_arena:** on dev_arena, derived `bounds` = left≈−900, right≈2760,
+     top≈−1150, bottom≈1780 (±15px) via eval, whether or not the JSON override is present.
+D12. **Scaling:** on a synthetic wide level (walkable width ~2600) the side runway is wider
+     (0.52×2600 = 1352, clamped ≤1400) and on a narrow one (~1000) it clamps to 700 — eval `bounds`
+     confirms the side margin tracks walkable width between the min/max clamps. Camera keeps all
+     living players + the approaching wall on-frame at the new bounds (parent t29 at the new geometry).
+
+**Readability & performance**
+D13. **Pulse reads at zoom-out:** at `CAM_MIN_ZOOM`, a screenshot of a Lv1 and a Lv2 player shows a
+     distinguishable slow vs fast red throb (burst of 4 frames over ~0.7s shows the phase difference);
+     no HP bar / meter anywhere. Hit-flash still overrides the pulse for its 0.12s.
+D14. **No laser/timer pixels** anywhere in combat (removed with the timer SD).
