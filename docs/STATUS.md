@@ -219,6 +219,20 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   (pink verified crimson in-engine; blue/green/yellow peak = deterministic alpha math + art-director
   re-grade pending). IN FLIGHT: slice C (kill-race match mode). Then D (level pool).
 
+- [x] **Redesign BUILD COMPLETE (slices A+B+C+pulse) + dead-code cleanup (3f97039).** Full-match
+  watch (4-bot self-play): structure ALL WORKS — stages rotate, kills accumulate across stages
+  (reached [2,7,5,6] by stage 9), lives reset per stage, last-one-standing resolves, match-end on
+  winning kill, zero laser SD. **NEW PACING FINDING (depth-first gate — not genuinely-good yet):
+  1v1 stage-closeouts STALL.** With lives=1 + no timer + survivable knocks, the final 2 players
+  circle — stage 1 sat 2-alive for ~73s before a death. Stages resolve fine at 3-4 players (kills
+  happen) but the 2→1 endgame drags; damage escalation eventually forces it but too slowly. Result:
+  ~7 kills / 8 stages / ~7min → a match to 10 would run ~10-12min vs the 2.5-5min target. This is
+  the recovery-gamble-vs-resolution tension resurfacing at the STAGE CLOSEOUT. Likely primarily a
+  BOT issue (evasive bots circle in 1v1; humans would push) — ROUTED to game-designer: rule whether
+  it's acceptable (party tension / humans push) or needs a fix (bot 1v1 aggression is the prime
+  candidate; possibly damage-escalation tuning or a no-timer anti-stall for the 2-player endgame —
+  NOT a round timer, per owner). Evidence: watch_match log, killrace_1v1_stall.png.
+
 ## NEXT STEPS in priority order
 1. **LIVES + DAMAGE + DUCK-GAME KILL-RACE REDESIGN (owner directive 2026-07-03,
    `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` + DECISIONS).** This SUPERSEDES the
