@@ -233,6 +233,18 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   candidate; possibly damage-escalation tuning or a no-timer anti-stall for the 2-player endgame —
   NOT a round timer, per owner). Evidence: watch_match log, killrace_1v1_stall.png.
 
+- [x] **Slice C.1 (bot finisher mode, 08041b6) — 1v1 stall FIXED.** Closeout 73s → median 4.9s /
+  p90 12.8s / max 21s (criterion 15 PASS); gating correct (240 samples, finisher only at ≤1
+  opponent, 3-4p byte-identical). BUT full-match still 6.6-8min vs 2.5-5 target — NEW FINDING: the
+  cause is the 3-4-player MELEE (stages dwell 16-102s at ≥3 alive), NOT the closeout. The spec's
+  "3-4p pacing is fine" premise is FALSIFIED. Match-length math: to-10-for-one-leader ≈ ~8 stages;
+  at ~50s/stage = ~6.7min, at ~15s/stage = ~2.7min (target). So the fix is FASTER STAGES = faster
+  melee. This is the survivable-knock→slow-kills tension at a THIRD layer (after round-SD and 1v1).
+  Prime candidate (ON-DESIGN): bots CHASE/FOCUS the wounded (the owner's explicit run-and-chase
+  dynamic) → convert the damage system into kills faster via focus-fire to Lv2, without global
+  lethality changes or undoing the recovery gamble. ROUTED to game-designer to reopen the melee
+  premise + rule (bot focus-fire vs kill-target/feel reconciliation). Evidence: finisher_probe2.py.
+
 ## NEXT STEPS in priority order
 1. **LIVES + DAMAGE + DUCK-GAME KILL-RACE REDESIGN (owner directive 2026-07-03,
    `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` + DECISIONS).** This SUPERSEDES the
