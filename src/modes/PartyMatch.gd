@@ -26,9 +26,9 @@ const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 const SD_WARNING_SCENE := preload("res://scenes/ui/SDWarning.tscn")
 const LASER_WALLS := preload("res://src/entities/LaserWalls.gd")
 
-const CAM_MIN_ZOOM := 0.36     # most zoomed-out. Kill-zone spec §6.3: the new 4100x2980 bounds need
-                               # ~0.36 to show the full vertical extent (0.42 could not); verified blobs
-                               # stay readable at this scale in the rendered smoke test.
+const CAM_MIN_ZOOM := 0.37     # most zoomed-out. Kill-zone spec v2 §6.3: the pulled-back 3660x2930
+                               # bounds (-900..2760, -1150..1780) need ~0.37 to show the full vertical
+                               # extent (~2919px tall at 1080p); blobs stay readable at this scale.
 const CAM_LEAD_TIME := 0.32    # kill-zone spec §6.4: frame ahead of each flier's velocity so a fast
                                # (capped 2200) launch + its approaching blast line stay on-screen.
 const CAM_MAX_ZOOM := 0.92     # never zoom in tighter than this

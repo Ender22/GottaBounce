@@ -625,11 +625,12 @@ func _handle_smashes() -> void:
 				var n := (b.global_position - global_position).normalized()
 				var vdir := velocity.normalized()
 				var s: float = clampf(vdir.dot(n), 0.0, 1.0)
-				var launch_scale: float = clampf((s - Tuning.smash_solidity_min) / (1.0 - Tuning.smash_solidity_min), 0.0, 1.0)
-				var impulse_mag: float = minf((Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker) * launch_scale, Tuning.smash_impulse_max)
+				var raw_impulse: float = Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker  # physical ceiling
+				var launch_scale: float = Tuning.smash_launch_floor + (1.0 - Tuning.smash_launch_floor) * s  # baseline..cap (v2, no gate)
+				var impulse_mag: float = minf(raw_impulse, Tuning.smash_impulse_max * launch_scale)   # baseline -> cap, never above physical
 				var impulse := vdir * impulse_mag   # launch direction unchanged (along attacker travel)
-				var angular_kick: float = Tuning.smash_spin_max * (1.0 - launch_scale) * signf(vdir.cross(n))
-				b.receive_smash(impulse, self, launch_scale, angular_kick)
+				var angular_kick: float = Tuning.smash_spin_max * (1.0 - s) * signf(vdir.cross(n))
+				b.receive_smash(impulse, self, s, angular_kick)
 				# Cancel most of your own momentum: you stop on impact rather than riding them off the edge.
 				velocity *= Tuning.smash_self_retain
 				# Chain-body credit (QA fix): when a stunned flying BODY smashes someone, the
@@ -667,11 +668,12 @@ func _handle_smashes() -> void:
 				var n := (b.global_position - global_position).normalized()
 				var vdir := velocity.normalized()
 				var s: float = clampf(vdir.dot(n), 0.0, 1.0)
-				var launch_scale: float = clampf((s - Tuning.smash_solidity_min) / (1.0 - Tuning.smash_solidity_min), 0.0, 1.0)
-				var impulse_mag: float = minf((Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker) * launch_scale, Tuning.smash_impulse_max)
+				var raw_impulse: float = Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker  # physical ceiling
+				var launch_scale: float = Tuning.smash_launch_floor + (1.0 - Tuning.smash_launch_floor) * s  # baseline..cap (v2, no gate)
+				var impulse_mag: float = minf(raw_impulse, Tuning.smash_impulse_max * launch_scale)   # baseline -> cap, never above physical
 				var impulse := vdir * impulse_mag
-				var angular_kick: float = Tuning.smash_spin_max * (1.0 - launch_scale) * signf(vdir.cross(n))
-				b.receive_smash(impulse, self, launch_scale, angular_kick)
+				var angular_kick: float = Tuning.smash_spin_max * (1.0 - s) * signf(vdir.cross(n))
+				b.receive_smash(impulse, self, s, angular_kick)
 				_smash_cd = 0.3
 				return
 
@@ -696,7 +698,7 @@ func _soft_separate(other) -> void:
 			and other._spawn_protect <= 0.0 and not other.invincible:
 		other.credit_attacker(self)
 
-func receive_smash(impulse: Vector2, attacker, launch_scale: float = 1.0, angular_kick: float = 0.0) -> void:
+func receive_smash(impulse: Vector2, attacker, s: float = 1.0, angular_kick: float = 0.0) -> void:
 	if _dead:
 		return
 	if counter_active:
@@ -721,10 +723,11 @@ func receive_smash(impulse: Vector2, attacker, launch_scale: float = 1.0, angula
 		channel_broken = true
 	# Smash sting (lethality spec §2.2): qualifying hits chunk the victim's tank BEFORE hitstun.
 	# Dropping below super_boost_min_fuel starves the escape super — sting -> starve -> kill.
-	# Kill-zone spec §3.2: sting scales with launch_scale so a graze doesn't secretly starve-kill;
-	# a dead-center hit (launch_scale=1) still stings the full amount → path-2 starve kill intact.
+	# Kill-zone spec v2 §3.2: sting scales with SOLIDITY s (not launch_scale, whose 0.6 floor would
+	# starve everyone). Gated on impulse >= smash_sting_min_impulse: a baseline graze (~1320 < 1500)
+	# stings NOTHING; sting rises with s from s~=0.21 up; a dead-center hit (s=1) stings the full amount.
 	if impulse.length() >= Tuning.smash_sting_min_impulse and not fuel_locked:
-		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel * launch_scale)
+		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel * s)
 	# Smashed while aiming (spec §1.1): aim CANCELS, (stung) fuel retained, no super fires.
 	cancel_super_aim()
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
