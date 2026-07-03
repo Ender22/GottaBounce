@@ -258,7 +258,42 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   → author ~9 more varied levels to that bar (the circuit) → wire LEVEL_POOL → re-run ALL pacing/
   feel QA on the circuit rotation. The level pool (was slice D) is now a QA PREREQUISITE, promoted.
 
-## NEXT STEPS in priority order
+- [x] **CREATIVE-DIRECTOR FANTASY-FIT PASS (first run) — verdict FIX** (docs/briefs/cd_verdict_2026-
+  07-03_flagship.md). The role paid for itself: caught that the INTEGRATED build doesn't deliver the
+  fantasy on its own arena, and corrected a STATUS overclaim — **"match structure ALL WORKS" was true
+  of the STATE MACHINE but masked that the KILL ECONOMY isn't firing at 2x scale.** Findings:
+  (P0) kills barely land on grassy_expanse — supers fired upward SELF-DESTRUCT off the top bound
+  (-1560; a 2800 super from a y430 pad reaches ~-2020), UNCREDITED, advancing no kill-race; endgame
+  finalists park ~2400px apart (dev-arena finisher 4.9s does NOT scale to 2x); no super-smash/edge
+  kill/damage-escalation observable in real play → THE core verb isn't exercised. (P1) horizontal
+  traversal does NOT require flight (mid-pit spring bridges the 720px gap; drift+retention cross the
+  whole map on zero boost) — vertical flight IS required (founding-miss fix LANDED, don't touch).
+  (P1) camera zooms to ~0.42 → 40px bouncers, killing pulse/face/fuse readability at 2x width.
+  (P0-visibility) AUDIO entirely absent (silent game). SYSTEMIC THEME: 4 findings share one root —
+  combat/camera/bounds tuned on the small arena don't SCALE to 2x; must be validated scale-aware on
+  representative geometry.
+
+## NEXT STEPS in priority order (reordered per the CD verdict 2026-07-03)
+0. **Make grassy_expanse a VALID test substrate + fix the kill economy at scale (CRITICAL PATH).**
+   The mode can't be judged until kills fire on the proper arena. Entangled, routed to game-designer
+   (+ gameplay-programmer, level-designer): (a) self-destruct-off-top — supers upward auto-suicide
+   uncredited; rule the vertical bounds / self-super-void-kill design at scale (the void kill was a
+   rare committed-mistake on the small arena; at 2x + elevated pads it's routine + uncredited).
+   (b) endgame stall — bot closing must scale to arena width (finisher/chase were dev-arena-tuned;
+   fold in the owner flee-to-heal counterpart). (c) melee kills-don't-land at scale. (d) horizontal
+   traversal must require flight (mid-pit spring bridge). Then re-run the CD pass. All prior combat
+   pacing numbers are PROVISIONAL/superseded by scale.
+1. **Camera policy for the 2x arena** (art-director + gameplay-programmer): tighter floor zoom / dynamic
+   framing so bouncers + damage-pulse + aim-fuse stay readable; resolve the width-vs-readability tension.
+2. **AUDIO** (owner dependency + programmer): wire an AudioManager/SFX-bus architecture + bounce/boost/
+   smash/impact/announcer SFX + music. Owner input needed on SFX sourcing (music library exists from
+   session 1). Highest first-impression visibility.
+3. **The ~10-level circuit** (level-designer): author ~9 more flight-required levels to the flagship bar;
+   THEN all pacing/feel/CD QA runs on the circuit rotation (the representative substrate). Prereq for
+   real pacing sign-off.
+4. **Goat/ram shape prototype** (un-gated, DECISIONS 2026-07-03): non-circular collider + solidity-by-
+   hit-position + taller sprite; playtest the super-smash sweet-spot variety.
+--- older pre-redesign steps (superseded, kept for history) below ---
 1. **LIVES + DAMAGE + DUCK-GAME KILL-RACE REDESIGN (owner directive 2026-07-03,
    `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` + DECISIONS).** This SUPERSEDES the
    kill-zone SD-tuning saga below and DISSOLVES the SD-rate problem. Core: no round timer;
