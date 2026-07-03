@@ -2,6 +2,19 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** COMBAT PACING BAR RECALIBRATED for the recovery-gamble design (spec
+  v0_kill_zone_recovery.md §5.2/§9/§11). QA proved the recovery gamble (owner's survivable-knock
+  ask) structurally pins SD ~50% and the launch-magnitude lever is refuted for pacing. Ruling:
+  (1) SD target ≤25% → **≤40%** + kill-decided ≥60%, GATED by new test 31 (SD rounds must be
+  active climaxes: median supers ≥12, ≤27s — stalls still fail). Rationale: ≤25% was set for the
+  pre-recovery knocks-kill model; the owner reversed that premise, so longer rounds are intended
+  and SD-as-lasers-closing is a climax not a failure — but guarded against stalls. (2) The STING
+  becomes the executioner via COMPOUNDING follow-ups (30/52.5/75 at s=1 within 1.5s), NOT the
+  refuted flat sting-up; isolated sting/glance-0 unchanged so the gamble holds. (3) kill_credit_
+  window 2.5→4.0 (persist through launch state; cap 6.0) — scoring fix for mis-attributed
+  failed-recovery kills. Launch-floor is a FEEL knob, never a pacing lever. This is the studio
+  choosing "let recovery drama breathe + guarantee SD rounds are exciting" over "tight fast rounds",
+  in line with the owner's movement-feel thesis. Reopen if owner wants tight pacing over the gamble.
 - **2026-07-03** DAMAGE MODEL DECIDED — transient "damaged/vulnerable" STATE, not persistent %.
   Owner picked the reeling-window form: a character pulses RED when damaged (read on the body, not
   a HUD meter) and SLOWLY HEALS; while damaged it is more launchable → run-and-chase dynamics

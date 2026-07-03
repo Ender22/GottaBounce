@@ -176,6 +176,18 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   failed-recovery kills are mis-recorded as suicides (the 31–39% unattributed) — fix likely
   independent of the tension. Samples 13–17 rounds (thin; re-QA at ≥24). HEAD = v2 floor 0.6.
 
+- [x] **Kill-zone v2.1 game-designer ruling FILED** (spec §5.2/§9/§11): (1) SD target RECALIBRATED
+  ≤25%→**≤40%** / kill-decided ≥60%, gated by new **test 31** (SD rounds must be ACTIVE: median
+  supers ≥12, resolve ≤27s — a stall still FAILS) — reconciles the target with the owner's
+  survivable-knock design (SD-as-climax, not failure); (2) STING made executioner via COMPOUNDING
+  (`sting_compound_window=1.5s`, `step=0.75`, `cap=2` → 30/52.5/75 at s=1) — isolated sting
+  unchanged so the gamble + glance-0 hold; bites only on ACTIVE follow-ups, avoiding the refuted
+  flat 30→40 drag; targets the owner's "second knock mid-recovery" death + seeds the red-pulse
+  damaged state; (3) CREDIT-WINDOW fix — persist credit through launch state (interim
+  `kill_credit_window` 2.5→4.0, cap 6.0) to fix the 31–39% mis-attributed suicides. Launch-floor
+  stays a FEEL knob, never pacing. Predicted SD 53%→~40–45%. Build per §10, re-QA whole §9 +
+  tests 22–33 at ≥24 rounds.
+
 ## NEXT STEPS in priority order
 1. **KILL-ZONE REBALANCE (owner feedback 2026-07-03, `docs/feedback/owner_2026-07-03_kill_zone.md`)
    — this HOLDS the lethality sign-off.** Owner watched real gameplay: the kill zone is too tight,
