@@ -63,6 +63,22 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   1 laser (12.5% SD vs <25% target). 12 spec interpretations listed in agent report for designer
   review. Watch items: fuse-ring frame-1 arc minimal, resting-overlap shove jitter, bot
   self-destruct rate off the lowered ceiling.
+- [x] **QA pass 1 on lethality v2 + fix round (committed 587d0a1)**. QA found a CRITICAL
+  inverted-kill bug: the smashed victim (stunned = licensed smasher) counter-smashed its own
+  attacker next frame — landing a super was suicide (attacker died 9/9, victim survived 10/10,
+  chains 0/3, idle P1 won a match). Fixed via `_stunned_by` pairwise smash immunity + 4 more:
+  chain kill credit goes to the launcher (not the flying body), super press buffers through
+  refire lockout AND empty tank, bumpers refund fuel_per_bumper=20 (owner's wall-return-shot),
+  fuse ring now screen-space width + outline + min arc (readable at zoom 0.443). Fix-round
+  verification: victim ring-out 6/6 @1.12s w/ attacker surviving, B→C chain credit 4/4, 4-round
+  bot match all ring_out / 1 SD / idle P1 scored 0. Watch: bumper hit clears hitstun (side
+  effect — may suppress kills near side bumpers); buffer-through-empty-tank semantics + fuel_per_bumper
+  need designer sign-off.
+- [ ] **QA RE-VERIFICATION IN FLIGHT (interrupted by session limit — no verdict yet)**. A
+  re-verification agent ran 81 tool calls then died; partial evidence in the session scratchpad
+  + tools/out/qa4_*.png. Salvage shows DKO revive + chain timeline healthy, but its pacing.json
+  shows all-laser endings w/ supers_fired empty + killer:-1 — either bot pacing regressed or the
+  agent's recorder was mis-hooked. MUST resolve before calling the slice shipped.
 
 ## NEXT STEPS in priority order
 1. **Full QA pass on lethality v2**: the 21 criteria in spec §9 (esp. test 6 BOTH directions —
