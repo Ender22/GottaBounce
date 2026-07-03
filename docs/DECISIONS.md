@@ -2,6 +2,14 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** GOAT IDENTITY EVAL COMPLETE — verdict **Adopt-staged**: horns are a cheap,
+  on-brand, minimal-delta upgrade (add horns to existing blob ref sheet, no anatomy/style pivot)
+  that strengthens the super-boost-as-kill-move fantasy and readability, BUT gated until the
+  un-charged lethality mechanic + movement courses validate the super-fantasy is actually fun
+  (do not spend art budget theming an unvalidated mechanic). Fold horn art into the aim-pose art
+  pass that lethality needs to commission anyway (currently no distinct aim sprite — see
+  lethality_aim.png). Goat scream SFX is separable/cheap, gate only on a super-fire event existing
+  in code. Full brief: docs/briefs/art_goat_identity_eval.md.
 - **2026-07-02** SUPER BOOST REDESIGNED (owner movement-feel directive, evaluated & adopted):
   **un-charged** — full power at any fuel ≥ `super_boost_min_fuel` (5), always dumps the whole
   tank, ≤2s aim-hover then auto-fire, no cancel. Supersedes GDD §4.3 "super strength scales with

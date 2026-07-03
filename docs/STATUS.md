@@ -74,6 +74,12 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   bot match all ring_out / 1 SD / idle P1 scored 0. Watch: bumper hit clears hitstun (side
   effect — may suppress kills near side bumpers); buffer-through-empty-tank semantics + fuel_per_bumper
   need designer sign-off.
+- [x] **Art-director goat-identity evaluation: ADOPT-STAGED** (docs/briefs/art_goat_identity_eval.md
+  + DECISIONS entry). Horns = readable weapon-tip for the head-first super fantasy; fits Glossy
+  Toybox as a decoration pass (~8 regens + a new aim-pose sprite needed anyway). HOLD until
+  movement courses validate super-as-kill-move is the fun; reject if bounce-chaining carries the
+  fun instead. Required pre-ship test: horn readability at far zoom (~25-30px bouncers). Goat
+  scream SFX = separable, cheap, gate only on super_fired event (already exists in EventBus).
 - [ ] **QA RE-VERIFICATION IN FLIGHT (interrupted by session limit — no verdict yet)**. A
   re-verification agent ran 81 tool calls then died; partial evidence in the session scratchpad
   + tools/out/qa4_*.png. Salvage shows DKO revive + chain timeline healthy, but its pacing.json
