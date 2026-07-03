@@ -2,6 +2,24 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** BUMPER/BOUNCE RECOVERY GATE RULED (v2.1 fix to combat lethality, closes QA
+  re-verification FAILs 11/13/14/15): governing principle **"hitstun ends by TIME, never by
+  touching a surface."** Root cause was fix-round 587d0a1 making `_on_bounced()` unconditionally
+  refund fuel + clear hitstun on every bounce, so a bumper 660px inboard of the kill line
+  auto-saved every edge-bound smash victim. Ruling: if a player is currently in
+  opponent-inflicted hitstun (`_stun_timer > 0.0`) at the moment of surface contact, the contact
+  is a **dry reflect** — the physical bounce/ricochet still resolves (no clipping), but fuel is
+  NOT refunded and hitstun is NOT cleared; it expires on its own clock as before. Neutral
+  (non-stunned) contact is unchanged, which is what preserves the owner's wall-return shot intact
+  (that move never involves hitstun by construction). `fuel_per_bumper` stays 20.0 — not raised,
+  not lowered; only the stunned-case gate was the bug. A bumper-reflected stunned body remains a
+  licensed smasher per the existing §2.1 rule and `_stunned_by` pairwise immunity already prevents
+  it from re-hitting its own launcher — accepted as intentional Pillar-3 pinball chaos, now
+  earned rather than free. The buffered-super-through-empty-tank behavior was reviewed and kept
+  as-built (it re-arms every held frame within `input_buffer`, cannot fire off a dry reflect since
+  a dry reflect produces no fuel — not an exploit). Applies uniformly to both bumper and tier
+  bounces (no per-surface special case). Spec: `docs/specs/v0_combat_lethality.md` §2.3a (v2.1).
+  New QA criteria 6c (dry-reflect kill retained) / 6d (wall-return shot still fires) lock this in.
 - **2026-07-03** GOAT IDENTITY EVAL COMPLETE — verdict **Adopt-staged**: horns are a cheap,
   on-brand, minimal-delta upgrade (add horns to existing blob ref sheet, no anatomy/style pivot)
   that strengthens the super-boost-as-kill-move fantasy and readability, BUT gated until the
