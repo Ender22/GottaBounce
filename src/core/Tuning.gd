@@ -96,6 +96,12 @@ var smash_self_retain: float = 0.1           # on a landed smash you keep only t
                                              # so you stop on impact instead of flying off the edge with them
 var smash_sting_fuel: float = 30.0           # sting: qualifying smashes chunk the victim's tank (§2.2)
 var smash_sting_min_impulse: float = 1500.0  # supers/chains sting; Star (900) & Counter (1400) don't
+# --- Compounding sting (kill-zone recovery spec v2.1 §5.2, RULING 2 — THE pacing lever) ---
+# A follow-up qualifying sting within the window compounds; isolated hits are UNCHANGED (gamble intact).
+# At s=1 the chained sequence is 30 / 52.5 / 75  (1st x1.0, 2nd x1.75, 3rd+ x2.5).
+var sting_compound_window: float = 1.5       # §5.2: a qualifying sting within this of the victim's previous compounds
+var sting_compound_step: float = 0.75        # §5.2: Nth chained hit stings base * (1 + step * min(stack, cap))
+var sting_compound_cap: int = 2              # §5.2: max stack -> at s=1: 30 / 52.5 / 75
 var hitstun_base: float = 0.15               # DO-NOT-TOUCH (GDD §4.6 recovery triad is protected)
 var hitstun_per_impulse: float = 0.00025
 var hitstun_max: float = 0.55
@@ -133,7 +139,9 @@ var sd_warning_lead: float = 3.0       # s before SD: pulsing edge-column warnin
 var idle_hunt_after: float = 4.0       # s of no input before the nearest bot hunts the idler (§3.2)
 var survival_requires_contact: bool = true  # survival point needs >=1 smash dealt/received (§4)
 var double_ko_window: float = 0.25     # s — simultaneous-death tiebreak window (GDD §7)
-var kill_credit_window: float = 2.5    # s — last-attacker kill credit (replaces Player.gd's 2.0)
+var kill_credit_window: float = 4.0    # s — last-attacker kill credit (kill-zone v2.1 §11.2 RULING 3:
+                                       #   2.5 -> 4.0 INTERIM; covers the failed-recovery arc across the v2
+                                       #   widened runway. PREFERRED end-state = persist through launch state.
 var match_target_score: int = 10       # first to this with a strict lead wins the match
 var bot_levels: Array[int] = [2, 3, 4] # P2 punchline / P3 fair fight / P4 menace (spec §4)
 

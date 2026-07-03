@@ -68,6 +68,12 @@ var _down_angle := PI * 0.5    # local-gravity direction angle (for body orienta
 var last_attacker = null       # for kill credit (P9); cleared after a couple seconds
 var skin := "pink"             # character sprite color (set by the mode before add_child)
 var _attacker_timer := 0.0
+# --- Compounding sting (kill-zone recovery spec v2.1 §5.2) ---
+var _sting_stack: int = 0          # follow-up sting stack (0=isolated, capped at sting_compound_cap)
+var _sting_window_timer := 0.0     # countdown; a qualifying sting while this is >0 compounds. When it
+                                   # lapses the juggle is over and the stack resets (see _physics_process).
+var _last_compound_stack: int = 0  # §8 QA feed: the stack the last qualifying sting resolved at
+var _last_sting_applied := 0.0     # §8 QA feed: the fuel the last qualifying sting actually drained
 
 # --- character sprite constants (art brief: eyeballed in-game vs the 44px collider) ---
 const SPRITE_BALL_FRAC := 0.66      # the round body is ~66% of the idle texture width (rest = jetpack)
@@ -289,6 +295,12 @@ func _physics_process(delta: float) -> void:
 	_attacker_timer = maxf(0.0, _attacker_timer - delta)
 	if _attacker_timer <= 0.0:
 		last_attacker = null
+	# Compounding sting (§5.2): the window is the "active juggle" boundary. It (1.5s) outlasts any
+	# single hitstun (<=0.55s), so hits 2/3 that land while the victim is still scrambling still
+	# compound. When it lapses the juggle is over (victim back under control) -> reset the stack.
+	_sting_window_timer = maxf(0.0, _sting_window_timer - delta)
+	if _sting_window_timer <= 0.0:
+		_sting_stack = 0
 
 	# Black Hole channel (spec 3.6): hover frozen (velocity zeroed, gravity off, input locked)
 	# and pull all other players in-zone at a CONSTANT accel — readable, not 1/r^2. The pull is
@@ -655,6 +667,8 @@ func _handle_smashes() -> void:
 						"victim_fuel_after": b.fuel,
 						"starved": b.fuel < Tuning.super_boost_min_fuel,
 						"spin": angular_kick,
+						"compound_stack": b._last_compound_stack,   # v2.1 §8: stack this sting resolved at
+						"sting_applied": b._last_sting_applied,      # v2.1 §8: fuel actually drained
 					})
 				_smash_cd = 0.3
 				return
@@ -726,8 +740,25 @@ func receive_smash(impulse: Vector2, attacker, s: float = 1.0, angular_kick: flo
 	# Kill-zone spec v2 §3.2: sting scales with SOLIDITY s (not launch_scale, whose 0.6 floor would
 	# starve everyone). Gated on impulse >= smash_sting_min_impulse: a baseline graze (~1320 < 1500)
 	# stings NOTHING; sting rises with s from s~=0.21 up; a dead-center hit (s=1) stings the full amount.
+	# v2.1 §5.2: the sting COMPOUNDS on follow-ups. A qualifying sting landed while the sting window
+	# is still open (a hit that caught the victim mid-scramble) stacks: base * (1 + step * stack),
+	# capped at sting_compound_cap. At s=1 the chained sequence is 30 / 52.5 / 75. Isolated hits
+	# (window lapsed) resolve at stack 0 = the UNCHANGED 30*s gamble; grazes (below the gate) sting 0
+	# and do NOT advance the stack or refresh the window (the glance-0 property holds).
 	if impulse.length() >= Tuning.smash_sting_min_impulse and not fuel_locked:
-		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel * s)
+		if _sting_window_timer > 0.0:
+			_sting_stack = mini(_sting_stack + 1, Tuning.sting_compound_cap)
+		else:
+			_sting_stack = 0
+		_sting_window_timer = Tuning.sting_compound_window
+		var sting: float = Tuning.smash_sting_fuel * s \
+				* (1.0 + Tuning.sting_compound_step * mini(_sting_stack, Tuning.sting_compound_cap))
+		fuel = maxf(0.0, fuel - sting)
+		_last_compound_stack = _sting_stack
+		_last_sting_applied = sting
+	else:
+		_last_compound_stack = 0
+		_last_sting_applied = 0.0
 	# Smashed while aiming (spec §1.1): aim CANCELS, (stung) fuel retained, no super fires.
 	cancel_super_aim()
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
@@ -850,6 +881,10 @@ func respawn(pos: Vector2) -> void:
 	_spin_vel = 0.0
 	last_attacker = null            # a new life never owes kill credit to the old one
 	_attacker_timer = 0.0
+	_sting_stack = 0                # §5.2: a fresh life never carries a juggle stack
+	_sting_window_timer = 0.0
+	_last_compound_stack = 0
+	_last_sting_applied = 0.0
 	_sb_aiming = false
 	_sb_aim_t = 0.0
 	_sb_aim_dir = Vector2.UP

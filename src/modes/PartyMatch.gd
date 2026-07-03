@@ -369,6 +369,8 @@ func _on_smash_landed(attacker, victim, info: Dictionary) -> void:
 		"victim_fuel_after": info.get("victim_fuel_after", 0.0),
 		"starved": info.get("starved", false),
 		"spin": info.get("spin", 0.0),
+		"compound_stack": info.get("compound_stack", 0),   # v2.1 §8: 0=isolated, 1=2nd-in-window, 2=3rd+
+		"sting_applied": info.get("sting_applied", 0.0),    # v2.1 §8: fuel actually removed (post-compound)
 	})
 
 func _on_killed(victim, cause, attacker) -> void:
