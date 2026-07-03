@@ -245,6 +245,19 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   lethality changes or undoing the recovery gamble. ROUTED to game-designer to reopen the melee
   premise + rule (bot focus-fire vs kill-target/feel reconciliation). Evidence: finisher_probe2.py.
 
+- [~] **OWNER ARENA DIRECTIVES 2026-07-03 (`docs/feedback/owner_2026-07-03_arena_size.md`) — reshape
+  the QA substrate.** (1) dev_arena is too tight for real play → new PRIMARY arena ~2x wider
+  (~3584px walkable), platforms spaced out. (2) More VERTICAL gap floor→upper platforms (they're
+  ~270-440px now → a bounce reaches them; players bonk the ceiling and never need to FLY). Size gaps
+  so normal-boost is REQUIRED to traverse + super for big leaps — the level must exercise the jetpack
+  (movement-feel thesis). (3) **Run all tests on a ~10-LEVEL CIRCUIT**, not one arena — the mode
+  rotates levels, so QA must too. CONSEQUENCE: all prior single-arena pacing QA (lethality, melee,
+  closeout, match-length, incl. slice C.2) is PROVISIONAL, to be re-validated on the circuit.
+  IN FLIGHT: level-designer authoring the 2x flagship arena (design/math only, port busy).
+  PLAN (depth-first): flagship 2x arena → validate in-engine (flight-required, edge economy, feel)
+  → author ~9 more varied levels to that bar (the circuit) → wire LEVEL_POOL → re-run ALL pacing/
+  feel QA on the circuit rotation. The level pool (was slice D) is now a QA PREREQUISITE, promoted.
+
 ## NEXT STEPS in priority order
 1. **LIVES + DAMAGE + DUCK-GAME KILL-RACE REDESIGN (owner directive 2026-07-03,
    `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` + DECISIONS).** This SUPERSEDES the
