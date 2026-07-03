@@ -96,6 +96,16 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   NEXT: designer ruling on bumper-recovery semantics (same mechanic powers the owner's
   wall-return shot — QA suggests gating refuel/stun-clear on NOT being in opponent-inflicted
   hitstun), then programmer fix, then targeted re-run of tests 11/13/14/15 + wall-return feel.
+- [x] **Designer ruling shipped — spec bumped to v2.1** (committed ea0c133, new §2.3a + DECISIONS
+  entry). THE RULE: hitstun ends by TIME, never by surface contact. While `_stun_timer > 0`,
+  any bounce (tier or bumper, one uniform rule) is a DRY REFLECT: physics resolves + FX/signals
+  fire, but zero fuel refund and NO stun clear. Not-stunned behavior unchanged (wall-return
+  shot never involves hitstun, so it's preserved by construction). fuel_per_bumper stays 20.0;
+  buffered-super-through-empty-tank kept as-built (can't fire off a dry reflect — no fuel).
+  Bumper-reflected stunned body stays a licensed smasher (earned pinball chaos; `_stunned_by`
+  immunity already protects the launcher). New §9 tests: 6c dry-reflect kill retained ≥8/10,
+  6d wall-return shot fires ≥9/10. Fallback knob if dry reflect feels silent: bigger FX/SFX,
+  NEVER reopen the refund/clear gate. **Programmer fix = immediate next task.**
 
 ## NEXT STEPS in priority order
 1. **Full QA pass on lethality v2**: the 21 criteria in spec §9 (esp. test 6 BOTH directions —
