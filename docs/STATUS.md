@@ -203,8 +203,20 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   regardless: the runway (wider bounds), hit-solidity launch model, credit fix, edge kills.
 
 ## NEXT STEPS in priority order
-1. **KILL-ZONE REBALANCE (owner feedback 2026-07-03, `docs/feedback/owner_2026-07-03_kill_zone.md`)
-   — this HOLDS the lethality sign-off.** Owner watched real gameplay: the kill zone is too tight,
+1. **LIVES + DAMAGE + DUCK-GAME KILL-RACE REDESIGN (owner directive 2026-07-03,
+   `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` + DECISIONS).** This SUPERSEDES the
+   kill-zone SD-tuning saga below and DISSOLVES the SD-rate problem. Core: no round timer;
+   lives-based (default 1) elimination stages; SD = simultaneous double-KO only (0.5s); match =
+   race to 10–15 kills across frequently-rotating levels; damage system (Lv1 slow-pulse/+33%/8s,
+   Lv2 fast-pulse/+66%/reset-8s); edge-relative kills; level-relative bounds. Spec pass ROUTED to
+   game-designer (reconcile vs round_loop / lethality / kill_zone_recovery; propose depth-first
+   build slices). Likely slice order: (a) combat core — damage system + edge-relative bounds +
+   lives elimination round-end on the existing arena, validate the FEEL; (b) kill-race match mode
+   + level rotation; (c) more levels (level-designer). KEEPER from kill-zone work: hit-solidity
+   launch model, credit fix (window 4.0), edge kills. HEAD combat = v2.1 (f27a695).
+   --- superseded context below (the kill-zone SD-tuning that led here) ---
+1b. ~~KILL-ZONE REBALANCE~~ (SUPERSEDED by #1; kept for history). Owner watched real gameplay: the
+   kill zone is too tight,
    a single hard knock (even straight up) kills instead of arcing back into the fight, and an
    angled (45°) knock is never survivable-with-a-fly-back. The recovery gamble (movement-feel
    thesis applied to death) is absent. Diagnosis (math + in-engine): the super (2800) overshoots

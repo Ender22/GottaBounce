@@ -2,6 +2,19 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** MATCH/COMBAT REDESIGN (owner directive, resolves the recovery-gamble-vs-pacing
+  fork) — full record `docs/feedback/owner_2026-07-03_lives_damage_killrace.md`. (1) **No round
+  timer; LIVES-based, default 1** — stages end by elimination, Duck-Game-fast churn. (2) **SUDDEN
+  DEATH removed as a timer/laser mechanic; SD is ONLY a simultaneous double-KO** (2 players lose
+  last life within 0.5s). (3) **MATCH = Duck-Game kill-race to 10–15 kills across FREQUENTLY-
+  ROTATING levels** (replaces first-to-10-rounds-on-one-arena). (4) **DAMAGE SYSTEM adopted with
+  exact params** (supersedes the compounding sting + sets the earlier "transient vulnerable state"
+  decision's values): Lv1 after 1 hit (slow red pulse, 8s heal) → +33% launch; Lv2 if hit while
+  Lv1 (fast pulse, resets 8s) → +66% launch. (5) **Edge-relative lethality:** dead-on hit near the
+  level edge kills; mid-stage doesn't; damaged players fly further → out; fuelled players fly back.
+  (6) **Kill zone level-relative** (scales with level width). DISSOLVES the SD-rate tension → the
+  ≤25%/≤40% SD target + test-31 are MOOT. KEEPER: hit-solidity launch, credit fix, edge kills,
+  runway (now level-relative). Reopen only with owner input. Spec pass routed to game-designer.
 - **2026-07-03** COMBAT PACING BAR RECALIBRATED for the recovery-gamble design (spec
   v0_kill_zone_recovery.md §5.2/§9/§11). QA proved the recovery gamble (owner's survivable-knock
   ask) structurally pins SD ~50% and the launch-magnitude lever is refuted for pacing. Ruling:
