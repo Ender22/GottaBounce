@@ -105,6 +105,7 @@ func in_hitstun() -> bool:
 var _body: Node2D                  # body root (squash/tumble applies here)
 var _skin_flip: Node2D             # facing flip (scale.x = ±1), separate from squash scale
 var _sprite: Sprite2D              # character sprite (idle / squash pose)
+var _dmg_overlay: Sprite2D         # crimson damage flush (lerp-to-red overlay), normal/alpha blend
 var _idle_tex: Texture2D
 var _squash_tex: Texture2D         # squash pose (pink only for now; null = scale-squash only)
 var _sprite_scale := 1.0
@@ -180,6 +181,13 @@ func _ready() -> void:
 	_sprite_scale = (2.2 * BODY_RADIUS) / (_idle_tex.get_width() * SPRITE_BALL_FRAC)
 	_apply_idle_sprite()
 	_skin_flip.add_child(_sprite)
+	# Cross-skin damage flush (docs/briefs/damage_pulse_visual.md): a crimson overlay of the same
+	# silhouette, drawn on top at normal (alpha) blend, lerps the body toward red on ANY skin.
+	# Kept a pixel-exact copy of _sprite's draw params each frame in _update_visual.
+	_dmg_overlay = Sprite2D.new()
+	_dmg_overlay.texture = _idle_tex
+	_dmg_overlay.visible = false
+	_skin_flip.add_child(_dmg_overlay)  # added after _sprite -> draws above it
 
 	_arrow = Polygon2D.new()
 	_arrow.polygon = PackedVector2Array([Vector2(0, -8), Vector2(0, 8), Vector2(22, 0)])
@@ -973,24 +981,35 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 					_apply_squash_sprite()
 				else:
 					_apply_idle_sprite()
-			# hit flash (FEEL §5.2) > Star rainbow (spec 3.3) > Black Hole silhouette (spec 3.6)
+			# hit flash (FEEL §5.2) > Star rainbow (spec 3.3) > Black Hole silhouette (spec 3.6) >
+			# damage flush (docs/briefs/damage_pulse_visual.md: crimson overlay lerps body toward red).
 			if _flash_timer > 0.0:
 				_flash_timer = maxf(0.0, _flash_timer - delta)
 				_sprite.self_modulate = Color(2.6, 2.6, 2.6)
+				_dmg_overlay.visible = false            # white hit-flash wins
 			elif rainbow:
 				_sprite.self_modulate = Color.from_hsv(fmod(_anim_t * 6.0, 1.0), 0.62, 1.0)  # 6 cycles/s
+				_dmg_overlay.visible = false            # Star = invulnerable, never show "vulnerable" red
 			elif silhouette:
 				_sprite.self_modulate = Color(0.2, 0.13, 0.28)
-			elif damage_level == 1:
-				# v3: Lv1 reeling — gentle red throb, g 0.85<->0.55 at dmg_pulse_slow_hz. On-body, no HUD.
-				var g1: float = 0.70 + 0.15 * sin(_anim_t * TAU * Tuning.dmg_pulse_slow_hz)
-				_sprite.self_modulate = Color(1.0, g1, g1)
-			elif damage_level == 2:
-				# v3: Lv2 reeling — deeper, faster throb, g 0.75<->0.30 at dmg_pulse_fast_hz.
-				var g2: float = 0.525 + 0.225 * sin(_anim_t * TAU * Tuning.dmg_pulse_fast_hz)
-				_sprite.self_modulate = Color(1.0, g2, g2)
+				_dmg_overlay.visible = false            # Black Hole silhouette wins
+			elif damage_level >= 1:
+				_sprite.self_modulate = Color.WHITE
+				# mirror the body's draw params so the overlay is a pixel-exact silhouette copy
+				_dmg_overlay.texture = _sprite.texture   # follows idle<->squash swap
+				_dmg_overlay.offset = _sprite.offset
+				_dmg_overlay.scale = _sprite.scale
+				_dmg_overlay.position = _sprite.position
+				var a: float
+				if damage_level == 1:
+					a = Tuning.dmg_lv1_alpha_mid + Tuning.dmg_lv1_alpha_amp * sin(_anim_t * TAU * Tuning.dmg_pulse_slow_hz)
+				else:
+					a = Tuning.dmg_lv2_alpha_mid + Tuning.dmg_lv2_alpha_amp * sin(_anim_t * TAU * Tuning.dmg_pulse_fast_hz)
+				_dmg_overlay.modulate = Color(Tuning.dmg_tint.r, Tuning.dmg_tint.g, Tuning.dmg_tint.b, a)
+				_dmg_overlay.visible = true
 			else:
 				_sprite.self_modulate = Color.WHITE
+				_dmg_overlay.visible = false
 	_update_contact_shadow()
 	# telegraphy (lethality §1.4): the ring is a 2s FUSE (fills toward auto-fire, yellow -> red),
 	# the arrow shows the aim at full size from frame 1 (power never scales), exhaust revs up.

@@ -103,8 +103,15 @@ var smash_sting_min_impulse: float = 1500.0  # supers/chains sting; Star (900) &
 # smash_impulse_max clamp and BEFORE the max_speed limit. Read ON THE BODY (red pulse), never a HUD.
 var dmg_launch_mult: Array[float] = [1.0, 1.33, 1.66]  # §12.3: launch multiplier indexed by damage_level
 var dmg_heal_time: float = 8.0               # §12.5: seconds with no qualifying hit -> full heal to Lv0
-var dmg_pulse_slow_hz: float = 1.5           # §12.4: Lv1 red-pulse frequency (g 0.85<->0.55)
-var dmg_pulse_fast_hz: float = 4.0           # §12.4: Lv2 red-pulse frequency (g 0.75<->0.30)
+var dmg_pulse_slow_hz: float = 1.5           # §12.4: Lv1 red-pulse frequency
+var dmg_pulse_fast_hz: float = 4.0           # §12.4: Lv2 red-pulse frequency
+# Cross-skin damage flush (docs/briefs/damage_pulse_visual.md): a crimson overlay sprite lerps the
+# body toward red (alpha-blend), so it reads as "hurt" on ANY skin (multiply couldn't add red to blue/green).
+var dmg_tint: Color = Color(0.89, 0.125, 0.125)  # crimson #E32020 the body lerps toward
+var dmg_lv1_alpha_mid: float = 0.175   # Lv1 throb centre -> range 0.00..0.35 (gentle, skin returns each cycle)
+var dmg_lv1_alpha_amp: float = 0.175
+var dmg_lv2_alpha_mid: float = 0.475   # Lv2 flush centre -> range 0.25..0.70 (deep, never fully returns)
+var dmg_lv2_alpha_amp: float = 0.225
 var hitstun_base: float = 0.15               # DO-NOT-TOUCH (GDD §4.6 recovery triad is protected)
 var hitstun_per_impulse: float = 0.00025
 var hitstun_max: float = 0.55
