@@ -273,6 +273,17 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   combat/camera/bounds tuned on the small arena don't SCALE to 2x; must be validated scale-aware on
   representative geometry.
 
+- [x] **Kill-economy-at-scale BUILT + QA'd (9205561) — make-or-break goals LANDED.** On grassy
+  (4-bot, ≥38 stages): kills fire (S1 first-elim 4.5s median, ≥2/stage), endgame stall FIXED (S3
+  closeout ~1.5s, was 60s+), match completes (S4 ~3.1min), self-destruct GONE (S8 10/10 arc back),
+  healthy survives (S5 8/10), pit forces flight (S7 10/10). TWO MISSES (spec-anticipated forks,
+  backoffs NOT yet applied — Director/design call, being routed to CD for felt verdict first):
+  S2 uncredited deaths 31.5% (self-falls into the §4 central pit — the pit became the dominant kill
+  zone; is a central instakill pit even the right design vs edge blast zones? + attribution) and
+  S6 flee-to-heal 2% (chase-the-wounded at spec values finishes the wounded before they heal → the
+  owner's flee half barely functions). IN FLIGHT: creative-director re-pass #2 to judge the felt
+  experience + these two forks.
+
 ## NEXT STEPS in priority order (reordered per the CD verdict 2026-07-03)
 0. **Make grassy_expanse a VALID test substrate + fix the kill economy at scale (CRITICAL PATH).**
    The mode can't be judged until kills fire on the proper arena. Entangled, routed to game-designer
