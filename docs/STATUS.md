@@ -202,6 +202,16 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   goalpost-moving. AWAITING OWNER DIRECTION (see the fork presented 2026-07-03). What's KEEPER
   regardless: the runway (wider bounds), hit-solidity launch model, credit fix, edge kills.
 
+- [x] **Redesign SLICE A SHIPPED (damage system, 4ebca72)** on the existing arena. Lv0/1/2 escalate
+  on a qualifying smash (≥1500), 8s full-heal, reset on death; launch ×1.0/1.33/1.66 applied after
+  the 2200 cap before the 3000 limit → Lv0 2200 / Lv1 2926 / Lv2 3000-capped (verified exact);
+  red self_modulate pulse (1.5Hz/4Hz). Compounding sting removed. KNOWN ISSUE: `Color(1,g,g)` reads
+  as red on the PINK skin but muddy on blue/green/yellow (multiply can't add red) → routed to
+  art-director for a cross-skin "damaged" visual (additive overlay/rim/emblem). IN FLIGHT:
+  slice B (level-relative bounds from play_rect + edge-economy validation) + the art-director pulse
+  ruling (parallel; only B uses the game). Combined A+B feel-QA (mid-survive vs edge-kill vs
+  Lv2-fly-further) comes when B lands. Then slice C (kill-race match mode), then D (levels).
+
 ## NEXT STEPS in priority order
 1. **LIVES + DAMAGE + DUCK-GAME KILL-RACE REDESIGN (owner directive 2026-07-03,
    `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` + DECISIONS).** This SUPERSEDES the
