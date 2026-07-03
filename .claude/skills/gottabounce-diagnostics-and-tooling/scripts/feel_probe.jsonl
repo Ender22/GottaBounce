@@ -1,0 +1,32 @@
+# feel_probe.jsonl - reproducible P1 input sequence with screenshots at fixed points.
+# Run:  python tools/gbplay.py script .claude/skills/gottabounce-diagnostics-and-tooling/scripts/feel_probe.jsonl
+# Preconditions: game running windowed on Arena.tscn, match in COMBAT, P1 alive with fuel >= 5.
+#   (Outcome varies with bot behavior; the INPUT timeline is fixed - compare screenshots across
+#   tuning changes, not against absolute positions.)
+# Actions used are the real input map (project.godot): boost, super, move_left/right/up/down.
+# Special script commands handled by gbplay.py itself: sleep, screenshot_to.
+# Status: verified static 2026-07-03 (format per gbplay.py `script` branch; not yet live-run).
+{"command": "screenshot_to", "params": {"path": "tools/out/probe_00_start.png"}}
+# --- phase 1: boosted right-run (reads thrust response + air drift) ---
+{"command": "key_hold", "params": {"action": "move_right"}}
+{"command": "key_hold", "params": {"action": "boost"}}
+{"command": "sleep", "params": {"seconds": 0.8}}
+{"command": "screenshot_to", "params": {"path": "tools/out/probe_01_boost.png"}}
+{"command": "key_release", "params": {"action": "boost"}}
+{"command": "key_release", "params": {"action": "move_right"}}
+{"command": "sleep", "params": {"seconds": 0.6}}
+{"command": "screenshot_to", "params": {"path": "tools/out/probe_02_coast.png"}}
+# --- phase 2: super AIM entry, hold 0.6s (fuse ring should be visible), then fire ---
+{"command": "key_hold", "params": {"action": "super"}}
+{"command": "sleep", "params": {"seconds": 0.6}}
+{"command": "screenshot_to", "params": {"path": "tools/out/probe_03_aim.png"}}
+{"command": "key_hold", "params": {"action": "move_up"}}
+{"command": "sleep", "params": {"seconds": 0.2}}
+{"command": "key_release", "params": {"action": "super"}}
+{"command": "key_release", "params": {"action": "move_up"}}
+{"command": "sleep", "params": {"seconds": 0.25}}
+{"command": "screenshot_to", "params": {"path": "tools/out/probe_04_fired.png"}}
+# --- phase 3: settle + post-state numbers (fuel should be 0 right after a super) ---
+{"command": "sleep", "params": {"seconds": 1.0}}
+{"command": "screenshot_to", "params": {"path": "tools/out/probe_05_settle.png"}}
+{"command": "eval", "params": {"code": "var p = get_tree().current_scene.players[0]\nreturn {\"fuel\": p.fuel, \"speed\": p.velocity.length(), \"pos\": p.global_position, \"dead\": p.is_dead()}"}}
