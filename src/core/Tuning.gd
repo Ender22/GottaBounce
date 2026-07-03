@@ -148,6 +148,18 @@ var kill_credit_window: float = 4.0    # s — last-attacker kill credit (kill-z
 var match_target_score: int = 10       # first to this with a strict lead wins the match
 var bot_levels: Array[int] = [2, 3, 4] # P2 punchline / P3 fair fight / P4 menace (spec §4)
 
+# --- Level-relative bounds (kill-zone recovery spec v3 §14) ---
+# Bounds are DERIVED in LevelLoader from play_rect (the merged platform AABB / walkable extent) plus
+# these margins, so horizontally-long levels get horizontally-further blast lines. The side margin
+# scales with walkable width (clamped); vertical margins are fixed (super/spring launch physics don't
+# scale with width). An explicit "bounds" block in level JSON is an OPTIONAL OVERRIDE (back-compat for
+# hand-tuned levels). Chosen to reproduce dev_arena's validated v2 bounds within ~geometry tolerance.
+var bounds_side_frac: float = 0.52       # §14: fraction of walkable width per side (dev_arena: 0.52*1792=932)
+var bounds_side_min: float = 700.0       # §14: floor so a short level isn't un-survivably tight
+var bounds_side_max: float = 1400.0      # §14: cap so a very long level's runway stays camera/recovery-sane
+var bounds_top_margin: float = 1700.0    # §14: fixed vertical headroom above walkable (dev_arena top 540 -> -1160)
+var bounds_bottom_margin: float = 670.0  # §14: fixed drop below walkable (dev_arena bottom 1108 -> 1778)
+
 # --- Powerups (docs/specs/v1_powerups.md §6) ---
 # spawner pacing (spec §4 — rounds are 10-30s; powerups are a beat, not the meal)
 var pu_first_spawn: float = 4.0          # s after BOUNCE! before the first telegraph

@@ -57,11 +57,25 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 			_:
 				push_warning("LevelLoader: unknown object type '%s' in %s" % [otype, path])
 
+	# Bounds (kill-zone recovery spec v3 §14): DERIVED from play_rect (walkable extent) by default;
+	# an explicit "bounds" block in the JSON is an OPTIONAL OVERRIDE for hand-tuned levels.
 	if json.has("bounds"):
 		var b = json["bounds"]
 		result["bounds"] = Rect2(b["left"], b["top"], b["right"] - b["left"], b["bottom"] - b["top"])
+	else:
+		result["bounds"] = _derive_bounds(play_rect)
 	result["objects_raw"] = json.get("objects", [])   # so modes can read custom objects (campaign etc.)
 	return result
+
+## Derive blast-line bounds from the walkable AABB (kill-zone recovery spec v3 §14). Side margin
+## scales with walkable width (clamped); top/bottom are fixed. Returns Rect2(left, top, w, h).
+static func _derive_bounds(walkable: Rect2) -> Rect2:
+	var side := clampf(Tuning.bounds_side_frac * walkable.size.x, Tuning.bounds_side_min, Tuning.bounds_side_max)
+	var left := walkable.position.x - side
+	var right := walkable.end.x + side
+	var top := walkable.position.y - Tuning.bounds_top_margin
+	var bottom := walkable.end.y + Tuning.bounds_bottom_margin
+	return Rect2(left, top, right - left, bottom - top)
 
 static func _rect_polygon(w: float, h: float) -> PackedVector2Array:
 	return PackedVector2Array([
