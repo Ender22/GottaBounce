@@ -212,6 +212,13 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   ruling (parallel; only B uses the game). Combined A+B feel-QA (mid-survive vs edge-kill vs
   Lv2-fly-further) comes when B lands. Then slice C (kill-race match mode), then D (levels).
 
+- [x] **Redesign COMBAT CORE complete (slices A+B + pulse fix).** A: damage system (6a2ff3b←4ebca72).
+  B: level-relative bounds (6a2ff3b) + edge economy VALIDATED (mid-stage hit arcs back alive; same
+  hit near edge rings out; Lv2 flies ~344px further → out where Lv0 survives — the owner's kill
+  economy working end-to-end). Pulse fix (f09d8b9): crimson alpha-blend overlay reads on all skins
+  (pink verified crimson in-engine; blue/green/yellow peak = deterministic alpha math + art-director
+  re-grade pending). IN FLIGHT: slice C (kill-race match mode). Then D (level pool).
+
 ## NEXT STEPS in priority order
 1. **LIVES + DAMAGE + DUCK-GAME KILL-RACE REDESIGN (owner directive 2026-07-03,
    `docs/feedback/owner_2026-07-03_lives_damage_killrace.md` + DECISIONS).** This SUPERSEDES the
