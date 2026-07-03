@@ -70,3 +70,29 @@
   scoring is by kills regardless, but the stage-end + level-rotation cadence needs defining.)
 - Match target 10–15 kills: pick a default; how is the winner shown; ties.
 - How "near the edge" is defined for the edge-relative kill (a margin band inside the bounds?).
+
+## Addendum — 2026-07-03 — bot "seek safe ground / flee-to-heal" behavior (owner)
+
+Owner idea for the bot AI: bots should have a decision like **"seek [safe] ground"** — deliberately
+fly to a chosen platform, as a human would, e.g. during a **brief respite from battle**, or when
+**damaged and retreating to safety to heal**.
+
+Studio assessment (Director): this fills a real hole. Current InputBot verbs = bounce → hunt → AIM →
+BLAST → dive-to-refuel → drift-home, + dodge-super, 1v1 finisher, and chase-the-wounded (§5.6). We
+built the CHASE half of the owner's chase/flee dynamic but NOT the FLEE half — a wounded bot does not
+deliberately retreat to safe ground to survive the 8s heal window; it keeps drifting in the fray. This
+behavior is:
+- The missing counterpart to chase-the-wounded — together they make the run-and-chase dynamic real on
+  BOTH sides (predator commits; prey flees to heal). Directly supports feel-criterion 21 (flee-to-heal
+  must stay real / ≥25% of Lv1 heal back).
+- ON-FANTASY for the arena work: fleeing to a distant safe platform makes bots USE FLIGHT to navigate
+  (the exact thing the 2x arena now demands) → bots read as players, not a brawling pile.
+Design sketch (for the game-designer to spec properly): a new bot state "RETREAT/RESET" — trigger when
+(a) damaged (damage_level >= 1) AND no strong attack opportunity, or (b) a lull (no opponent within
+range for ~N s) — pick a safe platform far from threats (weight by distance from nearest opponent +
+being off the current fight), fly there via boost, hold/heal until the heal window elapses or a good
+opportunity re-appears. Must not become passive camping (Pillar 2) — bounded duration, breaks on a
+kill opportunity, and only the DAMAGED/lull case, not a default. Difficulty-scaled (smarter bots
+retreat more cleverly; L1/L2 barely).
+Sequence: fold into the bot-AI / melee-feel pass (near chase-the-wounded); validate on the circuit
+with the creative-director pass. NOT yet specced/built.
