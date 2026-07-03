@@ -219,6 +219,116 @@ as a resolution moment, not an anticlimax.
 
 ---
 
+## 5.5 The 1v1 stage-closeout — bot "finisher" mode (RULING, 2026-07-03 session-4 finding)
+
+**The finding (QA, 4-bot self-play watched to stage 9):** the match STRUCTURE is sound — stages
+rotate, kills accumulate across stages (reached `[2,7,5,6]`), lives reset per stage, last-one-standing
+resolves, match-end fires on the winning kill, zero laser SD. But the **2→1 endgame STALLS**: once a
+stage is down to the final two players (1 life each), two L3 bots circle and refuel and neither commits
+to the kill — **stage 1 sat 2-alive for ~73s.** Stages resolve fine at 3–4 players (the melee produces
+kills); only the closeout drags. Net: ~7 kills across 8 stages in ~7 min → a full match to 10 would run
+~10–12 min against the spec's 2.5–5 min target (§2, §8 t7).
+
+### RULING 1 — NOT acceptable. This must be fixed for v0.
+
+A 73s two-player circle is a **camp by any other name** (Pillar: no camping / stages end in seconds)
+and it directly violates the owner's **Duck-Game-fast churn** intent — the whole fantasy in this spec
+is "somewhere new every fifteen seconds," and a stall triples match length. "Humans would push" does
+not save it: (a) the bot self-play harness IS a shipping validation surface (the whole studio validates
+by driving bots), and a harness that cannot close a stage cannot measure §8 t7/t11/t12; (b) a
+**human-vs-evasive-bot** 1v1 — the common case in a party lobby with fewer than 4 humans — would feel
+*worse* than bot-vs-bot, because the human is trying to end it and the bot will not cooperate. The stall
+is a real defect, not party tension.
+
+### RULING 2 — the fix is BOT FINISHER AGGRESSION. Damage-tuning and any time-based anti-stall are REJECTED.
+
+**Diagnosis (from `InputBot.gd` / `BotProfile.gd`):** the stall is a **bot-commitment** failure, not a
+lethality failure. In the endgame the two survivors are each gated *away* from the kill by their own
+profile dials:
+- `aggression` (L3 0.65) fails its hunt-roll ~35% of ticks → the bot idles/drifts instead of pressing;
+- `refuel_floor = 25` makes a bot **break off to dive-refuel** the moment its tank dips under 25, and
+  also **blocks entering AIM** below 25 — so two bots take turns retreating to refuel and never overlap
+  in an attack window;
+- `attack_range` (L3 340px) means they only arm a super when already close, so the circling never
+  converts to a committed run;
+- `target_ok` (`_decide`, line ~208) drops the hunt when the lone opponent floats past
+  `stage.grow(520)` → the chaser disengages exactly when it should close.
+
+With no third body to force exchanges and no time pressure (owner removed the timer), these
+break-off gates form a stable orbit. **The lethality/damage system is NOT the primary culprit** — it
+*does* eventually force the kill, just too slowly; and note the 8s heal (`dmg_heal_time`) means that in
+a slow circle the `damage_level` heals back to 0 between sparse hits, so escalation never compounds. The
+fix is to make hits *frequent and committed* (bot behavior), not to make each hit more lethal (which
+would regress the 3–4-player melee that already works).
+
+**THE FIX — a scoped "finisher" mode in `InputBot`, active only when the bot has ≤1 living opponent
+left (i.e., 2 players remain).** The bot counts living opponents from the existing `arena.players`
+(no new arena contract — preserves the §9 InputBot/Playtest field contract). While
+`_alive_opponents(me) <= finisher_opponents_left`, the bot OVERRIDES its profile dials with the
+finisher values below; outside the endgame it behaves exactly as today (the 3–4-player pacing is
+already good and must NOT change).
+
+Finisher overrides (applied on top of any level's profile — floors/caps/mults so they scale sanely for
+L2/L3/L4, the shipped lineup):
+
+| Dial | Normal (L3) | In finisher | Rule |
+|---|---|---|---|
+| `aggression` | 0.65 | **floor 0.95** | commit essentially every tick — no idle drift |
+| `attack_range` | 340 | **× 1.4** (→ ~476) | arm the super from further; close-and-blast, do not orbit |
+| `commit_time` | 0.8 | **floor 1.5** | a rolled hunt sticks through the whole approach |
+| `refuel_floor` | 25 | **10.0** (both the dive-trigger AND the attack-gate) | only bail to refuel when nearly dry; keep pressing while there is fuel to fight with |
+| `dodge_super` | 0.0 (L4 0.5, L5 0.8) | **cap 0.15** | kill the counter-super dance so two high-tier bots do not infinitely dodge-cancel in the closeout |
+| `target_ok` | dist-gated | **always true for the lone opponent** | never disengage a floating survivor — chase it to the edge (where the kill lives) |
+
+Rationale for the numbers, tied to the tuned combat: `refuel_floor 10` sits safely above
+`super_boost_min_fuel = 5` (Tuning) so a finisher bot always retains enough fuel to land one committed
+super before it must dive — it presses instead of orbiting, but never suicides on an empty tank.
+`attack_range × 1.4` (not more) keeps the approach honest — bigger ranges made bots over-commit and
+whiff in the prior `edge_guard`-up experiment (STATUS session-4), which *dragged* rounds; scoping the
+range bump to the 2-left endgame (where a whiff just resets a 1v1, not a 4-body scrum) contains that
+risk. `aggression 0.95` (not 1.0) preserves a sliver of the L1/L2 flail comedy. Aim quality
+(`aim_error`, `target_lead`, `super_aim_time`) is **untouched** — finisher raises *commitment*, never
+accuracy; bots still never cheat (INV-8). Committed, frequent trades land repeat hits inside the 8s
+heal window → `damage_level` escalates to Lv2 → the next near-edge hit rings the loser out by the
+existing combat rules. No standable ground means the loser cannot stall the finish.
+
+**REJECTED — damage-escalation tuning (faster escalation / slower heal).** Lowering `dmg_heal_time`
+(8→e.g. 4) or raising `dmg_launch_mult` would speed the closeout but is a **global** combat change that
+regresses the hard-won 3–4-player pacing (STATUS session-4 documents that every global lethality lever
+tried — sting 30→40, edge_guard-up — traded one metric for two). The 8s heal healing between sparse
+hits is a *symptom* of the circle, not the cause; once the finisher makes hits frequent, 8s is plenty
+to compound. Leave the damage system exactly as shipped.
+
+**REJECTED (hard) — any time-based anti-stall** ("after N seconds of 2-left, auto-escalate damage /
+tighten bounds"). This is the round timer the owner explicitly removed (directive §1: "No round time
+limit … never a timer") wearing a costume — it reintroduces the exact time-pressure-vs-recovery tension
+the directive *dissolved* (STATUS: "the SD-rate pacing tension is DISSOLVED. No round timer"). The
+stall is a bot-commitment bug; fix the bug, do not re-add a clock. Not built, not flagged-for-later —
+rejected.
+
+**Note on `dodge_super` for high-tier bots:** L4/L5 (`dodge_super` 0.5/0.8) are the real closeout risk
+for a future all-L4/L5 hard-mode match — two dodgers would perpetuate the very dance the finisher is
+meant to end. Capping it at 0.15 in finisher is cheap insurance; include it now.
+
+### Tuning constants (add to the bot/pacing section of `Tuning.gd` — one-number tunable, per CLAUDE.md)
+
+```
+# NEW (bot finisher — the 2-left stage closeout, §5.5)
+finisher_opponents_left      = 1      # enter finisher when a bot has <= this many living opponents (2 players total)
+finisher_aggression_floor    = 0.95
+finisher_attack_range_mult   = 1.4
+finisher_commit_time_floor   = 1.5
+finisher_refuel_floor        = 10.0   # > super_boost_min_fuel (5): keep enough to fire, but stop orbit-refueling
+finisher_dodge_super_cap     = 0.15
+```
+
+These are match-pacing feel constants → they live in `Tuning.gd`, not baked into `InputBot`. `InputBot`
+reads them when `_alive_opponents(me) <= Tuning.finisher_opponents_left`. **Note for the programmer:**
+`_alive_opponents(me)` counts `arena.players` that are valid, not `me`, and not `is_dead()` — no new
+arena field; the §9 InputBot/Playtest contract is untouched.
+
+---
+
 ## 6. Level rotation
 
 - **`_load_stage()`** already loads a level by path into `_level_root`. Generalize `PartyMatch` to
@@ -241,6 +351,14 @@ as a resolution moment, not an anticlimax.
 match_target_kills   = 10        # first to this many cumulative kills with a strict lead wins
 lives_per_player     = 1         # default; >1 enables mid-stage respawn (configurable, non-default)
 
+# NEW (bot finisher — 2-left stage closeout, §5.5)
+finisher_opponents_left    = 1     # enter finisher when a bot has <= this many living opponents
+finisher_aggression_floor  = 0.95
+finisher_attack_range_mult = 1.4
+finisher_commit_time_floor = 1.5
+finisher_refuel_floor      = 10.0  # > super_boost_min_fuel (5)
+finisher_dodge_super_cap   = 0.15
+
 # CHANGED
 double_ko_window     = 0.25 -> 0.50   # directive §2: last-two-within-0.5s = the ONLY SD trigger
 match_target_score   -> RETIRED (renamed match_target_kills; alias if cheap)
@@ -252,6 +370,7 @@ survival_requires_contact               # no survival point in a kill-race
 # UNCHANGED / reaffirmed
 intro_pop_stagger, countdown_beat, round_end_freeze (1.8), kill_credit_window (4.0, persist),
 bot_levels [2,3,4], round_end_freeze cap 2.0
+dmg_heal_time (8.0), dmg_launch_mult [1.0,1.33,1.66]   # §5.5: NOT touched — the closeout fix is bot behavior, not lethality
 ```
 
 (Damage-system, bounds-derivation, and sting constants live in the amendment §12–§14.)
@@ -305,6 +424,27 @@ heal timer for the damage tests (amendment §13).
 12. **Kills per stage:** median **≥ 2 credited kills/stage**; suicides ≤ ~1/stage median (L2 comedy
     still lands ≥1 suicide/match). Unattributed kills ≤ 18% (credit-fix, kill-zone §11.2).
 
+**1v1 stage-closeout (bot finisher, §5.5 — the session-4 stall fix; measured in a 4-bot match, the stress case)**
+15. **2-left closeout duration:** instrument the wall-clock from the moment a stage reaches exactly
+    **2 not-eliminated players** (the `TWO LEFT!` trigger) to the deciding death. Across ≥20 such
+    closeouts in 4-bot matches (2/3/4 lineup): **median ≤ 8s, 90th-percentile ≤ 15s.** A single
+    closeout > 20s is a **soft flag** for review; **> 30s is a HARD FAIL** (this is the 73s regression
+    guard). Compare against the pre-fix baseline (stage-1 = 73s) — the fix must cut the closeout tail
+    by an order of magnitude.
+16. **Finisher does not over-shorten the 3–4-player melee:** the 4→2 phase (COMBAT start → `TWO LEFT!`)
+    still yields the bulk of kills; whole-stage median stays **8–18s** (criterion 11) and per-stage
+    kills stay **≥ 2** (criterion 12) — i.e. finisher speeds the *closeout*, it must not make the
+    early melee a single trade nor spike bot self-destructs (idle-P1 suicide rate stays ≤ ~1/stage,
+    criterion 12). If finisher whiff-and-drag or self-destruct appears, re-check `attack_range × 1.4`
+    (lower toward × 1.2) before touching any global knob.
+17. **Full-match timing re-verified post-fix:** with the finisher live, criterion 7 must now hold —
+    a full 4-bot idle-P1 match to 10 kills completes in **2.5–5 min** (≥3 matches), NOT the ~10–12 min
+    observed pre-fix. **Human-play note (not automatable this slice, judge by inspection):** a
+    human-vs-1-bot closeout must also resolve — the finisher bot pushes and trades rather than orbits,
+    and with no standable ground the human cannot camp the finish either; a designer/QA spot-check of
+    one human-driven 1v1 closeout should confirm it ends within a few seconds of sustained contact,
+    with no "the bot won't engage" feel.
+
 **Readability & performance**
 13. **Corner HUD only:** mid-combat screenshot — 4 corner cards (kill pips + fuel), no persistent UI
     inside the middle 60%×60%; no timer; no HP bar. Damage reads as an on-body red pulse only.
@@ -321,6 +461,7 @@ rate. The damage/edge/bounds combat criteria live in the amendment §15.)
 Powerup rebalance, title/lobby/menus, local-MP join, audio announcer/music, pause menu, persistent
 stats. The `InputBot`/`Playtest` contract fields (`players`, `scores`, `bounds`, `nearest_opponent()`,
 `stage_rect()`, `stage_center()`, `idle_hunt_target()`) must survive the refactor unchanged. The
+finisher mode (§5.5) reads only existing `arena.players` — it adds no new contract field. The
 damage/edge/bounds combat internals are the amendment's scope, not this file's.
 
 ---
@@ -343,6 +484,11 @@ The directive suggested (a) combat core incl. lives/elimination + bounds, (b) ma
 - **Slice C — KILL-RACE MATCH MODE (THIS spec).** Rework PartyMatch: cumulative kills, target 10,
   remove survival point, remove the 20s laser SD + nodes, double-KO SD = revive-both-Lv2 1v1, level
   rotation cadence, match-end on the winning kill, HUD pips → kills, banner table.
+- **Slice C.1 — BOT FINISHER (§5.5; follows the session-4 QA finding).** Small additive `InputBot`
+  change: `_alive_opponents()` count + the finisher dial-overrides gated on
+  `<= Tuning.finisher_opponents_left`, plus the 6 new Tuning constants. Re-run criteria 15–17 in a
+  4-bot match. This is the immediate closeout-stall fix; it does not touch PartyMatch or the damage
+  system.
 - **Slice D — MORE LEVELS (level-designer).** A pool of ≥4–6 hand-built levels feeding the shuffle-bag;
   each auto-bounds via §14. Only meaningful once A–C prove the loop is fun on one level.
 
