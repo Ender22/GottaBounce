@@ -2,6 +2,29 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-03** STUDIO PROCESS UPGRADE (owner-prompted, after the too-tight-arena miss slipped
+  every role): root cause = the studio verifies COMPONENTS against SPECS but no role reasons from
+  the game's ESSENCE about whether the INTEGRATED experience delivers the fantasy; briefs stated the
+  game's facts but never made "is the core fantasy happening?" a required check (e.g. the level-
+  designer brief never said "flight must be required to traverse", and pointed at a non-existent
+  docs/ARCHITECTURE.md). Fixes: (1) NEW `docs/GAME_ESSENCE.md` — required reading for all roles,
+  turns the fantasy into per-role fantasy-fit OBLIGATIONS + a first-principles "played as a human,
+  is the core fantasy happening?" checklist; (2) NEW role `creative-director` (player advocate) — the
+  holistic critic of the integrated build, the structural stand-in for the absent human playtester;
+  (3) STUDIO.md loop gains a mandatory fantasy-fit pass; (4) level-designer brief now REQUIRES a
+  movement-tool-per-gap analysis proving flight is required (+ schema-ref bug fixed). Standing
+  lesson: bots don't complain, specs describe mechanisms, specialists optimize slices — guard the
+  integrated experience explicitly.
+- **2026-07-03** GOAT/RAM IDENTITY UN-GATED — now a GAMEPLAY lever, not just cosmetic (owner). The
+  earlier "adopt-staged, wait until the super-fantasy validates" gate (art_goat_identity_eval) is
+  MET (hit-solidity + recovery gamble built), AND the owner added a new gameplay argument: a taller/
+  rectangular (ram) body vs the current short ball changes WHERE on the body you get hit → richer
+  hit-solidity sweet-spot variety (head/center/feet become literal, vs the circle's velocity-only
+  solidity). That its gameplay implication went unexplored is itself an instance of the process miss
+  above. Decision: PROTOTYPE the taller/ram shape as a real gameplay experiment (non-circular
+  collider + solidity adapted to vertical hit-position + placeholder taller sprite), playtest the
+  solidity variety. Scope honestly: collider-shape change touches physics + art, so it's a deliberate
+  slice, not a toss-in. Sequence: alongside/after the circuit + combat re-QA.
 - **2026-07-03** MATCH/COMBAT REDESIGN (owner directive, resolves the recovery-gamble-vs-pacing
   fork) — full record `docs/feedback/owner_2026-07-03_lives_damage_killrace.md`. (1) **No round
   timer; LIVES-based, default 1** — stages end by elimination, Duck-Game-fast churn. (2) **SUDDEN

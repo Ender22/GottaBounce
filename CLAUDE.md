@@ -9,8 +9,11 @@ review. All validation is ours. See `docs/STUDIO.md` for roles, `docs/STATUS.md`
 ## Read order on fresh context
 1. `docs/STATUS.md` — where we are, what's next (ALWAYS current — see enforcement below)
 2. `docs/VISION.md` — game identity, pillars, art direction
-3. `docs/PIPELINE.md` — how we validate, generate art, test
-4. `docs/ARCHITECTURE.md` — code seams · `docs/reference/` — the old project's docs (good design, failed execution)
+3. `docs/GAME_ESSENCE.md` — what the game IS + the fantasy-fit check EVERY role must run (guards
+   against building spec-correct components that aren't the game we're making)
+4. `docs/PIPELINE.md` — how we validate, generate art, test
+5. `docs/reference/ARCHITECTURE.md` — code seams (old project; INV list) · `docs/reference/` — the old
+   project's docs (good design, failed execution). NOTE: there is no top-level `docs/ARCHITECTURE.md`.
 
 ## Non-negotiables (violating these killed the last attempt)
 - **Depth-first.** One slice to genuinely-good before widening. Never claim "done" for "compiles."
