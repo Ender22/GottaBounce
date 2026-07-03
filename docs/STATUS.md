@@ -158,8 +158,16 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
    RECOVERY, not tight walls — wider bounds (top+sides) + softer/capped smash impulse so knocks are
    survivable-and-recoverable, kept frequent because recovery is a real gamble (fuel, second knock,
    bad angle); lasers stay the backstop. Also needs camera work (it currently frames the tight
-   stage). Game-designer is speccing the target; then a tuning search + re-run the whole lethality
-   QA (the 29-round metrics were measured against the geometry the owner says is wrong).
+   stage). **SPEC WRITTEN: `docs/specs/v0_kill_zone_recovery.md`** (reads as parent §2.5; supersedes
+   §2.1 impulse formula + §2.4 bounds; adds §9 tests 22–30). Root cause sharpened: `velocity`
+   `.limit_length(3000)` slams EVERY clean smash to the max_speed cap → solidity invisible, arc
+   impossible. Levers: (A PRIMARY) HIT-SOLIDITY via impact parameter `s = dot(vel_dir, contact_normal)`
+   scales launch+sting+spin on the current sphere collider; (B) bounds left/right −1100/3000, top
+   −1200; (C) new `smash_impulse_max=2200`, `smash_impulse_from_attacker` 1.35→1.1, new
+   `smash_solidity_min=0.25`, `smash_spin_max=12`. Kills come from sting-starve + self-super void,
+   not walls. Camera-follow + `smashes[]` round_stats instrumentation are gameplay-programmer deps.
+   BUILD next (per §10 checklist), then tuning search + re-run the whole lethality QA (the 29-round
+   metrics were measured against the old geometry).
 2. **THEN finish the 21-criteria lethality sign-off** (after the kill-zone re-QA): t15 is RESOLVED
    (ruling applied → spec v2.2: t15a ≥2/10 ships = PASS 2.07, t15b ≥3/10 deferred to the feel
    campaign); t11 (28% SD, one round over) rides within noise. Remaining to file: 6a/6b/6c/6d
