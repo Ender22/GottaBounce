@@ -17,6 +17,8 @@ var fuel: float
 var _last_aim := Vector2.UP
 var _supercharge_timer := 0.0
 var _stun_timer := 0.0
+var _spin_vel := 0.0            # hit-solidity tumble (kill-zone spec §3.2): angular_kick from a smash,
+                               # applied to _body while stunned, decays over the hitstun window.
 var _smash_cd := 0.0
 var _shove_cd := 0.0           # rate-limits the mutual body-check push (spec §2.3)
 var _dead := false
@@ -313,6 +315,7 @@ func _physics_process(delta: float) -> void:
 		_stun_timer -= delta
 		if _stun_timer <= 0.0:
 			_stunned_by = null   # hitstun over: pairwise smash immunity / chain credit end with it
+			_spin_vel = 0.0      # tumble ends with the stun (kill-zone spec §3.2)
 		# Buffered super press during hitstun (spec §1 edge case): remember it for input_buffer
 		# so it fires the AIM state on the first free frame — the recovery gamble input.
 		# (_sb_was_held reads false through a stun — the zeroed intent below keeps it false —
@@ -616,8 +619,17 @@ func _handle_smashes() -> void:
 			var eligible: bool = _super_recent > 0.0 or (_stun_timer > 0.0 and b != _stunned_by)
 			var rel: float = (velocity - b.velocity).length()
 			if eligible and _smash_cd <= 0.0 and rel >= Tuning.smash_impact_min and (my_speed > b.velocity.length() or (is_equal_approx(my_speed, b.velocity.length()) and get_instance_id() < b.get_instance_id())):
-				var impulse := velocity.normalized() * (Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker)
-				b.receive_smash(impulse, self)
+				# Hit solidity (kill-zone recovery spec §3.1/§3.2): both are circle colliders, so the
+				# line-of-centers IS the contact normal. s = how head-on the hit is (1=center, 0=graze).
+				# Launch scales with s; the momentum not spent launching becomes comedic spin.
+				var n := (b.global_position - global_position).normalized()
+				var vdir := velocity.normalized()
+				var s: float = clampf(vdir.dot(n), 0.0, 1.0)
+				var launch_scale: float = clampf((s - Tuning.smash_solidity_min) / (1.0 - Tuning.smash_solidity_min), 0.0, 1.0)
+				var impulse_mag: float = minf((Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker) * launch_scale, Tuning.smash_impulse_max)
+				var impulse := vdir * impulse_mag   # launch direction unchanged (along attacker travel)
+				var angular_kick: float = Tuning.smash_spin_max * (1.0 - launch_scale) * signf(vdir.cross(n))
+				b.receive_smash(impulse, self, launch_scale, angular_kick)
 				# Cancel most of your own momentum: you stop on impact rather than riding them off the edge.
 				velocity *= Tuning.smash_self_retain
 				# Chain-body credit (QA fix): when a stunned flying BODY smashes someone, the
@@ -630,6 +642,19 @@ func _handle_smashes() -> void:
 					attacker_for_credit = _stunned_by
 					b.credit_attacker(attacker_for_credit)
 				EventBus.smashed.emit(attacker_for_credit, b, impulse)
+				# Hit-solidity QA feed (kill-zone spec §8): one entry per qualifying smash.
+				# launch_speed read AFTER receive_smash (victim velocity already includes the impulse).
+				if launch_scale > 0.0 or impulse_mag >= Tuning.smash_sting_min_impulse:
+					EventBus.smash_landed.emit(attacker_for_credit, b, {
+						"solidity": s,
+						"launch_scale": launch_scale,
+						"launch_speed": b.velocity.length(),
+						"angle_deg": rad_to_deg(impulse.angle()),
+						"by_super": _super_recent > 0.0,
+						"victim_fuel_after": b.fuel,
+						"starved": b.fuel < Tuning.super_boost_min_fuel,
+						"spin": angular_kick,
+					})
 				_smash_cd = 0.3
 				return
 			else:
@@ -638,8 +663,15 @@ func _handle_smashes() -> void:
 			# props (ball / crate / support): plain speed gate — a fast heavy ball doesn't need a
 			# super license, it IS one (spec §2.1)
 			if _smash_cd <= 0.0 and my_speed >= Tuning.smash_impact_min and b.has_method("receive_smash"):
-				var impulse := velocity.normalized() * (Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker)
-				b.receive_smash(impulse, self)
+				# Hit solidity (kill-zone recovery spec §3.1/§3.2) — same treatment in the prop branch.
+				var n := (b.global_position - global_position).normalized()
+				var vdir := velocity.normalized()
+				var s: float = clampf(vdir.dot(n), 0.0, 1.0)
+				var launch_scale: float = clampf((s - Tuning.smash_solidity_min) / (1.0 - Tuning.smash_solidity_min), 0.0, 1.0)
+				var impulse_mag: float = minf((Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker) * launch_scale, Tuning.smash_impulse_max)
+				var impulse := vdir * impulse_mag
+				var angular_kick: float = Tuning.smash_spin_max * (1.0 - launch_scale) * signf(vdir.cross(n))
+				b.receive_smash(impulse, self, launch_scale, angular_kick)
 				_smash_cd = 0.3
 				return
 
@@ -664,7 +696,7 @@ func _soft_separate(other) -> void:
 			and other._spawn_protect <= 0.0 and not other.invincible:
 		other.credit_attacker(self)
 
-func receive_smash(impulse: Vector2, attacker) -> void:
+func receive_smash(impulse: Vector2, attacker, launch_scale: float = 1.0, angular_kick: float = 0.0) -> void:
 	if _dead:
 		return
 	if counter_active:
@@ -689,8 +721,10 @@ func receive_smash(impulse: Vector2, attacker) -> void:
 		channel_broken = true
 	# Smash sting (lethality spec §2.2): qualifying hits chunk the victim's tank BEFORE hitstun.
 	# Dropping below super_boost_min_fuel starves the escape super — sting -> starve -> kill.
+	# Kill-zone spec §3.2: sting scales with launch_scale so a graze doesn't secretly starve-kill;
+	# a dead-center hit (launch_scale=1) still stings the full amount → path-2 starve kill intact.
 	if impulse.length() >= Tuning.smash_sting_min_impulse and not fuel_locked:
-		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel)
+		fuel = maxf(0.0, fuel - Tuning.smash_sting_fuel * launch_scale)
 	# Smashed while aiming (spec §1.1): aim CANCELS, (stung) fuel retained, no super fires.
 	cancel_super_aim()
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
@@ -702,6 +736,7 @@ func receive_smash(impulse: Vector2, attacker) -> void:
 	_stunned_by = attacker if (attacker != null and attacker is Player) else null
 	var st := Tuning.hitstun_base + impulse.length() * Tuning.hitstun_per_impulse
 	_stun_timer = minf(st, Tuning.hitstun_max)
+	_spin_vel = angular_kick   # kill-zone spec §3.2: the clip-spin readability signal
 	_flash_timer = 0.12
 
 ## Counter Shield launch (spec 3.4): velocity REPLACED (arrive at 2800, leave at 1400) +
@@ -809,6 +844,7 @@ func respawn(pos: Vector2) -> void:
 	fuel = Tuning.fuel_max
 	_stun_timer = 0.0
 	_stunned_by = null
+	_spin_vel = 0.0
 	last_attacker = null            # a new life never owes kill credit to the old one
 	_attacker_timer = 0.0
 	_sb_aiming = false
@@ -844,7 +880,14 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 	_anim_t += delta
 	if _body:
 		if stunned:
-			_body.rotation += TUMBLE_SPEED * delta
+			# Hit-solidity tumble (kill-zone spec §3.2): a solid launch barely spins (angular_kick~0,
+			# fall back to the base tumble); a graze spins fast (angular_kick up to smash_spin_max).
+			# Decays across the hitstun window so it reads as a settling clip, not a permanent whirl.
+			if absf(_spin_vel) > 0.01:
+				_body.rotation += _spin_vel * delta
+				_spin_vel = move_toward(_spin_vel, 0.0, Tuning.smash_spin_max * delta / maxf(Tuning.hitstun_max, 0.01))
+			else:
+				_body.rotation += TUMBLE_SPEED * delta
 		else:
 			# orient feet toward local gravity (P8); plain down = upright
 			_body.rotation = lerp_angle(_body.rotation, _down_angle - PI * 0.5, 0.25)

@@ -26,7 +26,11 @@ const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 const SD_WARNING_SCENE := preload("res://scenes/ui/SDWarning.tscn")
 const LASER_WALLS := preload("res://src/entities/LaserWalls.gd")
 
-const CAM_MIN_ZOOM := 0.42     # most zoomed-out (big blast zone visible)
+const CAM_MIN_ZOOM := 0.36     # most zoomed-out. Kill-zone spec §6.3: the new 4100x2980 bounds need
+                               # ~0.36 to show the full vertical extent (0.42 could not); verified blobs
+                               # stay readable at this scale in the rendered smoke test.
+const CAM_LEAD_TIME := 0.32    # kill-zone spec §6.4: frame ahead of each flier's velocity so a fast
+                               # (capped 2200) launch + its approaching blast line stay on-screen.
 const CAM_MAX_ZOOM := 0.92     # never zoom in tighter than this
 const MATCH_END_ZOOM := 1.1    # winner punch-zoom (FEEL §7)
 const BOUNCE_HOLD := 0.4       # "BOUNCE!" banner hold (spec §1)
@@ -44,9 +48,11 @@ var round_clock := 0.0           # hidden combat clock (drives sudden death; nev
 var scores: Array = []
 var last_death_msec := 0         # ticks_msec of the most recent death (turnaround measurement)
 var combat_start_msec := 0       # ticks_msec of the last "BOUNCE!" physics unlock
-var round_stats: Array = []      # per-round QA record (lethality spec §8): {length_s, end_cause,
-                                 # entered_sd, kills[{killer,victim,off_stage}],
-                                 # survivor_had_contact, supers_fired[{who,fuel_at_fire,aim_time,auto_fired}]}
+var round_stats: Array = []      # per-round QA record (lethality §8 + kill-zone §8): {length_s, end_cause,
+                                 # entered_sd, kills[{killer,victim,off_stage,t}], survivor_had_contact,
+                                 # supers_fired[{who,fuel_at_fire,aim_time,auto_fired,t}],
+                                 # smashes[{t,attacker,victim,solidity,launch_scale,launch_speed,angle_deg,
+                                 #          by_super,victim_fuel_after,starved,spin}]}
 var _cur_stats: Dictionary = {}  # the round currently being recorded
 
 # --- arena contract (InputBot / Playtest) ---
@@ -96,6 +102,7 @@ func _ready() -> void:
 	_camera = CameraController.new()
 	_camera.position = _stage_rect.get_center()
 	_camera.dynamic = true   # Smash-style: follow the action, zoom to keep everyone on screen
+	_camera.follow_speed = 8.0   # kill-zone spec §6.4: was 6.0 — tighter follow so a fresh launch doesn't outrun the frame
 	add_child(_camera)
 	_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
 	_juice = Juice.new()
@@ -103,6 +110,7 @@ func _ready() -> void:
 	_juice.setup(_camera)
 	KillPipeline.killed.connect(_on_killed)
 	EventBus.smashed.connect(_on_smashed)          # contact flags + off-stage bookkeeping
+	EventBus.smash_landed.connect(_on_smash_landed)  # hit-solidity QA feed (kill-zone spec §8)
 	EventBus.super_fired.connect(_on_super_fired)  # round_stats QA feed (lethality §8)
 
 	# powerup spawn pacing (docs/specs/v1_powerups.md §4)
@@ -271,6 +279,7 @@ func _bounce_go() -> void:
 	_cur_stats = {
 		"length_s": 0.0, "end_cause": "none", "entered_sd": false,
 		"kills": [], "survivor_had_contact": false, "supers_fired": [],
+		"smashes": [],   # kill-zone spec §8: hit-solidity distribution + recovery correlation feed
 	}
 	for p in players:
 		p.frozen = false
@@ -339,6 +348,27 @@ func _on_super_fired(player, fuel_at_fire, aim_time, auto_fired) -> void:
 	var fired: Array = _cur_stats["supers_fired"]
 	fired.append({
 		"who": who, "fuel_at_fire": fuel_at_fire, "aim_time": aim_time, "auto_fired": auto_fired,
+		"t": round_clock,   # kill-zone spec §8: enables recovery-super correlation
+	})
+
+## Hit-solidity QA feed (kill-zone spec §8): one entry per qualifying smash, carrying the solidity
+## distribution + starve/survival correlation inputs. Read-only QA data; no gameplay effect.
+func _on_smash_landed(attacker, victim, info: Dictionary) -> void:
+	if _cur_stats.is_empty() or (state != "COMBAT" and state != "SUDDEN_DEATH"):
+		return
+	var smashes: Array = _cur_stats["smashes"]
+	smashes.append({
+		"t": round_clock,
+		"attacker": players.find(attacker) if attacker != null else -1,
+		"victim": players.find(victim) if victim != null else -1,
+		"solidity": info.get("solidity", 0.0),
+		"launch_scale": info.get("launch_scale", 0.0),
+		"launch_speed": info.get("launch_speed", 0.0),
+		"angle_deg": info.get("angle_deg", 0.0),
+		"by_super": info.get("by_super", false),
+		"victim_fuel_after": info.get("victim_fuel_after", 0.0),
+		"starved": info.get("starved", false),
+		"spin": info.get("spin", 0.0),
 	})
 
 func _on_killed(victim, cause, attacker) -> void:
@@ -356,6 +386,7 @@ func _on_killed(victim, cause, attacker) -> void:
 		kills.append({
 			"killer": ki, "victim": idx,
 			"off_stage": _smash_off_stage[idx] if idx < _smash_off_stage.size() else false,
+			"t": round_clock,   # kill-zone spec §8: enables smash→kill time correlation
 		})
 		_cur_stats["end_cause"] = str(cause)   # the round-deciding death overwrites last
 	# simultaneous-death grouping for the double-KO tiebreak (spec §2)
@@ -639,10 +670,18 @@ func _update_camera() -> void:
 		return
 	var mn := _stage_rect.position
 	var mx := _stage_rect.end
+	# Kill-zone spec §6: frame every knocked-but-ALIVE flier (is_dead()==false covers hitstun/recovery),
+	# and lead their velocity so a launched blob AND the blast line it heads toward both stay on-screen.
 	for p in players:
 		if is_instance_valid(p) and not p.is_dead():
 			mn = mn.min(p.global_position)
 			mx = mx.max(p.global_position)
+			var lead: Vector2 = p.global_position + p.velocity * CAM_LEAD_TIME
+			# clamp the lead to the blast bounds so we frame the wall it approaches, not empty void beyond
+			lead.x = clampf(lead.x, bounds.position.x, bounds.end.x)
+			lead.y = clampf(lead.y, bounds.position.y, bounds.end.y)
+			mn = mn.min(lead)
+			mx = mx.max(lead)
 	var margin := Vector2(420.0, 340.0)
 	mn -= margin
 	mx += margin

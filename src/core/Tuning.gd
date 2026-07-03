@@ -79,7 +79,17 @@ var supercharge_bounce_mult: float = 1.4
 # Everything else is a SHOVE: momentum-scaled push, no hitstun, honest physics.
 var smash_impact_min: float = 900.0          # min relative closing speed for an ELIGIBLE hit to smash
 var smash_impulse_base: float = 500.0
-var smash_impulse_from_attacker: float = 1.35 # first knob DOWN (->1.2) if rounds get too short (<8s median)
+var smash_impulse_from_attacker: float = 1.1 # kill-zone spec §3.3/§5: cap sets the ceiling now (was 1.35);
+                                             # lower coeff = real gradient below cap + less end-of-window graze random.
+                                             # First knob DOWN to 0.9 if solid chains feel too lethal; never up.
+# --- Hit solidity (kill-zone recovery spec §3.1/§3.2/§3.3, Lever A + C) ---
+# Launch scales with how solidly you hit: dead-center (s=1) flies (can kill), graze (s<=min) spins + no launch.
+var smash_solidity_min: float = 0.25         # §3.3: below this impact-parameter s, launch = 0 (pure spin+shove).
+                                             # FIRST tuning knob: LOWER (->0.1) if kills get too rare, before bounds/sting.
+var smash_spin_max: float = 12.0             # §3.3: rad/s full-graze tumble speed, applied prop. to (1-launch_scale).
+                                             # Cosmetic + readability ("you got clipped"); feel-only, tune to taste.
+var smash_impulse_max: float = 2200.0        # §5: hard cap on impulse magnitude AFTER solidity, BEFORE max_speed.
+                                             # Safety ceiling only — solidity does the shaping below it.
 var smash_self_retain: float = 0.1           # on a landed smash you keep only this much of YOUR momentum,
                                              # so you stop on impact instead of flying off the edge with them
 var smash_sting_fuel: float = 30.0           # sting: qualifying smashes chunk the victim's tank (§2.2)

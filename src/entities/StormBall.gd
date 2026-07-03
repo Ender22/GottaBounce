@@ -125,7 +125,8 @@ func pop() -> void:
 func apply_impulse_vector(v: Vector2) -> void:
 	linear_velocity += v / maxf(mass, 0.01)
 
-func receive_smash(impulse: Vector2, _attacker) -> void:
+func receive_smash(impulse: Vector2, _attacker, _launch_scale: float = 1.0, _angular_kick: float = 0.0) -> void:
+	# kill-zone spec §3.2 passes solidity/spin to players; a ball ignores them (no fuel/stun/spin).
 	linear_velocity += impulse / maxf(mass, 0.01)
 
 ## Glossy orange bouncy ball: chocolate outline, vivid body, rim shade, white shine dot.

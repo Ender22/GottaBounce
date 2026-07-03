@@ -181,7 +181,15 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
    (c) tumble rotation reads sideways; (d) wire assets/fx/puff_soft.png + star_sparkle.png into
    Juice particles; (e) real font asset to replace SystemFont stack in theme.tres; (f) art skull
    icon for PlayerCard; (g) name-tag blink inherit; (h) unlimited-boost flame telegraph pass;
-   (i) black-hole vignette.
+   (i) black-hole vignette; **(j) OWNER-FLAGGED 2026-07-03: bush/fence props read as "floating in
+   the sky, far behind the play area."** Root cause `ArenaRenderer.gd:192-218` — bush_round/fence_wood
+   are "Layer 4 mid props" on 0.55 parallax at `z_index=-80` with aerial-desat modulate, anchored to
+   `floor_y+24`; at 0.55 parallax they scroll at ~half camera rate so they detach from the ground and
+   drift up, and behind-everything + washed-out they read as distant sky objects, not grounded set-
+   dressing. The kill-zone build's wider bounds make it MORE visible. Fix = art-director rules the
+   correct diorama depth (candidate: move ground props to a near-ground plane, parallax ~0.9–1.0,
+   z just behind platforms, grounded on the floor line — vs the far-hills horizon), then renderer
+   tweak. Small; not on the critical path (kill-zone QA is).
 4. **More arenas** (level-designer role): 3-5 grass-theme JSON arenas with distinct hooks
    (levels/dev_arena.json is the only one; schema in ARCHITECTURE/reference; spikes_strip.png
    asset exists for a hazard arena). Then a second THEME (new art set via the pipeline).
