@@ -32,12 +32,44 @@ var _my_aim_t := 0.0         # time spent in my own AIM state
 var _aim_roll := 0.0         # current aim-jitter roll (re-rolled per reaction tick while aiming)
 var _dodge_dir := Vector2.ZERO   # pending dodge-super direction (fires snap, §3.2 rule 5)
 var _dodged := {}            # enemy instance_id -> fired a dodge for their current aim window
+var _finisher := false       # §5.5: down to <= finisher_opponents_left living opponents -> commit-mode
+                             # runtime-only dial overrides (never mutates profile; reverts on stage reset)
 
 func _init(player: Player, arena_ref, bot_level := 3) -> void:
 	me = player
 	arena = arena_ref
 	level = bot_level
 	profile = BotProfile.for_level(bot_level)
+
+## §5.5: count living opponents from the EXISTING arena.players contract (valid, not me, not dead) —
+## same predicate PartyMatch.nearest_opponent uses. No new arena field (§9 contract untouched).
+func _alive_opponents() -> int:
+	if arena == null or not ("players" in arena):
+		return 99
+	var n := 0
+	for p in arena.players:
+		if p == me or not is_instance_valid(p) or p.is_dead():
+			continue
+		n += 1
+	return n
+
+# --- Effective dials (§5.5): profile value outside the endgame; finisher override at <=1 opponent.
+# Aim quality (aim_error, target_lead, super_aim_time, reaction_time) has NO accessor — it is never
+# overridden. These raise COMMITMENT only.
+func _eff_aggression() -> float:
+	return maxf(profile.aggression, Tuning.finisher_aggression_floor) if _finisher else profile.aggression
+
+func _eff_attack_range() -> float:
+	return profile.attack_range * Tuning.finisher_attack_range_mult if _finisher else profile.attack_range
+
+func _eff_commit_time() -> float:
+	return maxf(profile.commit_time, Tuning.finisher_commit_time_floor) if _finisher else profile.commit_time
+
+func _eff_refuel_floor() -> float:
+	return Tuning.finisher_refuel_floor if _finisher else profile.refuel_floor
+
+func _eff_dodge_super() -> float:
+	return minf(profile.dodge_super, Tuning.finisher_dodge_super_cap) if _finisher else profile.dodge_super
 
 func poll() -> InputIntent:
 	var it := _intent
@@ -52,6 +84,10 @@ func poll() -> InputIntent:
 		it.boost = false
 		return it
 	_clean_dodge_flags()
+	# §5.5: finisher mode is a per-poll runtime flag — recomputed from the live alive-count every
+	# tick, so it reverts automatically when a stage reset repopulates the arena. Dial overrides are
+	# read through the _eff_* accessors below; profile is never mutated (INV-8: commitment, not aim).
+	_finisher = _alive_opponents() <= Tuning.finisher_opponents_left
 	# --- own AIM state: steer the led solution, fire when good enough or timed out (§3.2 rule 1)
 	if me.is_super_aiming():
 		_my_aim_t += dt
@@ -186,7 +222,7 @@ func _decide() -> void:
 	var pos: Vector2 = me.global_position
 	_cached_super = false
 	# --- refuel rhythm (rule 2): below the floor, dive to a bounce surface — one bounce re-arms
-	if me.fuel < profile.refuel_floor:
+	if me.fuel < _eff_refuel_floor():
 		var sr := _stage()
 		var target := Vector2(clampf(pos.x, sr.position.x + 100.0, sr.end.x - 100.0), sr.end.y)
 		var dir := (target - pos).normalized()
@@ -205,16 +241,18 @@ func _decide() -> void:
 		_cached_aim = _jitter(d.normalized())
 		# hunt commitment (§3.1 commit_time): once rolled TRUE it sticks — no re-rolling every tick
 		var target_near := _stage().grow(520.0).has_point(tp)
-		var target_ok := target_near or _is_edge_guard_prey(target)
+		# §5.5: in finisher, never disengage the lone survivor on distance — chase it to the edge
+		# (where the kill lives); otherwise keep the dist-gated + edge-guard prey logic.
+		var target_ok := true if _finisher else (target_near or _is_edge_guard_prey(target))
 		if not (_hunt and _commit_t > 0.0):
-			_hunt = randf() < profile.aggression and target_ok
+			_hunt = randf() < _eff_aggression() and target_ok
 			if _hunt:
-				_commit_t = profile.commit_time
+				_commit_t = _eff_commit_time()
 		elif not target_ok:
 			_hunt = false
-		_cached_boost = _hunt and dist > profile.attack_range * 0.8 and me.fuel > profile.refuel_floor
+		_cached_boost = _hunt and dist > _eff_attack_range() * 0.8 and me.fuel > _eff_refuel_floor()
 		# enter AIM (rule 1): hunting, in range, and fueled past the floor (attack-run budget)
-		if _hunt and dist < profile.attack_range and me.fuel >= profile.refuel_floor:
+		if _hunt and dist < _eff_attack_range() and me.fuel >= _eff_refuel_floor():
 			_cached_super = true
 	else:
 		# no target / off-stage drift: ease back toward the stage
@@ -235,12 +273,12 @@ func _pick_target():
 	# gives the race a villain; keeps a lucky L2 honest
 	if profile.leader_focus > 0.0 and randf() < profile.leader_focus:
 		var leader = _score_leader()
-		if leader != null and me.global_position.distance_to(leader.global_position) <= profile.attack_range * 1.5:
+		if leader != null and me.global_position.distance_to(leader.global_position) <= _eff_attack_range() * 1.5:
 			return leader
 	# edge_guard: pursue off-stage victims and smash them outward. Self-preservation gate:
 	# own fuel >= refuel_floor AND own position inside bounds.grow(-250).
 	if profile.edge_guard > 0.0 and randf() < profile.edge_guard \
-			and me.fuel >= profile.refuel_floor and _bounds().grow(-250.0).has_point(me.global_position):
+			and me.fuel >= _eff_refuel_floor() and _bounds().grow(-250.0).has_point(me.global_position):
 		var prey = null
 		var prey_d := INF
 		for p in arena.players:
@@ -276,7 +314,7 @@ func _score_leader():
 ## their aim within 0.5 rad of me, roll per reaction tick -> fire my own super perpendicular/away
 ## (prefer the side that lands on a bounce surface — refuel follows). Once per enemy aim window.
 func _check_dodge() -> bool:
-	if profile.dodge_super <= 0.0 or me.fuel < Tuning.super_boost_min_fuel:
+	if _eff_dodge_super() <= 0.0 or me.fuel < Tuning.super_boost_min_fuel:
 		return false
 	for p in arena.players:
 		if p == me or not is_instance_valid(p) or p.is_dead() or not p.is_super_aiming():
@@ -289,7 +327,7 @@ func _check_dodge() -> bool:
 		var pid: int = p.get_instance_id()
 		if _dodged.get(pid, false):
 			continue   # already answered this aim window
-		if randf() < profile.dodge_super:
+		if randf() < _eff_dodge_super():
 			_dodged[pid] = true
 			var threat: Vector2 = p.get_super_aim_dir()
 			var perp := Vector2(-threat.y, threat.x)

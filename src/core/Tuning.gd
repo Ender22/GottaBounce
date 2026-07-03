@@ -155,6 +155,19 @@ var lives_per_player: int = 1          # v1 §3: default 1 (dead = out for the s
 var respawn_delay: float = 1.0         # s before a multi-life respawn (only used when lives_per_player > 1)
 var bot_levels: Array[int] = [2, 3, 4] # P2 punchline / P3 fair fight / P4 menace (spec §4)
 
+# --- Bot finisher: the 2-left stage closeout (v1 §5.5, session-4 stall fix) ---
+# When a bot has <= finisher_opponents_left living opponents (i.e. it's down to me + 1 other), it
+# OVERRIDES its profile dials with these — floors/caps/mults so they scale sanely across L2/L3/L4.
+# Runtime overrides only (InputBot never mutates its BotProfile); they revert the instant a stage
+# resets the alive count. Raises COMMITMENT, never accuracy (aim_error/target_lead/super_aim_time
+# UNTOUCHED — bots never cheat, INV-8).
+var finisher_opponents_left: int = 1        # enter finisher at <= this many living opponents (2 players total)
+var finisher_aggression_floor: float = 0.95 # never idle-skip the hunt (max with profile.aggression)
+var finisher_attack_range_mult: float = 1.4 # arm the super from further; close-and-blast, don't orbit
+var finisher_commit_time_floor: float = 1.5 # a rolled hunt sticks through the whole approach
+var finisher_refuel_floor: float = 10.0     # dive/attack-gate floor; > super_boost_min_fuel (5) so it can always fire
+var finisher_dodge_super_cap: float = 0.15  # cap the counter-super dance so two high-tiers don't infinitely dodge
+
 # --- Level-relative bounds (kill-zone recovery spec v3 §14) ---
 # Bounds are DERIVED in LevelLoader from play_rect (the merged platform AABB / walkable extent) plus
 # these margins, so horizontally-long levels get horizontally-further blast lines. The side margin
