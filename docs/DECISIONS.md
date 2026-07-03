@@ -11,6 +11,12 @@ One line per significant/irreversible decision. Newest first.
   Diagnosis: SD rounds resolve with all 3 kills (not stalemates) but slowly (22.5s vs 12.9s), so
   the residual gap is late super→kill conversion. Next lever for t15 is the bot `edge_guard`
   dial, NOT a physics constant. Lethality v2.1 = fix landed, full 21-criteria sign-off still open.
+- **2026-07-03** BOT `edge_guard`-UP REJECTED (2nd t15 experiment). Raising edge_guard (L2 0→0.3,
+  L3 0.3→0.6, L4 0.7→0.9) to lift off-stage kills did the opposite: t15 → 1.58/10 (down), SD 58%,
+  kill-decided 42% — over-committed edge-guarders whiff and drag rounds. Reverted, not adopted.
+  With BOTH natural levers (sting, edge_guard) now refuted, closing t15 (edge-guarding 2.07 vs
+  ≥3/10) is escalated to the game-designer as a bar-calibration / mechanic question — no more
+  blind knob-turning (methodology: stop when the obvious mechanisms are exhausted).
 - **2026-07-03** OPERATOR SKILL LIBRARY added under `.claude/skills/` (16 skills) as the studio's
   onboarding/runbook layer for cheaper future sessions. Authored parallel, 3-way reviewed, fixed.
   Non-load-bearing on gameplay; documents ground truth as of HEAD and routes all change through

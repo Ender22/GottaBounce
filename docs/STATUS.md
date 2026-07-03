@@ -129,19 +129,32 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   → 41% and kill-decided → 59% (both regressed). The §2.4 edge-lethality→SD cascade is REFUTED —
   deepening the sting fixes edge kills by starving victims but drags rounds. Not adopted; live
   eval only, no commit. Baselines: tools/out/idle_sting30_baseline.json, idle_sting40.json.
+- [x] **Prediction-first experiment #2: bot `edge_guard` up (L2 0→0.3, L3 0.3→0.6, L4 0.7→0.9)
+  REJECTED.** Predicted it would lift t15 without lengthening rounds. Result (19-round idle-P1)
+  did the OPPOSITE on every axis: off-stage kills 1.58/10 (DOWN from 2.07), SD 58%, kill-decided
+  42%, median 20.6s. Mechanism: aggressive edge-guarders over-commit chasing floaty off-stage
+  victims, whiff supers, and drag/self-destruct — fewer clean kills, not more. Reverted (git
+  checkout, no commit). Baseline: tools/out/idle_edgeguard.json.
+- [x] **BOUNDED CONCLUSION:** the committed dry-reflect fix is the BEST state measured. Both
+  natural levers to close the one clear gap (t15 edge-guarding 2.07 vs ≥3/10) regress pacing —
+  sting-up trades t10/t11 for t15; edge_guard-up wrecks all four. t15 is not tunable to target
+  via these knobs → it's now a game-designer question (recalibrate the ≥3/10 bar for the idle-P1
+  / L2-L3-L4 config, or edge-guarding needs a mechanic change beyond tuning), NOT more knobs.
 - [x] Fixed a skill defect found by dogfooding: feel-campaign Phase 0.4 harness said "P1=L3
   brain" — contradicts spec §9's idle-P1 harness (tests 13/14 require idle P1) and roughly
   doubled apparent SD. Corrected to idle-P1 + multi-match aggregation.
 
 ## NEXT STEPS in priority order
-1. **Close the last lethality gap (t15 edge-guarding 2.07 → ≥3/10) WITHOUT a physics knob.**
-   sting-up is rejected (regresses t10/t11). t15 is likely bot-behavior-bound: run a
-   prediction-first experiment on the bot `edge_guard` dial (BotProfile L3 0.3 / L4 0.7) — does a
-   higher edge_guard raise off-stage kills toward 3/10 without lengthening rounds? Re-measure
-   idle-P1 ≥30 rounds. t11 (28%, one round over) is within noise of target — do NOT chase it with
-   a knob; recheck it rides along. Then file the full 21-criteria sign-off (remaining: 6a/6b/6c/6d
-   staged, 13/14/16/17/19/21) + powerup C1/edge checks + 3-match feel judgment. Use skill
-   `gottabounce-feel-campaign` (Phase 1) — its harness is now correct.
+1. **DESIGNER DECISION on t15 (edge-guarding), then finish the 21-criteria sign-off.** Both
+   natural tuning levers are now spent and rejected with evidence (sting-up: STATUS above;
+   edge_guard-up: STATUS above) — do NOT keep turning knobs (methodology: two mechanisms tried,
+   both refuted). The open question is a DESIGN call for the game-designer role: is ≥3/10
+   off-stage kills the right bar for the idle-P1 / L2-L3-L4 config (baseline delivers ~2/10, up
+   ~5× from the pre-fix 1/23), or does edge-guarding need a mechanic change (e.g. a dedicated
+   off-stage-lethality bonus) rather than a dial? t11 (28% SD = one round over) rides within
+   noise of target and needs no action. Once the t15 bar is resolved, file the remaining
+   21-criteria sign-off (6a/6b/6c/6d staged, 13/14/16/17/19/21) + powerup C1/edge checks +
+   3-match feel judgment. Use skill `gottabounce-feel-campaign` (Phase 1) — harness now correct.
 2. **Build movement courses 1–3** (docs/specs/v1_movement_courses.md) — the feel-tuning
    instrument; Chimney validates the un-charged super. Level-designer + gameplay-programmer.
 3. **Art-director evaluation: goat identity candidate** (see DECISIONS + owner feedback doc) —
