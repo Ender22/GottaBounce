@@ -80,11 +80,22 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   movement courses validate super-as-kill-move is the fun; reject if bounce-chaining carries the
   fun instead. Required pre-ship test: horn readability at far zoom (~25-30px bouncers). Goat
   scream SFX = separable, cheap, gate only on super_fired event (already exists in EventBus).
-- [ ] **QA RE-VERIFICATION IN FLIGHT (interrupted by session limit — no verdict yet)**. A
-  re-verification agent ran 81 tool calls then died; partial evidence in the session scratchpad
-  + tools/out/qa4_*.png. Salvage shows DKO revive + chain timeline healthy, but its pacing.json
-  shows all-laser endings w/ supers_fired empty + killer:-1 — either bot pacing regressed or the
-  agent's recorder was mis-hooked. MUST resolve before calling the slice shipped.
+- [x] **QA RE-VERIFICATION COMPLETE — verdict: NOT clean-ship yet.** (Salvage of the interrupted
+  run + fresh samples; report in agent transcript, evidence tools/out/qa5_*.png/.json.)
+  The pacing.json anomaly was the dead agent's mis-hooked recorder, NOT a regression (fresh
+  round 1 = 54 supers fired). CORE HINGE PASSES: 6a kill fuel-starved 9/10, 6b full-tank
+  counter-escape 10/10 (control: no counter = dies 6/6), test 9 chain credit to launcher 6/6.
+  Pacing: test 10 borderline PASS (72.7% kill-decided <20s), test 12 PASS (median 15.0s).
+  FOUR FAILS, likely ONE root cause: **bumpers unconditionally clear hitstun + refuel on
+  contact** (`_on_bounced()`, Player.gd ~550) — a smashed victim hitting a bumper (~660px
+  inboard of the kill line) is always saved, so edge kills are un-earn-able. → test 15 FAIL
+  (1 off-stage kill in 23 rounds vs ≥3/10), test 11 FAIL (SD 27-33% vs ≤25%), test 13 partial
+  FAIL (L2 won 1/5 idle matches), test 14 partial FAIL (idle P1 scored 3 once, cap ≤2; but
+  smashed-<8s clause = 96.7% strong PASS). Feel: fuse ring readable, chain buffer immediate;
+  wall-return-shot human capture inconclusive (test-session artifact) — needs one clean pass.
+  NEXT: designer ruling on bumper-recovery semantics (same mechanic powers the owner's
+  wall-return shot — QA suggests gating refuel/stun-clear on NOT being in opponent-inflicted
+  hitstun), then programmer fix, then targeted re-run of tests 11/13/14/15 + wall-return feel.
 
 ## NEXT STEPS in priority order
 1. **Full QA pass on lethality v2**: the 21 criteria in spec §9 (esp. test 6 BOTH directions —
