@@ -25,3 +25,8 @@ signal two_left()                     # down to the final two (>=3 started)
 signal player_damaged(player, level)  # transient damage escalated to Lv1 / Lv2
 signal player_healed(player)          # transient damage fully healed back to Lv0
 signal powerup_picked(player, id)     # a bubble was collected into the held slot
+
+# --- moving hazard (v1_moving_hazard.md §1.4.4) --- the sim emits, Juice/audio subscribe.
+# A kinematic hazard SHOVED a player (NOT a smash — no hitstun, no death). Distinct from `smashed`
+# so presentation reads a chunky shove-puff, never the hitstun-gated knockback jetstream.
+signal hazard_shoved(player, dir, magnitude)

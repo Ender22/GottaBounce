@@ -62,6 +62,10 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				renderer.paint_void(o, platform_rects)
 			"spikes":
 				_build_spikes(o, parent)
+			"moving_hazard":
+				# v1_moving_hazard.md §1: a kinematic SHOVE-hazard (pendulum/sweep). Its own layer
+				# (layer 5), senses players, calls Player.receive_shove on contact — NEVER kills.
+				_build_moving_hazard(o, parent)
 			"powerup_spawner":
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))
@@ -153,3 +157,10 @@ static func _build_spikes(o: Dictionary, parent: Node2D) -> void:
 	vis.color = Color(0.90, 0.20, 0.20)
 	area.add_child(vis)
 	parent.add_child(area)
+
+## v1_moving_hazard.md §1: build the kinematic shove-hazard from JSON. It self-renders (arm/ball/arc)
+## and self-moves on a deterministic phase clock; LevelLoader only constructs + configures it.
+static func _build_moving_hazard(o: Dictionary, parent: Node2D) -> void:
+	var h := MovingHazard.new()
+	h.setup_from_json(o)
+	parent.add_child(h)

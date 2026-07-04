@@ -16,6 +16,7 @@ func setup(cam: CameraController) -> void:
 	EventBus.bounced_juicy.connect(_on_bounced)
 	EventBus.super_boosted.connect(_on_super)
 	EventBus.exploded.connect(_on_exploded)
+	EventBus.hazard_shoved.connect(_on_hazard_shoved)
 	KillPipeline.killed.connect(_on_killed)
 
 func _on_exploded(center, radius) -> void:
@@ -23,6 +24,46 @@ func _on_exploded(center, radius) -> void:
 	_rumble(1.0, 0.9, 0.18)
 	_hitstop(0.9)
 	_shockwave(center, radius)
+
+## Moving-hazard SHOVE (v1_moving_hazard §1.4.4): a chunky metallic impact puff + light shake,
+## DISTINCT from a smash — no death burst, no hitstun jetstream. Reads as "I got bumped, not smashed."
+func _on_hazard_shoved(player, dir, magnitude) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var t := clampf(magnitude / Tuning.soft_bump_max, 0.0, 1.0)
+	_shake(lerpf(0.12, 0.34, t))            # softer than a smash's 0.55
+	_rumble(0.25 * t, 0.5 * t, 0.10)
+	_shove_puff(player.global_position, dir, t)
+
+## Metallic clang puff kicked along the shove direction (reuses the _dust_puff pattern, steel-tinted).
+func _shove_puff(pos: Vector2, dir: Vector2, t: float) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var p := CPUParticles2D.new()
+	p.global_position = pos
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 14
+	p.lifetime = 0.35
+	p.spread = 42.0
+	p.direction = dir.normalized() if dir.length() > 0.01 else Vector2.UP
+	p.gravity = Vector2(0, 500)
+	p.initial_velocity_min = 160.0
+	p.initial_velocity_max = 160.0 + 420.0 * t
+	p.scale_amount_min = 2.2
+	p.scale_amount_max = 4.2
+	if ResourceLoader.exists(SPARK_TEX):
+		p.texture = load(SPARK_TEX)
+		p.scale_amount_min = 0.2
+		p.scale_amount_max = 0.4
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.95, 0.9, 0.7, 0.85))   # warm metallic spark
+	grad.set_color(1, Color(0.6, 0.6, 0.66, 0.0))
+	p.color_ramp = grad
+	scene.add_child(p)
+	scene.get_tree().create_timer(0.8).timeout.connect(p.queue_free)
 
 func _on_smashed(_attacker, victim, impulse) -> void:
 	_shake(0.55)

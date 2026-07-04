@@ -485,6 +485,11 @@ func _on_killed(victim, cause, attacker) -> void:
 			# whether deaths split across BOTH chasms (left vs right of the centre island). Instrumentation
 			# only — no lethality/credit change; harmless on single-void levels.
 			"vx": (victim.global_position.x if is_instance_valid(victim) else 0.0),
+			# v1_moving_hazard §2 (WY1): mark a death that occurred within ~1.5s of a moving-hazard
+			# shove, so QA can measure hazard-driven/-assisted kills. Instrumentation only — no
+			# lethality/credit change; harmless (dt is huge) on levels with no moving_hazard.
+			"hazard_contact_dt_s": (victim.hazard_contact_dt_s() if is_instance_valid(victim) and victim.has_method("hazard_contact_dt_s") else 9999.0),
+			"hazard_assisted": (is_instance_valid(victim) and victim.has_method("hazard_contact_dt_s") and victim.hazard_contact_dt_s() <= 1.5),
 			"t": round_clock,
 		})
 		_cur_stats["end_cause"] = str(cause)   # the stage-deciding death overwrites last

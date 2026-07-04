@@ -85,6 +85,8 @@ var damage_level: int = 0          # §12.1: transient reeling state 0 (healthy)
                                    # FULLY to 0 (never partial) after dmg_heal_time with no qualifying hit.
 var _dmg_heal_t: float = 0.0       # §12.1/12.5: heal countdown; a qualifying hit re-arms it to dmg_heal_time.
 var _last_sting_applied := 0.0     # §8 QA feed: the fuel the last qualifying sting actually drained
+var _last_hazard_contact_msec: int = 0   # v1_moving_hazard §2: ticks_msec of the last hazard shove
+                                         # (WY1 instrumentation — "void death within ~1.5s of a hazard").
 
 func damage_launch_mult() -> float:
 	# §12.3: victim's pre-hit launch multiplier (x1.0 / x1.33 / x1.66), indexed by damage_level.
@@ -803,6 +805,43 @@ func _soft_separate(other) -> void:
 	if rel >= Tuning.shove_credit_min_rel and other is Player \
 			and other._spawn_protect <= 0.0 and not other.invincible:
 		other.credit_attacker(self)
+
+## The HAZARD SHOVE (v1_moving_hazard.md §1.2): a kinematic moving-hazard's contact path. It is the
+## SHOVE path exposed to a non-player mover — momentum along `dir`, clamped to the EXACT soft-bump
+## band (identical clampf to _soft_separate), NO hitstun / NO sting / NO damage escalation / NO
+## kill-credit change. The victim keeps FULL control and can boost-recover (the recovery gamble, C5,
+## is preserved by construction — the hazard NEVER routes through receive_smash/kill).
+##   `magnitude` = the relative contact speed |hazard_contact_velocity - player.velocity| (fast at the
+##   pendulum bottom, ~0 at the apex), so a full-swing clip clamps to soft_bump_max and an apex graze
+##   barely nudges — the arm's readable speed IS its readable threat.
+##   `dir` = the hazard's motion direction (fling you the way it swings, toward the void it overhangs).
+## Fence (§2 credit ruling): does NOT set/overwrite last_attacker — a hazard is not a Player, so a
+## resulting ring-out resolves through the existing 6.0s last-attacker fallback (credited if a player
+## tagged the victim, else an uncredited self-fall). This method never touches credit state.
+func receive_shove(dir: Vector2, magnitude: float, _source) -> void:
+	if _dead:
+		return
+	if invincible or _spawn_protect > 0.0:
+		return   # Star / fresh-spawn: parity with receive_smash — take zero knockback
+	if _shove_cd > 0.0:
+		return   # reuse the existing per-victim shove rate-limit (0.3s) — no re-hit machine-gun
+	var d := dir.normalized()
+	if d == Vector2.ZERO:
+		return
+	# IDENTICAL clamp to _soft_separate (the fence: reuse soft_bump_*, redefine nothing).
+	var push := clampf(magnitude * Tuning.soft_bump_scale, Tuning.soft_bump_min, Tuning.soft_bump_max)
+	velocity = (velocity + d * push).limit_length(Tuning.max_speed)
+	_shove_cd = 0.3
+	# WY1 instrumentation (§2): stamp the contact time so round_stats can mark hazard-assisted falls.
+	# NO hitstun, NO _stunned_by, NO sting, NO damage_level, NO last_attacker — deliberately absent.
+	_last_hazard_contact_msec = Time.get_ticks_msec()
+	EventBus.hazard_shoved.emit(self, d, push)
+
+## Seconds since the last moving-hazard shove (v1_moving_hazard §2 WY1). Large when never shoved.
+func hazard_contact_dt_s() -> float:
+	if _last_hazard_contact_msec <= 0:
+		return 9999.0
+	return float(Time.get_ticks_msec() - _last_hazard_contact_msec) / 1000.0
 
 func receive_smash(impulse: Vector2, attacker, s: float = 1.0, angular_kick: float = 0.0) -> void:
 	if _dead:
