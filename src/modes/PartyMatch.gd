@@ -32,6 +32,7 @@ const LEVEL_POOL: Array[String] = [
 	"res://levels/grassy_expanse.json",
 	"res://levels/drop_chamber.json",
 	"res://levels/the_spine.json",
+	"res://levels/twin_chasms.json",
 ]
 const NUM_BOTS := 3
 # Character skins: P1 is always pink; bots take blue/green/yellow in order.
@@ -470,6 +471,10 @@ func _on_killed(victim, cause, attacker) -> void:
 			"killer": ki, "victim": idx,
 			"off_stage": _smash_off_stage[idx] if idx < _smash_off_stage.size() else false,
 			"blast_edge": _classify_blast_edge(victim),   # v2_kill_shape §6: which bound the victim crossed (K1)
+			# v1_level_circuit §L-4 TC1: victim death X, so multi-void levels (twin_chasms) can measure
+			# whether deaths split across BOTH chasms (left vs right of the centre island). Instrumentation
+			# only — no lethality/credit change; harmless on single-void levels.
+			"vx": (victim.global_position.x if is_instance_valid(victim) else 0.0),
 			"t": round_clock,
 		})
 		_cur_stats["end_cause"] = str(cause)   # the stage-deciding death overwrites last
