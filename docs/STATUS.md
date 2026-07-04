@@ -15,13 +15,13 @@ bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the 
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** closing CD verdict #4 (FIX) on islands_void, measured in-engine. Part 1 DONE
-(committed): islands widened to 960px → a CONNECTED super smash-off now kills the victim while the
-attacker survives on-island (the fantasy works on a real hit) + per-level `kill_shape` metric so QA
-sees void kills. Part 2 IN PROGRESS: the residual ~69% `killer=-1` is proven to be BOTS suiciding into
-the void (not geometry) → bot void-avoidance AI pass + re-measure. Part 3 HELD: a WHIFFED super still
-self-ringouts (arcs under the next island at any width) — decide arena-relative super after the bot
-re-measure (a committal whiff-death may be acceptable). See DECISIONS + `cd_verdict4` brief.
+**CURRENT FOCUS:** closing CD verdict #4 (FIX) on islands_void, measured in-engine. DONE (committed):
+(1) islands widened to 960px → a CONNECTED super smash-off kills the victim while the attacker survives
+(fantasy works on a real hit); (2) per-level `kill_shape` metric; (3) bot void-avoidance AI → `killer=-1`
+64%→~25%, credited kills doubled, bots still contest. The ONLY remaining self-kill mode is the WHIFFED
+super (~1/stage, shared by humans). NOW: CD verdict #5 re-judging whether the fantasy is delivered and
+whether the whiff-super is acceptable committal risk (SHIP) or needs the arena-relative-super fix
+(game-designer pre-speccing `v1a_super_whiff_safety.md` in parallel). Verdict #5 GATES the circuit build.
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
