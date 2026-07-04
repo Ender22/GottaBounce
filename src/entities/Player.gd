@@ -526,7 +526,7 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			var launch_speed: float = maxf(0.0, velocity.dot(n))
 			_squash_surface(collider, n, col.get_position())
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())   # tier mat FX
-			_on_bounced(boost_held, Tuning.fuel_per_bounce * sqrt(tier_h / Tuning.bounce_height_trampoline), launch_speed, col.get_position())
+			_on_bounced(boost_held, Tuning.fuel_per_bounce * sqrt(tier_h / Tuning.bounce_height_trampoline), launch_speed, col.get_position(), n)
 			return
 		elif collider.has_meta("bumper"):
 			velocity = BounceResolver.resolve_bumper(velocity, n)
@@ -535,7 +535,7 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())
 			# Bumpers refund fuel too (QA fix): a dry rebound made the spec's miss -> wall-rebound
 			# -> return-shot chain impossible. Same refuel/telegraphy path as tier bounces.
-			_on_bounced(boost_held, Tuning.fuel_per_bumper, rebound_speed, col.get_position())
+			_on_bounced(boost_held, Tuning.fuel_per_bumper, rebound_speed, col.get_position(), n)
 			return
 
 ## Trampoline "give". For squishy pads, only the tiles near the contact dent in (with a falloff),
@@ -583,14 +583,23 @@ func _axis_snap(n: Vector2) -> Vector2:
 		return Vector2(signf(n.x), 0.0)
 	return Vector2(0.0, signf(n.y))
 
-func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, launch_speed: float = 0.0, contact: Vector2 = global_position) -> void:
+func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, launch_speed: float = 0.0, contact: Vector2 = global_position, contact_normal: Vector2 = Vector2.UP) -> void:
 	# v2.1 ruling (spec §2.3a): hitstun ends by TIME, never by touching a surface.
 	# If opponent-inflicted hitstun is active on contact, this is a DRY REFLECT — the physical
 	# bounce/ricochet still resolves upstream (BounceResolver), squash FX and the juicy-bounce
 	# event still fire, but there is NO fuel refund and hitstun is NOT cleared here (it keeps
 	# ticking down on its own clock in _physics_process). Neutral/self-triggered contact (includes
 	# the owner's wall-return shot, which by construction never involves hitstun) is unchanged.
-	if _stun_timer <= 0.0:
+	#
+	# Underside/ceiling guard (no-camp pillar): the contact normal is axis-snapped upstream, so in
+	# screen space (y is down) hitting the UNDERSIDE of a platform yields a normal pointing +y.
+	# A head-bonk on an underside must NOT refund fuel or supercharge — otherwise you could boost
+	# up into a ceiling, refund the fuel you spent, and hover forever (the infinite-hover exploit).
+	# The physical reflect, squash FX, and bounced/bounced_juicy events below still fire, so you
+	# still bonk your head and ricochet down — you just pay for it. Top (normal up) and wall
+	# (normal sideways) bounces refund exactly as before.
+	var is_underside: bool = contact_normal.y > 0.5
+	if _stun_timer <= 0.0 and not is_underside:
 		fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
 		if boost_held:
 			_supercharge_timer = Tuning.supercharge_window
