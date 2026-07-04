@@ -309,9 +309,30 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   as this arena's identity. DID NOT pre-commit the redesign while owner decides. CD re-pass #3 running
   to give the FELT read on the current build (informs the decision).
 
-## NEXT STEPS in priority order (reordered per the CD verdict 2026-07-04)
-0b. **[AWAITING OWNER] Arena shape: central pit vs islands-over-void** (see above). Blocks the circuit
-   (the ~10-level template shape depends on this). CD felt verdict + K1 data both feed it.
+- [!] **TWO PRE-EXISTING SYSTEMIC ISSUES surfaced by the kill-shape build QA (NOT caused by it) —
+  foundation health, likely corrupting all long QA:**
+  (1) **NATIVE CRASH after ~12 combat stages/session** — hard native exit, no GDScript error (proven
+  NOT the void: 50 pure scene-reloads were clean; likely GL/resource accumulation over combat). This
+  has been forcing short/folded QA samples (the "60% pit" K1 came from a crash-forced sample with
+  ~8 duplicate stage rows → K1 is itself UNRELIABLE; a clean 13-stage sample read 54% edge / 34% pit,
+  the folded larger one 39%/58%). Likely also behind some flaky/zombie agent runs.
+  (2) **fps ~28 vs the old golden 79** (session-1) — pre-existing, unchanged by this build, below the
+  ≥55fps criterion. A ~3× regression nobody root-caused (was hand-waved as screenshot-stall earlier;
+  it's real + persistent).
+  → These are STOP-AND-FIX-THE-FOUNDATION issues: combat/arena features have been stacked on a base
+  that crashes + runs at 28fps, and the crash undermines the measurements decisions rest on. PRIORITY
+  investigation (perf archaeology: git-bisect fps 79→28; root-cause the native crash) BEFORE more
+  feature/arena work. Independent of the arena decision + the owner.
+
+## NEXT STEPS in priority order (reordered 2026-07-04 — foundation health first)
+0a. **FOUNDATION: root-cause the native crash (~12 stages) + the fps 79→28 regression.** Both
+   pre-existing, both undermine QA reliability and violate the perf criterion. Bisect fps across the
+   session-1→now history; instrument/repro the crash (resource/node/GL accumulation over combat
+   stages — check for per-stage leaks in the rebuilt PartyMatch/void/camera/powerup paths). Fix before
+   more features. A crashing 28fps game can't be feel-validated reliably.
+0b. **[AWAITING OWNER] Arena shape: central pit vs islands-over-void** (see above). Blocks the circuit.
+   CD felt verdict #3 (running) + K1 data feed it — but note K1 is unreliable until the crash is fixed
+   (clean ≥24-stage sample needs a non-crashing session).
 0. **KILL SHAPE: make the EDGES the blast zone, demote the central pit (CRITICAL — the fantasy gap).**
    The game must deliver "smash rivals OFF THE SCREEN," not "shove into a central hole." Routed to
    game-designer (spec): make a dead-on near-edge super/smash send players off-screen (retune
