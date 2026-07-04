@@ -2,6 +2,17 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-04** MOVING-HAZARD FEATURE APPROVED (stretch, additive — `docs/specs/v1_moving_hazard.md`)
+  for the `wrecking_yard` 11th level. A KINEMATIC pendulum shove-hazard that reuses the existing SHOVE
+  path (`receive_shove`/`_soft_separate`, clamped ≤ soft_bump_max 700) with **NO hitstun/sting/damage**
+  — so a shoved player keeps control + can recover (a hitstun-hazard would be an unrecoverable void
+  instakill, violating the through-line + recovery gamble). Credits NOBODY directly: reuses the 6s
+  ring-out window (tag-then-void = credited; pure hazard shove = correct uncredited self-fall; no
+  invented environment scorer, INV-9). New level-JSON `moving_hazard` object type + `Player.receive_shove`
+  + `EventBus.hazard_shoved` + a round_stats field — all ADDITIVE, touches NO fenced constant (change-
+  control gate satisfied; the §2 credit audit is the artifact). De-risked build order: shove-contact
+  path → static shove-plate fallback → pendulum+telegraphy → LEVEL_POOL last. A static elastic-bumper
+  version is DO-NOT-SHIP (bumper_gauntlet clone) — defer the level rather than pollute the rotation.
 - **2026-07-04** CD VERDICT #6 = **SHIP** — the COMPLETE build is couch-ready. Milestone: the core game
   is feature-complete + shipping-quality. All four fantasy verbs confirmed hands-on (flight REQUIRED:
   fuel=0 falls in / boost survives; super-smash reads via charge+aim+blast VFX; credited kills 76%,
