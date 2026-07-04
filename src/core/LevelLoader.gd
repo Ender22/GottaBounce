@@ -90,6 +90,12 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 	# consumed by ArenaRenderer.setup(json) above. Orthogonal to kill_shape. Absent = "meadow" (current
 	# parallax behavior); "enclosed" = sealed-drum interior. Surfaced here for symmetry / mode readouts.
 	result["backdrop"] = str(json.get("backdrop", "meadow"))
+	# Open-sky atmospherics (docs/briefs/circuit_theming_plan.md §3.2): OPTIONAL, all default to
+	# current/off, consumed by ArenaRenderer only in the "open_sky" backdrop. Surfaced here as data
+	# readouts (like backdrop/kill_shape) for mode readouts / QA; they do not affect gameplay.
+	result["clouds"] = bool(json.get("clouds", true))
+	result["horizon_glow"] = json.get("horizon_glow", false)
+	result["stars"] = bool(json.get("stars", false))
 	return result
 
 ## Derive blast-line bounds from the walkable AABB (kill-zone recovery spec v3 §14). Side margin

@@ -90,6 +90,7 @@ func setup(json: Dictionary) -> void:
 
 func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop: String, play_rect: Rect2) -> void:
 	var enclosed := backdrop == "enclosed"
+	var open_sky := backdrop == "open_sky"
 
 	# Layer 0 — code sky gradient, world-static safety net covering everything (visible only past
 	# art edges / extreme zoom-out). In enclosed mode this becomes the Zone-A dark HOUSING that shows
@@ -109,6 +110,14 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 	# paint a dim glossy interior clipped to the play AABB instead. paint_void() still draws on top.
 	if enclosed:
 		_build_enclosed_interior(play_rect)
+		return
+
+	# Open-sky backdrop (docs/briefs/circuit_theming_plan.md §3.1): suppress the meadow PNG parallax
+	# (Layers 1/2/4) so the Layer-0 sky_top/sky_bottom gradient above IS the whole sky; keep only the
+	# cheap code atmospherics (clouds + twinkles). Same early-return pattern as enclosed — the meadow /
+	# enclosed / absent paths below are never touched.
+	if open_sky:
+		_build_open_sky(json, brect, floor_y)
 		return
 
 	# Layer 1 — sky painting, parallax 0.05, scaled to cover the view at max zoom-out + 10%.
@@ -272,6 +281,102 @@ func _build_enclosed_interior(play_rect: Rect2) -> void:
 	vg.colors = PackedColorArray([Color(vc.r, vc.g, vc.b, 0.0), Color(vc.r, vc.g, vc.b, 0.45)])
 	add_child(_gradient_sprite(shell, vg, GradientTexture2D.FILL_RADIAL,
 		Vector2(0.5, 0.5), Vector2(1.0, 1.0), Vector2i(256, 256), -91))
+
+## Open-sky backdrop (docs/briefs/circuit_theming_plan.md §3.1): the Layer-0 sky gradient (driven by
+## sky_top/sky_bottom, painted before this call) IS the whole visible sky. This suppresses the meadow
+## PNG parallax (Layer 1 sky painting, Layer 2 far hills, Layer 4 mid props) so the per-level palette
+## finally reads, and keeps ONLY the cheap code atmospherics (Layer 3 clouds + twinkles). Three lean
+## OPTIONAL params, all defaulting to current/off for back-compat, consumed only here:
+##   clouds (bool, default true)         — false skips the drifting cloud sprites (smog / void reads).
+##   horizon_glow (bool|color, off)      — a soft warm code-drawn glow band low in the sky (dusk/golden).
+##   stars (bool, default off)           — denser/brighter twinkles as a starfield (twilight spires).
+## World-static + parallax layers only (same toolkit as the meadow path) — zero generated art.
+func _build_open_sky(json: Dictionary, brect: Rect2, floor_y: float) -> void:
+	# Optional horizon glow — behind the atmospherics, above the Layer-0 sky gradient. Accepts a hex
+	# string (custom warm color) or a bool (true = default golden amber); anything falsy = off.
+	var hg: Variant = json.get("horizon_glow", false)
+	var glow_on := false
+	var glow_col := Color("#F2B15E")   # default warm golden-hour amber (used only if enabled sans hex)
+	if hg is String:
+		if str(hg) != "" and str(hg) != "false":
+			glow_on = true
+			glow_col = Color(str(hg))
+	elif hg is bool:
+		glow_on = hg
+	if glow_on:
+		_build_horizon_glow(brect, floor_y, glow_col)
+
+	var want_clouds := bool(json.get("clouds", true))
+	var stars_on := bool(json.get("stars", false))
+
+	# Layer 3 — code atmospherics only (no meadow PNGs). Drifting clouds (unless clouds=false) +
+	# twinkling diamonds (brighter/denser when stars=true so they read as a starfield). Mirrors the
+	# meadow Layer-3 code so clouds/twinkles behave identically; only counts/brightness differ on stars.
+	var cloud_node := Node2D.new()
+	cloud_node.z_index = -85
+	cloud_node.modulate = AERIAL
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("toybox_clouds")
+	if want_clouds:
+		var have_cloud := false
+		for path in CLOUD_TEXES:
+			if ResourceLoader.exists(path):
+				have_cloud = true
+		if have_cloud:
+			var wrap_half := brect.size.x * 0.5 + MAX_VIEW.x * 0.35
+			for i in range(3):
+				var path: String = CLOUD_TEXES[i % CLOUD_TEXES.size()]
+				if not ResourceLoader.exists(path):
+					path = CLOUD_TEXES[(i + 1) % CLOUD_TEXES.size()]
+				if not ResourceLoader.exists(path):
+					continue
+				var sp := Sprite2D.new()
+				sp.texture = load(path)
+				var sc := rng.randf_range(0.35, 0.7)
+				sp.scale = Vector2(sc, sc)
+				sp.position = Vector2(rng.randf_range(-wrap_half, wrap_half),
+					floor_y - rng.randf_range(520.0, 980.0))
+				cloud_node.add_child(sp)
+				_clouds.append({ "node": sp, "speed": rng.randf_range(6.0, 14.0) * (1.0 if i % 2 == 0 else -1.0),
+					"min_x": -wrap_half, "max_x": wrap_half })
+		else:
+			_warn_once("clouds", "ArenaRenderer: no bg/cloud_*.png yet — cloud drifters skipped")
+
+	# twinkles reuse the meadow diamond system. stars=true => more of them + brighter, white (a
+	# starfield); otherwise identical to the meadow layer (5 faint tier-support diamonds).
+	var support: Array = [TIERS["marshmallow"]["support"], TIERS["bubblegum"]["support"],
+		TIERS["trampoline"]["support"], TIERS["spring"]["support"]]
+	var twinkle_n := 18 if stars_on else 5
+	var twinkle_a := 0.7 if stars_on else 0.35
+	for i in range(twinkle_n):
+		var d := Polygon2D.new()
+		var s: float = rng.randf_range(5.0, 10.0) if stars_on else rng.randf_range(7.0, 13.0)
+		d.polygon = PackedVector2Array([Vector2(0, -s), Vector2(s * 0.4, 0), Vector2(0, s), Vector2(-s * 0.4, 0)])
+		var col: Color = Color(1, 1, 1) if stars_on else support[i % support.size()]
+		col.a = 0.0
+		d.color = col
+		d.position = Vector2(rng.randf_range(-brect.size.x * 0.45, brect.size.x * 0.45),
+			floor_y - rng.randf_range(350.0, 1200.0))
+		cloud_node.add_child(d)
+		_twinkles.append({ "node": d, "speed": rng.randf_range(0.5, 1.1),
+			"phase": rng.randf_range(0.0, TAU), "max_a": twinkle_a })
+	_add_layer(cloud_node, 0.30, Vector2(_anchor.x, 0.0))
+
+## Soft warm horizon glow band (docs/briefs/circuit_theming_plan.md §3.2) for golden-hour / dusk
+## open-sky levels. Code-drawn only — a 3-stop vertical GradientTexture2D band (transparent -> warm
+## -> transparent) sitting low in the frame. World-static like the Layer-0 sky gradient, painted just
+## above it (z -94) and below the cloud/twinkle atmospherics. Same toolkit as paint_void / enclosed.
+func _build_horizon_glow(brect: Rect2, floor_y: float, col: Color) -> void:
+	var pad := 2600.0
+	var band_w := brect.size.x + pad * 2.0
+	var band_h := maxf(600.0, brect.size.y * 0.5)
+	var band_rect := Rect2(brect.position.x - pad, floor_y - band_h * 0.65, band_w, band_h)
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	grad.colors = PackedColorArray([Color(col.r, col.g, col.b, 0.0),
+		Color(col.r, col.g, col.b, 0.5), Color(col.r, col.g, col.b, 0.0)])
+	add_child(_gradient_sprite(band_rect, grad, GradientTexture2D.FILL_LINEAR,
+		Vector2(0, 0), Vector2(0, 1), Vector2i(4, 256), -94))
 
 ## Build a world-static gradient sprite covering `rect`, backed by a GradientTexture2D (same toolkit
 ## paint_void's fill uses). `size` is the texture resolution (small on the flat axis for linear fills).
