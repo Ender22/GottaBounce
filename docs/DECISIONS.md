@@ -2,6 +2,17 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-04** GAME COMPLETE — capstone integrated smoke = **SHIP, zero must-fix**. Full 11-level
+  roster (islands_void, grassy_expanse, drop_chamber, the_spine, twin_chasms, the_cliff, atoll, spires,
+  bumper_gauntlet, the_ascent, wrecking_yard) all load/render/rotate; 100% off-screen kills everywhere;
+  motion-health clean (underside_boosted bug metric 0 on 10/11); camera zoom-pump FIXED; moving-hazard
+  wrecking_yard passes (no hazard-as-killer); pacing snappy; SD banner never negative; readability + bug
+  hunt clean (120fps, 0 orphans). Owner concerns all addressed (camera "flies around" → follow-targeting
+  + zoom-smoothing; bot head-banging → obstacle-aware ascent + motion-health gate). Non-blocking polish
+  backlog only: generate bumper_post.png (grey placeholder — graceful, pre-existing art backlog);
+  larger-sample wrecking_yard left-death bias check; watch the_ascent occasional underside_boosted;
+  trivial hazard_assisted cross-stage carryover cleanup; sunny-cluster visual signature; audio VO/
+  per-powerup SFX. Record: `docs/briefs/cd_verdict6_2026-07-04_complete_build.md` + the capstone smoke.
 - **2026-07-04** MOVING-HAZARD FEATURE APPROVED (stretch, additive — `docs/specs/v1_moving_hazard.md`)
   for the `wrecking_yard` 11th level. A KINEMATIC pendulum shove-hazard that reuses the existing SHOVE
   path (`receive_shove`/`_soft_separate`, clamped ≤ soft_bump_max 700) with **NO hitstun/sting/damage**
