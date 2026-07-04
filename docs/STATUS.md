@@ -16,12 +16,12 @@ with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% lau
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
 **CURRENT FOCUS:** Phase 2 — the varied circuit (depth-first per `docs/specs/v1_level_circuit.md`).
-SHIPPED so far: `drop_chamber` (owner's cylinder, enclosed_hole, DC1-DC4 pass) + a reusable
-`backdrop:"enclosed"` renderer mode (dim sealed-drum interior; art-director FIX); `the_spine`
-(max-exposure ridge, void_is_floor, SP1-SP3 pass). NEXT: build the remaining ~7 levels (twin_chasms,
-the_cliff, atoll, spires, bumper_gauntlet, the_ascent, wrecking_yard-last) + a CIRCUIT THEMING PLAN
-(levels are mechanically varied but the void_is_floor ones share the grass look — need per-level
-palette/backdrop-mode identity so the circuit reads varied, not just plays varied). Then circuit-wide QA.
+SHIPPED (5 of ~9 new, all in-engine validated): `drop_chamber` (cylinder, enclosed_hole, DC1-DC4),
+`the_spine` (ridge, void_is_floor, SP1-SP3), `twin_chasms` (two-void asymmetry), `the_cliff`
+(asymmetric mesa), `atoll` (radial well). Backdrop infra DONE: reusable `enclosed` + `open_sky` modes.
+REMAINING levels: spires + bumper_gauntlet (building now), the_ascent (dual_blast, top-bounds override),
+wrecking_yard (LAST — needs moving hazards). THEN: batch theming/grading pass (`circuit_theming_plan.md`
+— per-level palette/backdrop so it reads varied) + circuit-wide QA on the rotation.
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
