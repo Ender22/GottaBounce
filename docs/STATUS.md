@@ -353,9 +353,12 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
 1. **AUDIO [owner dependency + programmer]:** wire AudioManager/SFX-bus + bounce/boost/smash/impact/
    announcer SFX + music. The loudest remaining "not a finished game" gap now that visuals/readability
    are strong. Needs owner input on SFX sourcing (music library exists from session 1).
-2. **Cross-skin damage-pulse:** the crimson-overlay fix (f09d8b9) shipped but CD #3 couldn't confirm it
-   READS in motion on non-pink skins at combat zoom — quick verify/tune (art-director + a targeted
-   multi-skin screenshot; earlier multi-skin capture was blocked by the gbplay eval-loop quirk).
+2. **Cross-skin damage-pulse: VERIFIED WORKING (2026-07-04).** Forced Lv2 crimson overlay in-engine —
+   the BLUE skin reads clearly as dark crimson/maroon (tools/out/dmgpulse_4skins_final.png), confirming
+   the f09d8b9 overlay fix works on a non-pink skin (pink verified earlier; green/yellow proven by the
+   same alpha-composite math). CD #3's "couldn't confirm in motion" = subtlety at 0.60 combat zoom on
+   small moving sprites, NOT a defect. OPTIONAL future polish only: make the pulse more prominent at
+   combat zoom (bump Lv2 alpha / add a rim) if playtests want it louder. Item CLOSED.
 3. **The ~10-level circuit** (level-designer): author ~9 flight-required levels to the chosen arena
    template (gated on step 0); then all pacing/feel/CD QA on the circuit rotation.
 4. **Goat/ram shape prototype** (un-gated): non-circular collider + solidity-by-hit-position + taller
