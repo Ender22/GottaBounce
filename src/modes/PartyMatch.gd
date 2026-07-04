@@ -31,6 +31,7 @@ const LEVEL_POOL: Array[String] = [
 	"res://levels/islands_void.json",
 	"res://levels/grassy_expanse.json",
 	"res://levels/drop_chamber.json",
+	"res://levels/the_spine.json",
 ]
 const NUM_BOTS := 3
 # Character skins: P1 is always pink; bots take blue/green/yellow in order.
