@@ -15,11 +15,13 @@ bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the 
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** flagship SHIPPED (CD verdict #5) + Phase 1 polish DONE (committed): camera
-follow-targeting (local human always framed + cluster hysteresis, owner-flagged) + void render (chasm
-treatment flush under inter-island gaps, generic to all void_is_floor levels). Now: **Phase 2 — the
-9-level circuit** per `docs/specs/v1_level_circuit.md`, depth-first, building `drop_chamber` (owner's
-cylinder-with-a-hole, enclosed_hole kill_shape) FIRST to de-risk the variety-over-a-through-line thesis.
+**CURRENT FOCUS:** Phase 2 — the varied circuit (depth-first per `docs/specs/v1_level_circuit.md`).
+SHIPPED so far: `drop_chamber` (owner's cylinder, enclosed_hole, DC1-DC4 pass) + a reusable
+`backdrop:"enclosed"` renderer mode (dim sealed-drum interior; art-director FIX); `the_spine`
+(max-exposure ridge, void_is_floor, SP1-SP3 pass). NEXT: build the remaining ~7 levels (twin_chasms,
+the_cliff, atoll, spires, bumper_gauntlet, the_ascent, wrecking_yard-last) + a CIRCUIT THEMING PLAN
+(levels are mechanically varied but the void_is_floor ones share the grass look — need per-level
+palette/backdrop-mode identity so the circuit reads varied, not just plays varied). Then circuit-wide QA.
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
@@ -55,8 +57,11 @@ cylinder-with-a-hole, enclosed_hole kill_shape) FIRST to de-risk the variety-ove
    — weight local human always in-frame + cluster hysteresis + avoid empty-geometry framing (owner-flagged;
    concept confirmed correct by CD #5, this is refinement only); (b) P1 VOID RENDER — extend dark fill/AO
    under inner islands so the void reads as a chasm even zoomed in on one gap (every void level inherits it).
-2. **Phase 2 — the 9-level circuit** per `docs/specs/v1_level_circuit.md` (drop_chamber/cylinder first,
-   wrecking_yard last; depth-first, add to LEVEL_POOL incrementally). Then pacing/feel/CD QA on the rotation.
+2. **Phase 2 — the varied circuit** per `docs/specs/v1_level_circuit.md`: DONE drop_chamber + the_spine
+   (+ enclosed backdrop mode). BUILD remaining ~7 (twin_chasms, the_cliff, atoll, spires,
+   bumper_gauntlet, the_ascent, wrecking_yard-last/moving-hazard-gated), depth-first, incremental
+   LEVEL_POOL. + CIRCUIT THEMING PLAN (per-level visual identity via palette/backdrop-mode; some may
+   need generated art) so the circuit LOOKS varied. Then circuit-wide QA on the rotation.
    Track: P2 ring-out credit-window inflation (idle-survivor artifact) review; whiff-arrest fix
    `v1a_super_whiff_safety.md` is OPTIONAL backlog (CD #5 ruled the whiff acceptable).
 3. **Bot flee-to-heal** finish: the RETREAT/flee half is specced (BotProfile `flee_skill`) but only
