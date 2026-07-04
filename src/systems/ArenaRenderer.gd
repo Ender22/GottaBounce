@@ -79,13 +79,21 @@ func setup(json: Dictionary) -> void:
 			widest = r.size.x
 			floor_y = r.position.y
 	_anchor = play.get_center() if not first else brect.get_center()
-	_build_background(json, brect, floor_y)
+	var play_rect: Rect2 = play if not first else brect
+	# Backdrop mode (docs/briefs/enclosed_interior_backdrop.md): absent / "meadow" / "parallax" =
+	# current meadow-parallax behavior (back-compat); "enclosed" = sealed-drum interior treatment.
+	# Orthogonal to kill_shape by design — keyed off its OWN field.
+	var backdrop := str(json.get("backdrop", "meadow"))
+	_build_background(json, brect, floor_y, backdrop, play_rect)
 
 # ============================== BACKGROUND (brief §3) ==============================
 
-func _build_background(json: Dictionary, brect: Rect2, floor_y: float) -> void:
+func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop: String, play_rect: Rect2) -> void:
+	var enclosed := backdrop == "enclosed"
+
 	# Layer 0 — code sky gradient, world-static safety net covering everything (visible only past
-	# art edges / extreme zoom-out).
+	# art edges / extreme zoom-out). In enclosed mode this becomes the Zone-A dark HOUSING that shows
+	# above the lid + outside the walls (driven by sky_top/sky_bottom, unchanged path).
 	var pad := 2600.0
 	var grad_rect := brect.grow(pad)
 	var sky_top := Color(str(json.get("sky_top", "#3a6ea5")))
@@ -96,6 +104,12 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float) -> void:
 	g.vertex_colors = PackedColorArray([sky_top, sky_top, sky_bot, sky_bot])
 	g.z_index = -100
 	add_child(g)
+
+	# Enclosed backdrop (Zone B interior shell): suppress the entire meadow parallax stack below and
+	# paint a dim glossy interior clipped to the play AABB instead. paint_void() still draws on top.
+	if enclosed:
+		_build_enclosed_interior(play_rect)
+		return
 
 	# Layer 1 — sky painting, parallax 0.05, scaled to cover the view at max zoom-out + 10%.
 	if ResourceLoader.exists(SKY_TEX):
@@ -218,6 +232,65 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float) -> void:
 		_add_layer(node, 0.55, Vector2(_anchor.x, floor_y + 24.0))
 	else:
 		_warn_once("props", "ArenaRenderer: no bg mid props yet (bush_round/fence_wood) — layer 4 skipped")
+
+## Enclosed backdrop (docs/briefs/enclosed_interior_backdrop.md §2/§4): a dim glossy interior shell
+## clipped to the play AABB. Everything ABOVE the lid / OUTSIDE the walls stays the Zone-A surround
+## (the Layer-0 gradient) for free, because this is clipped to play_rect. All code-drawn gradients
+## (same toolkit as paint_void) — no assets, adapts to any axis-aligned enclosed box. World-static
+## (added directly, not a parallax layer). paint_void() draws on top at z >= -8.
+func _build_enclosed_interior(play_rect: Rect2) -> void:
+	if play_rect.size.x <= 0.0 or play_rect.size.y <= 0.0:
+		return
+	# grow a touch so the shell meets the inner wall faces / lid underside with no seam
+	var shell := play_rect.grow(16.0)
+
+	# Zone B — dim mossy-teal vertical interior gradient (a hair lighter than the surround), z -92.
+	var bg := Gradient.new()
+	bg.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	bg.colors = PackedColorArray([Color("#2C4A44"), Color("#21403C"), Color("#18332F")])
+	add_child(_gradient_sprite(shell, bg, GradientTexture2D.FILL_LINEAR,
+		Vector2(0, 0), Vector2(0, 1), Vector2i(4, 256), -92))
+
+	# Gloss sheen — soft white radial highlight near the upper-centre (curved-plastic tell), z -91.
+	# A wide ellipse: ~70% interior width x ~45% interior height, centred at ~30% height.
+	var sheen_w := shell.size.x * 0.70
+	var sheen_h := shell.size.y * 0.45
+	var sheen_c := shell.get_center()
+	var sheen_rect := Rect2(sheen_c.x - sheen_w * 0.5,
+		shell.position.y + shell.size.y * 0.30 - sheen_h * 0.5, sheen_w, sheen_h)
+	var sg := Gradient.new()
+	sg.offsets = PackedFloat32Array([0.0, 1.0])
+	sg.colors = PackedColorArray([Color(1, 1, 1, 0.10), Color(1, 1, 1, 0.0)])
+	add_child(_gradient_sprite(sheen_rect, sg, GradientTexture2D.FILL_RADIAL,
+		Vector2(0.5, 0.5), Vector2(1.0, 0.5), Vector2i(256, 256), -91))
+
+	# Vignette — radial darkening (transparent centre -> #0A1720 a0.45 in the corners), sells the
+	# cylinder curvature + focuses the centre. Over the interior, z -91 (above shell, below platforms).
+	var vg := Gradient.new()
+	vg.offsets = PackedFloat32Array([0.0, 1.0])
+	var vc := Color("#0A1720")
+	vg.colors = PackedColorArray([Color(vc.r, vc.g, vc.b, 0.0), Color(vc.r, vc.g, vc.b, 0.45)])
+	add_child(_gradient_sprite(shell, vg, GradientTexture2D.FILL_RADIAL,
+		Vector2(0.5, 0.5), Vector2(1.0, 1.0), Vector2i(256, 256), -91))
+
+## Build a world-static gradient sprite covering `rect`, backed by a GradientTexture2D (same toolkit
+## paint_void's fill uses). `size` is the texture resolution (small on the flat axis for linear fills).
+func _gradient_sprite(rect: Rect2, grad: Gradient, fill: int, fill_from: Vector2, fill_to: Vector2,
+		tex_size: Vector2i, z: int) -> Sprite2D:
+	var gtex := GradientTexture2D.new()
+	gtex.gradient = grad
+	gtex.fill = fill
+	gtex.fill_from = fill_from
+	gtex.fill_to = fill_to
+	gtex.width = tex_size.x
+	gtex.height = tex_size.y
+	var sp := Sprite2D.new()
+	sp.texture = gtex
+	sp.centered = false
+	sp.position = rect.position
+	sp.scale = Vector2(rect.size.x / float(gtex.width), rect.size.y / float(gtex.height))
+	sp.z_index = z
+	return sp
 
 ## Extend a layer's art downward with its own solid-bottom color so the gradient can never show
 ## through under a painted horizon (a color extension of the art, not a debug fill). Scans up past

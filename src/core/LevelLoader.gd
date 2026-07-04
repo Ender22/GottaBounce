@@ -86,6 +86,10 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 	# does NOT change lethality; drives the QA metric interpretation + blast-edge label readability.
 	# Default (absent) = "central_pit" for back-compat with grassy/dev levels.
 	result["kill_shape"] = str(json.get("kill_shape", "central_pit"))
+	# Backdrop mode (docs/briefs/enclosed_interior_backdrop.md): data-only surround/backfield treatment,
+	# consumed by ArenaRenderer.setup(json) above. Orthogonal to kill_shape. Absent = "meadow" (current
+	# parallax behavior); "enclosed" = sealed-drum interior. Surfaced here for symmetry / mode readouts.
+	result["backdrop"] = str(json.get("backdrop", "meadow"))
 	return result
 
 ## Derive blast-line bounds from the walkable AABB (kill-zone recovery spec v3 §14). Side margin
