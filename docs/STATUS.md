@@ -15,13 +15,11 @@ bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the 
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** closing CD verdict #4 (FIX) on islands_void, measured in-engine. DONE (committed):
-(1) islands widened to 960px → a CONNECTED super smash-off kills the victim while the attacker survives
-(fantasy works on a real hit); (2) per-level `kill_shape` metric; (3) bot void-avoidance AI → `killer=-1`
-64%→~25%, credited kills doubled, bots still contest. The ONLY remaining self-kill mode is the WHIFFED
-super (~1/stage, shared by humans). NOW: CD verdict #5 re-judging whether the fantasy is delivered and
-whether the whiff-super is acceptable committal risk (SHIP) or needs the arena-relative-super fix
-(game-designer pre-speccing `v1a_super_whiff_safety.md` in parallel). Verdict #5 GATES the circuit build.
+**CURRENT FOCUS:** CD verdict #5 = **SHIP** — islands_void flagship kill-fantasy gap CLOSED (credited
+kills 59%, 79% off-the-bottom void kills). Flagship is the circuit template. Whiff-super = accepted
+committal risk (fix is optional backlog). Now: **Phase 1 flagship polish** (camera follow-targeting +
+P1 void-render dark-fill under inner islands) as the quality gate, then **Phase 2 the 9-level circuit**
+per `docs/specs/v1_level_circuit.md` (drop_chamber first, depth-first).
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
@@ -53,16 +51,14 @@ whether the whiff-super is acceptable committal risk (SHIP) or needs the arena-r
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-1. **CLOSE the flagship kill fantasy fix** (CD verdict #4, BLOCKING the circuit). DONE: (a) geometry
-   widen — connected smash-off now works (attacker survives, victim rings out); (b) per-level
-   `kill_shape` metric (`docs/specs/v2a_kill_shape_void_floor_addendum.md`). IN PROGRESS: bot
-   void-avoidance AI — the ~69% `killer=-1` is bots suiciding into the void (human-proxy P1 died 10×,
-   100% credited); target `killer=-1` ≤35% without bots going passive; re-measure. HELD: arena-relative
-   super for the whiffed-super self-ringout — decide after the bot re-measure.
-2. **~10-level circuit — VARIED styles** (level-designer): build the ~9 new levels per the spec
-   `docs/specs/v1_level_circuit.md` (drop_chamber/cylinder first, wrecking_yard last — moving-hazard
-   gated). Each flight-required, off-screen-kill through-line, islands_void as template. BLOCKED until
-   the flagship fix lands (levels inherit the seam). Then pacing/feel/CD QA on the rotation.
+1. **Phase 1 — flagship polish** (quality gate before circuit propagation): (a) CAMERA follow-targeting
+   — weight local human always in-frame + cluster hysteresis + avoid empty-geometry framing (owner-flagged;
+   concept confirmed correct by CD #5, this is refinement only); (b) P1 VOID RENDER — extend dark fill/AO
+   under inner islands so the void reads as a chasm even zoomed in on one gap (every void level inherits it).
+2. **Phase 2 — the 9-level circuit** per `docs/specs/v1_level_circuit.md` (drop_chamber/cylinder first,
+   wrecking_yard last; depth-first, add to LEVEL_POOL incrementally). Then pacing/feel/CD QA on the rotation.
+   Track: P2 ring-out credit-window inflation (idle-survivor artifact) review; whiff-arrest fix
+   `v1a_super_whiff_safety.md` is OPTIONAL backlog (CD #5 ruled the whiff acceptable).
 3. **Bot flee-to-heal** finish: the RETREAT/flee half is specced (BotProfile `flee_skill`) but only
    ~2% effective — structural (8s heal vs short stages). Reconcile in a bot-AI/melee pass (game-designer
    note in `owner_2026-07-03_lives_damage_killrace.md` addendum).

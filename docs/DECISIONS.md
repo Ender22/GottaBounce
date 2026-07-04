@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-04** CD VERDICT #5 = **SHIP** — islands_void flagship kill-fantasy gap CLOSED (credited
+  kills 59% vs 41% uncredited, flipped from verdict #4's ~25/75; 79% of kills go off-the-bottom into
+  the void; real hands-on smash-off lands + attacker survives; knocked-off bots actively recover).
+  RULINGS: (1) the WHIFFED super is **ACCEPTABLE committal risk** (only a down-aimed-near-rim whiff
+  self-ringouts; flat/up whiffs carry safely; genre-standard, ~1/stage) → the whiff-arrest fix
+  `v1a_super_whiff_safety.md` is OPTIONAL BACKLOG, not built; the fenced `super_boost_impulse_full`
+  stays untouched. (2) The CAMERA follow-cluster-with-readability-floor concept is CORRECT (owner ask;
+  damped pan, no hard cuts) — keep it; refine follow-TARGETING only (weight local human in-frame +
+  cluster hysteresis + no empty-geometry framing), non-blocking. GREEN LIGHT to build the 9-level
+  circuit on this template. Follow-ups the circuit inherits: P1 void render is zoom-dependent (extend
+  dark fill/AO under inner islands before ×10); P2 ring-out credit-window inflation (idle-survivor
+  artifact). Full record: `docs/briefs/cd_verdict5_2026-07-04_islands_fixed.md`.
 - **2026-07-04** CD VERDICT #4 = FIX on the integrated flagship (islands_void + audio). Concept
   validated (fly REQUIRED, void reads lethal, recovery real, audio is a real finished-game layer),
   but the KILL FANTASY fails: ~75% of deaths were uncredited self-suicides (killer=-1), not credited
