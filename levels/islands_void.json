@@ -1,0 +1,28 @@
+{
+  "name": "Islands Void",
+  "version": 2,
+  "theme": "grass",
+  "design_intent": "FLAGSHIP islands-over-a-void arena (owner directive 2026-07-04 arena_variety). Kill identity = knock rivals OFF / BETWEEN separated islands into the bottom blast void -> off the screen. Four separated island platforms at the play tier (A trampoline x0..640 top1080 / B bubblegum x1320..1840 top940 / C trampoline x2520..3120 top1120 / D bubblegum x3800..4320 top980) float over ONE full-width lethal void (rim y=1260, the whole bottom band is a dark chasm). Two elevated spring throne-pads (F x780..1100 top560 / E x1900..2260 top420) sit ABOVE spring apex, boost-only. Side runways (-560 / +560, bounds -560..4880) keep the side edges as blast lines too, but the DOMINANT kill shape is the bottom void: any fall off an island edge, or any failed gap-crossing, drops through open sky into the chasm and off the bottom bound (y>1920) = off-screen kill. This fixes grassy_expanse's central-pit plurality/dead-air problem by making the void the arena floor, not a single mid-map hole.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270px, spring apex 480px, air_drift_max 340px/s, gravity 1600 => zero-boost horizontal reach ~400px off a trampoline / ~527px off a spring; normal_boost_max 760px/s crosses a gap in <1s @ ~26 fuel, bounce refunds +20; super_boost_impulse 2800 clears everything):\n- GAP A->B: island edges x640..x1320 = 680px horizontal over open void. > 527 (max spring drift) and >> 400 (trampoline drift, and no spring here). NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B->C: x1840..x2520 = 680px over the void (the deepest central chasm; spring throne E hangs over it). > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP C->D: x3120..x3800 = 680px over the void. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- CLIMB to spring pad F (top560): 520px above island A's top (1080). Trampoline apex from A only reaches y=810 (270 rise) -> still 250px short; A refuels but cannot bounce onto F. JETPACK CLIMB REQUIRED. Verb: FLY.\n- CLIMB to spring throne E (top420): 520px above island B's top (940). Bubblegum apex (180) reaches y=760 -> 340px short. JETPACK CLIMB REQUIRED, and E hangs over the B->C void gap so an under-shot climb drops you into the chasm. Verb: FLY (+ SUPER earns the throne fast).\n- Every play-tier gap (680px) exceeds even a spring bounce's reach, and every elevated pad sits >480px above the nearest surface, so NO route across or up the arena exists without the jetpack. Bouncing alone strands you on your island (and idle_hunt punishes camping); traversal, contesting powerups, and reaching the throne all REQUIRE boost, and the biggest cross-map plays reward super. Vertical AND horizontal distance are load-bearing here, not scenery.\n\nRECOVERY GAMBLE: the fall from an island bottom (~1050-1248) to the bottom blast line (1920) is ~670-870px of open sky over the chasm -> a knocked-off player who still has fuel can boost back to an island (the recovery gamble), while a near-edge dead-on super spikes them straight past the rim. Side runways (560px outside the outer island edges) preserve the same near-edge-out / mid-stage-arcs-back gradient on the left/right blast lines. VOID READS AS DEATH via the pit_void_rendering treatment (dark cool bottomless gradient + receding dirt canyon walls at the arena sides + under-lip AO + matte hazard-red rim/chevrons along y=1260 + falling motes) so the whole bottom is unmistakably lethal, not safe green.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "bounds": { "left": -560, "right": 4880, "top": -2230, "bottom": 1920 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 640, "h": 128, "tier": "trampoline" },
+    { "x": 1320, "y": 940,  "w": 520, "h": 112, "tier": "bubblegum" },
+    { "x": 2520, "y": 1120, "w": 600, "h": 128, "tier": "trampoline" },
+    { "x": 3800, "y": 980,  "w": 520, "h": 112, "tier": "bubblegum" },
+    { "x": 780,  "y": 560,  "w": 320, "h": 48,  "tier": "spring" },
+    { "x": 1900, "y": 420,  "w": 360, "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -560, "y": 1260, "w": 5440, "h": 660, "wall_px": 120 },
+    { "type": "player_spawn", "x": 320,  "y": 900 },
+    { "type": "player_spawn", "x": 1580, "y": 760 },
+    { "type": "player_spawn", "x": 2820, "y": 940 },
+    { "type": "player_spawn", "x": 4060, "y": 800 },
+    { "type": "player_spawn", "x": 2080, "y": 280 },
+    { "type": "powerup_spawner", "x": 980,  "y": 780 },
+    { "type": "powerup_spawner", "x": 2180, "y": 640 },
+    { "type": "powerup_spawner", "x": 3460, "y": 800 }
+  ]
+}

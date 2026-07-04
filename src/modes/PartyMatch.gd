@@ -23,9 +23,14 @@ extends Node2D
 # Level pool for the shuffle-bag rotation (killrace §6). v0 ships one file; slice D adds more and
 # the bag then avoids immediate repeats. With a 1-level pool rotation degenerates to a replay.
 # Circuit (owner: test/play on a rotating pool of ~10 spaced-out levels; docs/feedback/
-# owner_2026-07-03_arena_size.md). grassy_expanse (2x, flight-required) is the primary; dev_arena
-# is the too-tight "mini" variant kept for reference. More levels land as the circuit is built out.
-const LEVEL_POOL: Array[String] = ["res://levels/grassy_expanse.json"]
+# owner_2026-07-03_arena_size.md + owner_2026-07-04_arena_variety.md). islands_void is the
+# FLAGSHIP / primary (islands-over-a-void, bottom-void = the dominant kill shape, flight-required);
+# grassy_expanse (central-pit variant, 2x, flight-required) is kept as a secondary pool entry.
+# dev_arena is the too-tight "mini" and stays OUT of the pool. More levels land as the circuit grows.
+const LEVEL_POOL: Array[String] = [
+	"res://levels/islands_void.json",
+	"res://levels/grassy_expanse.json",
+]
 const NUM_BOTS := 3
 # Character skins: P1 is always pink; bots take blue/green/yellow in order.
 const BOT_SKINS: Array[String] = ["blue", "green", "yellow"]
@@ -255,6 +260,7 @@ func _start_match() -> void:
 	_match_winner = -1
 	_reset_bag()               # fresh shuffle-bag each match (spec §6)
 	_hud.reset_scores()
+	EventBus.match_started.emit()   # audio: (re)start gameplay music
 	_begin_stage()
 
 ## STAGE_INTRO: rotate to the next level FIRST (spec §3/§6), then the pop-in — everyone suspended &
@@ -335,6 +341,7 @@ func _tick_countdown(delta: float) -> void:
 	if beat != _cd_beat and beat <= 2:
 		_cd_beat = beat
 		_hud.show_center(str(3 - beat), Color.WHITE, Tuning.countdown_beat)
+		EventBus.countdown_tick.emit(3 - beat)   # audio: 3 / 2 / 1 beep
 	if _state_t >= Tuning.countdown_beat * 3.0:
 		_bounce_go()
 
@@ -355,6 +362,7 @@ func _bounce_go() -> void:
 	if _pu_director != null:
 		_pu_director.reset()       # first telegraph pu_first_spawn after BOUNCE! (spec §4)
 	_hud.show_center("BOUNCE!", GOLD, BOUNCE_HOLD)
+	EventBus.combat_started.emit()   # audio: "BOUNCE!" starting gun
 	get_tree().create_timer(NAME_TAG_LINGER).timeout.connect(_fade_name_tags)
 
 func _tick_combat(delta: float, rdelta: float) -> void:
@@ -460,6 +468,7 @@ func _on_killed(victim, cause, attacker) -> void:
 		if not _first_blood_fired:
 			_first_blood_fired = true
 			_hud.show_top("FIRST BLOOD!", PLAYER_COLORS[ai], 1.0)
+			EventBus.first_blood.emit(ai)   # audio: announcer
 	elif int(scores[idx]) > 0:   # suicide: -1 to your own kill total, floored at 0 (spec §2)
 		scores[idx] = int(scores[idx]) - 1
 		_stage_deltas[idx] = int(_stage_deltas[idx]) - 1
@@ -488,6 +497,7 @@ func _on_killed(victim, cause, attacker) -> void:
 	if ne == 2 and not _two_left_fired and _stage_start_alive >= 3:
 		_two_left_fired = true
 		_hud.show_top("TWO LEFT!", Color.WHITE, 1.0)
+		EventBus.two_left.emit()   # audio: tension announcer
 	if ne == 0:
 		_end_check = -1.0
 		_decide_stage_end(false)   # nobody left — decide immediately (double-KO SD or NOBODY SURVIVES)
@@ -669,6 +679,7 @@ func _enter_match_end(widx: int) -> void:
 			_hud.set_dead(widx, false)
 		w.play_win_pop()
 		_camera.set_frame(w.global_position, MATCH_END_ZOOM)   # punch-zoom (FEEL §7)
+	EventBus.match_won.emit(widx)   # audio: win fanfare + scoreboard music
 	_hud.show_match_end("P%d WINS THE MATCH!" % (widx + 1), PLAYER_COLORS[widx], _scoreline())
 
 func _tick_match_end(delta: float) -> void:

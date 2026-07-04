@@ -321,6 +321,7 @@ func _physics_process(delta: float) -> void:
 		_dmg_heal_t = maxf(0.0, _dmg_heal_t - delta)
 		if _dmg_heal_t <= 0.0:
 			damage_level = 0
+			EventBus.player_healed.emit(self)   # audio: recovery cue
 
 	# Black Hole channel (spec 3.6): hover frozen (velocity zeroed, gravity off, input locked)
 	# and pull all other players in-zone at a CONSTANT accel — readable, not 1/r^2. The pull is
@@ -786,6 +787,7 @@ func receive_smash(impulse: Vector2, attacker, s: float = 1.0, angular_kick: flo
 	if impulse.length() >= Tuning.smash_sting_min_impulse:
 		damage_level = mini(damage_level + 1, 2)
 		_dmg_heal_t = Tuning.dmg_heal_time
+		EventBus.player_damaged.emit(self, damage_level)   # audio: Lv1 / Lv2 escalate cue
 	# Smashed while aiming (spec §1.1): aim CANCELS, (stung) fuel retained, no super fires.
 	cancel_super_aim()
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)

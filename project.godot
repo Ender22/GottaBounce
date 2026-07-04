@@ -14,7 +14,12 @@ GravityField="*res://src/core/GravityField.gd"
 EventBus="*res://src/systems/EventBus.gd"
 KillPipeline="*res://src/systems/KillPipeline.gd"
 PowerupSystem="*res://src/systems/PowerupSystem.gd"
+AudioManager="*res://src/systems/AudioManager.gd"
 McpInteractionServer="*res://src/dev/mcp_interaction_server.gd"
+
+[audio]
+
+buses/default_bus_layout="res://default_bus_layout.tres"
 
 [display]
 

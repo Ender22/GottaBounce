@@ -49,6 +49,7 @@ func grant(player, id: String) -> void:
 		_swap_poof(player, player.held_powerup)
 	player.held_powerup = id
 	_refresh_held_icon(player)
+	EventBus.powerup_picked.emit(player, id)   # audio: pickup cue (distinct from activate)
 
 func try_use(player) -> void:
 	if player == null or not is_instance_valid(player) or player.is_dead():
