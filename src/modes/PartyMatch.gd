@@ -17,7 +17,9 @@ extends Node2D
 ## QA contract (killrace §8, read via gbplay eval): state / stage_index (round_index alias) /
 ## scores (cumulative kills) / level_index / level_name / bounds / lives_left / round_stats
 ## (per-stage {stage_index, level_name, length_s, end_cause, entered_sd, kills[], survivor_had_contact,
-## supers_fired[], smashes[]}). Arena contract (InputBot/Playtest): players / scores / bounds /
+## supers_fired[], smashes[], motion_health[]}). Live motion-health via bot_motion_health() (per-bot
+## {stuck_episodes, stuck_secs, underside_bounces, blocked_ascent_episodes, blocked_ascent_secs,
+## blocked_ascent, player}). Arena contract (InputBot/Playtest): players / scores / bounds /
 ## nearest_opponent() / stage_rect() / stage_center() / idle_hunt_target().
 
 # Level pool for the shuffle-bag rotation (killrace §6). v0 ships one file; slice D adds more and
@@ -379,6 +381,9 @@ func _bounce_go() -> void:
 	for p in players:
 		p.frozen = false
 		p.fuel = Tuning.fuel_max   # every stage starts on a full tank
+		# reset bot motion-health so its stuck/underside/blocked-ascent numbers are per-stage
+		if is_instance_valid(p) and p.provider != null and p.provider.has_method("reset_motion_health"):
+			p.provider.reset_motion_health()
 	if _pu_director != null:
 		_pu_director.reset()       # first telegraph pu_first_spawn after BOUNCE! (spec §4)
 	_hud.show_center("BOUNCE!", GOLD, BOUNCE_HOLD)
@@ -650,6 +655,7 @@ func _enter_stage_end(deferred := false) -> void:
 		_cur_stats["length_s"] = round_clock
 		_cur_stats["survivor_had_contact"] = _stage_winner >= 0 \
 			and _stage_winner < _had_contact.size() and _had_contact[_stage_winner]
+		_cur_stats["motion_health"] = bot_motion_health()   # process gate: per-stage locomotion pathologies
 		round_stats.append(_cur_stats)
 		_cur_stats = {}
 	# powerup stage-end sweep (spec §2): all active effects, held slots, and field objects
@@ -699,6 +705,7 @@ func _enter_match_end(widx: int) -> void:
 	# finalize any in-flight stage record so QA can read the winning stage
 	if not _cur_stats.is_empty():
 		_cur_stats["length_s"] = round_clock
+		_cur_stats["motion_health"] = bot_motion_health()
 		round_stats.append(_cur_stats)
 		_cur_stats = {}
 	var w = players[widx]
@@ -1004,6 +1011,20 @@ func idle_hunt_target(bot):
 			best_d = nb_d
 			best = p
 	return best
+
+## Bot MOTION-HEALTH probe (process gate 2026-07-04): surfaces per-bot locomotion pathologies so
+## "looks dumb" (head-banging platform undersides, stuck-in-place, blocked ascent) becomes a NUMBER,
+## not a human's eyeball. Queryable live via gbplay eval; also snapshotted into round_stats per stage.
+func bot_motion_health() -> Array:
+	var out: Array = []
+	for i in range(players.size()):
+		var p = players[i]
+		if not is_instance_valid(p) or p.provider == null or not p.provider.has_method("motion_health"):
+			continue
+		var mh: Dictionary = p.provider.motion_health()
+		mh["player"] = i
+		out.append(mh)
+	return out
 
 func nearest_opponent(me) -> Player:
 	var best: Player = null

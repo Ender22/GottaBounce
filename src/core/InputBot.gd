@@ -27,6 +27,27 @@ const CROSS_FUEL_PER_PX := 0.045       # est. fuel to translate 1px horizontally
 const CROSS_FUEL_RESERVE := 10.0       # fuel to keep after reaching a landing (> super_boost_min_fuel=5)
 const SUPER_CARRY := 720.0             # est. horizontal carry of a WHIFFED super (self-ringout range)
 
+# --- Obstacle-aware ASCENT geometry (owner head-bang fix 2026-07-04). The bot's spatial sense was
+# DOWNWARD-ONLY (_ground_y_below/_scan_ground_x find LANDING surfaces below). Platforms are SOLID and
+# bounce you off their UNDERSIDE, so a bot wanting a goal ABOVE boosted straight up, bounced off the
+# platform in the way, and retried forever. These add an UPWARD sense so the bot routes LATERALLY to a
+# platform EDGE before climbing. Geometry-generic (ray-probe, no hardcoded coords), human-ranged. ---
+const ASCENT_PROBE := 460.0            # upward ray length: how far overhead we sense a blocking platform
+const ASCENT_AIM_UP := -0.30           # aim.y below this (pointing up) => we're trying to ascend
+const ASCENT_EDGE_MARGIN := 200.0      # steer this far PAST the platform edge before turning up (clear the lip)
+const ASCENT_EDGE_STEP := 90.0         # x-step scanning outward for where the overhead platform ends
+const ASCENT_EDGE_MAX := 46            # max scan steps (bounded, human-ish reach — no omniscient solve)
+
+# A/B regression switch (default ON): the motion-health probe stays live in BOTH states, so QA can
+# measure BEFORE (fix off) vs AFTER (fix on) in one build. Flip via gbplay eval: InputBot.ascent_fix_enabled = false
+static var ascent_fix_enabled := true
+
+# --- Motion-health telemetry geometry (process-gate 2026-07-04: make "looks dumb" a NUMBER). ---
+const MH_STUCK_WINDOW := 1.0           # s window for the no-progress (stuck) test
+const MH_STUCK_DISP := 90.0            # net displacement below this over the window while intending = stuck
+const MH_ASCENT_STALL := 0.7           # s of up-intent with no upward progress before flagging blocked-ascent
+const MH_ASCENT_PROGRESS := 24.0       # px of upward gain that counts as real ascent progress (resets the stall)
+
 var me: Player
 var arena
 var profile: BotProfile
@@ -52,11 +73,33 @@ var _retreat := false        # currently fleeing to safe ground to heal
 var _retreat_t := 0.0        # seconds spent in the current RETREAT (anti-permanent-evasion cap)
 var _retreat_target := Vector2.ZERO  # the safe-platform position being fled to
 
+# --- Motion-health telemetry (process gate: surfaces locomotion pathologies as NUMBERS in the QA feed).
+# (a) stuck/no-progress episodes, (b) underside-bounce count (head-bang), (c) blocked-ascent. Reset per
+# stage by PartyMatch._bounce_go; snapshotted into round_stats at stage end as a permanent regression guard. ---
+var _mh_samples: Array = []          # rolling {t,pos,move} window for the no-progress test
+var _mh_clock := 0.0
+var _mh_in_stuck := false
+var _mh_stuck_episodes := 0
+var _mh_stuck_secs := 0.0
+var _mh_underside := 0                # bounces whose contact normal points DOWN (hit a ceiling underside)
+var _mh_underside_boosted := 0        # subset SELF-PROPELLED: hit the underside while boosting UP (the AI bug,
+                                      # vs knockback into a ceiling which is legit combat physics)
+var _mh_asc_active := false
+var _mh_asc_ref_y := 0.0             # highest (min-y) point reached in the current ascent attempt
+var _mh_asc_t := 0.0                 # s since last upward progress while ascending
+var _mh_blocked_now := false         # live BLOCKED-ASCENT flag (wants up, Y not decreasing)
+var _mh_blocked_ascent_episodes := 0
+var _mh_blocked_ascent_secs := 0.0
+var _mh_detours := 0                  # frames the ascent-detour actively redirected (fix-engagement telemetry)
+
 func _init(player: Player, arena_ref, bot_level := 3) -> void:
 	me = player
 	arena = arena_ref
 	level = bot_level
 	profile = BotProfile.for_level(bot_level)
+	# underside-bounce sense (INV-12 subscriber): the sim emits surface_bounced with the contact
+	# normal; a normal pointing DOWN means we hit a platform's underside (head-bang). Read-only.
+	EventBus.surface_bounced.connect(_on_surface_bounced)
 
 ## §5.5: count living opponents from the EXISTING arena.players contract (valid, not me, not dead) —
 ## same predicate PartyMatch.nearest_opponent uses. No new arena field (§9 contract untouched).
@@ -107,6 +150,9 @@ func poll() -> InputIntent:
 		it.aim = Vector2.ZERO
 		it.boost = false
 		return it
+	# motion-health reads the PREVIOUS frame's committed intent (it.aim/it.boost persist across polls)
+	# against the resulting motion this frame — covers every path (hunt/recover/aim) uniformly.
+	_update_motion_health(dt, it.boost, it.aim)
 	_clean_dodge_flags()
 	# §5.5: finisher mode is a per-poll runtime flag — recomputed from the live alive-count every
 	# tick, so it reverts automatically when a stage reset repopulates the arena. Dial overrides are
@@ -138,7 +184,10 @@ func poll() -> InputIntent:
 		_aim_roll = randf_range(-profile.aim_error, profile.aim_error)
 	_tick_powerup(it, dt)
 	# Steer the thrust around walls/platforms so the bot stops boosting straight into geometry.
+	# Ascent-detour first (macro lateral routing around an overhead platform edge), then the local
+	# feeler-steer for fine avoidance.
 	if it.boost:
+		it.aim = _ascent_detour(it.aim)
 		it.aim = _steer(it.aim)
 	return it
 
@@ -727,3 +776,177 @@ func _steer(desired: Vector2) -> Vector2:
 		if space.intersect_ray(q).is_empty():
 			return d
 	return desired
+
+## World-y of the nearest bounce surface directly ABOVE (x, from_y), or -INF if none within reach.
+## The UPWARD analogue of _ground_y_below — the overhead-obstruction sense (owner head-bang fix).
+## Ray-probe, so it is GEOMETRY-generic (no hardcoded coords — works on every level).
+func _ceiling_y_above(x: float, from_y: float) -> float:
+	if me == null or not is_instance_valid(me):
+		return -INF
+	var space := me.get_world_2d().direct_space_state
+	var q := PhysicsRayQueryParameters2D.create(Vector2(x, from_y), Vector2(x, from_y - ASCENT_PROBE), Player.MASK_SURFACES)
+	q.exclude = [me.get_rid()]
+	var hit := space.intersect_ray(q)
+	return hit.position.y if not hit.is_empty() else -INF
+
+## Scan horizontally (stepping in `dir`) for the world-x where the overhead platform ENDS (no ceiling
+## within probe at that column), or NAN if none before `limit_x`. Finds a platform edge to route around.
+func _clear_x_past_ceiling(from_x: float, from_y: float, dir: float, limit_x: float) -> float:
+	var x := from_x
+	for _i in range(ASCENT_EDGE_MAX):
+		x += dir * ASCENT_EDGE_STEP
+		if (dir > 0.0 and x > limit_x) or (dir < 0.0 and x < limit_x):
+			return NAN
+		if _ceiling_y_above(x, from_y) == -INF:
+			return x
+	return NAN
+
+## An overhead-edge column is safe to detour toward only if it does NOT dump us into an UNREACHABLE
+## void (preserve void-avoidance): ground below the column, or an over-void column still reachable on
+## the current tank. Never routes a bot into open void it can't cross.
+func _edge_ok(tx: float, pos: Vector2) -> bool:
+	if not _over_void(Vector2(tx, pos.y)):
+		return true
+	return _can_reach(absf(tx - pos.x))
+
+## Obstacle-aware ASCENT (owner head-bang fix): when the bot boosts UP toward a goal above but a solid
+## platform overhead blocks the climb, steer LATERALLY toward the nearest CLEAR edge of that platform
+## first (prefer the side toward the goal via aim.x, else the nearer edge), clear the lip, THEN climb —
+## "up" sometimes means "sideways then up." Returns the (possibly redirected) aim. Void-safe: an edge
+## over unreachable void is skipped; if the bot is boxed in on both sides it falls through to _steer.
+func _ascent_detour(aim: Vector2) -> Vector2:
+	if not ascent_fix_enabled:
+		return aim   # A/B: fix disabled -> reproduce the head-bang for a BEFORE measurement
+	if aim.y > ASCENT_AIM_UP or me == null or not is_instance_valid(me):
+		return aim   # not meaningfully ascending
+	var pos: Vector2 = me.global_position
+	var head_y := pos.y - 40.0
+	if _ceiling_y_above(pos.x, head_y) == -INF:
+		return aim   # open sky above -> a real climb, no obstruction to route around
+	var lo: float = _bounds().position.x + 40.0
+	var hi: float = _bounds().end.x - 40.0
+	var left_x := _clear_x_past_ceiling(pos.x, head_y, -1.0, lo)
+	var right_x := _clear_x_past_ceiling(pos.x, head_y, 1.0, hi)
+	var cands: Array = []
+	if not is_nan(left_x):
+		var lx: float = maxf(lo, left_x - ASCENT_EDGE_MARGIN)
+		if _edge_ok(lx, pos):
+			cands.append({"x": lx, "dx": absf(lx - pos.x), "side": -1.0})
+	if not is_nan(right_x):
+		var rx: float = minf(hi, right_x + ASCENT_EDGE_MARGIN)
+		if _edge_ok(rx, pos):
+			cands.append({"x": rx, "dx": absf(rx - pos.x), "side": 1.0})
+	if cands.is_empty():
+		return aim   # boxed in / both edges dump into unreachable void -> _steer + danger-recover handle it
+	# prefer the side toward the goal (aim.x); else the nearer reachable edge
+	var goal_side := signf(aim.x)
+	var chosen = null
+	if goal_side != 0.0:
+		for c in cands:
+			if c.side == goal_side:
+				chosen = c
+	if chosen == null:
+		for c in cands:
+			if chosen == null or c.dx < chosen.dx:
+				chosen = c
+	# steer PURELY LATERAL toward the edge (NO up component) so gravity keeps us UNDER the lip and we
+	# don't creep back into the underside while traversing. Once past the edge the ceiling probe reads
+	# clear, the detour disengages, and the next-frame goal aim climbs. Boost stays on (set by caller).
+	_mh_detours += 1
+	return Vector2(chosen.side, 0.0)
+
+# ---------------------------------------------------------------- motion-health telemetry (QA feed)
+
+## Per-frame motion-health update (process gate). Measures the previous frame's committed intent vs
+## the resulting motion: (a) STUCK = intending to move toward a goal but ~0 net displacement over ~1s;
+## (c) BLOCKED-ASCENT = wants altitude (aiming up + boosting) but Y not decreasing. (b) underside-bounce
+## is counted event-driven in _on_surface_bounced. These make "looks dumb" a NUMBER, caught forever.
+func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
+	if me == null or not is_instance_valid(me):
+		return
+	var pos: Vector2 = me.global_position
+	var intending: bool = boost and aim != Vector2.ZERO
+	# (a) STUCK / no-progress over a ~1s sliding window
+	_mh_clock += dt
+	_mh_samples.append({"t": _mh_clock, "pos": pos, "move": intending})
+	while _mh_samples.size() > 1 and _mh_clock - float(_mh_samples[0]["t"]) > MH_STUCK_WINDOW:
+		_mh_samples.pop_front()
+	var span: float = _mh_clock - float(_mh_samples[0]["t"])
+	var stuck_now := false
+	if span >= MH_STUCK_WINDOW * 0.9:
+		var disp: float = pos.distance_to(_mh_samples[0]["pos"])
+		var moving := 0.0
+		for s in _mh_samples:
+			if s["move"]:
+				moving += 1.0
+		var move_frac: float = moving / float(_mh_samples.size())
+		stuck_now = move_frac > 0.6 and disp < MH_STUCK_DISP
+	if stuck_now:
+		if not _mh_in_stuck:
+			_mh_in_stuck = true
+			_mh_stuck_episodes += 1
+		_mh_stuck_secs += dt
+	else:
+		_mh_in_stuck = false
+	# (c) BLOCKED-ASCENT: aiming up + boosting, but the highest point reached isn't improving
+	var ascending: bool = boost and aim.y < ASCENT_AIM_UP
+	if ascending:
+		if not _mh_asc_active:
+			_mh_asc_active = true
+			_mh_asc_ref_y = pos.y
+			_mh_asc_t = 0.0
+			_mh_blocked_now = false
+		else:
+			_mh_asc_t += dt
+			if pos.y < _mh_asc_ref_y - MH_ASCENT_PROGRESS:
+				_mh_asc_ref_y = pos.y   # real upward progress -> not blocked, restart the stall clock
+				_mh_asc_t = 0.0
+				_mh_blocked_now = false
+			elif _mh_asc_t >= MH_ASCENT_STALL:
+				if not _mh_blocked_now:
+					_mh_blocked_now = true
+					_mh_blocked_ascent_episodes += 1
+				_mh_blocked_ascent_secs += dt
+	else:
+		_mh_asc_active = false
+		_mh_blocked_now = false
+
+## INV-12 subscriber: a bounce whose (axis-snapped) contact normal points DOWN (n.y > 0) is a hit on a
+## platform UNDERSIDE — a head-bang. Read-only telemetry; never touches sim state.
+func _on_surface_bounced(_surface, player, normal: Vector2, _contact) -> void:
+	if player != me:
+		return
+	if normal.y > 0.5:
+		_mh_underside += 1
+		# self-propelled = I was thrusting UPWARD into it (the dumb-AI head-bang), NOT knocked into it
+		if _cached_boost and _cached_aim.y < -0.10:
+			_mh_underside_boosted += 1
+
+## Live motion-health snapshot (queryable via gbplay eval and snapshotted into round_stats per stage).
+func motion_health() -> Dictionary:
+	return {
+		"stuck_episodes": _mh_stuck_episodes,
+		"stuck_secs": snappedf(_mh_stuck_secs, 0.01),
+		"underside_bounces": _mh_underside,
+		"underside_boosted": _mh_underside_boosted,
+		"blocked_ascent_episodes": _mh_blocked_ascent_episodes,
+		"blocked_ascent_secs": snappedf(_mh_blocked_ascent_secs, 0.01),
+		"blocked_ascent": _mh_blocked_now,
+		"detours": _mh_detours,
+	}
+
+## Reset per stage (called from PartyMatch._bounce_go) so numbers are per-stage.
+func reset_motion_health() -> void:
+	_mh_samples.clear()
+	_mh_clock = 0.0
+	_mh_in_stuck = false
+	_mh_stuck_episodes = 0
+	_mh_stuck_secs = 0.0
+	_mh_underside = 0
+	_mh_underside_boosted = 0
+	_mh_asc_active = false
+	_mh_asc_t = 0.0
+	_mh_blocked_now = false
+	_mh_blocked_ascent_episodes = 0
+	_mh_blocked_ascent_secs = 0.0
+	_mh_detours = 0
