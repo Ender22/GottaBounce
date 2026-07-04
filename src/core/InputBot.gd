@@ -14,6 +14,19 @@ extends RefCounted
 const DODGE_SENSE_RANGE := 500.0
 const DODGE_AIM_CONE := 0.5
 
+# --- Void-avoidance geometry (CD verdict #4 self-suicide fix). The bot-as-human-sim treats off-island
+# OPEN SPACE (no landing surface below) as DANGER: it won't drift/boost out over the void without the
+# fuel + trajectory to reach a surface, aborts a doomed traversal, uses the recovery gamble when knocked
+# over the void, and won't whiff a super out over open void. These are bot SPATIAL-REASONING constants
+# (geometry-generic, derived by raycast — no hardcoded pit coords), NOT fenced game-feel Tuning. ---
+const VOID_PROBE_DROP := 2200.0        # ray length probing for a landing surface below (matches _ground_below)
+const VOID_FUTURE_LOOKAHEAD := 0.45    # s of current velocity used to anticipate drifting over the void
+const VOID_LAND_MARGIN := 180.0        # aim this far ABOVE a target surface top so we clear the lip
+const VOID_LAND_NUDGE := 150.0         # aim this far PAST the island lip so we land with runway, not on the edge
+const CROSS_FUEL_PER_PX := 0.045       # est. fuel to translate 1px horizontally under boost (100/3.5s @ 760px/s)
+const CROSS_FUEL_RESERVE := 10.0       # fuel to keep after reaching a landing (> super_boost_min_fuel=5)
+const SUPER_CARRY := 720.0             # est. horizontal carry of a WHIFFED super (self-ringout range)
+
 var me: Player
 var arena
 var profile: BotProfile
@@ -190,14 +203,35 @@ func _stage_center() -> Vector2:
 	return _stage().get_center()
 
 func _in_danger() -> bool:
-	var future: Vector2 = me.global_position + me.velocity * 0.6
+	var pos: Vector2 = me.global_position
+	# already over open void (no landing surface anywhere below) -> reflexive recovery, top priority
+	if _over_void(pos):
+		return true
+	var future: Vector2 = pos + me.velocity * 0.6
 	var outside_soon := not _bounds().grow(-80.0).has_point(future)
-	var off_stage := not _stage().grow(440.0).has_point(me.global_position)
-	return outside_soon or off_stage
+	var off_stage := not _stage().grow(440.0).has_point(pos)
+	if outside_soon or off_stage:
+		return true
+	# ANTICIPATORY void-abort: about to DRIFT out over the void with no fuel to reach the island in the
+	# heading direction. A REACHABLE, deliberate crossing is NOT flagged (so bots still fly gaps & fight);
+	# only a doomed drift aborts. Falling straight into a gap (no horizontal heading) always aborts.
+	var soon: Vector2 = pos + me.velocity * VOID_FUTURE_LOOKAHEAD
+	if _over_void(soon):
+		var dir_x := signf(me.velocity.x)
+		if dir_x == 0.0:
+			return true
+		var lo: float = _bounds().position.x + 60.0
+		var hi: float = _bounds().end.x - 60.0
+		var limit: float = hi if dir_x > 0.0 else lo
+		var head_x := _scan_ground_x(clampf(pos.x, lo, hi), limit, dir_x)
+		if is_nan(head_x) or not _can_reach(absf(head_x - pos.x)):
+			return true
+	return false
 
 func _recovery_dir() -> Vector2:
-	# back toward the stage (aim slightly above its center so we land on top, not under it)
-	var dir := (_stage_center() + Vector2(0, -120)) - me.global_position
+	# back toward the nearest REACHABLE landing surface (never stage_center — on islands_void the
+	# stage-rect center sits over a void gap; aiming there dives bots INTO the chasm).
+	var dir := _land_target(me.global_position) - me.global_position
 	return dir.normalized() if dir.length() > 1.0 else Vector2.UP
 
 ## Reflexive survival (§3.2 rule 4 — untouched top priority): if knocked off the stage or about
@@ -206,7 +240,10 @@ func _recovery_dir() -> Vector2:
 func _danger_recover(it: InputIntent) -> bool:
 	if not _in_danger():
 		return false
-	var dir := _recovery_dir()
+	var land := _land_target(me.global_position)
+	var dir := land - me.global_position
+	dir = dir.normalized() if dir.length() > 1.0 else Vector2.UP
+	var land_dist := me.global_position.distance_to(land)
 	# low recovery_skill: panic flail (the funny death). high skill: clean, hard recovery.
 	if randf() > profile.recovery_skill:
 		dir = dir.rotated(randf_range(-0.8, 0.8))
@@ -218,10 +255,12 @@ func _danger_recover(it: InputIntent) -> bool:
 	it.use_powerup = false
 	if me.wings_flaps > 0:
 		it.flap = randf() < 0.5
-	# recovery super: boost alone can't reel in a hot launch or an empty tank — enter AIM and
-	# let _tick_aiming snap the counter (this IS the recovery gamble, spec §1.3)
+	# recovery super (the gamble, spec §1.3): boost alone can't reel in a hot launch, an empty tank, or
+	# a landing too far to reach on the tank we have while stranded over the void — enter AIM and let
+	# _tick_aiming snap the counter back at the island.
 	var out_speed: float = -me.velocity.dot(dir)
-	if me.fuel >= Tuning.super_boost_min_fuel and (me.fuel <= 12.0 or out_speed > 1400.0):
+	var stranded: bool = _over_void(me.global_position) and not _can_reach(land_dist)
+	if me.fuel >= Tuning.super_boost_min_fuel and (me.fuel <= 12.0 or out_speed > 1400.0 or stranded):
 		it.super_hold = true
 		it.boost = false
 	_cached_aim = dir
@@ -274,7 +313,8 @@ func _decide() -> void:
 			_hunt = true
 			_commit_t = _eff_commit_time()
 			_cached_boost = fdist > _eff_attack_range() * 0.8 and me.fuel > _eff_refuel_floor()
-			if fdist < _eff_attack_range() and me.fuel >= _eff_refuel_floor():
+			if fdist < _eff_attack_range() and me.fuel >= _eff_refuel_floor() \
+					and _super_safe(pos, fopp.global_position):
 				_cached_super = true
 			return
 	var on_stage := _stage().grow(360.0).has_point(pos)
@@ -297,14 +337,18 @@ func _decide() -> void:
 		elif not target_ok:
 			_hunt = false
 		_cached_boost = _hunt and dist > _eff_attack_range() * 0.8 and me.fuel > _eff_refuel_floor()
-		# enter AIM (rule 1): hunting, in range, and fueled past the floor (attack-run budget)
-		if _hunt and dist < _eff_attack_range() and me.fuel >= _eff_refuel_floor():
+		# enter AIM (rule 1): hunting, in range, fueled past the floor (attack-run budget), and the
+		# blast won't launch me out over the void with no target in line (§ whiff-super self-ringout).
+		if _hunt and dist < _eff_attack_range() and me.fuel >= _eff_refuel_floor() \
+				and _super_safe(pos, tp):
 			_cached_super = true
 	else:
-		# no target / off-stage drift: ease back toward the stage
-		var to_stage := _stage_center() - pos
-		_cached_aim = _jitter(to_stage.normalized()) if to_stage.length() > 160.0 else Vector2.ZERO
-		_cached_boost = me.fuel > 35.0 and to_stage.length() > 360.0
+		# no target / off-stage drift: ease back toward the nearest LANDING surface (never stage_center,
+		# which sits over a void gap on islands_void — that dove drifting bots into the chasm).
+		var land := _land_target(pos)
+		var to_land := land - pos
+		_cached_aim = _jitter(to_land.normalized()) if to_land.length() > 160.0 else Vector2.ZERO
+		_cached_boost = me.fuel > 35.0 and to_land.length() > 360.0
 		_hunt = false
 
 ## §2c RETREAT state machine. Returns true when RETREAT is driving movement this tick (caller returns).
@@ -536,15 +580,119 @@ func _tick_powerup(it: InputIntent, dt: float) -> void:
 func _jitter(dir: Vector2) -> Vector2:
 	return dir.rotated(randf_range(-profile.aim_error, profile.aim_error))
 
-## Is there a bounce surface directly below this world x (within a generous drop)? Ray-probe, so
-## the pit-avoidance is GEOMETRY-generic (no hardcoded pit coords — works on any level).
-func _ground_below(x: float, from_y: float) -> bool:
+## World-y of the nearest bounce surface directly below (x, from_y), or INF if none within the drop.
+## Ray-probe, so void/pit reasoning is GEOMETRY-generic (no hardcoded coords — works on any level).
+func _ground_y_below(x: float, from_y: float) -> float:
 	if me == null or not is_instance_valid(me):
-		return true
+		return INF
 	var space := me.get_world_2d().direct_space_state
-	var q := PhysicsRayQueryParameters2D.create(Vector2(x, from_y), Vector2(x, from_y + 2200.0), Player.MASK_SURFACES)
+	var q := PhysicsRayQueryParameters2D.create(Vector2(x, from_y), Vector2(x, from_y + VOID_PROBE_DROP), Player.MASK_SURFACES)
 	q.exclude = [me.get_rid()]
-	return not space.intersect_ray(q).is_empty()
+	var hit := space.intersect_ray(q)
+	return hit.position.y if not hit.is_empty() else INF
+
+## Is there a bounce surface directly below this world x (within a generous drop)?
+func _ground_below(x: float, from_y: float) -> bool:
+	return _ground_y_below(x, from_y) < INF
+
+## Over the void = no landing surface anywhere below this world position (off an island, over open
+## space). `at` defaults to my own position. This is the bot's core DANGER sense (CD verdict #4).
+func _over_void(at := Vector2.INF) -> bool:
+	if me == null or not is_instance_valid(me):
+		return false
+	var p: Vector2 = me.global_position if at == Vector2.INF else at
+	return _ground_y_below(p.x, p.y - 40.0) == INF
+
+## Fuel needed to translate `dx` px horizontally under boost, plus a reserve to keep after landing.
+func _can_reach(dx: float) -> bool:
+	return me.fuel >= dx * CROSS_FUEL_PER_PX + CROSS_FUEL_RESERVE
+
+## Nearest world-x (stepping in `dir`) that has a landing surface below, or NAN if none before `limit`.
+func _scan_ground_x(from_x: float, limit_x: float, dir: float) -> float:
+	var step := 100.0
+	var x := from_x
+	for _i in range(70):
+		if _ground_y_below(x, me.global_position.y - 40.0) < INF:
+			return x
+		x += dir * step
+		if (dir > 0.0 and x > limit_x) or (dir < 0.0 and x < limit_x):
+			return NAN
+	return NAN
+
+## Choose a world point on a REACHABLE landing surface to fly toward, biased by intent (chase-target
+## side) then momentum. Continues a good crossing (forward island reachable) and aborts a doomed one
+## (turn back to the nearest reachable island); if NOTHING is reachable, returns the nearest surface so
+## the recovery-super gamble in _danger_recover can try for it. Falls back to legacy stage-center behavior
+## only if the whole level has no surface below the search band (never on a real level).
+func _land_target(pos: Vector2) -> Vector2:
+	var lo: float = _bounds().position.x + 60.0
+	var hi: float = _bounds().end.x - 60.0
+	var cx: float = clampf(pos.x, lo, hi)
+	var left_x: float = _scan_ground_x(cx, lo, -1.0)
+	var right_x: float = _scan_ground_x(cx, hi, 1.0)
+	# intent bias: chase-target side wins, else current momentum
+	var bias := 0.0
+	if _hunt and _target != null and is_instance_valid(_target) and not _target.is_dead():
+		bias = signf(_target.global_position.x - pos.x)
+	elif absf(me.velocity.x) > 60.0:
+		bias = signf(me.velocity.x)
+	var choices: Array = []
+	if not is_nan(left_x):
+		choices.append({"x": left_x, "dx": absf(left_x - pos.x), "side": -1.0})
+	if not is_nan(right_x):
+		choices.append({"x": right_x, "dx": absf(right_x - pos.x), "side": 1.0})
+	if choices.is_empty():
+		return _stage_center() + Vector2(0, -120)
+	var chosen = null
+	# 1) the biased side, if reachable
+	for c in choices:
+		if c.side == bias and _can_reach(c.dx):
+			chosen = c
+	# 2) else the nearest REACHABLE side
+	if chosen == null:
+		for c in choices:
+			if _can_reach(c.dx) and (chosen == null or c.dx < chosen.dx):
+				chosen = c
+	# 3) else the nearest side overall (gamble the recovery super for it)
+	if chosen == null:
+		for c in choices:
+			if chosen == null or c.dx < chosen.dx:
+				chosen = c
+	# aim PAST the lip so we land with runway, not on the edge; re-probe surface-y at the nudged column
+	var tx: float = clampf(float(chosen.x) + float(chosen.side) * VOID_LAND_NUDGE, lo, hi)
+	var sy: float = _ground_y_below(tx, pos.y - 40.0)
+	if sy == INF:
+		tx = float(chosen.x)
+		sy = _ground_y_below(tx, pos.y - 40.0)
+	var ty: float = (sy - VOID_LAND_MARGIN) if sy < INF else pos.y - 120.0
+	return Vector2(tx, ty)
+
+## Would committing a super from `from` toward `target_pos` be safe (not a whiff-super self-ringout)?
+## Safe when: not already over the void, AND either no void lies between me and the target (a same-
+## landmass smash — the wider v3 islands + smash_self_retain=0.1 keep a CONNECTING attacker on-island)
+## OR a whiffed launch (the full impulse carries ~SUPER_CARRY along the aim) still comes down over a
+## surface rather than out in the open void. This kills the CLEAR self-ringout — firing a blast OUT
+## over a gap. It does NOT gate a same-island shot whose aim_error JITTER happens to spray outward
+## (that residual is the arena-relative-super / aim-dial question, shared with the human — see report);
+## nor the recovery/dodge supers (the intended escape gamble). Empirically a tighter always-carry gate
+## suppressed connecting offense WITHOUT catching the jitter-ringouts, so it is deliberately not used.
+func _super_safe(from: Vector2, target_pos: Vector2) -> bool:
+	if _over_void(from):
+		return false
+	if not _path_crosses_void(from, target_pos):
+		return true
+	var dir := target_pos - from
+	if dir.length() < 1.0:
+		return true
+	return not _over_void(from + dir.normalized() * SUPER_CARRY)
+
+## Does the straight path from a to b pass over open void at any interior sample?
+func _path_crosses_void(a: Vector2, b: Vector2) -> bool:
+	var n := 5
+	for i in range(1, n):
+		if _over_void(a.lerp(b, float(i) / float(n))):
+			return true
+	return false
 
 ## Choose a refuel dive column that actually has ground below it (§4 pit-avoidance). Start from the
 ## desired x; if that column is over a gap, scan outward for the nearest floored column.
