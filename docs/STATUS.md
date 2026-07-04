@@ -19,8 +19,14 @@ recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted �
 (obstacle-aware ascent) + a permanent **bot-motion-health probe** in the QA feed + motion-quality now
 a QA obligation (GAME_ESSENCE). Circuit levels each have a distinct kill-shape AND a distinct look
 (meadow / dark drum / steel high-sky / golden-hour / bright morning / teal atoll / indigo twilight /
-arcade violet / dusk). NOW: circuit-wide QA on the full rotation (pacing/feel/readability + motion-health,
-criteria C1-C6) — the culminating validation. THEN act on its verdict, then the backlog/stretch.
+arcade violet / dusk). Circuit-wide QA DONE: C1-C6 PASS (100% off-screen kills on every level, 10 distinct looks, match
+resolves 60-90s; motion-health gate WORKED — surfaced head-banging/stalls as numbers). Two must-fixes
+found: (1) underside-bounce infinite-hover EXPLOIT — FIXED + committed (fuel now drains under a
+platform; also resolved The Ascent 200s stall + cut bot head-banging ~4.5x by removing the free-fuel
+incentive); (2) "can't feel the jetpack" VFX telegraphy — spec'd (`v1_vfx_telegraphy.md`; root cause:
+assets/particles/ empty) and IMPLEMENTING now (boost flame / knockback jetstream / super charge+blast /
+bot super-aim dwell). THEN backlog/stretch. (Loader-cache scare was benign — clean boot loads correct
+on-disk geometry; earlier mismatch was an eval-polluted dev instance.)
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
