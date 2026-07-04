@@ -59,6 +59,14 @@ const SUPER_BIAS_WEIGHT := 2.5     # centroid weight on the charging caster (fra
 const CAM_OFFSCREEN_INSET := 40.0  # px: a living player outside visible rect+inset gets an edge chevron
 const COMBAT_ACTIVE_WINDOW := 1.2  # s since dealing/taking a hit or firing/charging a super to count
                                # for the action-cluster centroid bias
+# --- CD #5 camera follow-targeting refinement (owner-flagged; concept unchanged, targeting only) ---
+const P1_CAM_WEIGHT := 0.85    # the LOCAL HUMAN (players[0]) is ALWAYS kept in the framing cluster so
+                               # the human never gets dropped fully off-screen behind a chevron. Modest
+                               # weight (< SUPER_BIAS_WEIGHT) so it guarantees inclusion without
+                               # overriding the super-aim bias when P1 isn't the aimer.
+const CAM_CLUSTER_LINGER := 0.9  # s a player LINGERS in the framing cluster after it drops out (e.g.
+                               # players split into pairs) — cluster hysteresis so the centroid/extent
+                               # target eases through the membership change instead of snapping.
 const CAM_MARGIN := Vector2(420.0, 340.0)  # breathing room added around the framed cluster
 const MATCH_END_ZOOM := 1.1    # winner punch-zoom (FEEL §7)
 const BOUNCE_HOLD := 0.4       # "BOUNCE!" banner hold (spec §1)
@@ -101,6 +109,7 @@ var _hud
 var _had_contact: Array = []     # per-player: dealt/received >=1 smash this stage (stats)
 var _smash_off_stage: Array = [] # per-player: was the LAST smash they received taken off-stage?
 var _combat_active_t: Array = [] # per-player: seconds left in the combat-active window (camera bias)
+var _cluster_linger_t: Array = []# per-player: seconds left lingering in the framing cluster (hysteresis)
 var _launch_ease_t := 0.0        # >0 while the launch-cam floor is engaged / easing back
 var _edge_indicators             # EdgeIndicators overlay (off-screen player chevrons)
 
@@ -798,6 +807,8 @@ func _update_camera() -> void:
 	var dt := get_physics_process_delta_time()
 	while _combat_active_t.size() < players.size():
 		_combat_active_t.append(0.0)
+	while _cluster_linger_t.size() < players.size():
+		_cluster_linger_t.append(0.0)
 
 	# living fighters this tick (is_dead()==false covers hitstun/recovery)
 	var living: Array = []
@@ -834,37 +845,87 @@ func _update_camera() -> void:
 	elif _launch_ease_t > 0.0:
 		_launch_ease_t = maxf(0.0, _launch_ease_t - dt)
 
-	# --- choose the framing cluster ---
-	var cluster: Array
+	# --- choose the BASE framing membership this tick ---
+	# The local human P1 (players[0]) is tracked separately so it can always be guaranteed into the
+	# cluster (CD #5 fix a) without disturbing the super-aim path.
+	var p1 = players[0] if players.size() > 0 else null
+	var p1_live: bool = is_instance_valid(p1) and not p1.is_dead()
+
+	var base: Array = []
 	if aimer != null:
-		# super bias: frame caster + nearest living opponent tightly (§4)
-		cluster = [aimer]
+		# super bias: frame caster + nearest living opponent tightly (§4). Left untouched so P1
+		# inclusion NEVER overrides the aim-fuse readability bias (brief a).
+		base = [aimer]
 		var opp = nearest_opponent(aimer)
 		if is_instance_valid(opp) and not opp.is_dead():
-			cluster.append(opp)
+			base.append(opp)
 	else:
 		# combat-active cluster (dealt/took a hit or aiming in the last COMBAT_ACTIVE_WINDOW s);
 		# fallback to all living when the fight is momentarily quiet (§2).
-		cluster = []
 		for p in living:
 			var idx := players.find(p)
 			if idx >= 0 and _combat_active_t[idx] > 0.0:
-				cluster.append(p)
-		if cluster.is_empty():
-			cluster = living
+				base.append(p)
+		if base.is_empty():
+			base = living.duplicate()
 
-	# weighted centroid (heavy weight on the super caster so the aim reads)
+	# cluster hysteresis (CD #5 fix b): base members refresh their linger to full; recently-framed
+	# players stay in the cluster (with a fading weight) for CAM_CLUSTER_LINGER so the centroid/extent
+	# target eases through a membership change (e.g. players splitting into pairs) instead of snapping.
+	for p in base:
+		var bi := players.find(p)
+		if bi >= 0:
+			_cluster_linger_t[bi] = CAM_CLUSTER_LINGER
+
+	# --- assemble the final cluster + per-member centroid weight ---
+	# Every contributor is a LIVING player position, so the weighted centroid can never land on empty
+	# geometry with no player (CD #5 fix c): the frame center is always player-driven by construction.
+	var cluster: Array = []
+	var weights: Array = []
+	for p in living:
+		var pi := players.find(p)
+		var linger: float = _cluster_linger_t[pi] if pi >= 0 else 0.0
+		var w := 0.0
+		if aimer != null and p == aimer:
+			w = SUPER_BIAS_WEIGHT
+		elif base.has(p):
+			w = 1.0
+		elif linger > 0.0:
+			w = maxf(0.05, linger / CAM_CLUSTER_LINGER)   # fade a dropped member's pull out smoothly
+		# guarantee the local human is always framed while living (fix a) — modest weight, and only in
+		# the non-aimer path so it can't drag the frame off a super telegraph.
+		if aimer == null and p == p1 and p1_live:
+			w = maxf(w, P1_CAM_WEIGHT)
+		if w > 0.0:
+			cluster.append(p)
+			weights.append(w)
+	if cluster.is_empty():
+		cluster = living.duplicate()
+		weights.clear()
+		for _p in cluster:
+			weights.append(1.0)
+
+	# decay linger for players that dropped out of the base this tick (used next tick)
+	for i in range(_cluster_linger_t.size()):
+		if i < players.size() and base.has(players[i]):
+			continue
+		_cluster_linger_t[i] = maxf(0.0, _cluster_linger_t[i] - dt)
+
+	# weighted centroid (heavy weight on the super caster so the aim reads; modest on P1)
 	var centroid := Vector2.ZERO
 	var wsum := 0.0
-	for p in cluster:
-		var w := SUPER_BIAS_WEIGHT if (aimer != null and p == aimer) else 1.0
-		centroid += p.global_position * w
-		wsum += w
+	for i in range(cluster.size()):
+		centroid += cluster[i].global_position * weights[i]
+		wsum += weights[i]
 	centroid /= maxf(wsum, 0.001)
 
-	# half-extent needed to fit the cluster (+ capped velocity lead) symmetrically about the centroid
+	# Extent set: during a super-aim keep the TIGHT caster+opp framing (P1 nudges the centroid but must
+	# not force a zoom-out that kills the aim-fuse read — brief a). Otherwise fit the whole cluster.
+	var ext_set: Array = base if aimer != null else cluster
+
+	# half-extent needed to fit the extent set (+ capped velocity lead) symmetrically about the centroid
 	var ext := Vector2.ZERO
-	for p in cluster:
+	for p in ext_set:
 		ext = ext.max((p.global_position - centroid).abs())
 		var lead: Vector2 = p.velocity.limit_length(CAM_LEAD_CAP) * CAM_LEAD_TIME
 		var lp: Vector2 = p.global_position + lead
