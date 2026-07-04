@@ -53,17 +53,13 @@ const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 # Action-cluster framing + readability-floored zoom on the wide grassy_expanse. The old fit-to-global-
 # spread over-zoomed to ~0.42 (bouncers ~30px) during 4-player combat, killing Pillar-5 readability.
 const CAM_MIN_ZOOM := 0.60     # normal-combat readability floor (was 0.37). Body >= ~63px @1080p:
-                               # color ID, face, and crimson damage-pulse rim all read.
-const CAM_LAUNCH_MIN_ZOOM := 0.42  # kill-cam exception: allowed ONLY while a living player is in
-                               # high knockback heading outward (see LAUNCH_SPEED_FOR_CAM). Eases
-                               # back up to CAM_MIN_ZOOM over LAUNCH_EASE_BACK once knockback settles.
-const CAM_LEAD_TIME := 0.32    # kill-zone spec §6.4: frame ahead of each flier's velocity so a fast
-                               # (capped 2200) launch + its approaching blast line stay on-screen.
-const CAM_LEAD_CAP := 700.0    # px: cap each player's velocity-lead contribution so the lead is a
-                               # nudge, not a spread-forcer — the readability floor wins.
+                               # color ID, face, and crimson damage-pulse rim all read. A fast
+                               # flier's POSITION widens the smoothed AABB frame (no regime toggle).
+const CAM_LEAD_TIME := 0.32    # velocity leads the PAN (not the zoom): nudge the frame CENTER ahead
+                               # of the cluster's motion so a fast launch stays on-screen.
+const CAM_LEAD_CAP := 700.0    # px: cap each player's velocity-lead contribution so the pan-ahead is
+                               # a nudge, not a lurch.
 const CAM_MAX_ZOOM := 0.92     # never zoom in tighter than this
-const LAUNCH_SPEED_FOR_CAM := 1300.0  # px/s outward -> engages the launch-cam floor
-const LAUNCH_EASE_BACK := 0.4  # s to ease the launch floor back to CAM_MIN_ZOOM
 const SUPER_BIAS_MIN_ZOOM := 0.70  # zoom-target floor while a super is charging (aim-fuse legibility)
 const SUPER_BIAS_WEIGHT := 2.5     # centroid weight on the charging caster (frame the aim)
 const CAM_OFFSCREEN_INSET := 40.0  # px: a living player outside visible rect+inset gets an edge chevron
@@ -120,7 +116,6 @@ var _had_contact: Array = []     # per-player: dealt/received >=1 smash this sta
 var _smash_off_stage: Array = [] # per-player: was the LAST smash they received taken off-stage?
 var _combat_active_t: Array = [] # per-player: seconds left in the combat-active window (camera bias)
 var _cluster_linger_t: Array = []# per-player: seconds left lingering in the framing cluster (hysteresis)
-var _launch_ease_t := 0.0        # >0 while the launch-cam floor is engaged / easing back
 var _edge_indicators             # EdgeIndicators overlay (off-screen player chevrons)
 
 # level rotation (shuffle-bag)
@@ -158,7 +153,10 @@ func _ready() -> void:
 	_camera = CameraController.new()
 	_camera.position = _stage_rect.get_center()
 	_camera.dynamic = true   # Smash-style: follow the action, zoom to keep everyone on screen
-	_camera.follow_speed = 8.0   # kill-zone spec §6.4: tighter follow so a fresh launch doesn't outrun the frame
+	_camera.follow_speed = 8.0   # kill-zone spec §6.4: tighter PAN follow so a fresh launch doesn't outrun the frame
+	_camera.zoom_out_speed = 9.0   # widen the view fast (never clip a flier)
+	_camera.zoom_in_speed = 3.0    # tighten the view slow (no snap-in-then-back "pump")
+	_camera.zoom_deadzone = 0.012  # ignore sub-threshold zoom-target wiggle
 	add_child(_camera)
 	_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
 	_juice = Juice.new()
@@ -861,19 +859,11 @@ func _update_camera() -> void:
 			aimer = p
 			break
 
-	# launch-cam floor: engaged while a living player is in high knockback heading OUTWARD toward
-	# a blast line; eases back to CAM_MIN_ZOOM over LAUNCH_EASE_BACK.
-	var launching := false
+	# No launch-cam regime toggle anymore (killed the "breathing pump" that fired on every smash):
+	# a fast flier's POSITION naturally widens the smoothed AABB frame, and the asymmetric zoom
+	# (out-fast / in-slow) in CameraController absorbs the transient. The 0.60 readability floor is
+	# the normal min zoom for everything.
 	var bcenter := bounds.get_center()
-	for p in living:
-		var v: Vector2 = p.velocity
-		if v.length() > LAUNCH_SPEED_FOR_CAM and v.dot(p.global_position - bcenter) > 0.0:
-			launching = true
-			break
-	if launching:
-		_launch_ease_t = LAUNCH_EASE_BACK
-	elif _launch_ease_t > 0.0:
-		_launch_ease_t = maxf(0.0, _launch_ease_t - dt)
 
 	# --- choose the BASE framing membership this tick ---
 	# The local human P1 (players[0]) is tracked separately so it can always be guaranteed into the
@@ -953,32 +943,34 @@ func _update_camera() -> void:
 	# not force a zoom-out that kills the aim-fuse read — brief a). Otherwise fit the whole cluster.
 	var ext_set: Array = base if aimer != null else cluster
 
-	# half-extent needed to fit the extent set (+ capped velocity lead) symmetrically about the centroid
+	# half-extent needed to fit the extent set about the centroid. Fix 1: this is driven by player
+	# POSITIONS only (an AABB), NOT velocities — folding velocity into the zoom extent made the zoom
+	# target jitter at high frequency in a bounce game. Velocity leads the PAN below instead.
 	var ext := Vector2.ZERO
 	for p in ext_set:
 		ext = ext.max((p.global_position - centroid).abs())
-		var lead: Vector2 = p.velocity.limit_length(CAM_LEAD_CAP) * CAM_LEAD_TIME
-		var lp: Vector2 = p.global_position + lead
-		lp.x = clampf(lp.x, bounds.position.x, bounds.end.x)   # frame the wall, not the void beyond
-		lp.y = clampf(lp.y, bounds.position.y, bounds.end.y)
-		ext = ext.max((lp - centroid).abs())
 	ext += CAM_MARGIN
 
-	# zoom to fit, then clamp to the effective floor .. max
+	# zoom to fit, then clamp to the floor .. max. The 0.60 readability floor is the normal min for
+	# everything now (no launch regime): a fast flier's position simply grows `ext` -> lower z, and
+	# the asymmetric out-fast damping widens the view smoothly to meet it.
 	var z := minf(1920.0 / maxf(2.0 * ext.x, 1.0), 1080.0 / maxf(2.0 * ext.y, 1.0))
 	var lo := CAM_MIN_ZOOM
-	if _launch_ease_t > 0.0:
-		# ease from the launch floor (0.42) back up to the normal floor (0.60)
-		var f := _launch_ease_t / LAUNCH_EASE_BACK
-		lo = lerpf(CAM_MIN_ZOOM, CAM_LAUNCH_MIN_ZOOM, f)
-	elif aimer != null:
-		lo = maxf(lo, SUPER_BIAS_MIN_ZOOM)   # aim-fuse legibility (launch-cam takes precedence if active)
+	if aimer != null:
+		lo = maxf(lo, SUPER_BIAS_MIN_ZOOM)   # aim-fuse legibility
 	z = clampf(z, lo, CAM_MAX_ZOOM)
+
+	# Fix 1: velocity leads the PAN (frame center), not the zoom. Nudge the center ahead of the
+	# cluster's weighted motion so a fast launch stays on-screen without inflating the zoom target.
+	var vlead := Vector2.ZERO
+	for i in range(cluster.size()):
+		vlead += cluster[i].velocity.limit_length(CAM_LEAD_CAP) * weights[i]
+	vlead = (vlead / maxf(wsum, 0.001)) * CAM_LEAD_TIME
 
 	# clamp the frame center so the visible rect stays inside bounds (never reveal the void)
 	var half := Vector2(1920.0, 1080.0) / (2.0 * z)
-	var cx: float = centroid.x
-	var cy: float = centroid.y
+	var cx: float = centroid.x + vlead.x
+	var cy: float = centroid.y + vlead.y
 	if bounds.size.x > 2.0 * half.x:
 		cx = clampf(cx, bounds.position.x + half.x, bounds.end.x - half.x)
 	else:
