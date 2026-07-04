@@ -15,13 +15,12 @@ bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the 
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** 10-LEVEL CIRCUIT COMPLETE (all in-engine validated): islands_void, grassy_expanse,
-drop_chamber (enclosed drum), the_spine (ridge), twin_chasms (two-void), the_cliff (asymmetric mesa),
-atoll (radial well), spires (verticality), bumper_gauntlet (interior pinball), the_ascent (dual vertical
-blast). Backdrop infra: reusable `enclosed` + `open_sky` modes. NOW (owner-flagged, PRIORITY): bots
-head-bang platform undersides (downward-only nav, no overhead sensing) → obstacle-aware ascent fix +
-a **bot-motion-health probe** (stuck/underside-bounce/blocked-ascent metrics in the QA feed) to catch
-motion pathologies automatically. THEN: batch theming/grading pass + circuit-wide QA (with motion-health).
+**CURRENT FOCUS:** 10-LEVEL CIRCUIT built, THEMED, and validated per-level; bot head-banging FIXED
+(obstacle-aware ascent) + a permanent **bot-motion-health probe** in the QA feed + motion-quality now
+a QA obligation (GAME_ESSENCE). Circuit levels each have a distinct kill-shape AND a distinct look
+(meadow / dark drum / steel high-sky / golden-hour / bright morning / teal atoll / indigo twilight /
+arcade violet / dusk). NOW: circuit-wide QA on the full rotation (pacing/feel/readability + motion-health,
+criteria C1-C6) — the culminating validation. THEN act on its verdict, then the backlog/stretch.
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
