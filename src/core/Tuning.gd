@@ -148,6 +148,12 @@ var double_ko_window: float = 0.50     # s — the ONLY sudden-death trigger: la
 var kill_credit_window: float = 4.0    # s — last-attacker kill credit (kill-zone v2.1 §11.2 RULING 3:
                                        #   2.5 -> 4.0 INTERIM; covers the failed-recovery arc across the v2
                                        #   widened runway. PREFERRED end-state = persist through launch state.
+var kill_credit_window_ringout: float = 6.0  # v2_kill_shape §3 RULING 3: EXTENDED window for ring-out/pit
+                                       #   deaths only. A failed-recovery arc into a side/pit blast takes 3-5s
+                                       #   (launch + doomed boost attempts); the 4.0 standard expires mid-arc and
+                                       #   mis-logs the kill as an uncredited self-fall. 6.0 captures the full arc.
+                                       #   §1b reconciliation: within 6.0 of a qualifying hit = CREDITED; no
+                                       #   qualifying hit in the window = genuine self-fall (-1 self-floor, kept).
 var match_target_kills: int = 10       # v1 §2: first to this many CUMULATIVE kills with a strict lead wins
 var match_target_score: int = 10       # RETIRED alias of match_target_kills (v0 back-compat; unused)
 var lives_per_player: int = 1          # v1 §3: default 1 (dead = out for the stage). >1 enables the
@@ -197,9 +203,14 @@ var wounded_focus_range_max: float = 2600.0  # camera/sanity cap on the width-sc
 # scales with walkable width (clamped); vertical margins are fixed (super/spring launch physics don't
 # scale with width). An explicit "bounds" block in level JSON is an OPTIONAL OVERRIDE (back-compat for
 # hand-tuned levels). Chosen to reproduce dev_arena's validated v2 bounds within ~geometry tolerance.
-var bounds_side_frac: float = 0.52       # §14: fraction of walkable width per side (dev_arena: 0.52*1792=932)
-var bounds_side_min: float = 700.0       # §14: floor so a short level isn't un-survivably tight
-var bounds_side_max: float = 1400.0      # §14: cap so a very long level's runway stays camera/recovery-sane
+# v2_kill_shape §1b CORRECTION: the runway must track the FIXED launch band, not scale with level
+# width (0.52-frac blew the walkable edge OUTSIDE blast range on wide levels -> off_stage_kills=0).
+# Small width component only; clamped to the Lv0 band so the walkable OUTER edge is ALWAYS inside
+# blast range on every circuit level. Grassy(3760)->clamp(564,480,720)=564 (~560 runway, matches the
+# explicit -560/4320 override); dev_arena(1792)->480 floor; a 5000-wide level->720 cap.
+var bounds_side_frac: float = 0.15       # §1b: small width component only (was 0.52 = scaled with width)
+var bounds_side_min: float = 480.0       # §1b: floor (was 700) — tightest runway, still a survivable mid-stage arc
+var bounds_side_max: float = 720.0       # §1b: cap (was 1400) — never exceeds Lv0 band top (~900) minus margin
 var bounds_top_margin: float = 2650.0    # v1_kill_economy §1: 1700->2650 = self_super_rise(2450)+200 clearance,
                                          # so a straight-up self-super arcs back from the highest platform on
                                          # EVERY circuit level (no routine upward self-destruct). (dev_arena top 540 -> -2110)

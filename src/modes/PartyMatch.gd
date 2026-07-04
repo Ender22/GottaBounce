@@ -447,6 +447,7 @@ func _on_killed(victim, cause, attacker) -> void:
 		kills.append({
 			"killer": ki, "victim": idx,
 			"off_stage": _smash_off_stage[idx] if idx < _smash_off_stage.size() else false,
+			"blast_edge": _classify_blast_edge(victim),   # v2_kill_shape §6: which bound the victim crossed (K1)
 			"t": round_clock,
 		})
 		_cur_stats["end_cause"] = str(cause)   # the stage-deciding death overwrites last
@@ -492,6 +493,32 @@ func _on_killed(victim, cause, attacker) -> void:
 		_decide_stage_end(false)   # nobody left — decide immediately (double-KO SD or NOBODY SURVIVES)
 	elif ne == 1:
 		_end_check = Tuning.double_ko_window   # the survivor might still be mid-double-KO
+
+## v2_kill_shape §6: classify which blast line the victim crossed at death, for the kill-SHAPE
+## measurement (K1: edges >= 60% / pit <= 30%). Derived from the victim's last-frame position vs
+## `bounds`. A bottom crossing INSIDE the walkable x-span is the central "pit"; a bottom crossing
+## outside it is a true "bottom" blast. A death still inside bounds (e.g. a hazard) is "none".
+func _classify_blast_edge(victim) -> String:
+	if not is_instance_valid(victim):
+		return "none"
+	var pos: Vector2 = victim.global_position
+	var out_left: float = bounds.position.x - pos.x
+	var out_right: float = pos.x - bounds.end.x
+	var out_top: float = bounds.position.y - pos.y
+	var out_bottom: float = pos.y - bounds.end.y
+	var m: float = maxf(maxf(out_left, out_right), maxf(out_top, out_bottom))
+	if m <= 0.0:
+		return "none"   # still inside bounds — not a ring-out (hazard / other cause)
+	if m == out_bottom:
+		# bottom crossing: the central pit if the victim is within the walkable x-span, else a true blast
+		if pos.x >= _stage_rect.position.x and pos.x <= _stage_rect.end.x:
+			return "pit"
+		return "bottom"
+	if m == out_top:
+		return "top"
+	if m == out_left:
+		return "left"
+	return "right"
 
 ## The single leader at >= match_target_kills, or -1 if no one leads at target (spec §2 strict lead).
 func _match_over_leader() -> int:

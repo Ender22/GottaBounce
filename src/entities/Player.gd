@@ -68,6 +68,9 @@ var _down_angle := PI * 0.5    # local-gravity direction angle (for body orienta
 var last_attacker = null       # for kill credit (P9); cleared after a couple seconds
 var skin := "pink"             # character sprite color (set by the mode before add_child)
 var _attacker_timer := 0.0
+var _attacker_age := 0.0        # v2_kill_shape §3: seconds since last_attacker was set. The record is
+                                # RETAINED for kill_credit_window_ringout (6.0); kill() gates the credit
+                                # by cause (ring_out uses 6.0, everything else the 4.0 standard).
 # --- Damage system (kill-zone recovery spec v3 §12 — replaces the compounding sting) ---
 var damage_level: int = 0          # §12.1: transient reeling state 0 (healthy) / 1 / 2. Caps at 2, heals
                                    # FULLY to 0 (never partial) after dmg_heal_time with no qualifying hit.
@@ -308,6 +311,7 @@ func _physics_process(delta: float) -> void:
 	_spawn_protect = maxf(0.0, _spawn_protect - delta)
 	_deform_cd = maxf(0.0, _deform_cd - delta)
 	_attacker_timer = maxf(0.0, _attacker_timer - delta)
+	_attacker_age += delta
 	if _attacker_timer <= 0.0:
 		last_attacker = null
 	# Damage heal (v3 §12.5): a damaged player heals FULLY to Lv0 after dmg_heal_time with no
@@ -787,7 +791,8 @@ func receive_smash(impulse: Vector2, attacker, s: float = 1.0, angular_kick: flo
 	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
 	if attacker != null and attacker is Player:
 		last_attacker = attacker
-		_attacker_timer = Tuning.kill_credit_window
+		_attacker_timer = Tuning.kill_credit_window_ringout   # v2_kill_shape §3: retain 6.0; kill() gates by cause
+		_attacker_age = 0.0
 	# pairwise smash immunity: while THIS hitstun lasts, my flying body never smashes my stunner
 	# back, and any smash my body lands is credited to them (chain launcher credit)
 	_stunned_by = attacker if (attacker != null and attacker is Player) else null
@@ -812,7 +817,8 @@ func receive_counter_launch(impulse: Vector2, holder) -> void:
 	velocity = impulse.limit_length(Tuning.max_speed)
 	if holder != null and holder is Player:
 		last_attacker = holder
-		_attacker_timer = Tuning.kill_credit_window
+		_attacker_timer = Tuning.kill_credit_window_ringout   # v2_kill_shape §3: retain 6.0; kill() gates by cause
+		_attacker_age = 0.0
 	_stunned_by = holder if (holder != null and holder is Player) else null   # pairwise immunity
 	var st := Tuning.hitstun_base + impulse.length() * Tuning.hitstun_per_impulse
 	_stun_timer = minf(st, Tuning.hitstun_max)
@@ -823,7 +829,8 @@ func receive_counter_launch(impulse: Vector2, holder) -> void:
 func credit_attacker(attacker) -> void:
 	if attacker != null and attacker != self and attacker is Player:
 		last_attacker = attacker
-		_attacker_timer = Tuning.kill_credit_window
+		_attacker_timer = Tuning.kill_credit_window_ringout   # v2_kill_shape §3: retain 6.0; kill() gates by cause
+		_attacker_age = 0.0
 
 func flash() -> void:
 	_flash_timer = 0.12
@@ -878,8 +885,13 @@ func reset_powerup_state() -> void:
 	silhouette = false
 
 func kill(cause: StringName, attacker = null) -> void:
-	if attacker == null:
-		attacker = last_attacker   # knocked into a hazard / off the map = the smasher's kill
+	if attacker == null and last_attacker != null and is_instance_valid(last_attacker):
+		# v2_kill_shape §3: gate the retained last-attacker credit by cause. Ring-outs/pit falls get the
+		# extended 6.0 window (captures the 3-5s failed-recovery arc); every other cause keeps the 4.0
+		# standard. Beyond the window = genuine self-fall -> attacker stays null (§1b -1 self-floor holds).
+		var window: float = Tuning.kill_credit_window_ringout if cause == &"ring_out" else Tuning.kill_credit_window
+		if _attacker_age <= window:
+			attacker = last_attacker   # knocked into a hazard / off the map = the smasher's kill
 	KillPipeline.kill(self, cause, attacker)
 
 ## Seed a transient damage level (killrace §5: double-KO SD revives both pre-damaged at Lv2 so the

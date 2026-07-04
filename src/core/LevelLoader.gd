@@ -31,10 +31,17 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 	parent.add_child(renderer)
 	renderer.setup(json)
 
+	# Void rects gathered FIRST so paint_platform can suppress cheerful decals at a death edge
+	# (pit_void_rendering.md §6.3) — a daisy blooming at the lip of a lethal pit is an auto-Fix.
+	var void_rects: Array = []
+	for o in json.get("objects", []):
+		if str(o.get("type", "")) == "void":
+			void_rects.append(Rect2(float(o["x"]), float(o["y"]), float(o.get("w", 0.0)), float(o.get("h", 0.0))))
+
 	var play_rect := Rect2()
 	var first := true
 	for p in json.get("platforms", []):
-		_build_platform(p, parent, renderer)
+		_build_platform(p, parent, renderer, void_rects)
 		var r := Rect2(float(p["x"]), float(p["y"]), float(p["w"]), float(p["h"]))
 		play_rect = r if first else play_rect.merge(r)
 		first = false
@@ -45,6 +52,10 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 		match otype:
 			"player_spawn":
 				result["spawns"].append(Vector2(o["x"], o["y"]))
+			"void":
+				# pit_void_rendering.md: display-only lethal-void renderer, NO collider (the kill stays
+				# the bounds-bottom line). Painted AFTER platforms so their dirt bleed overhangs the seam.
+				renderer.paint_void(o)
 			"spikes":
 				_build_spikes(o, parent)
 			"powerup_spawner":
@@ -84,7 +95,7 @@ static func _rect_polygon(w: float, h: float) -> PackedVector2Array:
 		Vector2(w * 0.5, h * 0.5), Vector2(-w * 0.5, h * 0.5)
 	])
 
-static func _build_platform(p: Dictionary, parent: Node2D, renderer: ArenaRenderer) -> void:
+static func _build_platform(p: Dictionary, parent: Node2D, renderer: ArenaRenderer, void_rects: Array = []) -> void:
 	var w: float = p["w"]
 	var h: float = p["h"]
 	var tier := str(p.get("tier", "marshmallow"))
@@ -102,7 +113,7 @@ static func _build_platform(p: Dictionary, parent: Node2D, renderer: ArenaRender
 	else:
 		body.set_meta("bounce_tier_height", Tuning.bounce_height_for(StringName(tier)))
 	parent.add_child(body)
-	renderer.paint_platform(p, body)   # display-only; collider above is authoritative
+	renderer.paint_platform(p, body, void_rects)   # display-only; collider above is authoritative
 
 ## Sky/background painting lives in ArenaRenderer (7-layer parallax stack per the art brief).
 

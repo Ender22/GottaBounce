@@ -326,11 +326,24 @@ func _process(delta: float) -> void:
 
 ## Paint one platform's art into its StaticBody2D. Up to three stacked pieces: body (theme),
 ## tier mat (readability contract), decals (kill tiling repetition). Collider untouched.
-func paint_platform(p: Dictionary, body: StaticBody2D) -> void:
+func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -> void:
 	var w: float = p["w"]
 	var h: float = p["h"]
 	var tier := str(p.get("tier", "marshmallow"))
 	var top := -h * 0.5
+	# pit_void_rendering.md §6.3: a cap within ~50px of a void edge is a DEATH edge — suppress its
+	# cheerful tuft+daisy so a flower never blooms at the lip of a lethal pit.
+	var plat_left: float = float(p["x"])
+	var plat_right: float = plat_left + w
+	var suppress_left := false
+	var suppress_right := false
+	for vr in void_rects:
+		var vrect: Rect2 = vr
+		for vedge in [vrect.position.x, vrect.end.x]:
+			if absf(plat_left - float(vedge)) <= 50.0:
+				suppress_left = true
+			if absf(plat_right - float(vedge)) <= 50.0:
+				suppress_right = true
 	var root := Node2D.new()
 	root.name = "Art"
 	body.add_child(root)
@@ -379,7 +392,7 @@ func paint_platform(p: Dictionary, body: StaticBody2D) -> void:
 		mat.position = Vector2(0.0, -mat_h * 0.5)
 		pivot.add_child(mat)
 
-	_scatter_end_decals(art, w, mat_top, rng)   # tufts hugging the mat's outer corners + flowers
+	_scatter_end_decals(art, w, mat_top, rng, suppress_left, suppress_right)   # tufts + flowers (skipped at a void lip)
 	if tier == "spring":
 		_springs.append({ "pivot": pivot, "next_t": _t + randf_range(2.0, 5.0) })
 	_surfaces[body] = { "tier": tier, "art": art, "mat": pivot, "w": w, "top": top, "last_ms": -9999 }
@@ -469,10 +482,15 @@ func _scatter_back_tufts(art: Node2D, w: float, top: float, rng: RandomNumberGen
 		art.add_child(sp)
 
 ## End decals over the mat corners (~20% of cap width in) + flowers at cap ends only (max 2).
-func _scatter_end_decals(art: Node2D, w: float, mat_top: float, rng: RandomNumberGenerator) -> void:
+## suppress_left/suppress_right skip the tuft+flower on a cap that sits at a lethal-void lip
+## (pit_void_rendering.md §6.3) — no cheerful greenery at a death edge.
+func _scatter_end_decals(art: Node2D, w: float, mat_top: float, rng: RandomNumberGenerator,
+		suppress_left := false, suppress_right := false) -> void:
 	var tufts := _tuft_textures()
 	if not tufts.is_empty():
 		for side in [-1.0, 1.0]:
+			if (side < 0.0 and suppress_left) or (side > 0.0 and suppress_right):
+				continue
 			var tex: Texture2D = tufts[rng.randi_range(0, tufts.size() - 1)]
 			var size := rng.randf_range(40.0, 56.0)
 			var sc := size / float(tex.get_width())
@@ -487,6 +505,8 @@ func _scatter_end_decals(art: Node2D, w: float, mat_top: float, rng: RandomNumbe
 		var ftex: Texture2D = load(FLOWER_TEX)
 		for i in range(flowers):
 			var side := -1.0 if i == 0 else 1.0
+			if (side < 0.0 and suppress_left) or (side > 0.0 and suppress_right):
+				continue
 			var size := rng.randf_range(36.0, 50.0)
 			var sc := size / float(ftex.get_width())
 			var sp := Sprite2D.new()
@@ -497,6 +517,169 @@ func _scatter_end_decals(art: Node2D, w: float, mat_top: float, rng: RandomNumbe
 			art.add_child(sp)
 	else:
 		_warn_once("flower", "ArenaRenderer: no decal_flower_white yet — flowers skipped")
+
+# ============================== LETHAL VOID (pit_void_rendering.md) ==============================
+
+## Paint a stylized cartoon lethal-void into the pit gap (pit_void_rendering.md). 100% code-drawn
+## (gradients + polygons + one CPUParticles2D) — no art assets, so it adapts to any pit width/theme.
+## Display-only: NO collider (the kill stays the bounds-bottom line). Four cues, back-to-front:
+## bottomless cool gradient fill, receding dirt walls, under-lip AO, falling motes, then the hot
+## hazard LIP accent ON TOP. z-order (§4): fill −8, walls −7, AO −6, motes −5 (all BEHIND platform
+## art so the floor dirt overhangs the top seam), lip accent +1 (sits ON the edge).
+func paint_void(v: Dictionary) -> void:
+	var rim_y := float(v.get("y", 1000.0))
+	var left_x := float(v.get("x", 0.0))
+	var w := float(v.get("w", 560.0))
+	var right_x := left_x + w
+	var depth := float(v.get("h", 798.0))
+	var wall_px := float(v.get("wall_px", 80.0))
+	if w <= 0.0 or depth <= 0.0:
+		_warn_once("void", "ArenaRenderer.paint_void: void with w/h <= 0 — skipped")
+		return
+	var bottom_y := rim_y + depth
+	var root := Node2D.new()
+	root.name = "Void"
+	add_child(root)
+
+	# --- 3a. Center bottomless fill: 4-stop cool vertical gradient, rim -> near-black navy ---
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.18, 0.5, 1.0])
+	grad.colors = PackedColorArray([
+		Color("#2B5140"), Color("#143A46"), Color("#0E2536"), Color("#060E18")])
+	var gtex := GradientTexture2D.new()
+	gtex.gradient = grad
+	gtex.fill = GradientTexture2D.FILL_LINEAR
+	gtex.fill_from = Vector2(0, 0)
+	gtex.fill_to = Vector2(0, 1)   # vertical
+	gtex.width = 4
+	gtex.height = 256
+	var fill := Sprite2D.new()
+	fill.texture = gtex
+	fill.centered = false
+	fill.position = Vector2(left_x, rim_y)
+	fill.scale = Vector2(w / 4.0, depth / 256.0)
+	fill.z_index = -8
+	root.add_child(fill)
+	# solid deep-color extension below the rect to bounds.bottom+margin so no seam shows at any zoom
+	var deep := Color("#060E18")
+	var ext := Polygon2D.new()
+	ext.polygon = PackedVector2Array([
+		Vector2(left_x, bottom_y), Vector2(right_x, bottom_y),
+		Vector2(right_x, bottom_y + 600.0), Vector2(left_x, bottom_y + 600.0)])
+	ext.color = deep
+	ext.z_index = -8
+	root.add_child(ext)
+
+	# --- 3b. Receding dirt walls on each pit-facing edge (volume + "it goes down") ---
+	_void_wall(root, left_x, 1.0, rim_y, bottom_y, wall_px)    # left floor's inner edge, extends right
+	_void_wall(root, right_x, -1.0, rim_y, bottom_y, wall_px)  # right floor's inner edge, extends left
+
+	# --- 3c. Under-lip AO band: the overhang shadow the grass fringe casts INTO the hole ---
+	var ao := Polygon2D.new()
+	ao.polygon = PackedVector2Array([
+		Vector2(left_x, rim_y), Vector2(right_x, rim_y),
+		Vector2(right_x, rim_y + 36.0), Vector2(left_x, rim_y + 36.0)])
+	var ao_c := Color("#0A1A24")
+	var ao_top := Color(ao_c.r, ao_c.g, ao_c.b, 0.55)
+	var ao_bot := Color(ao_c.r, ao_c.g, ao_c.b, 0.0)
+	ao.vertex_colors = PackedColorArray([ao_top, ao_top, ao_bot, ao_bot])
+	ao.z_index = -6
+	root.add_child(ao)
+
+	# --- 3d. Falling motes: sparse slow downward drift, fade out ("things fall in and are gone") ---
+	var motes := CPUParticles2D.new()
+	motes.amount = 14
+	motes.lifetime = 2.5
+	motes.preprocess = 2.5
+	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	motes.emission_rect_extents = Vector2(w * 0.5 - wall_px, 8.0)
+	motes.position = Vector2((left_x + right_x) * 0.5, rim_y + 12.0)
+	motes.direction = Vector2.DOWN
+	motes.spread = 10.0
+	motes.gravity = Vector2(0.0, 30.0)
+	motes.initial_velocity_min = 20.0
+	motes.initial_velocity_max = 60.0
+	motes.scale_amount_min = 1.5
+	motes.scale_amount_max = 3.0
+	var mg := Gradient.new()
+	mg.offsets = PackedFloat32Array([0.0, 1.0])
+	mg.colors = PackedColorArray([Color(0.812, 0.902, 0.878, 0.35), Color(0.812, 0.902, 0.878, 0.0)])
+	motes.color_ramp = mg
+	var mm := CanvasItemMaterial.new()
+	mm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	motes.material = mm
+	motes.z_index = -5
+	root.add_child(motes)
+
+	# --- 3e. Hazard LIP accent (inverse-of-chocolate "cannot stand here") — ON TOP (z +1) ---
+	var haz := Color("#E6402C")   # matte hazard red — reserved to the void lip (brief §5)
+	var rim := Polygon2D.new()    # thin matte red rim across the mouth, tucked under the grass fringe
+	rim.polygon = PackedVector2Array([
+		Vector2(left_x, rim_y - 1.0), Vector2(right_x, rim_y - 1.0),
+		Vector2(right_x, rim_y + 5.0), Vector2(left_x, rim_y + 5.0)])
+	rim.color = haz
+	rim.z_index = 1
+	root.add_child(rim)
+	# down-pointing chevrons spaced ~90px across the mouth, pointing INTO the pit
+	var span_l := left_x + wall_px * 0.5
+	var span_r := right_x - wall_px * 0.5
+	var n := maxi(1, int((span_r - span_l) / 90.0))
+	for i in range(n + 1):
+		var cx := lerpf(span_l, span_r, float(i) / float(n))
+		_void_chevron(root, cx, rim_y + 12.0, haz)
+
+## One receding dirt wall panel (trapezoid tapered inward at the bottom to foreshorten) + strata
+## lines + a top-inner-corner highlight. dir: +1 = edge on the left (wall extends right), -1 = right.
+func _void_wall(root: Node2D, edge_x: float, dir: float, rim_y: float, bottom_y: float, wall_px: float) -> void:
+	var taper := wall_px * 0.25
+	var inner_x := edge_x + dir * wall_px            # edge adjacent to the center fill
+	var bot_outer := edge_x + dir * taper            # outer edge insets toward center at the bottom
+	var top_c := Color("#6E4126")                    # lit dirt top
+	var deep_c := Color("#241408")                   # deep dirt
+	var wall := Polygon2D.new()
+	wall.polygon = PackedVector2Array([
+		Vector2(edge_x, rim_y), Vector2(inner_x, rim_y),
+		Vector2(inner_x, bottom_y), Vector2(bot_outer, bottom_y)])
+	wall.vertex_colors = PackedColorArray([top_c, top_c, deep_c, deep_c])
+	wall.z_index = -7
+	root.add_child(wall)
+	# cartoon rock strata (thin darker horizontal layers)
+	var strata_c := Color("#2A1810")
+	for f in [0.32, 0.55, 0.78]:
+		var sy := lerpf(rim_y, bottom_y, f)
+		var outer := lerpf(edge_x, bot_outer, f)
+		var line := Polygon2D.new()
+		line.polygon = PackedVector2Array([
+			Vector2(outer, sy), Vector2(inner_x, sy),
+			Vector2(inner_x, sy + 4.0), Vector2(outer, sy + 4.0)])
+		line.color = strata_c
+		line.z_index = -7
+		root.add_child(line)
+	# 2px warm highlight on the top inner corner (catches the top-left light)
+	var hi := Polygon2D.new()
+	hi.polygon = PackedVector2Array([
+		Vector2(edge_x, rim_y), Vector2(inner_x, rim_y),
+		Vector2(inner_x, rim_y + 2.0), Vector2(edge_x, rim_y + 2.0)])
+	hi.color = Color("#8A5A38")
+	hi.z_index = -7
+	root.add_child(hi)
+
+## A small down-pointing hazard chevron (matte red fill on a dark-red outline — NOT chocolate).
+func _void_chevron(root: Node2D, cx: float, cy: float, fill_c: Color) -> void:
+	var cw := 8.0
+	var ch := 11.0
+	var outline := Polygon2D.new()   # slightly larger dark-red triangle behind = the warning outline
+	outline.polygon = PackedVector2Array([
+		Vector2(cx - cw - 2.0, cy - 2.0), Vector2(cx + cw + 2.0, cy - 2.0), Vector2(cx, cy + ch + 2.0)])
+	outline.color = Color("#7A1E14")
+	outline.z_index = 1
+	root.add_child(outline)
+	var tri := Polygon2D.new()
+	tri.polygon = PackedVector2Array([
+		Vector2(cx - cw, cy), Vector2(cx + cw, cy), Vector2(cx, cy + ch)])
+	tri.color = fill_c
+	tri.z_index = 1
+	root.add_child(tri)
 
 # ============================== BOUNCE FX (brief §2, code FX) ==============================
 
