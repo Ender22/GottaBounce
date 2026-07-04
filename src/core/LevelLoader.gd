@@ -77,6 +77,11 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 		result["bounds"] = _derive_bounds(play_rect)
 	result["objects_raw"] = json.get("objects", [])   # so modes can read custom objects (campaign etc.)
 	result["name"] = str(json.get("name", path.get_file().get_basename()))  # v1 rotation QA readout
+	# Kill-shape class (v2a addendum §4b#1): declares HOW this arena is meant to kill so QA auto-selects
+	# the right K1 target per class (central_pit vs void_is_floor/dual_blast/enclosed_hole). Data only —
+	# does NOT change lethality; drives the QA metric interpretation + blast-edge label readability.
+	# Default (absent) = "central_pit" for back-compat with grassy/dev levels.
+	result["kill_shape"] = str(json.get("kill_shape", "central_pit"))
 	return result
 
 ## Derive blast-line bounds from the walkable AABB (kill-zone recovery spec v3 §14). Side margin

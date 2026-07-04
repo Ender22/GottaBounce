@@ -78,9 +78,10 @@ var scores: Array = []           # CUMULATIVE kills per player, never reset betw
 var lives_left: Array = []       # per-player remaining lives this stage (0 = eliminated)
 var level_index := -1            # index into LEVEL_POOL of the current stage's level
 var level_name := ""             # display name of the current stage's level (rotation QA readout)
+var _kill_shape := "central_pit" # v2a addendum §4b: current level's kill-shape class (QA target select)
 var last_death_msec := 0         # ticks_msec of the most recent death (turnaround measurement)
 var combat_start_msec := 0       # ticks_msec of the last "BOUNCE!" physics unlock
-var round_stats: Array = []      # per-stage QA record: {stage_index, level_name, length_s, end_cause,
+var round_stats: Array = []      # per-stage QA record: {stage_index, level_name, kill_shape, length_s, end_cause,
                                  # entered_sd, kills[{killer,victim,off_stage,t}], survivor_had_contact,
                                  # supers_fired[...], smashes[...]}
 var _cur_stats: Dictionary = {}  # the stage currently being recorded
@@ -223,6 +224,7 @@ func _load_stage(path: String) -> void:
 	_stage_rect = data.get("play_rect", Rect2(bounds.get_center() - Vector2(900, 160), Vector2(1800, 320)))
 	level_index = maxi(0, LEVEL_POOL.find(path))
 	level_name = str(data.get("name", path.get_file().get_basename()))
+	_kill_shape = str(data.get("kill_shape", "central_pit"))   # v2a §4b#1: QA target class
 
 # ------------------------------------------------------------------- state machine
 
@@ -352,6 +354,7 @@ func _bounce_go() -> void:
 	combat_start_msec = Time.get_ticks_msec()
 	_cur_stats = {
 		"stage_index": stage_index, "level_name": level_name,
+		"kill_shape": _kill_shape,   # v2a §4b#1: QA aggregator selects K1 vs K1'/DC1/AS1 from THIS
 		"length_s": 0.0, "end_cause": "none", "entered_sd": false,
 		"kills": [], "survivor_had_contact": false, "supers_fired": [],
 		"smashes": [],   # kill-zone spec §8: hit-solidity distribution + recovery correlation feed
@@ -522,6 +525,12 @@ func _classify_blast_edge(victim) -> String:
 	if m == out_bottom:
 		# bottom crossing: the central pit if the victim is within the walkable x-span, else a true blast
 		if pos.x >= _stage_rect.position.x and pos.x <= _stage_rect.end.x:
+			# v2a §4b#2 cosmetic relabel: on a void-is-floor arena the void IS the whole floor, so a
+			# bottom-inside-span fall is the intended off-screen kill, NOT a demoted mid-map hole. Report
+			# it as "void" so raw stats never conflate it with central_pit's "pit". Label only — the kill
+			# economy/credit is unchanged; central_pit stays byte-for-byte "pit".
+			if _kill_shape == "void_is_floor":
+				return "void"
 			return "pit"
 		return "bottom"
 	if m == out_top:
