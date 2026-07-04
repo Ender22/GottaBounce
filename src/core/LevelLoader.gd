@@ -40,9 +40,11 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 
 	var play_rect := Rect2()
 	var first := true
+	var platform_rects: Array = []   # for paint_void: draws canyon walls/AO at inner-island cliffs
 	for p in json.get("platforms", []):
 		_build_platform(p, parent, renderer, void_rects)
 		var r := Rect2(float(p["x"]), float(p["y"]), float(p["w"]), float(p["h"]))
+		platform_rects.append(r)
 		play_rect = r if first else play_rect.merge(r)
 		first = false
 	result["play_rect"] = play_rect
@@ -55,7 +57,9 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 			"void":
 				# pit_void_rendering.md: display-only lethal-void renderer, NO collider (the kill stays
 				# the bounds-bottom line). Painted AFTER platforms so their dirt bleed overhangs the seam.
-				renderer.paint_void(o)
+				# Platform rects let the renderer extend the chasm treatment (dark riser + canyon walls +
+				# under-lip AO) into the gaps BETWEEN floating islands, not just at the void's outer edges.
+				renderer.paint_void(o, platform_rects)
 			"spikes":
 				_build_spikes(o, parent)
 			"powerup_spawner":

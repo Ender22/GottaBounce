@@ -526,7 +526,7 @@ func _scatter_end_decals(art: Node2D, w: float, mat_top: float, rng: RandomNumbe
 ## bottomless cool gradient fill, receding dirt walls, under-lip AO, falling motes, then the hot
 ## hazard LIP accent ON TOP. z-order (§4): fill −8, walls −7, AO −6, motes −5 (all BEHIND platform
 ## art so the floor dirt overhangs the top seam), lip accent +1 (sits ON the edge).
-func paint_void(v: Dictionary) -> void:
+func paint_void(v: Dictionary, platforms: Array = []) -> void:
 	var rim_y := float(v.get("y", 1000.0))
 	var left_x := float(v.get("x", 0.0))
 	var w := float(v.get("w", 560.0))
@@ -541,25 +541,9 @@ func paint_void(v: Dictionary) -> void:
 	root.name = "Void"
 	add_child(root)
 
-	# --- 3a. Center bottomless fill: 4-stop cool vertical gradient, rim -> near-black navy ---
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.18, 0.5, 1.0])
-	grad.colors = PackedColorArray([
-		Color("#2B5140"), Color("#143A46"), Color("#0E2536"), Color("#060E18")])
-	var gtex := GradientTexture2D.new()
-	gtex.gradient = grad
-	gtex.fill = GradientTexture2D.FILL_LINEAR
-	gtex.fill_from = Vector2(0, 0)
-	gtex.fill_to = Vector2(0, 1)   # vertical
-	gtex.width = 4
-	gtex.height = 256
-	var fill := Sprite2D.new()
-	fill.texture = gtex
-	fill.centered = false
-	fill.position = Vector2(left_x, rim_y)
-	fill.scale = Vector2(w / 4.0, depth / 256.0)
-	fill.z_index = -8
-	root.add_child(fill)
+	# --- 3a. Center bottomless fill: 4-stop cool vertical gradient, rim -> near-black navy (shared
+	# with the inter-island gaps so the two look identical — §3f).
+	_void_fill_sprite(root, left_x, right_x, rim_y, bottom_y)
 	# solid deep-color extension below the rect to bounds.bottom+margin so no seam shows at any zoom
 	var deep := Color("#060E18")
 	var ext := Polygon2D.new()
@@ -627,6 +611,126 @@ func paint_void(v: Dictionary) -> void:
 	for i in range(n + 1):
 		var cx := lerpf(span_l, span_r, float(i) / float(n))
 		_void_chevron(root, cx, rim_y + 12.0, haz)
+
+	# --- 3f. INNER-ISLAND chasm treatment (CD #5 P1): the void rect spans the whole bottom, but 3a/3b
+	# above only line the ARENA edges, so a single inter-island gap read as a thin dark strip amid green
+	# hills at combat zoom. Render each gap between the floating floor islands with the SAME fill+wall
+	# path the central pit uses (identical gradient + _void_wall) so it looks exactly like a central pit
+	# — flush cliff walls descending from each island's underside, darkest at the center. Generic to any
+	# void_is_floor level, so the whole circuit inherits a consistent chasm read at ALL zooms.
+	_paint_void_gaps(root, platforms, rim_y, bottom_y, wall_px)
+
+## The 4-stop cool bottomless-fill gradient (rim -> near-black navy), as a vertical GradientTexture2D
+## sprite spanning [left_x,right_x] x [top_y,bottom_y]. Shared by the full-width void (3a) AND every
+## inter-island gap (3f) so they are pixel-for-pixel the same treatment (darkest at the bottom center).
+func _void_fill_sprite(root: Node2D, left_x: float, right_x: float, top_y: float, bottom_y: float) -> void:
+	var w := right_x - left_x
+	var h := bottom_y - top_y
+	if w <= 0.0 or h <= 0.0:
+		return
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.18, 0.5, 1.0])
+	grad.colors = PackedColorArray([
+		Color("#2B5140"), Color("#143A46"), Color("#0E2536"), Color("#060E18")])
+	var gtex := GradientTexture2D.new()
+	gtex.gradient = grad
+	gtex.fill = GradientTexture2D.FILL_LINEAR
+	gtex.fill_from = Vector2(0, 0)
+	gtex.fill_to = Vector2(0, 1)   # vertical
+	gtex.width = 4
+	gtex.height = 256
+	var fill := Sprite2D.new()
+	fill.texture = gtex
+	fill.centered = false
+	fill.position = Vector2(left_x, top_y)
+	fill.scale = Vector2(w / 4.0, h / 256.0)
+	fill.z_index = -8
+	root.add_child(fill)
+
+## Render each gap between adjacent floating FLOOR islands as a mini central-pit (not the elevated
+## thrones). Same fill gradient + same _void_wall as the arena-edge pit, so a gap is visually identical
+## to the grassy central pit: a canyon wall descends FLUSH from each island's underside and the fill is
+## darkest at the center. The full-width fill (3a) already covers below the rim; here we fill from the
+## island surface down so the gap reads as a pit from the walkable line, occluding the far-hills green.
+func _paint_void_gaps(root: Node2D, platforms: Array, rim_y: float, bottom_y: float, wall_px: float) -> void:
+	if platforms.size() < 2:
+		return
+	# Floor islands cluster near the LOWEST surface in the arena; elevated spring thrones sit far above.
+	# Select platforms in the floor band that FLOAT over the void (whole body above the rim). Relative,
+	# not an absolute magic y, so it generalizes across void levels (and excludes central-pit mainlands,
+	# whose bodies extend BELOW the rim — grassy stays untouched).
+	var max_top := -INF
+	for r in platforms:
+		max_top = maxf(max_top, (r as Rect2).position.y)
+	const FLOOR_BAND := 360.0   # px below the lowest surface still counts as "floor" (excludes thrones)
+	var isles: Array = []
+	for r in platforms:
+		var rect: Rect2 = r
+		if rect.position.y >= max_top - FLOOR_BAND and rect.end.y <= rim_y + 4.0:
+			isles.append(rect)
+	if isles.size() < 2:
+		return
+	isles.sort_custom(func(a, b): return (a as Rect2).position.x < (b as Rect2).position.x)
+	# BRIDGE THE FLOAT (CD #5 P1 root cause): each island floats above the SINGLE void rim (island A
+	# bottom y1208 vs rim y1260), so the band between an island's dirt underside and the rim shows the
+	# far-hills GREEN (the full-width fill 3a only starts at the rim). That green sliver beside the
+	# cliffs is what made the walls read DETACHED. Fill each island's underside->rim band with the fill
+	# MOUTH color so the dirt underside sits on continuous chasm — exactly like grassy, where rim ==
+	# the mainland surface so no such band can exist. z=-8 (behind platform art; the dirt overhang
+	# occludes the top edge, and this meets the full-width fill's top color at the rim with no seam).
+	var mouth := Color("#2B5140")
+	for r in isles:
+		var isle: Rect2 = r
+		if isle.end.y >= rim_y:
+			continue
+		var bl := isle.position.x - BODY_BLEED_SIDE   # cover the dirt art's side bleed so no green
+		var br := isle.end.x + BODY_BLEED_SIDE        # sliver peeks under the overhang at the cliff
+		var bridge := Polygon2D.new()
+		bridge.polygon = PackedVector2Array([
+			Vector2(bl, isle.end.y), Vector2(br, isle.end.y),
+			Vector2(br, rim_y), Vector2(bl, rim_y)])
+		bridge.color = mouth
+		bridge.z_index = -8
+		root.add_child(bridge)
+	for i in range(isles.size() - 1):
+		var a: Rect2 = isles[i]
+		var b: Rect2 = isles[i + 1]
+		var gl := a.end.x       # left cliff edge (island A right side)
+		var gr := b.position.x  # right cliff edge (island B left side)
+		if gr - gl < 24.0:
+			continue
+		var wp := minf(wall_px, (gr - gl) * 0.42)          # keep the two walls from overlapping in a tight gap
+		# Dark bottomless fill with a SLANTED mouth that follows EACH island's own surface (islands can
+		# differ in height): the fill's top-left sits at island A's surface, top-right at island B's, so
+		# the fill + each wall meet the island exactly at its cliff top — flush, no dark band beside a
+		# shorter island. Same sage->near-black value ramp as the central pit: lightest at the mouth,
+		# darkest at the bottom center (occludes the far-hills green; overdraws the full-width fill below
+		# the rim — the walls hide the x-seam at the cliffs).
+		_void_gap_fill(root, gl, gr, a.position.y, b.position.y, bottom_y)
+		# a canyon wall FLUSH against each island's cliff, descending from that island's surface (its
+		# body occludes nothing here since the wall is outside the collider, so the wall top meets the
+		# island's top corner exactly — identical to the arena-edge / central-pit walls).
+		_void_wall(root, gl, 1.0, a.position.y, bottom_y, wp)    # island A right cliff, recedes toward gap
+		_void_wall(root, gr, -1.0, b.position.y, bottom_y, wp)   # island B left cliff, recedes toward gap
+
+## Slanted-mouth bottomless fill for one inter-island gap: the EXACT central-pit fill ramp (same 4
+## stops #2B5140 -> #143A46 -> #0E2536 -> #060E18 at the same offsets) but built as a stack of banded
+## quads whose top edges FOLLOW each island's surface (top_l at the left cliff, top_r at the right).
+## This keeps the fill flush to islands of unequal height while darkening just as fast as the central
+## pit (dark teal by the rim, near-black at the bottom center) — only a thin sage sliver at the mouth.
+func _void_gap_fill(root: Node2D, gl: float, gr: float, top_l: float, top_r: float, bottom_y: float) -> void:
+	var offs := [0.0, 0.18, 0.5, 1.0]
+	var cols := [Color("#2B5140"), Color("#143A46"), Color("#0E2536"), Color("#060E18")]
+	for i in range(offs.size() - 1):
+		var f0: float = offs[i]
+		var f1: float = offs[i + 1]
+		var band := Polygon2D.new()
+		band.polygon = PackedVector2Array([
+			Vector2(gl, lerpf(top_l, bottom_y, f0)), Vector2(gr, lerpf(top_r, bottom_y, f0)),
+			Vector2(gr, lerpf(top_r, bottom_y, f1)), Vector2(gl, lerpf(top_l, bottom_y, f1))])
+		band.vertex_colors = PackedColorArray([cols[i], cols[i], cols[i + 1], cols[i + 1]])
+		band.z_index = -8
+		root.add_child(band)
 
 ## One receding dirt wall panel (trapezoid tapered inward at the bottom to foreshorten) + strata
 ## lines + a top-inner-corner highlight. dir: +1 = edge on the left (wall extends right), -1 = right.
