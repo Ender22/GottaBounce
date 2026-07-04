@@ -61,14 +61,14 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 >   tighter ~3-min match (10 = ~4.5min/18-21 stages due to the -1 self-fall score volatility). Awaiting
 >   owner call; will apply if they choose 7/8.
 - DONE: pacing polish (ceremony 3.9s->2.8s, powerup first-spawn ->2.5s, SD survivor-banner fix).
-- DONE since SHIP: CAMERA zoom-pump fix (owner concern — velocity leads pan not zoom, launch-cam regime
-  removed, asymmetric out-fast/in-slow, dead-zone, fps-independent; pump eliminated, 0.60 floor kept);
-  MOVING-HAZARD mechanic (kinematic pendulum shove, no-hitstun/recoverable, credits nobody).
-1. **Backlog / stretch** (core is complete; these are enhancements):
-   - `wrecking_yard` 11th level (moving-hazard rhythm level) — BUILDING now on the committed mechanic;
-     then hazard-level QA (WY1-WY3). Follow-ups on the hazard: solid collider, metallic SFX, sweep visual.
-   - Sunny-cluster per-level visual signature (CD #6 item 2 — 4 blue-sky levels differ mainly by
-     kill-shape; reserved generated-tileset upgrade).
+- DONE since SHIP: CAMERA zoom-pump fix (owner concern — pump eliminated, 0.60 floor kept); MOVING-HAZARD
+  mechanic + `wrecking_yard` 11th level (two anti-phase wrecking balls, WY1-WY3 pass). **FULL 11-LEVEL
+  ROSTER COMPLETE.** Running a capstone integrated smoke (all 11 load/rotate + no-regression from
+  camera/hazard/pacing/exploit changes + motion-health).
+1. **Remaining = minor polish only** (game is complete + shipping-quality):
+   - Hazard follow-ups: solid moving collider (currently overlap-only), metallic clang SFX, sweep-kind
+     visual check; wrecking_yard spawn rebalance (left/right side-death asymmetry).
+   - Sunny-cluster per-level visual signature (CD #6 item 2 — reserved generated-tileset upgrade).
    - Moving-hazard feature + `wrecking_yard` (11th level, #22).
    - Bot flee-to-heal (RETREAT half of the damage/heal loop; game-designer note in the 2026-07-03
      lives/damage feedback addendum).
