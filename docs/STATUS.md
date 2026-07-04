@@ -15,10 +15,13 @@ bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the 
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** CD verdict #4 (FIX) on the integrated islands_void+audio build — concept validated
-but the kill fantasy fails (~75% deaths = uncredited self-suicides; the super overshoots the narrow
-islands and self-ringouts the attacker). Fixing the flagship (geometry-first, measured) BEFORE the
-circuit build. See DECISIONS 2026-07-04 verdict #4 + `docs/briefs/cd_verdict4_2026-07-04_islands_audio.md`.
+**CURRENT FOCUS:** closing CD verdict #4 (FIX) on islands_void, measured in-engine. Part 1 DONE
+(committed): islands widened to 960px → a CONNECTED super smash-off now kills the victim while the
+attacker survives on-island (the fantasy works on a real hit) + per-level `kill_shape` metric so QA
+sees void kills. Part 2 IN PROGRESS: the residual ~69% `killer=-1` is proven to be BOTS suiciding into
+the void (not geometry) → bot void-avoidance AI pass + re-measure. Part 3 HELD: a WHIFFED super still
+self-ringouts (arcs under the next island at any width) — decide arena-relative super after the bot
+re-measure (a committal whiff-death may be acceptable). See DECISIONS + `cd_verdict4` brief.
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
@@ -50,12 +53,12 @@ circuit build. See DECISIONS 2026-07-04 verdict #4 + `docs/briefs/cd_verdict4_20
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-1. **FIX the flagship kill fantasy** (CD verdict #4, BLOCKING the circuit). P1: (a) GEOMETRY fix —
-   widen islands so a super smash-off carries the VICTIM off but leaves the ATTACKER on-island (super
-   overshoots the narrow islands today); forgiving traversal landing. Measure killer=-1 self-suicide
-   share before/after (baseline ~75%); escalate to an arena-relative super ONLY if geometry can't fix
-   it. IN PROGRESS. P2: per-level `kill_shape` field + fix `_classify_blast_edge` so QA isn't blind to
-   void-floor kills (`docs/specs/v2a_kill_shape_void_floor_addendum.md`). IN PROGRESS.
+1. **CLOSE the flagship kill fantasy fix** (CD verdict #4, BLOCKING the circuit). DONE: (a) geometry
+   widen — connected smash-off now works (attacker survives, victim rings out); (b) per-level
+   `kill_shape` metric (`docs/specs/v2a_kill_shape_void_floor_addendum.md`). IN PROGRESS: bot
+   void-avoidance AI — the ~69% `killer=-1` is bots suiciding into the void (human-proxy P1 died 10×,
+   100% credited); target `killer=-1` ≤35% without bots going passive; re-measure. HELD: arena-relative
+   super for the whiffed-super self-ringout — decide after the bot re-measure.
 2. **~10-level circuit — VARIED styles** (level-designer): build the ~9 new levels per the spec
    `docs/specs/v1_level_circuit.md` (drop_chamber/cylinder first, wrecking_yard last — moving-hazard
    gated). Each flight-required, off-screen-kill through-line, islands_void as template. BLOCKED until
