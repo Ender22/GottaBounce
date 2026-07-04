@@ -139,9 +139,9 @@ var stick_deadzone: float = 0.22
 var input_buffer: float = 0.10               # seconds
 
 # --- v1 kill-race match / stage loop (docs/specs/v1_party_killrace.md §7) ---
-var intro_pop_stagger: float = 0.35    # s between STAGE_INTRO spawn pop-ins
-var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat
-var round_end_freeze: float = 1.8      # s of KO freeze-frame + pip animation (hard cap 2.0)
+var intro_pop_stagger: float = 0.20    # s between STAGE_INTRO spawn pop-ins (pacing6: 0.35->0.20, 4 pops in 0.8s)
+var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat (LEAVE — the 3-2-1 is iconic/tight)
+var round_end_freeze: float = 1.4      # s of KO freeze-frame + pip animation (pacing6: 1.8->1.4, hard cap 2.0)
 var idle_hunt_after: float = 4.0       # s of no input before the nearest bot hunts the idler (§3.2)
 var double_ko_window: float = 0.50     # s — the ONLY sudden-death trigger: last two lose their last
                                        #   life within this window (v1 §5; was 0.25 in the laser era)
@@ -218,7 +218,7 @@ var bounds_bottom_margin: float = 670.0  # §14: fixed drop below walkable (dev_
 
 # --- Powerups (docs/specs/v1_powerups.md §6) ---
 # spawner pacing (spec §4 — rounds are 10-30s; powerups are a beat, not the meal)
-var pu_first_spawn: float = 4.0          # s after BOUNCE! before the first telegraph
+var pu_first_spawn: float = 2.5          # s after BOUNCE! before the first telegraph (pacing6: 4.0->2.5, bubble live ~3.5s for short stages)
 var pu_spawn_interval: float = 7.0       # s between spawns (telegraph starts this long after the previous BUBBLE went live)
 var pu_spawn_telegraph: float = 1.0      # s of converging sparkle before the bubble is live
 var pu_max_on_field: int = 2             # uncollected-bubble cap; spawner skips its beat at cap

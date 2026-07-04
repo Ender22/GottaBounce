@@ -735,6 +735,12 @@ func _deltas_line() -> String:
 	var parts: Array[String] = []
 	for i in range(_stage_deltas.size()):
 		var d: int = _stage_deltas[i]
+		# SD display fix (pacing6): on a sudden-death stage the announced SURVIVOR lost their last life
+		# into the double-KO and was revived, so their true net stage delta can be negative — a "P1
+		# SURVIVES! P1 -1" banner reads wrong. Floor the SURVIVOR's own displayed delta to >=0 (a 0
+		# suppresses it from the line). DISPLAY ONLY — cumulative scores & kill-credit are untouched.
+		if _revived_this_stage and i == _stage_winner and d < 0:
+			d = 0
 		if d != 0:
 			parts.append("P%d %+d" % [i + 1, d])
 	return "  ·  ".join(parts)
