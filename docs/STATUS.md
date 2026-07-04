@@ -56,12 +56,14 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-> CORE COMPLETE (CD verdict #6 = SHIP). Everything below is polish/stretch on a shipping-quality game.
-1. **Match-pacing sanity-check** (CD #6 top fun risk): human-paced play — stage length + inter-stage
-   ceremony overhead; confirm 10-cumulative-kills / 1-life default is the "one more round" sweet spot
-   or trim the intro/countdown/stage-end flow. Also verify the stage-end delta banner never shows an
-   all-negative survivor -1 in clean play (CD #6 item 3, likely a force-load artifact).
-2. **Backlog / stretch** (core is complete; these are enhancements):
+> CORE COMPLETE (CD verdict #6 = SHIP) + pacing-polished. Everything below is polish/stretch.
+> **OPEN OWNER DECISION:** `match_target_kills` — kept at 10 (owner-set); QA recommends 7-8 for a
+>   tighter ~3-min match (10 = ~4.5min/18-21 stages due to the -1 self-fall score volatility). Awaiting
+>   owner call; will apply if they choose 7/8.
+- DONE: pacing polish (ceremony 3.9s->2.8s, powerup first-spawn ->2.5s, SD survivor-banner fix).
+1. **Backlog / stretch** (core is complete; these are enhancements):
+   - Moving-hazard feature + `wrecking_yard` (11th level, #22) — the one originally-planned circuit
+     level not yet built (needs a kinematic shove-hazard; spec first).
    - Sunny-cluster per-level visual signature (CD #6 item 2 — 4 blue-sky levels differ mainly by
      kill-shape; reserved generated-tileset upgrade).
    - Moving-hazard feature + `wrecking_yard` (11th level, #22).
