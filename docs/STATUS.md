@@ -19,13 +19,12 @@ recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted �
 (obstacle-aware ascent) + a permanent **bot-motion-health probe** in the QA feed + motion-quality now
 a QA obligation (GAME_ESSENCE). Circuit levels each have a distinct kill-shape AND a distinct look
 (meadow / dark drum / steel high-sky / golden-hour / bright morning / teal atoll / indigo twilight /
-arcade violet / dusk). CORE GAME FEATURE-COMPLETE. Circuit-wide QA passed C1-C6 (100% off-screen kills every level, 10
-distinct looks, match 60-90s; motion-health gate works). Both QA must-fixes DONE + committed:
-underside-hover EXPLOIT fixed (fuel drains under a platform; also killed The Ascent 200s stall + cut
-head-banging ~4.5x) and VFX TELEGRAPHY shipped (boost flame / knockback jetstream / super charge-glow +
-blast / connect hitstop / bot super-aim dwell; `assets/particles/` created procedurally). NOW: final CD
-capstone pass (verdict #6) on the complete juiced+themed+exploit-free build — is it couch-ready? THEN
-the stretch/polish backlog. (Loader-cache scare was benign.)
+arcade violet / dusk). CORE GAME COMPLETE & SHIPPING-QUALITY — **CD VERDICT #6 = SHIP** (couch-ready; all 4 fantasy verbs
+confirmed hands-on; credited kills 76%; motion clean; audio/VFX/10 themed levels/match-end/powerups all
+land). Circuit-wide QA passed C1-C6; both QA must-fixes done (underside-hover exploit fixed + VFX
+telegraphy shipped). Remaining = NON-BLOCKING polish/stretch: (1) match-pacing sanity-check at human
+pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) delta-banner edge case;
++ the stretch backlog (moving-hazard/wrecking_yard, bot flee-to-heal, goat, audio polish).
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
@@ -57,9 +56,14 @@ the stretch/polish backlog. (Loader-cache scare was benign.)
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-1. **Final CD capstone pass (verdict #6)** on the complete build — couch-ready? IN PROGRESS. Act on
-   its verdict (fix any must-fix; else declare core done).
+> CORE COMPLETE (CD verdict #6 = SHIP). Everything below is polish/stretch on a shipping-quality game.
+1. **Match-pacing sanity-check** (CD #6 top fun risk): human-paced play — stage length + inter-stage
+   ceremony overhead; confirm 10-cumulative-kills / 1-life default is the "one more round" sweet spot
+   or trim the intro/countdown/stage-end flow. Also verify the stage-end delta banner never shows an
+   all-negative survivor -1 in clean play (CD #6 item 3, likely a force-load artifact).
 2. **Backlog / stretch** (core is complete; these are enhancements):
+   - Sunny-cluster per-level visual signature (CD #6 item 2 — 4 blue-sky levels differ mainly by
+     kill-shape; reserved generated-tileset upgrade).
    - Moving-hazard feature + `wrecking_yard` (11th level, #22).
    - Bot flee-to-heal (RETREAT half of the damage/heal loop; game-designer note in the 2026-07-03
      lives/damage feedback addendum).

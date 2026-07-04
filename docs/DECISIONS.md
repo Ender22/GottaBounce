@@ -2,6 +2,17 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-04** CD VERDICT #6 = **SHIP** — the COMPLETE build is couch-ready. Milestone: the core game
+  is feature-complete + shipping-quality. All four fantasy verbs confirmed hands-on (flight REQUIRED:
+  fuel=0 falls in / boost survives; super-smash reads via charge+aim+blast VFX; credited kills 76%,
+  up from #5's 59%; motion clean — stuck 1.48s/15 stages, head-banging gone, exploit fix holds). Audio,
+  VFX telegraphy, 10 themed distinct-kill-shape levels, match-end/rematch, powerups all land. 3
+  NON-BLOCKING last steps: (1) match pacing under all-bot 1-life melee is fast (5-8s stages, lots of
+  inter-stage ceremony) — sanity-check with human pace + confirm 10-cumulative/1-life is the sweet spot
+  (top "one more round" tuning risk, not a break); (2) the 4 sunny-blue levels want a stronger visual
+  signature beyond sky tint (reserved generated-tileset option); (3) verify the stage-end delta banner
+  never shows an all-negative survivor -1 in clean play (likely a force-load artifact). Record:
+  `docs/briefs/cd_verdict6_2026-07-04_complete_build.md`.
 - **2026-07-04** PROCESS GAP CLOSED (owner-flagged) — bots head-banged platform undersides (dumb
   motion) and it shipped uncaught because ALL bot validation measured OUTCOMES (kill%/off-screen%),
   never MOTION quality; stats hide motion, screenshots are stills, bots never complain. GAME_ESSENCE
