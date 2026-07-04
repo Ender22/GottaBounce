@@ -2,6 +2,21 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-04** PROCESS GAP CLOSED (owner-flagged) — bots head-banged platform undersides (dumb
+  motion) and it shipped uncaught because ALL bot validation measured OUTCOMES (kill%/off-screen%),
+  never MOTION quality; stats hide motion, screenshots are stills, bots never complain. GAME_ESSENCE
+  warned of this exact blind spot but we only wrote the warning, never a gate. DECISION: validate
+  felt/motion quality as NUMBERS — add a permanent bot-motion-health probe (stuck/no-progress episodes,
+  downward-normal underside-bounce count, blocked-ascent flag) to the QA feed, and make "watch bot
+  MOTION + report locomotion pathologies" an explicit QA obligation (not just outcome stats). Fix the
+  pathing (obstacle-aware ascent) AND build the detector so this class is caught automatically.
+  Memory: [[gottabounce-validate-motion-not-just-outcomes]].
+- **2026-07-04** 10-LEVEL VARIED CIRCUIT COMPLETE (v1_level_circuit.md) — islands_void, grassy_expanse,
+  drop_chamber (enclosed_hole drum), the_spine (ridge), twin_chasms (two-void), the_cliff (asymmetric),
+  atoll (radial well), spires (verticality), bumper_gauntlet (interior pinball), the_ascent (dual
+  vertical blast). Each in-engine validated + distinct kill-shape/feel over the shared off-screen-kill
+  through-line. Reusable render infra added: per-level `kill_shape` + `backdrop` (enclosed/open_sky)
+  modes. wrecking_yard (moving hazards) deferred to a stretch 11th level. THEN: theming pass + circuit QA.
 - **2026-07-04** CD VERDICT #5 = **SHIP** — islands_void flagship kill-fantasy gap CLOSED (credited
   kills 59% vs 41% uncredited, flipped from verdict #4's ~25/75; 79% of kills go off-the-bottom into
   the void; real hands-on smash-off lands + attacker survives; knocked-off bots actively recover).

@@ -15,13 +15,13 @@ bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the 
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** Phase 2 — the varied circuit (depth-first per `docs/specs/v1_level_circuit.md`).
-SHIPPED (5 of ~9 new, all in-engine validated): `drop_chamber` (cylinder, enclosed_hole, DC1-DC4),
-`the_spine` (ridge, void_is_floor, SP1-SP3), `twin_chasms` (two-void asymmetry), `the_cliff`
-(asymmetric mesa), `atoll` (radial well). Backdrop infra DONE: reusable `enclosed` + `open_sky` modes.
-REMAINING levels: spires + bumper_gauntlet (building now), the_ascent (dual_blast, top-bounds override),
-wrecking_yard (LAST — needs moving hazards). THEN: batch theming/grading pass (`circuit_theming_plan.md`
-— per-level palette/backdrop so it reads varied) + circuit-wide QA on the rotation.
+**CURRENT FOCUS:** 10-LEVEL CIRCUIT COMPLETE (all in-engine validated): islands_void, grassy_expanse,
+drop_chamber (enclosed drum), the_spine (ridge), twin_chasms (two-void), the_cliff (asymmetric mesa),
+atoll (radial well), spires (verticality), bumper_gauntlet (interior pinball), the_ascent (dual vertical
+blast). Backdrop infra: reusable `enclosed` + `open_sky` modes. NOW (owner-flagged, PRIORITY): bots
+head-bang platform undersides (downward-only nav, no overhead sensing) → obstacle-aware ascent fix +
+a **bot-motion-health probe** (stuck/underside-bounce/blocked-ascent metrics in the QA feed) to catch
+motion pathologies automatically. THEN: batch theming/grading pass + circuit-wide QA (with motion-health).
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
@@ -53,26 +53,22 @@ wrecking_yard (LAST — needs moving hazards). THEN: batch theming/grading pass 
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-1. **Phase 1 — flagship polish** (quality gate before circuit propagation): (a) CAMERA follow-targeting
-   — weight local human always in-frame + cluster hysteresis + avoid empty-geometry framing (owner-flagged;
-   concept confirmed correct by CD #5, this is refinement only); (b) P1 VOID RENDER — extend dark fill/AO
-   under inner islands so the void reads as a chasm even zoomed in on one gap (every void level inherits it).
-2. **Phase 2 — the varied circuit** per `docs/specs/v1_level_circuit.md`: DONE drop_chamber + the_spine
-   (+ enclosed backdrop mode). BUILD remaining ~7 (twin_chasms, the_cliff, atoll, spires,
-   bumper_gauntlet, the_ascent, wrecking_yard-last/moving-hazard-gated), depth-first, incremental
-   LEVEL_POOL. + CIRCUIT THEMING PLAN (per-level visual identity via palette/backdrop-mode; some may
-   need generated art) so the circuit LOOKS varied. Then circuit-wide QA on the rotation.
-   Track: P2 ring-out credit-window inflation (idle-survivor artifact) review; whiff-arrest fix
-   `v1a_super_whiff_safety.md` is OPTIONAL backlog (CD #5 ruled the whiff acceptable).
-3. **Bot flee-to-heal** finish: the RETREAT/flee half is specced (BotProfile `flee_skill`) but only
-   ~2% effective — structural (8s heal vs short stages). Reconcile in a bot-AI/melee pass (game-designer
-   note in `owner_2026-07-03_lives_damage_killrace.md` addendum).
-4. **Goat/ram shape prototype** (un-gated, DECISIONS 2026-07-03): non-circular collider + solidity-by-
-   hit-position + taller sprite → richer super-smash sweet-spot variety. After the arena template settles.
-- **Arena/audio follow-ups (non-blocking):** void dirt walls only render at arena sides (one full-width
-  void rect — per-gap rects or renderer tweak for inner-island cliffs); `_classify_blast_edge` labels
-  void deaths "pit" so K1 edge/pit metric misreads on this shape (needs a game-designer note before
-  circuit QA); wire UI-click SFX when a button .tscn exists; per-powerup activate SFX + real announcer VO.
+1. **Bot overhead-pathing fix + motion-health probe** (owner-flagged, IN PROGRESS): stop head-banging
+   (obstacle-aware ascent — probe up, detour laterally around overhead platforms); add stuck/underside-
+   bounce/blocked-ascent metrics to the QA feed as a permanent motion-pathology gate. Then update QA
+   doctrine so QA WATCHES motion + reads motion-health (not just outcome stats) — task board #23/#24.
+2. **Batch theming/grading pass** on the 10 levels (`circuit_theming_plan.md`): apply per-level
+   backdrop+sky palettes (open_sky/enclosed), art-director grades in-engine for readability (blue-vs-blue
+   sky, yellow-vs-amber, green-vs-teal), tune hexes. Makes the circuit LOOK as varied as it plays.
+3. **Circuit-wide QA** on the rotation (now with motion-health): pacing/feel/CD across all 10 levels.
+   Watch: the_ascent 316s stall outlier; per-void-level uncredited% judged RELATIVE to flagship (~44%
+   under all-bot melee is normal), not the absolute ≤12%.
+4. **Backlog / stretch:** moving-hazard feature + wrecking_yard (11th level, #22); bot flee-to-heal;
+   goat/ram shape prototype; P2 ring-out credit-window inflation review; whiff-arrest fix
+   `v1a_super_whiff_safety.md` (OPTIONAL — CD #5 ruled the whiff acceptable).
+- **Audio follow-ups (non-blocking):** wire UI-click SFX when a button .tscn exists; per-powerup
+  activate SFX + real announcer VO (polish). (Void dirt-walls + `_classify_blast_edge` void-floor
+  labelling are DONE — see git.)
 - Optional polish backlog: louder damage-pulse at combat zoom; the STATUS-historic art-fix list
   (far-zoom mat, real font, skull icon, FX particles, black-hole vignette) — see git history if needed.
 
