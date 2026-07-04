@@ -4,8 +4,8 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-04 (baseline reset after the combat/arena redesign arc). Everything below
-is committed (git log = history).
+**Last updated:** 2026-07-04 (flagship islands-over-void arena + full audio system shipped).
+Everything below is committed (git log = history).
 
 ## Where we are
 The game is a **lives-based, Duck-Game-style kill-race**: no round timer; each player has lives
@@ -26,9 +26,16 @@ readable — a big leap. Foundation is healthy (the "crash + 28fps" scare was re
 - **Bots** (`InputBot`, human-sim, never cheat): refuel-rhythm, dodge-super, 1v1 **finisher**
   (closes the endgame at scale), **chase-the-wounded**; L2/L3/L4 shipped. (FLEE-to-heal is specced
   but only partially effective — see next steps.)
-- **Arena/render:** `grassy_expanse` (2× wide, flight-required, level-relative bounds, readable
-  **pit-void**); Glossy Toybox renderer; **camera-at-2x** (0.60 zoom floor, action-cluster framing,
-  off-screen edge chevrons). `dev_arena` = deprecated "mini" (too tight; not in the pool).
+- **Arena/render:** `islands_void` = **FLAGSHIP** (LEVEL_POOL primary): 4 separated islands + 2
+  boost-only spring thrones over one full-width lethal void; flight REQUIRED (680px gaps > spring
+  drift, pads > spring apex — verified fuel=0 falls in). `grassy_expanse` (2× wide, central-pit
+  variant) = secondary pool entry. Glossy Toybox renderer; **camera-at-2x** (0.60 zoom floor,
+  action-cluster framing, off-screen edge chevrons). `dev_arena` = deprecated "mini" (out of pool).
+- **Audio:** `AudioManager` autoload (INV-12 subscriber, pooled voices, read-only thrust poll) +
+  Master→Music/SFX bus layout; 23 SFX in `assets/sfx/` (sourced from SamuraiRobot lib); 9 EventBus
+  flow/feedback signals wired (bounce/smash-by-solidity/super/damage/heal/pickup/countdown/announcer/
+  win) + gameplay/scoreboard music. Live-verified (408 SFX fired in COMBAT). Follow-ups: UI-click
+  unwired (no button .tscn yet); per-powerup activate SFX + real announcer VO are polish.
 - **Studio:** roles in `.claude/agents/` incl. **creative-director** (fantasy-fit gate);
   `docs/GAME_ESSENCE.md` (every role runs the fantasy-fit check); validation via `tools/run_game.ps1`
   + `python tools/gbplay.py`.
@@ -40,24 +47,22 @@ readable — a big leap. Foundation is healthy (the "crash + 28fps" scare was re
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-1. **Islands-over-void FLAGSHIP arena** (owner decided 2026-07-04, `docs/feedback/owner_2026-07-04_
-   arena_variety.md`): build a new primary arena = separated islands over a bottom blast void (fall
-   between islands = off-screen kill; flight still required), make it the LEVEL_POOL default + tutorial.
-   This makes edge/void kills dominant (fixes the central-pit plurality + the 32% uncredited dead-air).
-   Then re-run the CD fantasy-fit pass on it. Keep `grassy_expanse` (central pit) as a secondary variant.
-2. **AUDIO** (owner greenlit + sourced): AudioManager + SFX bus (none exist yet — master only, 0
-   AudioStreamPlayers). Reuse fitting SFX from `D:\Dropbox\MyGames\SamuraiRobot2.0\assets\sounds\fx`
-   (207 files) → copy into `assets/sfx/`; CC0-pack/generate the rest; music already in `assets/music/`.
-   Event list in the arena-variety feedback doc. Loudest remaining "not-a-finished-game" gap.
-3. **~10-level circuit — VARIED styles** (level-designer): ~9 more levels over the shared off-screen-
+1. **CD fantasy-fit pass on the integrated build** (islands_void flagship + audio, in-engine): does
+   the game now deliver the fantasy (fly-required islands, void kills, audio feedback) and want "one
+   more round"? Verdict #4. IN PROGRESS.
+2. **~10-level circuit — VARIED styles** (level-designer): ~9 more levels over the shared off-screen-
    kill through-line, different themes/gimmicks (owner seed: a chaotic **cylinder with a hole in the
-   bottom** you knock people through). Each must be flight-required (GAME_ESSENCE). Then all pacing/
-   feel/CD QA runs on the circuit rotation (the representative substrate).
-4. **Bot flee-to-heal** finish: the RETREAT/flee half is specced (BotProfile `flee_skill`) but only
+   bottom** you knock people through). Each must be flight-required (GAME_ESSENCE), using islands_void
+   as the template. Then all pacing/feel/CD QA runs on the circuit rotation (the representative substrate).
+3. **Bot flee-to-heal** finish: the RETREAT/flee half is specced (BotProfile `flee_skill`) but only
    ~2% effective — structural (8s heal vs short stages). Reconcile in a bot-AI/melee pass (game-designer
-   note in `owner_2026-07-03_lives_damage_killrace.md` addendum). Lower priority than arena/audio.
-5. **Goat/ram shape prototype** (un-gated, DECISIONS 2026-07-03): non-circular collider + solidity-by-
+   note in `owner_2026-07-03_lives_damage_killrace.md` addendum).
+4. **Goat/ram shape prototype** (un-gated, DECISIONS 2026-07-03): non-circular collider + solidity-by-
    hit-position + taller sprite → richer super-smash sweet-spot variety. After the arena template settles.
+- **Arena/audio follow-ups (non-blocking):** void dirt walls only render at arena sides (one full-width
+  void rect — per-gap rects or renderer tweak for inner-island cliffs); `_classify_blast_edge` labels
+  void deaths "pit" so K1 edge/pit metric misreads on this shape (needs a game-designer note before
+  circuit QA); wire UI-click SFX when a button .tscn exists; per-powerup activate SFX + real announcer VO.
 - Optional polish backlog: louder damage-pulse at combat zoom; the STATUS-historic art-fix list
   (far-zoom mat, real font, skull icon, FX particles, black-hole vignette) — see git history if needed.
 
