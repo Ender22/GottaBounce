@@ -19,14 +19,13 @@ recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted �
 (obstacle-aware ascent) + a permanent **bot-motion-health probe** in the QA feed + motion-quality now
 a QA obligation (GAME_ESSENCE). Circuit levels each have a distinct kill-shape AND a distinct look
 (meadow / dark drum / steel high-sky / golden-hour / bright morning / teal atoll / indigo twilight /
-arcade violet / dusk). Circuit-wide QA DONE: C1-C6 PASS (100% off-screen kills on every level, 10 distinct looks, match
-resolves 60-90s; motion-health gate WORKED — surfaced head-banging/stalls as numbers). Two must-fixes
-found: (1) underside-bounce infinite-hover EXPLOIT — FIXED + committed (fuel now drains under a
-platform; also resolved The Ascent 200s stall + cut bot head-banging ~4.5x by removing the free-fuel
-incentive); (2) "can't feel the jetpack" VFX telegraphy — spec'd (`v1_vfx_telegraphy.md`; root cause:
-assets/particles/ empty) and IMPLEMENTING now (boost flame / knockback jetstream / super charge+blast /
-bot super-aim dwell). THEN backlog/stretch. (Loader-cache scare was benign — clean boot loads correct
-on-disk geometry; earlier mismatch was an eval-polluted dev instance.)
+arcade violet / dusk). CORE GAME FEATURE-COMPLETE. Circuit-wide QA passed C1-C6 (100% off-screen kills every level, 10
+distinct looks, match 60-90s; motion-health gate works). Both QA must-fixes DONE + committed:
+underside-hover EXPLOIT fixed (fuel drains under a platform; also killed The Ascent 200s stall + cut
+head-banging ~4.5x) and VFX TELEGRAPHY shipped (boost flame / knockback jetstream / super charge-glow +
+blast / connect hitstop / bot super-aim dwell; `assets/particles/` created procedurally). NOW: final CD
+capstone pass (verdict #6) on the complete juiced+themed+exploit-free build — is it couch-ready? THEN
+the stretch/polish backlog. (Loader-cache scare was benign.)
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
@@ -58,19 +57,17 @@ on-disk geometry; earlier mismatch was an eval-polluted dev instance.)
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-1. **Bot overhead-pathing fix + motion-health probe** (owner-flagged, IN PROGRESS): stop head-banging
-   (obstacle-aware ascent — probe up, detour laterally around overhead platforms); add stuck/underside-
-   bounce/blocked-ascent metrics to the QA feed as a permanent motion-pathology gate. Then update QA
-   doctrine so QA WATCHES motion + reads motion-health (not just outcome stats) — task board #23/#24.
-2. **Batch theming/grading pass** on the 10 levels (`circuit_theming_plan.md`): apply per-level
-   backdrop+sky palettes (open_sky/enclosed), art-director grades in-engine for readability (blue-vs-blue
-   sky, yellow-vs-amber, green-vs-teal), tune hexes. Makes the circuit LOOK as varied as it plays.
-3. **Circuit-wide QA** on the rotation (now with motion-health): pacing/feel/CD across all 10 levels.
-   Watch: the_ascent 316s stall outlier; per-void-level uncredited% judged RELATIVE to flagship (~44%
-   under all-bot melee is normal), not the absolute ≤12%.
-4. **Backlog / stretch:** moving-hazard feature + wrecking_yard (11th level, #22); bot flee-to-heal;
-   goat/ram shape prototype; P2 ring-out credit-window inflation review; whiff-arrest fix
-   `v1a_super_whiff_safety.md` (OPTIONAL — CD #5 ruled the whiff acceptable).
+1. **Final CD capstone pass (verdict #6)** on the complete build — couch-ready? IN PROGRESS. Act on
+   its verdict (fix any must-fix; else declare core done).
+2. **Backlog / stretch** (core is complete; these are enhancements):
+   - Moving-hazard feature + `wrecking_yard` (11th level, #22).
+   - Bot flee-to-heal (RETREAT half of the damage/heal loop; game-designer note in the 2026-07-03
+     lives/damage feedback addendum).
+   - Goat/ram shape prototype (non-circular collider + solidity-by-hit-position; DECISIONS 2026-07-03).
+   - Minor level/metric tweaks: atoll radial-well reads a bit linear (C3 soft note); grassy central_pit
+     K1 marginal (edges 57%/pit 36% vs 60%/30%); grassy median 29s slightly slow.
+   - Audio polish: wire UI-click when a button .tscn exists; per-powerup activate SFX; real announcer VO.
+   - Whiff-arrest fix `v1a_super_whiff_safety.md` (OPTIONAL — CD #5 ruled the whiff acceptable).
 - **Audio follow-ups (non-blocking):** wire UI-click SFX when a button .tscn exists; per-powerup
   activate SFX + real announcer VO (polish). (Void dirt-walls + `_classify_blast_edge` void-floor
   labelling are DONE — see git.)
