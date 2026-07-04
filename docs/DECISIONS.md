@@ -2,6 +2,23 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-04** ARENA DIRECTION DECIDED (owner) — **islands-over-a-void is the PRIMARY/default kill
+  shape** (edges/void = off-screen kills = the "smash rivals off the screen" fantasy; resolves the
+  central-pit-dominance finding — 3 independent analyses converged, CD verdict #3). BUT levels are
+  NOT a monoculture: **different levels can have different STYLES/gimmicks**, as long as the kill
+  identity stays "knock people off/through into a blast void." Owner's concrete seed: a chaotic level
+  fought **inside a CYLINDER with a hole in the bottom you try to knock people through**. So: the
+  ~10-level circuit = varied styles/themes/gimmicks over a shared off-screen-kill through-line; the
+  current central-pit `grassy_expanse` survives as ONE variant ("chase/big map"), not the flagship.
+  Full record: `docs/feedback/owner_2026-07-04_arena_variety.md`. Build: a new islands-over-void
+  flagship arena → then varied circuit levels.
+- **2026-07-04** AUDIO GREENLIT + SOURCING DECIDED (owner). Wire an AudioManager/SFX-bus architecture
+  and add SFX (bounce/boost/smash/impact/ring-out/super/powerup/UI/announcer) + music. Sourcing:
+  **reuse from the existing SFX library at `D:\Dropbox\MyGames\SamuraiRobot2.0\assets\sounds\fx`
+  (207 files)** for anything that fits, **find CC0/online packs or GENERATE** the rest. Music library
+  already in-repo (`assets/music/`: 7 mp3 + title.wav from session 1). Record:
+  `docs/feedback/owner_2026-07-04_arena_variety.md` (audio section). The absent audio is the loudest
+  remaining "not a finished game" gap (CD passes) — high-priority once the arena flagship lands.
 - **2026-07-03** STUDIO PROCESS UPGRADE (owner-prompted, after the too-tight-arena miss slipped
   every role): root cause = the studio verifies COMPONENTS against SPECS but no role reasons from
   the game's ESSENCE about whether the INTEGRATED experience delivers the fantasy; briefs stated the
