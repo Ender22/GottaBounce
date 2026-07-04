@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-04** CD VERDICT #4 = FIX on the integrated flagship (islands_void + audio). Concept
+  validated (fly REQUIRED, void reads lethal, recovery real, audio is a real finished-game layer),
+  but the KILL FANTASY fails: ~75% of deaths were uncredited self-suicides (killer=-1), not credited
+  smash-offs. Root cause found — **the super impulse (2800, tuned for the 2×-WIDE grassy arena)
+  OVERSHOOTS the narrow 520-640px islands and self-ringouts the ATTACKER**; the kill move doubles as
+  a self-destruct near the void. DECISION: fix flagship BEFORE building the circuit (all 9 new levels
+  would inherit the seam). Fix approach — GEOMETRY FIRST (widen islands to give the super forward-carry
+  runway; keep gaps flight-required), MEASURE killer=-1 share, and escalate to an arena-relative super
+  ONLY if geometry can't fix it (the drain-all super constant stays fenced unless data forces it).
+  Also P2: `_classify_blast_edge` was blind to void-floor kills (bucketed them "pit"), so component QA
+  passed while integration failed — being fixed via a per-level kill_shape field. Record:
+  `docs/briefs/cd_verdict4_2026-07-04_islands_audio.md`, `docs/specs/v2a_kill_shape_void_floor_addendum.md`.
 - **2026-07-04** ARENA DIRECTION DECIDED (owner) — **islands-over-a-void is the PRIMARY/default kill
   shape** (edges/void = off-screen kills = the "smash rivals off the screen" fantasy; resolves the
   central-pit-dominance finding — 3 independent analyses converged, CD verdict #3). BUT levels are

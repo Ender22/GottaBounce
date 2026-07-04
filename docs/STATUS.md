@@ -14,8 +14,11 @@ frequently-rotating levels**; sudden death = a true simultaneous double-KO only.
 bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the kill move)** → recover,
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
-recovery gamble). Creative-director verdict #3: the fantasy is genuinely present and it's fun/
-readable — a big leap. Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
+recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
+**CURRENT FOCUS:** CD verdict #4 (FIX) on the integrated islands_void+audio build — concept validated
+but the kill fantasy fails (~75% deaths = uncredited self-suicides; the super overshoots the narrow
+islands and self-ringouts the attacker). Fixing the flagship (geometry-first, measured) BEFORE the
+circuit build. See DECISIONS 2026-07-04 verdict #4 + `docs/briefs/cd_verdict4_2026-07-04_islands_audio.md`.
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
@@ -47,13 +50,16 @@ readable — a big leap. Foundation is healthy (the "crash + 28fps" scare was re
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS in priority order
-1. **CD fantasy-fit pass on the integrated build** (islands_void flagship + audio, in-engine): does
-   the game now deliver the fantasy (fly-required islands, void kills, audio feedback) and want "one
-   more round"? Verdict #4. IN PROGRESS.
-2. **~10-level circuit — VARIED styles** (level-designer): ~9 more levels over the shared off-screen-
-   kill through-line, different themes/gimmicks (owner seed: a chaotic **cylinder with a hole in the
-   bottom** you knock people through). Each must be flight-required (GAME_ESSENCE), using islands_void
-   as the template. Then all pacing/feel/CD QA runs on the circuit rotation (the representative substrate).
+1. **FIX the flagship kill fantasy** (CD verdict #4, BLOCKING the circuit). P1: (a) GEOMETRY fix —
+   widen islands so a super smash-off carries the VICTIM off but leaves the ATTACKER on-island (super
+   overshoots the narrow islands today); forgiving traversal landing. Measure killer=-1 self-suicide
+   share before/after (baseline ~75%); escalate to an arena-relative super ONLY if geometry can't fix
+   it. IN PROGRESS. P2: per-level `kill_shape` field + fix `_classify_blast_edge` so QA isn't blind to
+   void-floor kills (`docs/specs/v2a_kill_shape_void_floor_addendum.md`). IN PROGRESS.
+2. **~10-level circuit — VARIED styles** (level-designer): build the ~9 new levels per the spec
+   `docs/specs/v1_level_circuit.md` (drop_chamber/cylinder first, wrecking_yard last — moving-hazard
+   gated). Each flight-required, off-screen-kill through-line, islands_void as template. BLOCKED until
+   the flagship fix lands (levels inherit the seam). Then pacing/feel/CD QA on the rotation.
 3. **Bot flee-to-heal** finish: the RETREAT/flee half is specced (BotProfile `flee_skill`) but only
    ~2% effective — structural (8s heal vs short stages). Reconcile in a bot-AI/melee pass (game-designer
    note in `owner_2026-07-03_lives_damage_killrace.md` addendum).
