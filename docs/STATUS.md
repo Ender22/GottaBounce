@@ -296,7 +296,22 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   root is STRUCTURAL (8s heal window vs ~2-7s stages → can't heal before stage ends), lower severity.
   Camera-0.42-at-combat still open (pass-1 carryover).
 
+- [x] **Kill-shape code + pit-void BUILT + QA'd (7c2bb7f). Camera-at-2x also shipped (e663427).**
+  Wins: edge kills 0%→37% (the blast now FIRES — near-edge dead-on sends players off-side), uncredited
+  31.5%→13.8% (ring-out credit), pit-void now reads as a lethal dark hole w/ red lip (was invisible
+  green-on-green), camera floors at 0.60 (readable ~85px bouncers, off-screen chevrons), stage median
+  10.6s. **OPEN DECISION (surfaced to owner, away — awaiting): K1 pit still 60% of kills (target ≤30).**
+  STRUCTURAL: combat is floor-based and the pit is a hole IN that floor, so it catches most knockbacks
+  no matter how lethal the far edges are — demoting isn't enough. To deliver "smash OFF THE SCREEN,"
+  the arena likely needs Smash/Duck-Game islands-over-a-bottom-void (fall between islands = off-stage
+  death, flight still required) instead of one-floor-with-central-hole. Options put to owner: (a)
+  islands-over-void [Director recommends], (b) keep pit + push edges harder, (c) accept pit-heavy kills
+  as this arena's identity. DID NOT pre-commit the redesign while owner decides. CD re-pass #3 running
+  to give the FELT read on the current build (informs the decision).
+
 ## NEXT STEPS in priority order (reordered per the CD verdict 2026-07-04)
+0b. **[AWAITING OWNER] Arena shape: central pit vs islands-over-void** (see above). Blocks the circuit
+   (the ~10-level template shape depends on this). CD felt verdict + K1 data both feed it.
 0. **KILL SHAPE: make the EDGES the blast zone, demote the central pit (CRITICAL — the fantasy gap).**
    The game must deliver "smash rivals OFF THE SCREEN," not "shove into a central hole." Routed to
    game-designer (spec): make a dead-on near-edge super/smash send players off-screen (retune
