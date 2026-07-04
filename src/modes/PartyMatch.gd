@@ -34,12 +34,27 @@ const PLAYER_COLORS: Array[Color] = [
 const HUD_SCENE := preload("res://scenes/ui/MatchHUD.tscn")
 const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 
-const CAM_MIN_ZOOM := 0.37     # most zoomed-out. Kill-zone spec v2 §6.3: the pulled-back 3660x2930
-                               # bounds (-900..2760, -1150..1780) need ~0.37 to show the full vertical
-                               # extent (~2919px tall at 1080p); blobs stay readable at this scale.
+# --- Camera 2x policy (docs/briefs/camera_2x_policy.md) ---
+# Action-cluster framing + readability-floored zoom on the wide grassy_expanse. The old fit-to-global-
+# spread over-zoomed to ~0.42 (bouncers ~30px) during 4-player combat, killing Pillar-5 readability.
+const CAM_MIN_ZOOM := 0.60     # normal-combat readability floor (was 0.37). Body >= ~63px @1080p:
+                               # color ID, face, and crimson damage-pulse rim all read.
+const CAM_LAUNCH_MIN_ZOOM := 0.42  # kill-cam exception: allowed ONLY while a living player is in
+                               # high knockback heading outward (see LAUNCH_SPEED_FOR_CAM). Eases
+                               # back up to CAM_MIN_ZOOM over LAUNCH_EASE_BACK once knockback settles.
 const CAM_LEAD_TIME := 0.32    # kill-zone spec §6.4: frame ahead of each flier's velocity so a fast
                                # (capped 2200) launch + its approaching blast line stay on-screen.
+const CAM_LEAD_CAP := 700.0    # px: cap each player's velocity-lead contribution so the lead is a
+                               # nudge, not a spread-forcer — the readability floor wins.
 const CAM_MAX_ZOOM := 0.92     # never zoom in tighter than this
+const LAUNCH_SPEED_FOR_CAM := 1300.0  # px/s outward -> engages the launch-cam floor
+const LAUNCH_EASE_BACK := 0.4  # s to ease the launch floor back to CAM_MIN_ZOOM
+const SUPER_BIAS_MIN_ZOOM := 0.70  # zoom-target floor while a super is charging (aim-fuse legibility)
+const SUPER_BIAS_WEIGHT := 2.5     # centroid weight on the charging caster (frame the aim)
+const CAM_OFFSCREEN_INSET := 40.0  # px: a living player outside visible rect+inset gets an edge chevron
+const COMBAT_ACTIVE_WINDOW := 1.2  # s since dealing/taking a hit or firing/charging a super to count
+                               # for the action-cluster centroid bias
+const CAM_MARGIN := Vector2(420.0, 340.0)  # breathing room added around the framed cluster
 const MATCH_END_ZOOM := 1.1    # winner punch-zoom (FEEL §7)
 const BOUNCE_HOLD := 0.4       # "BOUNCE!" banner hold (spec §1)
 const NAME_TAG_LINGER := 1.0   # name tags fade this long into COMBAT
@@ -79,6 +94,9 @@ var _level_root: Node2D
 var _hud
 var _had_contact: Array = []     # per-player: dealt/received >=1 smash this stage (stats)
 var _smash_off_stage: Array = [] # per-player: was the LAST smash they received taken off-stage?
+var _combat_active_t: Array = [] # per-player: seconds left in the combat-active window (camera bias)
+var _launch_ease_t := 0.0        # >0 while the launch-cam floor is engaged / easing back
+var _edge_indicators             # EdgeIndicators overlay (off-screen player chevrons)
 
 # level rotation (shuffle-bag)
 var _bag: Array = []
@@ -140,6 +158,15 @@ func _ready() -> void:
 	_hud = HUD_SCENE.instantiate()
 	add_child(_hud)
 	_hud.setup(players, PLAYER_COLORS, _skins())
+
+	# off-screen player edge chevrons (camera_2x_policy §3): own CanvasLayer, BELOW the HUD (layer 0
+	# vs the HUD's default layer 1) so corner cards stay on top of any edge indicator.
+	var edge_cl := CanvasLayer.new()
+	edge_cl.layer = 0
+	add_child(edge_cl)
+	_edge_indicators = load("res://src/ui/EdgeIndicators.gd").new()
+	edge_cl.add_child(_edge_indicators)
+	_edge_indicators.setup(self, PLAYER_COLORS)
 
 	_start_match()
 
@@ -364,6 +391,8 @@ func _on_smashed(attacker, victim, _impulse) -> void:
 		return
 	var ai := players.find(attacker)
 	var vi := players.find(victim)
+	_mark_combat_active(ai)   # camera action-cluster bias (camera_2x_policy §2)
+	_mark_combat_active(vi)
 	if ai >= 0 and ai < _had_contact.size():
 		_had_contact[ai] = true
 	if vi >= 0 and vi < _had_contact.size():
@@ -372,6 +401,7 @@ func _on_smashed(attacker, victim, _impulse) -> void:
 			_smash_off_stage[vi] = not _stage_rect.grow(120.0).has_point(victim.global_position)
 
 func _on_super_fired(player, fuel_at_fire, aim_time, auto_fired) -> void:
+	_mark_combat_active(players.find(player))   # camera action-cluster bias (camera_2x_policy §2)
 	if _cur_stats.is_empty() or (state != "COMBAT" and state != "SUDDEN_DEATH"):
 		return
 	var who := players.find(player)
@@ -704,31 +734,122 @@ func _spawn_star_burst(pos: Vector2) -> void:
 	add_child(p)
 	get_tree().create_timer(1.0).timeout.connect(p.queue_free)
 
-## Frame the stage + all living fighters, zooming out as they spread (Smash-style).
+## Refresh a player's combat-active window (dealt/took a hit, fired a super). camera_2x_policy §2.
+func _mark_combat_active(idx: int) -> void:
+	if idx < 0:
+		return
+	while _combat_active_t.size() <= idx:
+		_combat_active_t.append(0.0)
+	_combat_active_t[idx] = COMBAT_ACTIVE_WINDOW
+
+## Camera 2x policy (docs/briefs/camera_2x_policy.md): frame the ACTION CLUSTER (combat-active
+## centroid, fallback all-living), NOT the global stage spread. Readability-floored zoom (0.60),
+## with a transient launch-cam exception (0.42) and a tighten-toward-the-caster super-aim bias.
 func _update_camera() -> void:
 	if _camera == null:
 		return
-	var mn := _stage_rect.position
-	var mx := _stage_rect.end
-	# Kill-zone spec §6: frame every knocked-but-ALIVE flier (is_dead()==false covers hitstun/recovery),
-	# and lead their velocity so a launched blob AND the blast line it heads toward both stay on-screen.
-	for p in players:
+	var dt := get_physics_process_delta_time()
+	while _combat_active_t.size() < players.size():
+		_combat_active_t.append(0.0)
+
+	# living fighters this tick (is_dead()==false covers hitstun/recovery)
+	var living: Array = []
+	for i in range(players.size()):
+		var p = players[i]
 		if is_instance_valid(p) and not p.is_dead():
-			mn = mn.min(p.global_position)
-			mx = mx.max(p.global_position)
-			var lead: Vector2 = p.global_position + p.velocity * CAM_LEAD_TIME
-			# clamp the lead to the blast bounds so we frame the wall it approaches, not empty void beyond
-			lead.x = clampf(lead.x, bounds.position.x, bounds.end.x)
-			lead.y = clampf(lead.y, bounds.position.y, bounds.end.y)
-			mn = mn.min(lead)
-			mx = mx.max(lead)
-	var margin := Vector2(420.0, 340.0)
-	mn -= margin
-	mx += margin
-	var size := mx - mn
-	var z := minf(1920.0 / maxf(size.x, 1.0), 1080.0 / maxf(size.y, 1.0))
-	z = clampf(z, CAM_MIN_ZOOM, CAM_MAX_ZOOM)
-	_camera.set_frame((mn + mx) * 0.5, z)
+			living.append(p)
+			# a player charging/aiming a super counts as combat-active continuously
+			if p.is_super_aiming():
+				_combat_active_t[i] = COMBAT_ACTIVE_WINDOW
+		if _combat_active_t[i] > 0.0:
+			_combat_active_t[i] = maxf(0.0, _combat_active_t[i] - dt)
+	if living.is_empty():
+		return   # nothing to frame — hold the last frame
+
+	# super-aim caster (protects the aim-fuse ring via a framing bias, not a global floor)
+	var aimer = null
+	for p in living:
+		if p.is_super_aiming():
+			aimer = p
+			break
+
+	# launch-cam floor: engaged while a living player is in high knockback heading OUTWARD toward
+	# a blast line; eases back to CAM_MIN_ZOOM over LAUNCH_EASE_BACK.
+	var launching := false
+	var bcenter := bounds.get_center()
+	for p in living:
+		var v: Vector2 = p.velocity
+		if v.length() > LAUNCH_SPEED_FOR_CAM and v.dot(p.global_position - bcenter) > 0.0:
+			launching = true
+			break
+	if launching:
+		_launch_ease_t = LAUNCH_EASE_BACK
+	elif _launch_ease_t > 0.0:
+		_launch_ease_t = maxf(0.0, _launch_ease_t - dt)
+
+	# --- choose the framing cluster ---
+	var cluster: Array
+	if aimer != null:
+		# super bias: frame caster + nearest living opponent tightly (§4)
+		cluster = [aimer]
+		var opp = nearest_opponent(aimer)
+		if is_instance_valid(opp) and not opp.is_dead():
+			cluster.append(opp)
+	else:
+		# combat-active cluster (dealt/took a hit or aiming in the last COMBAT_ACTIVE_WINDOW s);
+		# fallback to all living when the fight is momentarily quiet (§2).
+		cluster = []
+		for p in living:
+			var idx := players.find(p)
+			if idx >= 0 and _combat_active_t[idx] > 0.0:
+				cluster.append(p)
+		if cluster.is_empty():
+			cluster = living
+
+	# weighted centroid (heavy weight on the super caster so the aim reads)
+	var centroid := Vector2.ZERO
+	var wsum := 0.0
+	for p in cluster:
+		var w := SUPER_BIAS_WEIGHT if (aimer != null and p == aimer) else 1.0
+		centroid += p.global_position * w
+		wsum += w
+	centroid /= maxf(wsum, 0.001)
+
+	# half-extent needed to fit the cluster (+ capped velocity lead) symmetrically about the centroid
+	var ext := Vector2.ZERO
+	for p in cluster:
+		ext = ext.max((p.global_position - centroid).abs())
+		var lead: Vector2 = p.velocity.limit_length(CAM_LEAD_CAP) * CAM_LEAD_TIME
+		var lp: Vector2 = p.global_position + lead
+		lp.x = clampf(lp.x, bounds.position.x, bounds.end.x)   # frame the wall, not the void beyond
+		lp.y = clampf(lp.y, bounds.position.y, bounds.end.y)
+		ext = ext.max((lp - centroid).abs())
+	ext += CAM_MARGIN
+
+	# zoom to fit, then clamp to the effective floor .. max
+	var z := minf(1920.0 / maxf(2.0 * ext.x, 1.0), 1080.0 / maxf(2.0 * ext.y, 1.0))
+	var lo := CAM_MIN_ZOOM
+	if _launch_ease_t > 0.0:
+		# ease from the launch floor (0.42) back up to the normal floor (0.60)
+		var f := _launch_ease_t / LAUNCH_EASE_BACK
+		lo = lerpf(CAM_MIN_ZOOM, CAM_LAUNCH_MIN_ZOOM, f)
+	elif aimer != null:
+		lo = maxf(lo, SUPER_BIAS_MIN_ZOOM)   # aim-fuse legibility (launch-cam takes precedence if active)
+	z = clampf(z, lo, CAM_MAX_ZOOM)
+
+	# clamp the frame center so the visible rect stays inside bounds (never reveal the void)
+	var half := Vector2(1920.0, 1080.0) / (2.0 * z)
+	var cx: float = centroid.x
+	var cy: float = centroid.y
+	if bounds.size.x > 2.0 * half.x:
+		cx = clampf(cx, bounds.position.x + half.x, bounds.end.x - half.x)
+	else:
+		cx = bcenter.x
+	if bounds.size.y > 2.0 * half.y:
+		cy = clampf(cy, bounds.position.y + half.y, bounds.end.y - half.y)
+	else:
+		cy = bcenter.y
+	_camera.set_frame(Vector2(cx, cy), z)
 
 func stage_center() -> Vector2:
 	return _stage_rect.get_center()
