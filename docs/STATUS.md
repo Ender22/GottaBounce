@@ -284,7 +284,32 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   owner's flee half barely functions). IN FLIGHT: creative-director re-pass #2 to judge the felt
   experience + these two forks.
 
-## NEXT STEPS in priority order (reordered per the CD verdict 2026-07-03)
+- [x] **CD RE-PASS #2 — verdict FIX, big leap** (docs/briefs/cd_verdict2_2026-07-04_killshape.md).
+  Make-or-break FIXED (kills fire, match resolves P2→10 in 16 stages, endgame closes, self-destruct
+  gone, flight required both axes — genuinely fun now). CORE MISS: **the kill is a central PIT, not
+  an edge BLAST** — off_stage_kills=0, ~100% of 176 OOB bodies at the pit bottom, ZERO side/top
+  kills. Contradicts "smash rivals OFF THE SCREEN" + the owner edge-relative directive. Root: the
+  ±960 side runway (set wide for the recovery gamble) + side bumper posts mean sides never kill, super
+  never spikes off-screen → the pit (added for flight) became the dominant killer, and it's a visually
+  INVISIBLE green-on-green hole, uncredited 28%. TENSION to reconcile: owner asked for BOTH wide
+  runways (recovery) AND edge-blast kills — wide runway defeated the blast. S6 flee still ~2% but
+  root is STRUCTURAL (8s heal window vs ~2-7s stages → can't heal before stage ends), lower severity.
+  Camera-0.42-at-combat still open (pass-1 carryover).
+
+## NEXT STEPS in priority order (reordered per the CD verdict 2026-07-04)
+0. **KILL SHAPE: make the EDGES the blast zone, demote the central pit (CRITICAL — the fantasy gap).**
+   The game must deliver "smash rivals OFF THE SCREEN," not "shove into a central hole." Routed to
+   game-designer (spec): make a dead-on near-edge super/smash send players off-screen (retune
+   near-edge band / side runway / super spike / the side bumper posts that block side-exits) while
+   preserving the mid-stage recovery gamble (reconcile the two owner intents — wide runway for
+   recovery vs lethal edge); DEMOTE the pit to a traversal hazard. + level-designer (pit
+   danger-readability: visible chasm/darkness, not safe-field green; or narrow it) + gameplay-
+   programmer (pit-fall credit attribution → shrink the 28% uncredited). ALSO S6 flee: reconcile the
+   8s heal window vs sub-8s stages (shorter heal / flee speed-edge / accept melee-not-1v1; recalibrate
+   the bar). Then CD re-pass #3.
+1. **Camera at 2x combat spread** (art-director + gameplay-programmer): combat zooms to 0.42 (30-40px
+   bouncers), killing red-pulse + aim-fuse readability; tighter floor zoom / dynamic framing.
+   Twice-flagged (CD pass 1 + 2) — now moving.
 0. **Make grassy_expanse a VALID test substrate + fix the kill economy at scale (CRITICAL PATH).**
    The mode can't be judged until kills fire on the proper arena. Entangled, routed to game-designer
    (+ gameplay-programmer, level-designer): (a) self-destruct-off-top — supers upward auto-suicide
