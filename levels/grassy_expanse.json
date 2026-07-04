@@ -2,18 +2,16 @@
   "name": "Grassy Expanse",
   "version": 2,
   "theme": "grass",
-  "design_intent": "Spread-out 3760px grass island: two trampoline floors split by an OPEN 960px void pit (no bridge), three boost-only elevated pads (bubblegum shoulders + a spring THRONE over the pit). The 960px pit exceeds both the ~395px zero-boost trampoline drift AND the ~850px boost-then-coast reach, so sustained flight is MANDATORY to cross; every upper pad beats a spring bounce's 480px apex, so the jetpack is mandatory to traverse; super earns the cross-map and the throne. (v1 §4: mid-pit spring bridge removed, pit widened 720->960 to restore flight-required horizontal traversal.)",
+  "design_intent": "Spread-out 3760px grass island (walkable x0..3760, footprint UNCHANGED): two WIDE trampoline floors (x0..1600 / x2160..3760) split by an OPEN ~560px void pit (no bridge), three boost-only elevated pads (bubblegum shoulders + a spring THRONE over the pit). v2 kill-shape (docs/specs/v2_kill_shape_edges.md): the EDGES are now the primary blast zone, the pit is DEMOTED to a minority traversal hazard. Side blast lines pulled into the launch band (left -560 / right 4320 = ~560px runway each side, outside the walkable extent) so a near-edge dead-on super spikes you OFF the screen while a mid-stage knock still arcs back (the recovery gamble). The two edge bumper posts were REMOVED (they reflected outward launches back in, defeating the side blast; no reflector within the 560px near-edge band). The pit is narrowed 960->560 (still > the ~395px zero-boost trampoline drift, so sustained flight stays MANDATORY to cross; a brief boost crosses it), which also WIDENS the floors into a genuine mid-stage safe zone (floor centers x800/x2960 sit ~1360px from the side blast > the ~900px band). Every upper pad beats a spring bounce's 480px apex, so the jetpack is mandatory to climb; super earns the cross-map and the throne. ART-DIRECTOR TODO: the pit must READ as a lethal void (dark chasm / depth / void texture) — it currently paints as safe-field green over the meadow, the CD's biggest felt problem; the JSON schema has no void-marker object, so this needs a renderer/art change (see docs/briefs/cd_verdict2_2026-07-04_killshape.md).",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
-  "bounds": { "left": -960, "right": 4720, "top": -2510, "bottom": 1798 },
+  "bounds": { "left": -560, "right": 4320, "top": -2510, "bottom": 1798 },
   "platforms": [
-    { "x": 0,    "y": 1000, "w": 1400, "h": 128, "tier": "trampoline" },
-    { "x": 2360, "y": 1000, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 0,    "y": 1000, "w": 1600, "h": 128, "tier": "trampoline" },
+    { "x": 2160, "y": 1000, "w": 1600, "h": 128, "tier": "trampoline" },
     { "x": 540,  "y": 430,  "w": 320,  "h": 48,  "tier": "bubblegum" },
     { "x": 2900, "y": 430,  "w": 320,  "h": 48,  "tier": "bubblegum" },
-    { "x": 1700, "y": 140,  "w": 360,  "h": 48,  "tier": "spring" },
-    { "x": 0,    "y": 620,  "w": 56,   "h": 380, "tier": "bumper" },
-    { "x": 3704, "y": 620,  "w": 56,   "h": 380, "tier": "bumper" }
+    { "x": 1700, "y": 140,  "w": 360,  "h": 48,  "tier": "spring" }
   ],
   "objects": [
     { "type": "player_spawn", "x": 400,  "y": 780 },
