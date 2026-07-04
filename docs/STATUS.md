@@ -15,11 +15,11 @@ bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the 
 with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
 **edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
 recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** CD verdict #5 = **SHIP** — islands_void flagship kill-fantasy gap CLOSED (credited
-kills 59%, 79% off-the-bottom void kills). Flagship is the circuit template. Whiff-super = accepted
-committal risk (fix is optional backlog). Now: **Phase 1 flagship polish** (camera follow-targeting +
-P1 void-render dark-fill under inner islands) as the quality gate, then **Phase 2 the 9-level circuit**
-per `docs/specs/v1_level_circuit.md` (drop_chamber first, depth-first).
+**CURRENT FOCUS:** flagship SHIPPED (CD verdict #5) + Phase 1 polish DONE (committed): camera
+follow-targeting (local human always framed + cluster hysteresis, owner-flagged) + void render (chasm
+treatment flush under inter-island gaps, generic to all void_is_floor levels). Now: **Phase 2 — the
+9-level circuit** per `docs/specs/v1_level_circuit.md`, depth-first, building `drop_chamber` (owner's
+cylinder-with-a-hole, enclosed_hole kill_shape) FIRST to de-risk the variety-over-a-through-line thesis.
 
 ## What exists (committed + validated)
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
