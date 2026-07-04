@@ -12,6 +12,15 @@ const MASK_SURFACES := 1 << 2
 const BODY_RADIUS := 44.0
 const TUMBLE_SPEED := 9.4            # rad/s spin while stunned (~540 deg/s)
 
+# --- VFX telegraphy (v1_vfx_telegraphy.md). Pure COMMUNICATION constants — they never touch the
+# sim (movement/launch/hitstun/fuel are read-only here). Kept local like BODY_RADIUS/TUMBLE_SPEED
+# (Tuning.gd is for FEEL constants; these are visual, matching the codebase's existing pattern). ---
+const FIRE_TEX := "res://assets/particles/fire_01.png"     # boost flame core (soft warm blob)
+const GLOW_TEX := "res://assets/particles/glow_01.png"     # super-charge gather halo
+const STREAK_MIN_SPEED := 1000.0    # §2: only a real LAUNCH streaks (boost caps at 760; a smash exits >1300)
+const STREAK_MAX_POINTS := 16       # ribbon history cap
+const STREAK_SEG := 24.0            # min px between recorded ribbon points
+
 var provider
 var fuel: float
 var _last_aim := Vector2.UP
@@ -125,6 +134,9 @@ var _smoke: CPUParticles2D
 var _fire_grad_normal: Gradient        # stock orange exhaust ramp
 var _fire_grad_cyan: Gradient          # Unlimited Boost: cyan afterburner (spec 3.2)
 var _fire_cyan_now := false            # transition latch (lifetime writes restart the emitter)
+var _streak: Line2D                # §2: knockback jetstream ribbon (top_level, world-space points)
+var _streak_pts := PackedVector2Array()
+var _charge_glow: Sprite2D         # §3: super-charge gather halo (additive; null if GLOW_TEX absent)
 var _arrow: Polygon2D
 var _charge_ring: Line2D
 var _ring_bg: Line2D               # dark backing ring under the fuse ring (contrast on any bg, §1.4)
@@ -164,6 +176,39 @@ func _ready() -> void:
 	_fire = _make_exhaust(true)
 	add_child(_fire)
 	_fire_grad_normal = _fire.color_ramp
+
+	# §2 KNOCKBACK jetstream: a thick white cartoon speed-streak trailing a LAUNCHED (stunned +
+	# fast) body from the impact point to its current position. Line2D ribbon in world space
+	# (top_level) so it stays glued to the flight path; width/opacity scale with live speed and it
+	# fades as the body slows. Added BEFORE _body so it draws under the character silhouette.
+	_streak = Line2D.new()
+	_streak.top_level = true
+	_streak.joint_mode = Line2D.LINE_JOINT_ROUND
+	_streak.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_streak.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_streak.default_color = Color(1.0, 1.0, 1.0, 1.0)
+	var wc := Curve.new()
+	wc.add_point(Vector2(0.0, 0.12))   # tail (oldest point) thin
+	wc.add_point(Vector2(1.0, 1.0))    # head (at the body) full width
+	_streak.width_curve = wc
+	var sg := Gradient.new()
+	sg.set_color(0, Color(1.0, 1.0, 1.0, 0.0))   # tail feathers to transparent
+	sg.add_point(0.55, Color(1.0, 1.0, 1.0, 0.65))
+	sg.set_color(1, Color(1.0, 1.0, 1.0, 0.95))  # bright near the body
+	_streak.gradient = sg
+	_streak.visible = false
+	add_child(_streak)
+
+	# §3 SUPER-CHARGE gather halo: a soft additive glow on the body that brightens & saturates
+	# yellow->orange->red as the fuse burns. Guarded so a missing PNG just skips it (no crash).
+	if ResourceLoader.exists(GLOW_TEX):
+		_charge_glow = Sprite2D.new()
+		_charge_glow.texture = load(GLOW_TEX)
+		_charge_glow.visible = false
+		var gm := CanvasItemMaterial.new()
+		gm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		_charge_glow.material = gm
+		add_child(_charge_glow)
 	_fire_grad_cyan = Gradient.new()
 	_fire_grad_cyan.set_color(0, Color(0.6, 1.0, 1.0, 1.0))
 	_fire_grad_cyan.add_point(0.3, Color(0.05, 0.65, 1.0, 1.0))
@@ -253,14 +298,20 @@ func _make_exhaust(is_fire: bool) -> CPUParticles2D:
 	var grad := Gradient.new()
 	var grow := Curve.new()
 	if is_fire:
-		p.amount = 30
-		p.lifetime = 0.32
-		p.initial_velocity_min = 260.0
-		p.initial_velocity_max = 520.0
+		# Dense enough that the soft warm blobs OVERLAP into one continuous tongue of fire (§1) —
+		# the "faint speckle" root cause was 30 textureless squares with air between them.
+		p.amount = 46
+		p.lifetime = 0.34
+		p.initial_velocity_min = 200.0
+		p.initial_velocity_max = 480.0
 		p.damping_min = 300.0
 		p.damping_max = 600.0
-		p.scale_amount_min = 2.2
+		p.scale_amount_min = 2.2            # textureless fallback (scaled-up squares)
 		p.scale_amount_max = 4.0
+		if ResourceLoader.exists(FIRE_TEX):
+			p.texture = load(FIRE_TEX)
+			p.scale_amount_min = 0.34       # 96px soft-blob PNG -> real ~40-60px flame licks
+			p.scale_amount_max = 0.62
 		grad.set_color(0, Color(1.0, 1.0, 0.75, 1.0))
 		grad.add_point(0.35, Color(1.0, 0.72, 0.15, 1.0))
 		grad.set_color(1, Color(0.95, 0.25, 0.05, 0.0))
@@ -916,6 +967,9 @@ func mark_dead() -> void:
 	visible = false
 	if _hit_area:
 		_hit_area.monitoring = false
+	_streak_pts.clear()               # §2: drop the jetstream ribbon on death (no stale trail)
+	if _streak:
+		_streak.visible = false
 
 func respawn(pos: Vector2) -> void:
 	_dead = false
@@ -928,6 +982,9 @@ func respawn(pos: Vector2) -> void:
 	global_position = pos
 	velocity = Vector2.ZERO
 	fuel = Tuning.fuel_max
+	_streak_pts.clear()               # §2: a fresh life starts with no jetstream ribbon
+	if _streak:
+		_streak.visible = false
 	_stun_timer = 0.0
 	_stunned_by = null
 	_spin_vel = 0.0
@@ -1004,6 +1061,13 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			var rise := clampf(-velocity.y / 1100.0, 0.0, 1.0)   # fast ascent = slight stretch
 			sx *= lerpf(1.0, 0.9, rise)
 			sy *= lerpf(1.0, 1.12, rise)
+		if _sb_aiming:
+			# §3 anticipatory pre-coil: squash the body slightly (cosmetic scale ONLY — the aim
+			# hover physics in _physics_process is untouched) so a charging Bouncer reads as a
+			# coiled spring winding up, not a floater.
+			var coil := 0.05 + 0.06 * clampf(_sb_aim_t / Tuning.super_aim_max, 0.0, 1.0)
+			sx *= 1.0 + coil
+			sy *= 1.0 - coil
 		_body.scale = Vector2(sx, sy)
 		# squash-pose swap on bounce (skins with a squash texture, currently pink)
 		if _sprite:
@@ -1044,25 +1108,37 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 				_sprite.self_modulate = Color.WHITE
 				_dmg_overlay.visible = false
 	_update_contact_shadow()
+	_update_streak()
 	# telegraphy (lethality §1.4): the ring is a 2s FUSE (fills toward auto-fire, yellow -> red),
 	# the arrow shows the aim at full size from frame 1 (power never scales), exhaust revs up.
 	var fuse := clampf(_sb_aim_t / Tuning.super_aim_max, 0.0, 1.0) if _sb_aiming else 0.0
+	# §3 charge halo defaults hidden; the aiming branch below lights it up.
+	if _charge_glow:
+		_charge_glow.visible = _sb_aiming and not stunned
 	if _fire:
 		var nozzle := -aim_dir * 44.0
 		var thrust_dir := -aim_dir
 		if _sb_aiming:
-			# Engines revving up: smoke billows out the nozzle and a flame grows as the fuse burns,
-			# telegraphing the blast. Direction is out the nozzle, opposite where you'll launch.
+			# Engines revving up (§3): the flame becomes a BUILDING glow that grows and tints toward
+			# danger-red as the fuse burns — reads as gathering energy, not just exhaust. Direction is
+			# out the nozzle, opposite where you'll launch. (Ring + arrow share this yellow->red ramp.)
 			_fire.emitting = true
 			_smoke.emitting = true
 			_fire.position = -_sb_aim_dir * 44.0
 			_smoke.position = -_sb_aim_dir * 44.0
 			_fire.direction = -_sb_aim_dir
 			_smoke.direction = -_sb_aim_dir
-			var rev := 0.4 + 0.9 * fuse
-			_fire.initial_velocity_max = 300.0 * rev
+			var rev := 0.7 + 1.1 * fuse
+			_fire.initial_velocity_max = 340.0 * rev
 			_fire.scale = Vector2(rev, rev)
+			_fire.modulate = Color(1.0, 0.95, 0.35).lerp(Color(1.0, 0.32, 0.12), fuse)
 			_smoke.scale = Vector2(1.0 + fuse, 1.0 + fuse)
+			if _charge_glow:
+				# grows + brightens + pulses faster as fire nears (§3-P2 the imminent-blast beat)
+				var pulse := 0.6 + 0.4 * sin(_anim_t * TAU * lerpf(3.0, 9.0, fuse))
+				_charge_glow.scale = Vector2.ONE * lerpf(1.2, 2.2, fuse)
+				var gcol := Color(1.0, 0.92, 0.28).lerp(Color(1.0, 0.16, 0.05), fuse)
+				_charge_glow.modulate = Color(gcol.r, gcol.g, gcol.b, lerpf(0.4, 0.95, fuse) * pulse)
 		else:
 			_fire.emitting = boosting
 			_smoke.emitting = boosting
@@ -1070,6 +1146,7 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_smoke.position = nozzle
 			_fire.direction = thrust_dir
 			_smoke.direction = thrust_dir
+			_fire.modulate = Color(1, 1, 1, 1)   # clear the charge tint
 			# supercharged thrust = bigger, faster fire
 			var boost_amt := 1.6 if _supercharge_timer > 0.0 else 1.0
 			# Unlimited Boost (spec 3.2): flame turns cyan, doubles in size, longer afterburner —
@@ -1078,12 +1155,17 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			if fuel_locked != _fire_cyan_now:
 				_fire_cyan_now = fuel_locked
 				_fire.color_ramp = _fire_grad_cyan if fuel_locked else _fire_grad_normal
-				_fire.lifetime = 0.55 if fuel_locked else 0.32
+				_fire.lifetime = 0.55 if fuel_locked else 0.34
 			if fuel_locked:
 				boost_amt *= 2.0
-			_fire.initial_velocity_max = 520.0 * boost_amt
-			_fire.scale = Vector2(boost_amt, boost_amt)
-			_smoke.scale = Vector2.ONE
+			# §1 magnitude read: the flame's length/size scales with the live THRUST FRACTION toward
+			# the terminal boost speed — a fresh boost already reads clearly (P1), a hard/supercharged
+			# one is visibly bigger & longer (P3); coasting emits nothing at all (P4, honest tell).
+			var thrust_frac := clampf(velocity.dot(aim_dir) / Tuning.normal_boost_max_speed, 0.0, 1.0)
+			var flame := boost_amt * (0.8 + 0.6 * thrust_frac)
+			_fire.initial_velocity_max = 470.0 * flame
+			_fire.scale = Vector2(flame, flame)
+			_smoke.scale = Vector2.ONE * (0.8 + 0.35 * thrust_frac)
 	if _arrow:
 		var show_arrow := (aiming or _sb_aiming) and not stunned
 		_arrow.visible = show_arrow
@@ -1124,6 +1206,38 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_charge_ring.visible = false
 			if _ring_bg:
 				_ring_bg.visible = false
+
+## §2 KNOCKBACK jetstream (v1_vfx_telegraphy.md): a thick white cartoon speed-streak that follows a
+## LAUNCHED body from the impact point along its flight path. Gated on hitstun + high speed, so a
+## SHOVE (no hitstun) leaves nothing (P2) and the streak tracks the body every frame (P3). Width and
+## opacity scale with the LIVE speed fraction toward max_speed, so a near-cap super-smash reads as a
+## cannon shot and it feathers away as the body slows. World-space (top_level) ribbon of recent
+## positions. Reads Tuning.max_speed ONLY to scale itself — never writes any sim value (the FENCE).
+func _update_streak() -> void:
+	if _streak == null:
+		return
+	var speed := velocity.length()
+	var active: bool = _stun_timer > 0.0 and speed > STREAK_MIN_SPEED and not _dead and not frozen
+	if active:
+		var gp := global_position
+		if _streak_pts.is_empty() or _streak_pts[_streak_pts.size() - 1].distance_to(gp) > STREAK_SEG:
+			_streak_pts.append(gp)
+			while _streak_pts.size() > STREAK_MAX_POINTS:
+				_streak_pts.remove_at(0)
+		var frac: float = clampf(speed / Tuning.max_speed, 0.0, 1.0)
+		_streak.points = _streak_pts
+		_streak.width = lerpf(10.0, 48.0, frac)
+		_streak.modulate.a = 1.0
+		_streak.visible = _streak_pts.size() >= 2
+	else:
+		# drain the tail so a stopped/landed body's streak retracts instead of snapping off
+		if not _streak_pts.is_empty():
+			_streak_pts.remove_at(0)
+			_streak.points = _streak_pts
+			_streak.modulate.a = maxf(0.0, _streak.modulate.a - 0.15)
+			_streak.visible = _streak_pts.size() >= 2 and _streak.modulate.a > 0.02
+		else:
+			_streak.visible = false
 
 ## Soft ellipse contact shadow on the surface below (art brief §3): anchors the toy to the set and
 ## helps players judge landings. Fades 30%->0% across the last SHADOW_MAX_HEIGHT px of height.

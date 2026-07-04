@@ -96,13 +96,13 @@ func _super_blast(pos: Vector2, aim: Vector2) -> void:
 	p.emitting = true
 	p.one_shot = true
 	p.explosiveness = 1.0
-	p.amount = 56
+	p.amount = 64                       # §4-P2: bolder than the §1 boost tongue — a one-shot cannon
 	p.lifetime = 0.5
 	p.direction = back
-	p.spread = 42.0
+	p.spread = 34.0                     # tighter -> reads as a violent directional JET, not a puff
 	p.gravity = Vector2.ZERO
-	p.initial_velocity_min = 520.0
-	p.initial_velocity_max = 1150.0
+	p.initial_velocity_min = 620.0
+	p.initial_velocity_max = 1250.0
 	p.damping_min = 400.0
 	p.damping_max = 900.0
 	p.scale_amount_min = 4.0            # textureless in v0: scaled up from sprite-based 0.45/0.9

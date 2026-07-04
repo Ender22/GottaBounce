@@ -64,6 +64,12 @@ var _commit_t := 0.0         # rolled hunt stays TRUE this long (§3.1 commit_ti
 var _target = null           # committed target (Player)
 var _my_aim_t := 0.0         # time spent in my own AIM state
 var _aim_roll := 0.0         # current aim-jitter roll (re-rolled per reaction tick while aiming)
+# --- v1_vfx_telegraphy §5: super-aim DWELL (commitment, NOT accuracy — INV-8). _pending_aim_min is
+# rolled when an OFFENSIVE super is committed; it's copied to _aim_min_this on the aim-start edge and
+# is the min seconds the bot holds the AIM before it may release. 0 for dodge/recovery supers. ---
+var _pending_aim_min := 0.0
+var _aim_min_this := 0.0
+var _was_aiming := false
 var _dodge_dir := Vector2.ZERO   # pending dodge-super direction (fires snap, §3.2 rule 5)
 var _dodged := {}            # enemy instance_id -> fired a dodge for their current aim window
 var _finisher := false       # §5.5: down to <= finisher_opponents_left living opponents -> commit-mode
@@ -158,6 +164,13 @@ func poll() -> InputIntent:
 	# tick, so it reverts automatically when a stage reset repopulates the arena. Dial overrides are
 	# read through the _eff_* accessors below; profile is never mutated (INV-8: commitment, not aim).
 	_finisher = _alive_opponents() <= Tuning.finisher_opponents_left
+	# §5 dwell: latch the sampled floor on the aim-start EDGE (offensive aims set _pending_aim_min
+	# the frame they commit; dodge/recovery leave it 0). Runs before the is_super_aiming return.
+	var aiming_now: bool = me.is_super_aiming()
+	if aiming_now and not _was_aiming:
+		_aim_min_this = _pending_aim_min
+		_pending_aim_min = 0.0
+	_was_aiming = aiming_now
 	# --- own AIM state: steer the led solution, fire when good enough or timed out (§3.2 rule 1)
 	if me.is_super_aiming():
 		_my_aim_t += dt
@@ -182,6 +195,13 @@ func poll() -> InputIntent:
 		it.super_hold = true   # press: Player enters AIM this frame; _tick_aiming takes over next
 		it.boost = false
 		_aim_roll = randf_range(-profile.aim_error, profile.aim_error)
+		# §5: roll the dwell floor for this OFFENSIVE aim only (dodge sets _dodge_dir first -> skip).
+		# Capped below the 2s auto-fire ceiling so a bot can never camp the aim (Pillar 2).
+		if _dodge_dir == Vector2.ZERO and profile.super_aim_min > 0.0 and randf() < profile.super_aim_min_chance:
+			_pending_aim_min = minf(randf_range(profile.super_aim_min, profile.super_aim_min + 0.4),
+				Tuning.super_aim_max - 0.1)
+		else:
+			_pending_aim_min = 0.0
 	_tick_powerup(it, dt)
 	# Steer the thrust around walls/platforms so the bot stops boosting straight into geometry.
 	# Ascent-detour first (macro lateral routing around an overhead platform edge), then the local
@@ -221,12 +241,19 @@ func _tick_aiming(it: InputIntent) -> void:
 				_aim_roll = randf_range(-profile.aim_error, profile.aim_error)
 			desired = _led_dir(t).rotated(_aim_roll)
 			fire = absf(_aim_roll) < profile.aim_error * 0.5
-	if _my_aim_t >= profile.super_aim_time:
+	# §5 commit DWELL: hold the aim at least _aim_min_this before releasing so the §3 charge tell has
+	# time to read (commitment only — aim quality is already baked into `desired`/`fire` above). The
+	# fire-by ceiling extends to cover the floor; the 2s hard cap (super_aim_max) still auto-fires in
+	# Player, so a bot can never camp. _aim_min_this is 0 for dodge/recovery aims, so they're unchanged.
+	if _my_aim_t < _aim_min_this:
+		fire = false
+	if _my_aim_t >= maxf(profile.super_aim_time, _aim_min_this):
 		fire = true   # L1 hangs comically (sometimes hits the 2s auto-fire); L5 snap-fires
 	it.aim = desired
 	it.super_hold = not fire
 	if fire:
 		_dodge_dir = Vector2.ZERO
+		_aim_min_this = 0.0
 
 ## Aim at the led intercept point (§3.1 target_lead — the single biggest hit-rate fix):
 ## target_pos + target_vel * (dist / super_boost_impulse_full) * target_lead.
