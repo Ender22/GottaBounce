@@ -47,7 +47,13 @@ If any answer is "no," the build is not done — regardless of green criteria. S
   gameplay lever, not just a look).
 - **QA / playtester:** drive with **human-style input** (not only bots — bots play whatever the level
   allows and never say "this feels cramped"), and report the FELT experience in plain language + the
-  core-verb measures, not only pass/fail against criteria.
+  core-verb measures, not only pass/fail against criteria. **Watch MOTION, not just outcomes:** run
+  burst sequences / trajectories and read the **bot-motion-health** metrics in `round_stats`
+  (`stuck_episodes`, `underside_bounces`, `blocked_ascent`, `detours` — `PartyMatch.bot_motion_health()`).
+  Aggregate outcome stats (kill%, off-screen%) HIDE dumb motion — a bot can head-bang for seconds and
+  still score. Any locomotion pathology (head-banging, stuck, camping, jitter) is a FAIL to report even
+  if every outcome number passes. (Born from a real miss: bots head-banged platform undersides for a
+  whole build and no role caught it because we only measured outcomes — 2026-07-04.)
 - **Creative director (new role):** own the holistic "is this the game we said we're making, and is
   it fun?" pass on the INTEGRATED build. See `.claude/agents/creative-director.md`.
 
@@ -55,3 +61,7 @@ If any answer is "no," the build is not done — regardless of green criteria. S
 The studio is strong at *building components to spec and verifying components*. Its blind spot is
 *validating the integrated experience against the fantasy, as a human would feel it*. Bots don't
 complain; specs describe mechanisms; every role optimizes its slice. Guard against it here, every time.
+And when you find a blind spot, **build a gate, not just a warning** — this doc warned about exactly the
+bot-motion blind spot yet a head-banging bug still shipped, because a warning isn't a detector. The fix
+was a `round_stats.motion_health` probe that makes "looks dumb" a number. Prefer turning felt-quality
+failures into measurable signals in the QA feed over trusting anyone to remember to look.
