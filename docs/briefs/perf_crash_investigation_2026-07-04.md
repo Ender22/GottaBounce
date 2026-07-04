@@ -1,5 +1,17 @@
 # Foundation-health investigation — fps 79→28 + native crash ~12 stages (2026-07-04)
 
+> **⚠ OUTCOME (2026-07-04): BOTH HYPOTHESES REFUTED by empirical QA. This brief's static suspects
+> were plausible-but-WRONG. Kept as a record + a methodology lesson, NOT as an action list.**
+> - Crash: DOES NOT REPRODUCE (~85 stage loads, zero crash; tex_mem FLAT; EventBus conns stayed 1 →
+>   renderer frees fine). Likely original cause = ZOMBIE Godot processes (VRAM OOM under
+>   gl_compatibility), i.e. operational, not code. The #1 texture-accumulation suspect is FALSIFIED.
+> - fps: NOT a regression — the game runs 300-1000+ fps uncapped (~1-3ms/frame); 28fps was
+>   Windows/DWM present-throttle of the UNFOCUSED QA window under vsync. Physics is 120Hz decoupled
+>   from render → no sim/feel corruption. All fps suspects (#1 draw-calls, #2 camera-per-tick, #3
+>   120Hz) refuted (hiding the whole renderer changed nothing; physics-process 1-3ms).
+> LESSON: confirm empirically BEFORE escalating. See STATUS 2026-07-04 foundation-scare entry.
+> Everything BELOW is the original (refuted) static analysis.
+>
 > STATIC root-cause (read-only, no launch). Two PRE-EXISTING bugs surfaced during the kill-shape QA,
 > neither caused by it. Empirical confirmation (needs the port) + fixes are the follow-up. This is the
 > current TOP priority (foundation health before more features — a crashing 28fps game can't be

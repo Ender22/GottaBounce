@@ -309,20 +309,27 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   as this arena's identity. DID NOT pre-commit the redesign while owner decides. CD re-pass #3 running
   to give the FELT read on the current build (informs the decision).
 
-- [!] **TWO PRE-EXISTING SYSTEMIC ISSUES surfaced by the kill-shape build QA (NOT caused by it) —
-  foundation health, likely corrupting all long QA:**
-  (1) **NATIVE CRASH after ~12 combat stages/session** — hard native exit, no GDScript error (proven
-  NOT the void: 50 pure scene-reloads were clean; likely GL/resource accumulation over combat). This
-  has been forcing short/folded QA samples (the "60% pit" K1 came from a crash-forced sample with
-  ~8 duplicate stage rows → K1 is itself UNRELIABLE; a clean 13-stage sample read 54% edge / 34% pit,
-  the folded larger one 39%/58%). Likely also behind some flaky/zombie agent runs.
-  (2) **fps ~28 vs the old golden 79** (session-1) — pre-existing, unchanged by this build, below the
-  ≥55fps criterion. A ~3× regression nobody root-caused (was hand-waved as screenshot-stall earlier;
-  it's real + persistent).
-  → These are STOP-AND-FIX-THE-FOUNDATION issues: combat/arena features have been stacked on a base
-  that crashes + runs at 28fps, and the crash undermines the measurements decisions rest on. PRIORITY
-  investigation (perf archaeology: git-bisect fps 79→28; root-cause the native crash) BEFORE more
-  feature/arena work. Independent of the arena decision + the owner.
+- [x] **FOUNDATION-HEALTH SCARE — BOTH "BUGS" REFUTED by empirical QA (2026-07-04). Director
+  over-escalated on a build report + STATIC analysis; empirical confirmation dissolved both.** The
+  foundation is HEALTHY. Do NOT chase these ghosts.
+  (1) **"Native crash ~12 stages" — DOES NOT REPRODUCE.** ~85 stage loads / ~13 min combat / 400
+  screenshots in one session, zero crash. Texture-accumulation hypothesis FALSIFIED: tex_mem FLAT
+  across 30 rapid rebuilds + bounded 51-55M in combat; EventBus `surface_bounced` connections stayed
+  at 1 (old per-stage ArenaRenderer frees correctly). Likely real cause of the original: ZOMBIE Godot
+  processes competing for VRAM under gl_compatibility (CLAUDE.md's documented hazard) → native OOM,
+  no GDScript error — operational, not code. Mitigation: always launch via run_game.ps1 (kills
+  zombies), assert single instance before long runs.
+  (2) **"fps 79→28 regression" — MEASUREMENT ARTIFACT, not real.** True fps uncapped = 300-1000+
+  (~1-3ms/frame); TIME_PHYSICS_PROCESS 1-3ms; hiding the ENTIRE renderer changed nothing (not
+  fill-bound). The 28fps is Windows/DWM present-throttling the UNFOCUSED QA window's SwapBuffers
+  under vsync. A focused (human) window gets normal 60fps. **Physics is fixed 120Hz DECOUPLED from
+  render, so the throttle never corrupted any feel/pacing/sim measurement** — the "28fps corrupts our
+  decisions" premise was unfounded. K1 (54/46 from CD #3's clean 19-stage sample) STANDS.
+  → QA practice going forward: unfocused-window fps readings are artifacts; measure true fps by
+  timing process_frame awaits, or `DisplayServer.window_set_vsync_mode(DISABLED)` for a run (caveat:
+  uncapped ~1000fps spin). LESSON: confirm hypotheses empirically BEFORE escalating/fixing — static
+  root-cause produced plausible-but-wrong suspects for both. Evidence: agent report + tools/out/
+  perf_camera_void_1.png/2.png (camera + void intact at HEAD).
 
 - [x] **CD VERDICT #3 — FIX (big leap; fantasy now genuinely present).** Edge blasts fire/read/feel
   good (measured 54% edge, 41% true side-blast, 92%+ credited), pit-void readable (the invisible-hole
@@ -337,15 +344,22 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   but still the owner's flagged call (awaiting).** Confirmed cross-skin damage-pulse still not
   observable (open art TODO). Evidence: tools/out/cd3_*.
 
-## NEXT STEPS in priority order (reordered 2026-07-04 — foundation health first)
-0a. **FOUNDATION: root-cause the native crash (~12 stages) + the fps 79→28 regression.** Both
-   pre-existing, both undermine QA reliability and violate the perf criterion. Bisect fps across the
-   session-1→now history; instrument/repro the crash (resource/node/GL accumulation over combat
-   stages — check for per-stage leaks in the rebuilt PartyMatch/void/camera/powerup paths). Fix before
-   more features. A crashing 28fps game can't be feel-validated reliably.
-0b. **[AWAITING OWNER] Arena shape: central pit vs islands-over-void** (see above). Blocks the circuit.
-   CD felt verdict #3 (running) + K1 data feed it — but note K1 is unreliable until the crash is fixed
-   (clean ≥24-stage sample needs a non-crashing session).
+## NEXT STEPS in priority order (2026-07-04 — foundation scare RESOLVED as a non-issue)
+0. **[AWAITING OWNER] Arena shape: central pit vs islands-over-void.** Evidence-unanimous (3
+   independent analyses) for islands-over-void as PRIMARY (edges dominate + kills the 32% pit dead-air;
+   delivers "smash off the screen"), keep central-pit grassy as a secondary "chase" map. Executes the
+   owner's own fantasy; still the owner's flagged call. Blocks the ~10-level circuit (template shape).
+   K1 (54% edge / 46% pit) is a CLEAN sample (CD #3, 19 stages, no crash) — decision-ready.
+1. **AUDIO [owner dependency + programmer]:** wire AudioManager/SFX-bus + bounce/boost/smash/impact/
+   announcer SFX + music. The loudest remaining "not a finished game" gap now that visuals/readability
+   are strong. Needs owner input on SFX sourcing (music library exists from session 1).
+2. **Cross-skin damage-pulse:** the crimson-overlay fix (f09d8b9) shipped but CD #3 couldn't confirm it
+   READS in motion on non-pink skins at combat zoom — quick verify/tune (art-director + a targeted
+   multi-skin screenshot; earlier multi-skin capture was blocked by the gbplay eval-loop quirk).
+3. **The ~10-level circuit** (level-designer): author ~9 flight-required levels to the chosen arena
+   template (gated on step 0); then all pacing/feel/CD QA on the circuit rotation.
+4. **Goat/ram shape prototype** (un-gated): non-circular collider + solidity-by-hit-position + taller
+   sprite; playtest super-smash sweet-spot variety. Sequence after the arena template settles.
 0. **KILL SHAPE: make the EDGES the blast zone, demote the central pit (CRITICAL — the fantasy gap).**
    The game must deliver "smash rivals OFF THE SCREEN," not "shove into a central hole." Routed to
    game-designer (spec): make a dead-on near-edge super/smash send players off-screen (retune
