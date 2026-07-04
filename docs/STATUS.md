@@ -324,6 +324,19 @@ stretch, ring-outs + respawn. 80fps, 28 draw calls. See `tools/out/grade_far.png
   investigation (perf archaeology: git-bisect fps 79→28; root-cause the native crash) BEFORE more
   feature/arena work. Independent of the arena decision + the owner.
 
+- [x] **CD VERDICT #3 — FIX (big leap; fantasy now genuinely present).** Edge blasts fire/read/feel
+  good (measured 54% edge, 41% true side-blast, 92%+ credited), pit-void readable (the invisible-hole
+  bug is dead), camera+chevrons SOLVED (0.60 floor, off-screen kills read), constant motion, "one more
+  round." Not SHIP: kill SHAPE half-delivered — **pit still 46% (plurality) AND the SOLE dead-air
+  source (32% of pit deaths uncredited vs 6-13% at edges); overall uncredited 21% (target ≤10) is
+  entirely the pit.** CD recommends (a) ISLANDS-OVER-VOID primary arena (unifies fall=off-screen,
+  makes edges dominate, kills the dead-air), keep central-pit grassy as a secondary "chase" map — the
+  edge fixes hit their ceiling (~50/50) without over-tightening the runway (K4-forbidden). **Now
+  THREE independent analyses (Director, game-designer structural, CD felt) converge on islands +
+  it executes the owner's own "smash off the screen" fantasy → the arena fork is evidence-resolved,
+  but still the owner's flagged call (awaiting).** Confirmed cross-skin damage-pulse still not
+  observable (open art TODO). Evidence: tools/out/cd3_*.
+
 ## NEXT STEPS in priority order (reordered 2026-07-04 — foundation health first)
 0a. **FOUNDATION: root-cause the native crash (~12 stages) + the fps 79→28 regression.** Both
    pre-existing, both undermine QA reliability and violate the perf criterion. Bisect fps across the
