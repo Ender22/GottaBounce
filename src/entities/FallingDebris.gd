@@ -45,6 +45,11 @@ var _t: float = 0.0
 var _next_drop: float = 0.6          # time of the next telegraph start
 var _col_i: int = 0                  # round-robins explicit columns for even spread
 var _rng := RandomNumberGenerator.new()
+# LETHAL-only-while-combat-is-live gate (shared hazard doctrine, see SpinningHammer). Chunks still
+# telegraph + fall during the intro/countdown so the cadence reads, but a chunk's KILL is suppressed
+# until EventBus.combat_started and re-suppressed on EventBus.combat_ended — a player frozen at spawn
+# under a drop column during a pre-match phase is never killed (never left stuck-dead by PartyMatch).
+var _lethal: bool = false
 # pending telegraphs: [{ "x": float, "t": float (elapsed), "lead": float }]
 var _telegraphs: Array = []
 # live chunks: [{ "area": Area2D, "x": float, "y": float, "land_y": float }]
@@ -73,6 +78,17 @@ func _ready() -> void:
 	_rng.seed = hash(Vector2(x_min + x_max, floor_y)) + columns.size()
 	_next_drop = start_delay
 	z_index = 41   # over platforms/void, under HUD; chunks + shadows self-drawn here
+	# lethal gate: enable on the starting gun, disable when the stage's combat closes.
+	if not EventBus.combat_started.is_connected(_on_combat_started):
+		EventBus.combat_started.connect(_on_combat_started)
+	if not EventBus.combat_ended.is_connected(_on_combat_ended):
+		EventBus.combat_ended.connect(_on_combat_ended)
+
+func _on_combat_started() -> void:
+	_lethal = true
+
+func _on_combat_ended() -> void:
+	_lethal = false
 
 func _physics_process(delta: float) -> void:
 	_t += delta
@@ -145,6 +161,8 @@ func _spawn_chunk(x: float) -> void:
 ## rival who knocked the victim under the chunk within the 6.0s ring-out window is credited, else the
 ## death is an uncredited self-fall (§2.0#4).
 func _kill_overlapping(area: Area2D) -> void:
+	if not _lethal:
+		return   # pre-combat / post-stage: chunks still fall + telegraph, but never kill.
 	for body in area.get_overlapping_bodies():
 		if not is_instance_valid(body):
 			continue

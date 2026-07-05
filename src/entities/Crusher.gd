@@ -56,6 +56,11 @@ var _open_dwell: float = 1.5         # derived: the OPEN safe beat (period minus
 var _shape1: CollisionShape2D
 var _shape2: CollisionShape2D
 var _rng := RandomNumberGenerator.new()
+# LETHAL-only-while-combat-is-live gate (shared hazard doctrine, see SpinningHammer). The heads still
+# slam + telegraph during the intro/countdown so the rhythm reads, but the CRUSH-kill is suppressed
+# until EventBus.combat_started and re-suppressed on EventBus.combat_ended — a player frozen at spawn
+# in the crush lane during a pre-match phase is never killed (never left stuck-dead by PartyMatch).
+var _lethal: bool = false
 
 func setup_from_json(o: Dictionary) -> void:
 	var cc = o.get("center", {"x": 0.0, "y": 0.0})
@@ -89,6 +94,17 @@ func _ready() -> void:
 	add_child(_shape2)
 	_update(0.0)
 	z_index = 40   # over platforms/void, under HUD
+	# lethal gate: enable on the starting gun, disable when the stage's combat closes.
+	if not EventBus.combat_started.is_connected(_on_combat_started):
+		EventBus.combat_started.connect(_on_combat_started)
+	if not EventBus.combat_ended.is_connected(_on_combat_ended):
+		EventBus.combat_ended.connect(_on_combat_ended)
+
+func _on_combat_started() -> void:
+	_lethal = true
+
+func _on_combat_ended() -> void:
+	_lethal = false
 
 func _make_head_shape() -> CollisionShape2D:
 	var cs := CollisionShape2D.new()
@@ -164,6 +180,8 @@ func _physics_process(delta: float) -> void:
 ## within the window is credited and an untouched victim is an uncredited self-fall (§2.0#4). The
 ## crusher NEVER passes itself as attacker (it is not a Player -> no invented environment scorer).
 func _kill_overlapping() -> void:
+	if not _lethal:
+		return   # pre-combat / post-stage: the heads still slam + telegraph, but never crush-kill.
 	for body in get_overlapping_bodies():
 		if not is_instance_valid(body):
 			continue

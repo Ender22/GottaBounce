@@ -18,6 +18,11 @@ signal powerup_used(player, id)
 # play() calls (INV-12). See docs/feedback/owner_2026-07-04_arena_variety.md §2 for the event list.
 signal countdown_tick(n)              # n = 3 / 2 / 1 during COUNTDOWN
 signal combat_started()               # "BOUNCE!" — the starting gun, each stage
+signal combat_ended()                 # a stage's combat closed (STAGE_END / MATCH_END). The counterpart
+                                      # of combat_started: lethal hazards listen to BOTH to gate their
+                                      # kill to live combat only (no pre-match/frozen-spawn or post-stage
+                                      # kills). NOT emitted on the COMBAT->SUDDEN_DEATH transition (SD is
+                                      # still live combat). See src/entities/SpinningHammer.gd et al.
 signal match_started()                # a fresh match begins (music (re)start)
 signal match_won(winner_idx)          # match-end hero moment
 signal first_blood(attacker_idx)      # first credited kill of the match

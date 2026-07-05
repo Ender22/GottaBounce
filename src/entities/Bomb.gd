@@ -61,6 +61,10 @@ var _tele_left: float = 0.0            # seconds remaining in the active telegra
 var _cool_left: float = 0.0            # SPENT mode: seconds until re-arm (recur)
 var _flash_t: float = 0.0              # >0 for a short window right after a blast (detonation VFX)
 var _armed_started := false            # has combat_started fired (or we armed immediately)?
+var _lethal := false                   # combat-live gate (shared hazard doctrine): arming + detonation
+                                       # are inert until EventBus.combat_started and re-inert on
+                                       # EventBus.combat_ended, so a mine can never kill a player frozen
+                                       # at spawn during STAGE_INTRO/COUNTDOWN (or during a STAGE_END freeze).
 var _shape: CollisionShape2D
 var _last_beep := -1                   # accelerating-tick bookkeeping (one sfx per blink)
 
@@ -103,9 +107,19 @@ func _ready() -> void:
 	# already started (e.g. late add) we arm immediately on the first frame via the fallback below.
 	if not EventBus.combat_started.is_connected(_on_combat_started):
 		EventBus.combat_started.connect(_on_combat_started)
+	if not EventBus.combat_ended.is_connected(_on_combat_ended):
+		EventBus.combat_ended.connect(_on_combat_ended)
 
 func _on_combat_started() -> void:
 	_armed_started = true
+	_lethal = true
+
+## Stage's combat closed: go inert. Cancel any in-flight fuse/telegraph so a STAGE_END freeze never
+## detonates on a frozen player; a one-shot SPENT husk stays spent. Re-arms fresh next combat_started.
+func _on_combat_ended() -> void:
+	_lethal = false
+	if _state == ARMED or _state == TELEGRAPH:
+		_state = UNARMED
 
 ## Enter the ARMED state fresh (initial arm and every re-arm on recur).
 func _arm() -> void:
@@ -118,13 +132,17 @@ func _physics_process(delta: float) -> void:
 	_t += delta
 	if _flash_t > 0.0:
 		_flash_t = maxf(0.0, _flash_t - delta)
-	# fallback: if combat_started never fires in this context (e.g. a placed-ball sports test), arm
-	# after arm_delay anyway so the bomb is still functional.
-	if not _armed_started and _t >= maxf(arm_delay, 0.0) + 0.5:
+	# fallback: if combat_started never fires in this context (e.g. a placed-ball sports dev test with no
+	# match state machine), self-arm anyway so the bomb stays functional there. The wait (arm_delay + 6s)
+	# is DELIBERATELY longer than any real intro+countdown (~2-3s), so in a live match combat_started
+	# always latches _armed_started/_lethal first and this fallback NEVER pre-empts the pre-match gate.
+	if not _armed_started and _t >= maxf(arm_delay, 0.0) + 6.0:
 		_armed_started = true
+		_lethal = true
 	match _state:
 		UNARMED:
-			if _armed_started and _t >= arm_delay:
+			# arming requires combat to be live (the gate): never arm during STAGE_INTRO/COUNTDOWN.
+			if _armed_started and _lethal and _t >= arm_delay:
 				_arm()
 		ARMED:
 			_tick_armed(delta)
@@ -195,6 +213,8 @@ func _detonate() -> void:
 ## live body via the EXISTING pipeline with cause &"ring_out" (§2.0#1). No attacker is passed (the bomb
 ## is not a Player); the 6.0s ring-out window credits a rival who knocked the victim in, else self-fall.
 func _kill_in_radius() -> void:
+	if not _lethal:
+		return   # belt-and-suspenders: never kill outside live combat (arming is already gated).
 	for body in get_overlapping_bodies():
 		if not is_instance_valid(body):
 			continue

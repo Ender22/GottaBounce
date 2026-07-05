@@ -695,6 +695,7 @@ func _spawns_by_center() -> Array:
 ## KO freeze-frame: gameplay halts, banner + pips already animated in real time (spec §1).
 func _enter_stage_end(deferred := false) -> void:
 	state = "STAGE_END"
+	EventBus.combat_ended.emit()   # lethal hazards go inert (frozen survivors are safe during the freeze)
 	# the double-KO wait already elapsed since the last death — it counts as freeze time
 	_state_t = Tuning.double_ko_window if deferred else 0.0
 	# finalize the round_stats record
@@ -744,6 +745,7 @@ func _tick_stage_end(delta: float) -> void:
 
 func _enter_match_end(widx: int) -> void:
 	state = "MATCH_END"
+	EventBus.combat_ended.emit()   # lethal hazards go inert for the winner bow / prompt
 	_state_t = 0.0
 	_match_winner = widx
 	_prompt_shown = false

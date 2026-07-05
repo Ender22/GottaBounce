@@ -55,6 +55,12 @@ var _head_pos: Vector2 = Vector2.ZERO
 var _prev_head_pos: Vector2 = Vector2.ZERO
 var _head_speed: float = 0.0
 var _shape: CollisionShape2D
+# LETHAL-only-while-combat-is-live gate (shared hazard doctrine). The blade MOVES + telegraphs from
+# the moment it spawns so players read the rhythm during the intro/countdown, but the KILL is
+# suppressed until EventBus.combat_started ("BOUNCE!") and re-suppressed on EventBus.combat_ended
+# (STAGE_END / MATCH_END) — so a player frozen at spawn under the arc during the pre-match phases is
+# never killed (and thus never left stuck-dead by PartyMatch._on_killed's outside-COMBAT return).
+var _lethal: bool = false
 
 func setup_from_json(o: Dictionary) -> void:
 	radius = float(o.get("radius", 70.0))
@@ -86,6 +92,17 @@ func _ready() -> void:
 	_prev_head_pos = _head_pos
 	_shape.position = _head_pos
 	z_index = 40   # over platforms/void, under HUD
+	# lethal gate: enable on the starting gun, disable when the stage's combat closes.
+	if not EventBus.combat_started.is_connected(_on_combat_started):
+		EventBus.combat_started.connect(_on_combat_started)
+	if not EventBus.combat_ended.is_connected(_on_combat_ended):
+		EventBus.combat_ended.connect(_on_combat_ended)
+
+func _on_combat_started() -> void:
+	_lethal = true
+
+func _on_combat_ended() -> void:
+	_lethal = false
 
 ## Shaped oscillator in [0,1] phase: two smootherstep swings + a flat DWELL at each extreme (the
 ## clear beat). Returns [-1, 1]; smootherstep endpoints have ZERO derivative, so it joins the flat
@@ -135,6 +152,8 @@ func _physics_process(delta: float) -> void:
 ## within the window is credited and an untouched victim is an uncredited self-fall (§2.0#4). The
 ## hammer NEVER passes itself as attacker (it is not a Player -> no invented environment scorer).
 func _kill_overlapping() -> void:
+	if not _lethal:
+		return   # pre-combat / post-stage: the blade still sweeps + telegraphs, but never kills.
 	for body in get_overlapping_bodies():
 		if not is_instance_valid(body):
 			continue
