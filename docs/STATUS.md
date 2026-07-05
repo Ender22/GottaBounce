@@ -74,6 +74,13 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   3. **Fan-out DONE across all 3 modes:** TRIALS challenge types (6 types + proof courses, `varied` set) +
      SPORTS pitches (5 courts calm->chaos + court-set + unlock gates) both built + validated. Sports
      bot-fairness fix committed (mirror-symmetric court + per-team skill balance).
+- **ART-DEBT PAYDOWN (owner "no code-drawn/SVG assets" rule) — NEARLY DONE:** all hazard BODIES are now
+  generated Glossy Toybox sprites in `assets/hazards/` (transient telegraph VFX stay code). DONE+committed+wired:
+  `hammer.png` (SpinningHammer), `bomb.png` (Bomb/landmine), `crusher.png` (Crusher, mirrored heads).
+  `wrecking_ball.png` (charcoal iron sphere, rivet ring, top eyelet) + `flatbed_cart.png` (rideable orange cart,
+  flat deck) generated+committed 2026-07-05; a gameplay-programmer is WIRING them into FallingDebris.gd (falling
+  chunks), MovingHazard.gd (pendulum ball — reuses wrecking_ball), and MovingPlatform._draw_vehicle (cart). After
+  that lands + is committed, NO code-drawn hazard bodies remain (destructible_block is a bounce-tier block, not a hazard).
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
