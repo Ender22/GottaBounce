@@ -2,6 +2,16 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** PHASE 1 SHIPPED — front-end shell **UI/UX verdict = SHIP** (Mario-Kart bar cleared) +
+  art-director FIX list all cleared. A complete goat-themed front-end: MainMenu/ModeSelect/Character
+  Select(showcase)/ArenaSelect/Options/PauseMenu, one springy menu system, gamepad-first focus, screen
+  transitions, all on `GameConfig`+`GameMode`/`BrawlMode` (BRAWL plays as before by default). The Herd
+  cast (6 goat/ram sprites) live in-engine + character-select. Clean character-free title backdrop.
+  Non-blocking backlog: plain-button focus accent-border (§1.3.3), confirm Vex title bobber cycles, Vex
+  corkscrew horns, squash/charge poses (art pass #2), per-level arena thumbnails, goat logo/key-art,
+  match-end REMATCH/QUIT driven-to-MATCH_END verification, all-six readability gate (spawn 6 into a match).
+  Records: `docs/briefs/frontend_ux_spec.md` (SHIP), `character_art_bible.md` (FIX cleared).
+
 - **2026-07-05** SCOPE CORRECTED + STUDIO REORG (owner). Prior "GAME COMPLETE" was wrong — it certified
   the core versus loop (~25%), not the game. Real bar = TowerFall/Duck Game. Plan: `docs/ROADMAP.md`
   (Phase 1 shell+config+modes → 2 roster → 3 circuits → 4 modes → 5 progression). New **ui-ux-designer**

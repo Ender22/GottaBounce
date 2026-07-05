@@ -78,11 +78,13 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 > DONE: foundation (GameConfig/GameMode/BrawlMode/Settings/ShellRoot) parity-verified; the Herd goat/ram
 > cast (6 idle sprites) live in-engine; all 6 styled screens built to the UX spec (MainMenu/ModeSelect/
 > CharacterSelect/ArenaSelect/Options/PauseMenu) + full flow, rendered-smoke-verified.
-> IN REVIEW: UI/UX + art-director grading the built screens (owner's hard gate).
-> IMMEDIATE NEXT: apply grade fixes; generate a CLEAN backdrop (current one doubles the reference art's
-> old painted blobs) + a goat-themed title/key-art; drive a full match to verify match-end REMATCH/QUIT
-> routing; then close Phase 1. THEN Phase 2 (per-character feel deltas) / Phase 3 (circuits) / Phase 4 (modes).
-> Art pass #2 (goat squash + horns-forward super-charge poses) is queued.
+> **PHASE 1 = SHIPPED** (UI/UX verdict SHIP; art FIX-list cleared; DECISIONS 2026-07-05). Complete goat-
+> themed front-end shell on GameConfig + GameMode/BrawlMode. IMMEDIATE NEXT: **Phase 2** — per-character
+> feel deltas (spec `docs/specs/v2_character_feel_deltas.md`, in review) so the roster plays differently
+> (additive data on the fenced base feel; Standard profile = today's feel). THEN Phase 3 circuits, Phase 4
+> modes (trials/gauntlet/sports/puzzle). Non-blocking backlog: plain-button focus accent-border; Vex title
+> bobber cycle; Vex corkscrew horns; squash/charge poses (art pass #2); arena per-level thumbnails; goat
+> logo/key-art; drive match-end REMATCH/QUIT to MATCH_END; all-six readability gate (spawn 6 into a match).
 
 **OPEN OWNER DECISION:** `match_target_kills` kept at 10 (owner-set); QA recommends 7-8 for a tighter
 ~3-min match (10 = ~4.5min/18-21 stages due to the -1 self-fall score volatility). Will apply if the
