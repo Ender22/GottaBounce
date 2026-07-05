@@ -1,0 +1,24 @@
+{
+  "name": "Tank Run",
+  "version": 3,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "TRIALS proof course (v3_content_plan PART B; productizes v1_movement_courses.md Course 1 'Tank Run', SIMPLIFIED to a single-screen-scrolling A->B flight run for the mode-system proof — the level-designer authors the full 6-platform 7000px version + the courses 2-3 battery later).\n\nRE-DERIVED against CURRENT Tuning.gd (NOT the stale v1 numbers): trampoline apex 270px, spring 480px, air_drift_max 340px/s, gravity 1600 => zero-boost horizontal reach ~395px off a trampoline / ~527px off a spring. normal_boost_max_speed 760 crosses a ~620px gap in <0.9s at ~24 fuel; a touch refunds +20 (fuel_per_bounce). super_boost_impulse 2800 clears everything.\n\nLayout: a start pad (left) + four tiny trampoline stepping pads over one full-width lethal void + a wide goal pad (right), with a GOAL GATE ring above it. Every gap is 620px = > 527 (max spring drift) and >> 395 (trampoline drift) => FLIGHT-REQUIRED per Rule A: a zero-boost bounce falls ~230px short of the next pad and drops into the void. So the course is impossible without boosting (T3 flight-required gate). Heights vary 960-1120 so the pads read as a run, not a straight line. Falling below the bottom blast line (~1918, derived) rings out -> TrialsMode respawns at the start_gate + adds a +2.0s penalty (NOT an elimination).\n\nMEDAL TIMES (ROUGH — re-derived vs current Tuning; level-designer refines): a clean managed run boosts across 5 gaps (~0.8-1.0s/leg) double-bouncing pads to bank fuel => ~6-8s skilled. gold 9.0 / silver 13.0 / bronze 20.0.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "platforms": [
+    { "x": 0,    "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+    { "x": 940,  "y": 1000, "w": 140, "h": 128, "tier": "trampoline" },
+    { "x": 1700, "y": 960,  "w": 140, "h": 128, "tier": "trampoline" },
+    { "x": 2460, "y": 1000, "w": 140, "h": 128, "tier": "trampoline" },
+    { "x": 3220, "y": 1060, "w": 140, "h": 128, "tier": "trampoline" },
+    { "x": 3980, "y": 1120, "w": 360, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -651, "y": 1300, "w": 5642, "h": 618, "wall_px": 120 },
+    { "type": "start_gate", "x": 160, "y": 900 },
+    { "type": "goal_gate", "x": 4160, "y": 1010, "w": 240, "h": 320 }
+  ],
+  "medal_times": { "gold": 9.0, "silver": 13.0, "bronze": 20.0 }
+}

@@ -40,6 +40,7 @@ const P1_COLOR := Color("#ff5fa8")
 
 var _cards: Array[Button] = []
 var _steppers: Array = []
+var _trials := false      # TRIALS is solo (no bot/kills/lives strip; lock-in launches the run directly)
 var _current := 0
 var _locked := false
 var _pose_rest := Vector2.ZERO
@@ -47,6 +48,7 @@ var _idle_tween: Tween
 var _spinning := false
 
 func _ready() -> void:
+	_trials = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"trials"
 	# build the 2x3 hero grid
 	for i in range(HEROES.size()):
 		var h: Dictionary = HEROES[i]
@@ -63,20 +65,25 @@ func _ready() -> void:
 		_cards.append(card)
 	wire_grid(_cards, 3)
 
-	# match-settings strip
-	var cfg: MatchConfig = GameConfig.match_config
-	_add_stepper("HUMANS", ["1", "2", "3", "4"], [1, 2, 3, 4], cfg.human_count - 1, _on_humans)
-	_add_stepper("BOTS", ["0", "1", "2", "3", "4", "5", "6", "7"], [0, 1, 2, 3, 4, 5, 6, 7], cfg.bot_count, _on_bots)
-	_add_stepper("BOT SKILL", ["Mixed", "1", "2", "3", "4", "5"], [0, 1, 2, 3, 4, 5], cfg.bot_difficulty, _on_skill)
-	_add_stepper("KILLS", ["5", "7", "8", "10"], [5, 7, 8, 10], _index_of([5, 7, 8, 10], cfg.kills_to_win, 3), _on_kills)
-	_add_stepper("LIVES", ["1", "2", "3"], [1, 2, 3], _index_of([1, 2, 3], cfg.lives_per_player, 0), _on_lives)
-	wire_col(_steppers)
+	# match-settings strip. TRIALS is solo (1 human, no bots, no kill target) — HIDE the strip and skip
+	# its focus wiring; a hero lock-in launches the run directly (see _go_arena). BRAWL keeps the strip.
 	register(_back, 1.05)
-
-	# grid<->strip: Down from bottom row -> first stepper, Up from first stepper -> grid
-	for i in range(3, _cards.size()):
-		_cards[i].focus_neighbor_bottom = _cards[i].get_path_to(_steppers[0])
-	_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
+	if _trials:
+		var tray := get_node_or_null("SettingsTray")
+		if tray != null:
+			(tray as CanvasItem).visible = false
+	else:
+		var cfg: MatchConfig = GameConfig.match_config
+		_add_stepper("HUMANS", ["1", "2", "3", "4"], [1, 2, 3, 4], cfg.human_count - 1, _on_humans)
+		_add_stepper("BOTS", ["0", "1", "2", "3", "4", "5", "6", "7"], [0, 1, 2, 3, 4, 5, 6, 7], cfg.bot_count, _on_bots)
+		_add_stepper("BOT SKILL", ["Mixed", "1", "2", "3", "4", "5"], [0, 1, 2, 3, 4, 5], cfg.bot_difficulty, _on_skill)
+		_add_stepper("KILLS", ["5", "7", "8", "10"], [5, 7, 8, 10], _index_of([5, 7, 8, 10], cfg.kills_to_win, 3), _on_kills)
+		_add_stepper("LIVES", ["1", "2", "3"], [1, 2, 3], _index_of([1, 2, 3], cfg.lives_per_player, 0), _on_lives)
+		wire_col(_steppers)
+		# grid<->strip: Down from bottom row -> first stepper, Up from first stepper -> grid
+		for i in range(3, _cards.size()):
+			_cards[i].focus_neighbor_bottom = _cards[i].get_path_to(_steppers[0])
+		_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
 
 	# P1 pick-cursor flag colour
 	var fsb := StyleBoxFlat.new()
@@ -256,7 +263,16 @@ func _unlock() -> void:
 		(_cards[_current] as Object).call("show_check", false)
 
 func _go_arena() -> void:
-	if shell != null:
+	if shell == null:
+		return
+	if _trials:
+		# TRIALS skips ArenaSelect (courses are the mode's own authored set) and launches straight in.
+		var cfg: MatchConfig = GameConfig.match_config
+		cfg.mode_id = &"trials"
+		cfg.human_count = 1
+		cfg.bot_count = 0
+		shell.launch_match()
+	else:
 		shell.go_forward("arena")
 
 func _unhandled_input(e: InputEvent) -> void:

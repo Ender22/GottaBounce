@@ -51,7 +51,10 @@ const PLAYER_COLORS: Array[Color] = [
 const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 # GameMode registry (v1_frontend_shell §3.2): mode_id -> mode script. PartyMatch is a regular (non-
 # autoload) script, so preloading the class_name mode scripts here is safe.
-const MODE_REGISTRY := {&"brawl": preload("res://src/modes/BrawlMode.gd")}
+const MODE_REGISTRY := {
+	&"brawl": preload("res://src/modes/BrawlMode.gd"),
+	&"trials": preload("res://src/modes/TrialsMode.gd"),
+}
 # Front-end shell hooks (v1_frontend_shell §5): pause overlay + return-to-menu on quit.
 const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
 const SHELL_SCENE := "res://scenes/ui/ShellRoot.tscn"
@@ -422,6 +425,13 @@ func _tick_combat(delta: float, rdelta: float) -> void:
 	for p in players:
 		if is_instance_valid(p) and not p.is_dead() and not bounds.has_point(p.global_position):
 			p.kill(&"ring_out", null)
+	# NON-KILL-RACE stage end (v3_content_plan B.2, TRIALS): a mode that polls_goal() ends the stage
+	# the instant it reaches its goal (goal-touch), with NO death required. BRAWL polls_goal() is false
+	# so this never runs for BRAWL (C7 parity); its stage end stays the death-driven is_stage_over check
+	# inside _decide_stage_end below.
+	if state == "COMBAT" and _mode.polls_goal() and _mode.is_stage_over(self):
+		_decide_stage_end(false)
+		return
 	# deferred stage decision: wait double_ko_window after a death that left <=1 not-eliminated
 	if _end_check >= 0.0:
 		_end_check -= rdelta

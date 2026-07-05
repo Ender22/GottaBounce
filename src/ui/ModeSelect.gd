@@ -8,8 +8,8 @@ const CARD := preload("res://scenes/ui/MenuCard.tscn")
 const MODES := [
 	{"id": "brawl", "name": "BRAWL", "tag": "Last one flying wins.",
 		"color": Color("#ff5fa8"), "glyph": "B", "soon": false},
-	{"id": "trials", "name": "TRIALS", "tag": "Beat the clock, beat your friends.",
-		"color": Color("#4aa8ff"), "glyph": "T", "soon": true},
+	{"id": "trials", "name": "TRIALS", "tag": "Beat the clock. Just you and the jetpack.",
+		"color": Color("#4aa8ff"), "glyph": "T", "soon": false},
 	{"id": "gauntlet", "name": "GAUNTLET", "tag": "Survive the endless Herd.",
 		"color": Color("#a15fff"), "glyph": "G", "soon": true},
 	{"id": "sports", "name": "SPORTS", "tag": "Headbutt the ball, not each other. (Okay, each other too.)",

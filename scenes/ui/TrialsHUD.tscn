@@ -1,0 +1,229 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/ui/TrialsHUD.gd" id="1_hud"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fuelbg"]
+bg_color = Color(0.12, 0.09, 0.07, 0.85)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fuelfill"]
+bg_color = Color(0.29, 0.83, 0.95, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="TrialsHUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="TimerPanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 24.0
+grow_horizontal = 2
+theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+
+[node name="TimerBox" type="VBoxContainer" parent="Root/TimerPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="TimeLabel" type="Label" parent="Root/TimerPanel/TimerBox"]
+layout_mode = 2
+theme_type_variation = &"BannerTop"
+theme_override_font_sizes/font_size = 104
+text = "0.00"
+horizontal_alignment = 1
+
+[node name="StatsRow" type="HBoxContainer" parent="Root/TimerPanel/TimerBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 30
+
+[node name="MedalLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
+layout_mode = 2
+theme_type_variation = &"StepValue"
+text = "—"
+horizontal_alignment = 1
+
+[node name="ThreshLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = ""
+horizontal_alignment = 1
+
+[node name="BestLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "BEST --"
+horizontal_alignment = 1
+
+[node name="FallsLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "FALLS 0"
+horizontal_alignment = 1
+
+[node name="FuelWrap" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="FuelCaption" type="Label" parent="Root/FuelWrap"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -118.0
+offset_right = 220.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Hint"
+text = "FUEL"
+horizontal_alignment = 1
+
+[node name="FuelBg" type="Panel" parent="Root/FuelWrap"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -76.0
+offset_right = 220.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_fuelbg")
+
+[node name="FuelFill" type="Panel" parent="Root/FuelWrap/FuelBg"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 40.0
+offset_bottom = 30.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_fuelfill")
+
+[node name="TopBand" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 40.0
+offset_bottom = 150.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="TopCenter" type="CenterContainer" parent="Root/TopBand"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBanner" type="Label" parent="Root/TopBand/TopCenter"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerTop"
+text = ""
+horizontal_alignment = 1
+
+[node name="CenterC" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterBox" type="VBoxContainer" parent="Root/CenterC"]
+visible = false
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="CenterText" type="Label" parent="Root/CenterC/CenterBox"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+text = ""
+horizontal_alignment = 1
+
+[node name="CenterSub" type="Label" parent="Root/CenterC/CenterBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+text = ""
+horizontal_alignment = 1
+
+[node name="CenterPrompt" type="Label" parent="Root/CenterC/CenterBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerPrompt"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchPanel" type="PanelContainer" parent="Root/CenterC"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+
+[node name="MatchBox" type="VBoxContainer" parent="Root/CenterC/MatchPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="MatchText" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchSub" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchPrompt" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerPrompt"
+text = ""
+horizontal_alignment = 1

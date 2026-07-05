@@ -66,6 +66,17 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# v1_moving_hazard.md §1: a kinematic SHOVE-hazard (pendulum/sweep). Its own layer
 				# (layer 5), senses players, calls Player.receive_shove on contact — NEVER kills.
 				_build_moving_hazard(o, parent)
+			"start_gate":
+				# v3_content_plan B.3 (TRIALS): the run's spawn + respawn point. Reuses the existing
+				# spawn path — appended as a spawn so _spawn_at(0) / the multi-life respawn use it.
+				result["spawns"].append(Vector2(o["x"], o["y"]))
+			"goal_gate":
+				# v3_content_plan B.3 (TRIALS): the course goal trigger. Area2D on the players mask;
+				# first overlap latches `reached` and (group "goal_gate") ends the stage via
+				# TrialsMode.is_stage_over. Same detector pattern as MovingHazard/void areas.
+				var gg := GoalGate.new()
+				gg.setup_from_json(o)
+				parent.add_child(gg)
 			"powerup_spawner":
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))

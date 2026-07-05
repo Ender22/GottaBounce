@@ -41,6 +41,13 @@ func next_level_path(_runner) -> String:
 func is_stage_over(_runner) -> bool:
 	return false
 
+## Additive seam (v3_content_plan B.2, TRIALS): when true, the runner polls is_stage_over() EVERY
+## combat frame and ends the stage the instant it returns true (a goal reached WITHOUT a death). BRAWL
+## leaves this false — its stage end stays death-driven through is_stage_over in _decide_stage_end, so
+## this poll is a no-op for BRAWL (C7 parity). A non-kill-race mode overrides it to true.
+func polls_goal() -> bool:
+	return false
+
 ## Scoring hook applied on every death. BRAWL: +1 credited kill / -1 self-fall floored at 0.
 func on_kill(_runner, _killer_idx: int, _victim_idx: int, _cause) -> void:
 	pass
