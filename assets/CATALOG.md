@@ -28,6 +28,11 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `world/spikes_strip.png` | SHIP-CANDIDATE | 987x254 hazard row, repeating |
 | `fx/puff_soft.png`, `fx/star_sparkle.png` | procedural | PIL-generated particle sprites |
 | `bg/bush_round.png`, `bg/fence_wood.png` | SHIP-CANDIDATE | layer-4 mid props |
+| `hazards/hammer.png` | SHIP-CANDIDATE | glossy steel mallet, yellow/black hazard band, chocolate handle — wired into SpinningHammer.gd |
+| `hazards/bomb.png` | SHIP-CANDIDATE | glossy black cartoon bomb + lit fuse — wired into Bomb.gd (reused by landmine) |
+| `hazards/crusher.png` | SHIP-CANDIDATE | 774x657 metallic press block, hazard chevrons + rivets — wired into Crusher.gd (two mirrored heads) |
+| `hazards/wrecking_ball.png` | SHIP-CANDIDATE | 689x772 charcoal iron sphere, rivet ring + top eyelet — falling_debris body (eyelet decorative; collider = sphere) |
+| `hazards/flatbed_cart.png` | SHIP-CANDIDATE | 1143x412 rideable toy cart, orange hazard-stripe body + 4 chunky wheels, flat metal standing deck — moving_platform vehicle skin |
 
 Intake gotchas learned: some generations bake a FAKE checkerboard bg instead of alpha —
 `art.py check` catches it; fix with `art.py keyout --tol 40`. ChatGPT viewer download flow:
