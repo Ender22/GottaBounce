@@ -941,24 +941,32 @@ func _update_camera() -> void:
 			continue
 		_cluster_linger_t[i] = maxf(0.0, _cluster_linger_t[i] - dt)
 
-	# weighted centroid (heavy weight on the super caster so the aim reads; modest on P1)
+	# Frame center + extent. Positions only (an AABB), NOT velocities — folding velocity into the zoom
+	# extent made the zoom target jitter at high frequency in a bounce game; velocity leads the PAN below.
 	var centroid := Vector2.ZERO
-	var wsum := 0.0
-	for i in range(cluster.size()):
-		centroid += cluster[i].global_position * weights[i]
-		wsum += weights[i]
-	centroid /= maxf(wsum, 0.001)
-
-	# Extent set: during a super-aim keep the TIGHT caster+opp framing (P1 nudges the centroid but must
-	# not force a zoom-out that kills the aim-fuse read — brief a). Otherwise fit the whole cluster.
-	var ext_set: Array = base if aimer != null else cluster
-
-	# half-extent needed to fit the extent set about the centroid. Fix 1: this is driven by player
-	# POSITIONS only (an AABB), NOT velocities — folding velocity into the zoom extent made the zoom
-	# target jitter at high frequency in a bounce game. Velocity leads the PAN below instead.
 	var ext := Vector2.ZERO
-	for p in ext_set:
-		ext = ext.max((p.global_position - centroid).abs())
+	if aimer != null:
+		# SUPER-AIM: keep the TIGHT weighted caster+opp framing (aim-fuse readability — brief a).
+		var wsum := 0.0
+		for i in range(cluster.size()):
+			centroid += cluster[i].global_position * weights[i]
+			wsum += weights[i]
+		centroid /= maxf(wsum, 0.001)
+		for p in base:
+			ext = ext.max((p.global_position - centroid).abs())
+	else:
+		# NON-AIM: FRAME ALL LIVING PLAYERS (their full AABB). The old combat-active-cluster subset
+		# drove a left/right frame oscillation — with 2 players each side it kept swapping which pair
+		# it fit, shoving the other pair off-screen even though everyone was on-stage. Now the ONLY
+		# things that drop a living player from view are the CAM_MIN_ZOOM readability floor (true wide
+		# spread) and a genuine off-screen fly-out (edge chevron). Everyone in the playable area stays framed.
+		var mn: Vector2 = living[0].global_position
+		var mx: Vector2 = living[0].global_position
+		for p in living:
+			mn = mn.min(p.global_position)
+			mx = mx.max(p.global_position)
+		centroid = (mn + mx) * 0.5
+		ext = (mx - mn) * 0.5
 	ext += CAM_MARGIN
 
 	# zoom to fit, then clamp to the floor .. max. The 0.60 readability floor is the normal min for
@@ -972,10 +980,14 @@ func _update_camera() -> void:
 
 	# Fix 1: velocity leads the PAN (frame center), not the zoom. Nudge the center ahead of the
 	# cluster's weighted motion so a fast launch stays on-screen without inflating the zoom target.
+	# (The weighted cluster still biases the PAN toward the action even though the ZOOM now fits all
+	# living — so the frame leans into the fight without ever dropping an on-stage player.)
 	var vlead := Vector2.ZERO
+	var vwsum := 0.0
 	for i in range(cluster.size()):
 		vlead += cluster[i].velocity.limit_length(CAM_LEAD_CAP) * weights[i]
-	vlead = (vlead / maxf(wsum, 0.001)) * CAM_LEAD_TIME
+		vwsum += weights[i]
+	vlead = (vlead / maxf(vwsum, 0.001)) * CAM_LEAD_TIME
 
 	# clamp the frame center so the visible rect stays inside bounds (never reveal the void)
 	var half := Vector2(1920.0, 1080.0) / (2.0 * z)

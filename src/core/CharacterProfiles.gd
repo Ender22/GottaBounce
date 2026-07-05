@@ -29,7 +29,7 @@ static func for_id(id: String) -> CharacterProfile:
 			p.boost_power_mult = 1.08
 		"puff":   # floaty comic: highest/hangiest air, but drifty (hard to aim that big air)
 			p.bounce_apex_mult = 1.08   # spec §2: ship Puff at 1.08 (the APEX cap), NOT the aspirational 1.10
-			p.air_control_mult = 0.88
+			p.air_control_mult = 0.92   # QA 2026-07-05: 0.88 -> 0.92, cut void self-falls (was strictly worst; still below baseline)
 		"vex":    # slippery trickster (near-baseline): small + slippery, no offensive buff
 			p.size_scale = 0.96
 			p.air_control_mult = 1.08
