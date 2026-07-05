@@ -10,7 +10,7 @@ const SPRITE_DIR := "res://assets/characters/bouncer_%s_idle.png"
 # per-bobber: skin, center (design-space 1920x1080), box size, depth alpha
 const BOBBERS := [
 	{"skin": "green",  "pos": Vector2(300, 430),  "box": 150.0, "a": 0.82},
-	{"skin": "purple", "pos": Vector2(980, 250),  "box": 120.0, "a": 0.72},
+	{"skin": "purple", "pos": Vector2(1520, 180), "box": 120.0, "a": 0.72},
 	{"skin": "yellow", "pos": Vector2(1650, 400), "box": 160.0, "a": 0.85},
 	{"skin": "orange", "pos": Vector2(1180, 560), "box": 170.0, "a": 0.9},
 	{"skin": "pink",   "pos": Vector2(470, 800),  "box": 300.0, "a": 1.0},
