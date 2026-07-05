@@ -40,6 +40,17 @@ extends Area2D
 const LAYER_HAZARDS := 1 << 3               # 8 — layer 4, the instakill hazard layer (Hazard.gd's layer)
 const MASK_TARGETS := (1 << 0) | (1 << 1)   # players (1) + enemies/props (2), matching Hazard.gd
 
+# --- Glossy Toybox bomb sprite (pays down the no-code-drawn-assets debt; owner-flagged). A glossy black
+# round cartoon bomb with a lit fuse spark baked in. The image is 591x695; the BOMB BALL centre sits at
+# image (297,435), so offsetting by (0, -88) from the texture centre (295,347) lands the ball centre on
+# the node origin, which is placed at `center`. Scaled so the ball reads ~140px across (body size, well
+# inside the telegraphed kill_radius). Since the fuse spark is IN the sprite, the code fuse-spark/LED is
+# dropped; state now reads purely from the (kept) warning rings + detonation flash. ---
+const BOMB_TEX: Texture2D = preload("res://assets/hazards/bomb.png")
+const BOMB_BODY_SCALE := 0.26               # image ball radius ~265px -> ~69px visible body radius
+const BOMB_BALL_OFFSET_Y := -88.0           # texture-centre -> ball-centre shift (px, pre-scale)
+var _body: Sprite2D
+
 # --- config (from JSON; all data, no player-feel Tuning) ---
 var center: Vector2 = Vector2.ZERO
 var blast_radius: float = 320.0        # OUTER radius: the knockback/punt extent (impulse falloff to 0 here)
@@ -103,6 +114,15 @@ func _ready() -> void:
 	_shape.position = center
 	add_child(_shape)
 	z_index = 40   # over platforms/void, under HUD
+	# the bomb-body sprite: ball centre pinned to `center`, added AFTER _draw so the opaque body renders
+	# on top of the (kept) ground warning rings, exactly as the old code-drawn casing did.
+	_body = Sprite2D.new()
+	_body.texture = BOMB_TEX
+	_body.centered = true
+	_body.offset = Vector2(0.0, BOMB_BALL_OFFSET_Y)
+	_body.scale = Vector2(BOMB_BODY_SCALE, BOMB_BODY_SCALE)
+	_body.position = center
+	add_child(_body)
 	# arm on the starting gun (so the countdown/intro never detonates a fuse early); if combat has
 	# already started (e.g. late add) we arm immediately on the first frame via the fallback below.
 	if not EventBus.combat_started.is_connected(_on_combat_started):
@@ -152,7 +172,20 @@ func _physics_process(delta: float) -> void:
 			_cool_left -= delta
 			if recur >= 0.0 and _cool_left <= 0.0:
 				_arm()
+	_update_body()
 	queue_redraw()
+
+# Dim the bomb-body sprite for the spent states (the old casing read scorched/regenerating there).
+func _update_body() -> void:
+	if _body == null:
+		return
+	if _state == SPENT and _cool_left == INF:
+		_body.modulate = Color(0.30, 0.28, 0.28, 0.95)                 # scorched, inert husk
+	elif _state == SPENT:
+		var regen := 1.0 - clampf(_cool_left / maxf(0.001, recur), 0.0, 1.0)
+		_body.modulate = Color(0.34, 0.34, 0.38).lerp(Color.WHITE, regen)  # regenerating on recur
+	else:
+		_body.modulate = Color.WHITE
 
 ## ARMED: fuse mode counts the fuse down (entering TELEGRAPH for its final lead); proximity mode waits
 ## for a live player inside trigger_radius, then enters TELEGRAPH.
@@ -248,9 +281,6 @@ func _player_within(r: float) -> bool:
 
 # ------------------------------------------------------------------ telegraphy (INV-12: display only)
 func _draw() -> void:
-	var casing := Color(0.13, 0.14, 0.17)
-	var casing_hi := Color(0.30, 0.32, 0.38)
-	var danger := Color(0.90, 0.18, 0.16)
 	# 1) proximity trigger ring (armed + waiting): a faint dashed danger-zone read so it is dodgeable.
 	if trigger == "proximity" and _state == ARMED:
 		var pulse := 0.5 + 0.5 * sin(_t * 4.0)
@@ -272,36 +302,4 @@ func _draw() -> void:
 		var rr := lerpf(kill_radius * 0.4, blast_radius, 1.0 - f)
 		draw_circle(center, rr, Color(1.0, 0.85, 0.4, 0.35 * f))
 		draw_arc(center, rr, 0.0, TAU, 64, Color(1.0, 0.95, 0.7, 0.9 * f), 10.0 * f + 2.0)
-	# 4) the bomb body itself.
-	_draw_casing(casing, casing_hi, danger)
-
-func _draw_casing(casing: Color, casing_hi: Color, danger: Color) -> void:
-	var r := 44.0
-	if _state == SPENT and _cool_left == INF:
-		# one-shot spent: a scorched, inert husk (no blink).
-		draw_circle(center, r, Color(0.10, 0.09, 0.09))
-		draw_circle(center - Vector2(r * 0.3, r * 0.3), r * 0.28, Color(0.20, 0.18, 0.17, 0.7))
-		return
-	if _state == SPENT:
-		# recurring cooldown: a dim, regenerating husk (fills back up as re-arm nears).
-		var regen := 1.0 - clampf(_cool_left / maxf(0.001, recur), 0.0, 1.0)
-		draw_circle(center, r, Color(0.10, 0.10, 0.12).lerp(casing, regen))
-		return
-	# body sphere + bevel highlight.
-	draw_circle(center, r + 3.0, Color(0.05, 0.05, 0.07))
-	draw_circle(center, r, casing)
-	draw_circle(center - Vector2(r * 0.32, r * 0.34), r * 0.30, casing_hi)
-	# a blinking hazard LED whose rate reads the state: slow when armed, fast in telegraph.
-	var freq := 4.0
-	if _state == TELEGRAPH:
-		var prog := 1.0 - clampf(_tele_left / maxf(0.001, telegraph_lead), 0.0, 1.0)
-		freq = lerpf(6.0, 16.0, prog)
-	var on := (sin(_t * TAU * freq * 0.5) > 0.0)
-	var led := danger if on else Color(0.35, 0.10, 0.10)
-	if _state == UNARMED:
-		led = Color(0.30, 0.28, 0.12)   # dim amber before arm
-	draw_circle(center + Vector2(0, -r * 0.2), r * 0.34, led)
-	# the fuse cap on top (a little stem so it reads unmistakably as a BOMB).
-	draw_line(center + Vector2(0, -r), center + Vector2(r * 0.3, -r * 1.5), Color(0.5, 0.4, 0.25), 6.0)
-	if _state != UNARMED and on:
-		draw_circle(center + Vector2(r * 0.3, -r * 1.5), 7.0, Color(1.0, 0.85, 0.4))   # spark
+	# 4) the bomb body itself is now the bomb.png sprite (child, kept fresh in _update_body).

@@ -30,6 +30,19 @@ extends Area2D
 const LAYER_HAZARDS := 1 << 3          # 8 — layer 4, the instakill hazard layer (Hazard.gd's layer)
 const MASK_TARGETS := (1 << 0) | (1 << 1)   # players (1) + enemies/props (2), matching Hazard.gd
 
+# --- Glossy Toybox mallet sprite (pays down the no-code-drawn-assets debt; owner-flagged). A glossy
+# steel mallet: rectangular HEAD (yellow/black hazard band) up top, chocolate handle below. The image
+# is 650x724; the HEAD CENTER sits at image (325,155), so offsetting by (0, +207) from the texture
+# centre (325,362) lands the head centre on the node origin — which is the sprite's rotation pivot and
+# is placed at the lethal head each frame. The HANDLE runs from the head centre down to image y=690
+# (535px), so at MALLET_SCALE the handle bottom is (535*scale) back toward the hub. Scaled so the head
+# reads ~2.4x the lethal radius (glossy art slightly overhangs its hitbox). ---
+const HAMMER_TEX: Texture2D = preload("res://assets/hazards/hammer.png")
+const MALLET_SCALE := 0.30             # uniform (undistorted) scale: head width ~171px vs radius 70
+const MALLET_HEAD_OFFSET_Y := 207.0    # texture-centre -> head-centre shift (px, pre-scale)
+const MALLET_HANDLE_LEN_PX := 535.0    # head-centre -> handle-bottom distance in the image (px)
+var _mallet: Sprite2D
+
 # --- motion params (from JSON; all data, no Tuning) ---
 var pivot: Vector2 = Vector2.ZERO
 var arm_len: float = 590.0
@@ -92,6 +105,15 @@ func _ready() -> void:
 	_prev_head_pos = _head_pos
 	_shape.position = _head_pos
 	z_index = 40   # over platforms/void, under HUD
+	# the mallet sprite: head centre pinned to the node origin (the rotation pivot), scaled undistorted,
+	# added AFTER _draw so it renders on top of the code-drawn swept-arc telegraph. Head leads the swing.
+	_mallet = Sprite2D.new()
+	_mallet.texture = HAMMER_TEX
+	_mallet.centered = true
+	_mallet.offset = Vector2(0.0, MALLET_HEAD_OFFSET_Y)
+	_mallet.scale = Vector2(MALLET_SCALE, MALLET_SCALE)
+	add_child(_mallet)
+	_update_mallet()
 	# lethal gate: enable on the starting gun, disable when the stage's combat closes.
 	if not EventBus.combat_started.is_connected(_on_combat_started):
 		EventBus.combat_started.connect(_on_combat_started)
@@ -140,6 +162,7 @@ func _physics_process(delta: float) -> void:
 	if delta > 0.0:
 		_head_speed = (_head_pos - _prev_head_pos).length() / delta
 	_shape.position = _head_pos
+	_update_mallet()
 	if _ball_cd > 0.0:
 		_ball_cd = maxf(0.0, _ball_cd - delta)
 	queue_redraw()
@@ -186,7 +209,24 @@ func _whack_ball() -> void:
 		_ball_cd = BALL_WHACK_CD
 		break
 
+# Orient + place the mallet sprite so its head centre rides the lethal head and its head LEADS the
+# swing (the striped face points outward along the arm). local -Y (image "up", the head tip) is aimed
+# down the arm direction, so rotation = along.angle() + PI/2 (verified: base swing => rotation PI).
+func _update_mallet() -> void:
+	if _mallet == null:
+		return
+	var along := (_head_pos - pivot)
+	if along.length() < 1.0:
+		along = Vector2.DOWN
+	along = along.normalized()
+	_mallet.position = _head_pos
+	_mallet.rotation = along.angle() + PI * 0.5
+
 # ------------------------------------------------------------------ telegraphy (INV-12: display only)
+# The striped HEAD + handle are now the hammer.png sprite (child, drawn in _update_mallet). _draw keeps
+# only the transient swept-arc TELEGRAPH (allowed VFX) plus the slim mounting arm + hub that connect the
+# hub to the mallet's handle (structural, since the sprite handle does not reach all the way to the pivot
+# at head-matched scale — see the report note).
 func _draw() -> void:
 	var steel := Color(0.16, 0.17, 0.20)
 	var steel_hi := Color(0.34, 0.36, 0.42)
@@ -198,40 +238,14 @@ func _draw() -> void:
 		var th := base_rad + lerpf(-arc_rad * 0.5, arc_rad * 0.5, float(i) / float(n))
 		pts.append(pivot + arm_len * Vector2(sin(th), cos(th)))
 	draw_polyline(pts, danger, 34.0)
-	# 2) the hub mount (a chunky bracket at the pivot).
-	draw_circle(pivot, 30.0, steel)
-	draw_circle(pivot, 30.0, steel_hi)
-	draw_circle(pivot, 20.0, steel)
-	# 3) the rigid arm.
-	draw_line(pivot, _head_pos, steel_hi, 16.0)
-	draw_line(pivot, _head_pos, steel, 9.0)
-	# 4) the bold blade head — an oriented block with hazard stripes (high-contrast silhouette).
-	_draw_head(steel, steel_hi)
-
-func _draw_head(steel: Color, steel_hi: Color) -> void:
+	# 2) the slim mounting arm from the hub to where the mallet sprite's handle begins.
 	var along := (_head_pos - pivot)
 	if along.length() < 1.0:
 		along = Vector2.DOWN
 	along = along.normalized()
-	var perp := along.orthogonal()
-	var hl := head_len * 0.5
-	var hw := head_w * 0.5
-	var c := _head_pos
-	var quad := PackedVector2Array([
-		c - along * hl - perp * hw, c - along * hl + perp * hw,
-		c + along * hl + perp * hw, c + along * hl - perp * hw,
-	])
-	draw_colored_polygon(quad, steel)
-	# hazard chevrons across the striking head (matte red/steel) — reads as a lethal hammer face.
-	var danger := Color(0.86, 0.16, 0.16, 0.9)
-	for k in range(-1, 2):
-		var off := along * (hl * 0.45 * float(k))
-		var stripe := PackedVector2Array([
-			c + off - perp * hw + along * (hl * 0.14),
-			c + off + perp * hw + along * (hl * 0.14),
-			c + off + perp * hw - along * (hl * 0.14),
-			c + off - perp * hw - along * (hl * 0.14),
-		])
-		draw_colored_polygon(stripe, danger if (k % 2 == 0) else steel_hi)
-	# rim highlight for a bold, readable edge.
-	draw_polyline(PackedVector2Array([quad[0], quad[1], quad[2], quad[3], quad[0]]), steel_hi, 5.0)
+	var handle_bottom := _head_pos - along * (MALLET_HANDLE_LEN_PX * MALLET_SCALE)
+	draw_line(pivot, handle_bottom, steel_hi, 16.0)
+	draw_line(pivot, handle_bottom, steel, 9.0)
+	# 3) the hub mount (a chunky bracket at the pivot).
+	draw_circle(pivot, 30.0, steel)
+	draw_circle(pivot, 20.0, steel_hi)
