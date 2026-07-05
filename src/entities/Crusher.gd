@@ -34,6 +34,22 @@ extends Area2D
 const LAYER_HAZARDS := 1 << 3               # 8 — layer 4, the instakill hazard layer (Hazard.gd's layer)
 const MASK_TARGETS := (1 << 0) | (1 << 1)   # players (1) + enemies/props (2), matching Hazard.gd
 
+# --- Glossy Toybox crusher-head sprite (pays down the no-code-drawn-assets debt; owner-flagged; same
+# pattern as the hammer/bomb wiring). A glossy metallic toy PRESS block with a yellow/black hazard
+# chevron band + rivets. Image is 774x657 (ratio ~1.178, a near-exact match for the horizontal head's
+# 200x170 = ~1.176). Each head gets its OWN centered Sprite2D pinned to that head's collision-shape
+# centre and scaled so the visible block == the head's collider extents (so the block's INNER edge sits
+# exactly on the head's lethal contact face). The sprite's LOCAL x maps ALONG the slam axis and local y
+# ACROSS it (rotated PI/2 for a vertical crusher); head2 is flipped along the axis (flip_h in local ==
+# flip along the axis for BOTH orientations) so the pair MIRRORS and their striking faces point inward.
+# The code-drawn head BODIES are replaced by these sprites; the windup SHUDDER + hazard-red danger band
+# + guide rails stay as transient VFX (the fairness tell), and a windup FLASH tints the sprites hot. ---
+const CRUSHER_TEX: Texture2D = preload("res://assets/hazards/crusher.png")
+const CRUSHER_TEX_W := 774.0
+const CRUSHER_TEX_H := 657.0
+var _sprite1: Sprite2D
+var _sprite2: Sprite2D
+
 # --- geometry / config (from JSON; all data, no Tuning) ---
 var center: Vector2 = Vector2.ZERO   # the crush point (both heads converge here)
 var axis: String = "horizontal"      # "horizontal" (heads slam left<->right) | "vertical" (top<->bottom)
@@ -92,6 +108,13 @@ func _ready() -> void:
 	_shape2 = _make_head_shape()
 	add_child(_shape1)
 	add_child(_shape2)
+	# the head-body sprites: added AFTER the shapes and rendered on top of _draw (children draw after the
+	# parent's _draw), so the glossy blocks sit over the danger band / rails exactly as the old opaque
+	# code-drawn heads did. head1 native, head2 flipped along the axis so the pair mirrors face-to-face.
+	_sprite1 = _make_head_sprite(false)
+	_sprite2 = _make_head_sprite(true)
+	add_child(_sprite1)
+	add_child(_sprite2)
 	_update(0.0)
 	z_index = 40   # over platforms/void, under HUD
 	# lethal gate: enable on the starting gun, disable when the stage's combat closes.
@@ -112,6 +135,19 @@ func _make_head_shape() -> CollisionShape2D:
 	rect.size = _head_size()
 	cs.shape = rect
 	return cs
+
+# One head-body sprite: centred, scaled so the block == the head collider extents (inner block edge on
+# the lethal face), local x ALONG the slam axis. Rotated PI/2 for a vertical crusher; `flip` mirrors the
+# block along the axis (local-x flip == along-axis flip for both orientations) so head2 faces head1.
+func _make_head_sprite(flip: bool) -> Sprite2D:
+	var s := Sprite2D.new()
+	s.texture = CRUSHER_TEX
+	s.centered = true
+	s.flip_h = flip
+	# local x -> along-axis extent (head_len), local y -> across-axis extent (head_w).
+	s.scale = Vector2(head_len / CRUSHER_TEX_W, head_w / CRUSHER_TEX_H)
+	s.rotation = (PI * 0.5) if axis == "vertical" else 0.0
+	return s
 
 func _head_size() -> Vector2:
 	# head_len is ALONG the slam axis; head_w is ACROSS it.
@@ -167,6 +203,23 @@ func _update(t: float) -> void:
 	# anvil mode: head2 is fixed at its CLOSED position (the immovable anvil); head1 does all the travel.
 	_shape1.position = _head_center(-1.0, _c)
 	_shape2.position = _head_center(1.0, 1.0 if anvil else _c)
+	_position_sprites()
+
+# Ride the head-body sprites on their colliders. During the OPEN-dwell windup the sprites SHUDDER (the
+# colliders are NOT moved — the tell is display-only, matching the old code-drawn shudder) and tint hot
+# toward hazard-yellow-white as the slam nears, so the pre-slam warning still reads on the art itself.
+func _position_sprites() -> void:
+	if _sprite1 == null:
+		return
+	var shudder := Vector2.ZERO
+	if _tele > 0.0 and _c <= 0.0:
+		_rng.seed = hash(center) + int(_t * 120.0)
+		shudder = Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * (4.0 * _tele)
+	_sprite1.position = _shape1.position + shudder
+	_sprite2.position = _shape2.position - shudder
+	var hot: Color = Color.WHITE.lerp(Color(1.35, 1.15, 0.75), _tele)   # windup flash on the faces
+	_sprite1.modulate = hot
+	_sprite2.modulate = hot
 
 func _physics_process(delta: float) -> void:
 	_t += delta
@@ -191,10 +244,10 @@ func _kill_overlapping() -> void:
 			body.kill(&"ring_out", null)
 
 # ------------------------------------------------------------------ telegraphy (INV-12: display only)
+# The head BODIES are now the crusher.png sprites (children, kept fresh in _position_sprites). _draw keeps
+# only the transient TELEGRAPH VFX: the faint guide RAILS (structural travel track) and the hazard-red
+# danger BAND that reads the lethal crush lane during the windup/slam.
 func _draw() -> void:
-	var steel := Color(0.16, 0.17, 0.20)
-	var steel_hi := Color(0.34, 0.36, 0.42)
-	var steel_lo := Color(0.09, 0.10, 0.13)
 	var along := _along()
 	# 1) the guide RAILS: faint tracks showing each head's full travel (open extent -> crush point).
 	var rail := Color(0.30, 0.31, 0.36, 0.35)
@@ -213,46 +266,3 @@ func _draw() -> void:
 			center - along * (open_gap * 0.5) + perp * lane_half,
 		])
 		draw_colored_polygon(band, danger)
-	# 3) the two heads (shudder-jittered during the windup; the collider is NOT moved).
-	var shudder := Vector2.ZERO
-	if _tele > 0.0 and _c <= 0.0:
-		_rng.seed = hash(center) + int(_t * 120.0)
-		shudder = Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * (4.0 * _tele)
-	_draw_head(_shape1.position + shudder, 1.0, steel, steel_hi, steel_lo)
-	_draw_head(_shape2.position - shudder, -1.0, steel, steel_hi, steel_lo)
-
-## One steel head: a bevelled block with hazard chevrons on its INNER (striking) face. `face_dir` points
-## from the head toward the crush center (which side gets the hazard stripes / the bright edge).
-func _draw_head(c: Vector2, face_dir: float, steel: Color, steel_hi: Color, steel_lo: Color) -> void:
-	var along := _along()
-	var perp := along.orthogonal()
-	var sz := _head_size()
-	var hl := sz.x * 0.5 if axis != "vertical" else sz.y * 0.5   # half-extent ALONG the axis
-	var hw := sz.y * 0.5 if axis != "vertical" else sz.x * 0.5   # half-extent ACROSS the axis
-	# body quad
-	var quad := PackedVector2Array([
-		c - along * hl - perp * hw, c - along * hl + perp * hw,
-		c + along * hl + perp * hw, c + along * hl - perp * hw,
-	])
-	draw_colored_polygon(quad, steel)
-	# a darker back half for a bevel read
-	var back := c - along * (hl * face_dir * 0.5)
-	draw_colored_polygon(PackedVector2Array([
-		back - along * (hl * face_dir * 0.5) - perp * hw,
-		back - along * (hl * face_dir * 0.5) + perp * hw,
-		back + along * (hl * face_dir * 0.5) + perp * hw,
-		back + along * (hl * face_dir * 0.5) - perp * hw,
-	]), steel_lo)
-	# hazard chevron stripes on the INNER (striking) face — high-contrast lethal read.
-	var danger := Color(0.86, 0.16, 0.16, 0.92)
-	var face := c + along * (hl * face_dir)   # the leading face toward the crush center
-	for k in range(3):
-		var band_out := face - along * (face_dir * (hl * 0.22 * float(k)))
-		var band_in := face - along * (face_dir * (hl * 0.22 * float(k) + hl * 0.16))
-		var stripe := PackedVector2Array([
-			band_out - perp * hw, band_out + perp * hw,
-			band_in + perp * hw, band_in - perp * hw,
-		])
-		draw_colored_polygon(stripe, danger if (k % 2 == 0) else steel_hi)
-	# rim highlight
-	draw_polyline(PackedVector2Array([quad[0], quad[1], quad[2], quad[3], quad[0]]), steel_hi, 4.0)
