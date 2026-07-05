@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** CD VERDICT #7 = **FIX** on the complete four-mode game. The whole holds together as ONE
+  cohesive, shipped-quality product (front-end + Herd cast + circuits + 4 modes); BRAWL delivers the full
+  fantasy (best), GAUNTLET a solid solo hook (2nd), TRIALS a clean change-of-pace (thinnest — no smash/kill;
+  medal times still unverified), SPORTS best-concept/worst-execution. MUST-FIX #1: SPORTS bot play is
+  systematically one-sided (team 1/BLUE won EVERY match 5-0/5-2; human lost 2-3) — a fun/fairness failure in
+  the most-played (bot-filled) config; being fixed now. Prioritized next: (1) Sports bot fairness+goal-intent
+  [in progress], (2) menu art (arena thumbnails + mode-card icons — biggest "tech-demo" tells), (3) verify
+  TRIALS medal times (human/bot), (4) GAUNTLET G-BOTFOCUS free-clears, (5) DO NOT build Puzzle yet. Minor:
+  Sports match-end zoom framed empty net; Gauntlet banner overlap; confirm gamepad-A activates the shell.
+  Also caught: Sports w/ empty single_arena_path -> ball falls through world (configure fallback bug; fixing).
+  Record: `docs/briefs/` cd verdict #7 (screenshots tools/out/cd_*.png).
+
 - **2026-07-05** SPORTS mode COMPLETE (Phase 4 mode #4). 2-team bounce-ball into goals; new `Ball` entity
   (StormBall physics clone, weapon-stripped, self-driven from player contact ×2 on super/hitstun; never a
   weapon), `GoalZone`, `SportsHUD`, `sports_court.json`; goal = a runner stage. ONE new additive hook
