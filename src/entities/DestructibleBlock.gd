@@ -55,6 +55,16 @@ const STEEL_HI := Color(0.36, 0.39, 0.46)
 const STEEL_LO := Color(0.11, 0.12, 0.16)
 const HAZARD := Color(0.90, 0.20, 0.16)
 
+# --- Glossy Toybox breakable-crate sprite (no-code-drawn-assets paydown; same pattern as the hazard/ball
+# wirings). A honey-wood crate with steel corner brackets + a steel X-brace, its own chocolate outline.
+# Image 912x877 (near-square, aspect ~1.040). The steel BODY (rects + corner rivets + rim highlight) is
+# replaced by this crate TILED horizontally: each tile is scaled to the block HEIGHT h at the crate's
+# native aspect (NEVER squashed to the block's up-to-3.7:1 rect), repeated across width w with the final
+# partial tile cropped at the right edge. Tiles carry the shudder `off` (the art jitters, collider stays).
+const CRATE_TEX: Texture2D = preload("res://assets/objects/crate.png")
+const CRATE_TEX_W := 912.0
+const CRATE_TEX_H := 877.0
+
 enum { INTACT, TELEGRAPH, BROKEN }
 var _state: int = INTACT
 var _armed: bool = false             # timed clock runs only after combat_started
@@ -244,19 +254,13 @@ func _draw() -> void:
 	var top := Vector2(-hw, -hh) + off
 	# 1) drop shadow (subtle, under the block)
 	draw_rect(Rect2(top + Vector2(0, 10), Vector2(w, h)), Color(0.04, 0.06, 0.10, 0.30))
-	# 2) steel body (bevelled: light top, dark bottom via two rects)
-	draw_rect(Rect2(top, Vector2(w, h)), STEEL)
-	draw_rect(Rect2(top + Vector2(0, h * 0.62), Vector2(w, h * 0.38)), STEEL_LO)
-	# 3) rivets in the corners (industrial read)
-	for cx in [-hw + 16.0, hw - 16.0]:
-		for cy in [-hh + 16.0, hh - 16.0]:
-			draw_circle(Vector2(cx, cy) + off, 5.0, STEEL_HI)
-	# 4) tier-colored bounce MAT strip along the TOP (the surface line players bounce on)
+	# 2) breakable-crate BODY: crate.png tiled across the block (replaces the steel body + rivets + rim).
+	#    The shudder `off` is baked into `top`, so the tiled art jitters with the telegraph (collider untouched).
+	_draw_crate_tiles(top)
+	# 4) tier-colored bounce MAT strip along the TOP (the bounce-tier CONTRACT — overlaid ON TOP of the crates)
 	var mat_col: Color = TIER_PRIMARY.get(tier, TIER_PRIMARY["trampoline"])
 	draw_rect(Rect2(top, Vector2(w, 16.0)), mat_col)
 	draw_rect(Rect2(top, Vector2(w, 4.0)), mat_col.lightened(0.35))
-	# 5) rim highlight
-	draw_rect(Rect2(top, Vector2(w, h)), STEEL_HI, false, 2.0)
 	# 6) telegraph: growing cracks + hazard flash overlay (fairness — you SEE it going)
 	if _state == TELEGRAPH:
 		_draw_cracks(off)
@@ -264,6 +268,29 @@ func _draw() -> void:
 	elif _tele_t > 0.0 and _hp_left < hp and hp > 0:
 		# damaged-but-alive: static cracks proportional to hp lost (progressive break telegraph)
 		_draw_cracks(off)
+
+## Grid-tile crate.png across the block WITHOUT squashing, for ANY block aspect (wide floor slabs AND
+## tall side walls both exist — meltdown_box has 300x140 slabs AND 180x680 walls). The tile size is the
+## crate's native aspect scaled off the block's SHORTER edge, so a crate is never stretched in either
+## direction; tiles repeat across BOTH axes with the final partial row/column CROPPED via
+## draw_texture_rect_region. `top` is the block's (shuddered) top-left in local coords.
+func _draw_crate_tiles(top: Vector2) -> void:
+	var base: float = minf(w, h)                             # crate size from the shorter edge (no squash)
+	if base <= 0.5:
+		return
+	var tile_h: float = base
+	var tile_w: float = base * (CRATE_TEX_W / CRATE_TEX_H)   # native crate aspect (~1.04)
+	var y := 0.0
+	while y < h - 0.5:
+		var seg_h: float = minf(tile_h, h - y)
+		var x := 0.0
+		while x < w - 0.5:
+			var seg_w: float = minf(tile_w, w - x)
+			var dst := Rect2(top + Vector2(x, y), Vector2(seg_w, seg_h))
+			var src := Rect2(0.0, 0.0, CRATE_TEX_W * (seg_w / tile_w), CRATE_TEX_H * (seg_h / tile_h))
+			draw_texture_rect_region(CRATE_TEX, dst, src)    # full tiles use full src; partials crop
+			x += tile_w
+		y += tile_h
 
 ## Jagged crack lines fanning from the block center; count/opacity scale with telegraph progress
 ## (or with hp lost for the damage modes). Deterministic per block (stable seed) so cracks don't jump.

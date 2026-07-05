@@ -34,6 +34,15 @@ const LAYER_BALL := 1 << 6           # the ball's OWN, otherwise-unused bit (pla
 const MASK_SURFACES := 1 << 2        # bounces off every platform / bumper wall / floor / ceiling
 const MASK_PLAYERS := 1 << 0         # the sensing area detects Player bodies
 
+# --- Glossy Toybox sports-ball sprite (no-code-drawn-assets paydown; same pattern as the hammer/bomb/
+# crusher/wrecking-ball wirings). A white glossy ball with a baked-in gold equator seam. Image 669x642;
+# the circular body (chocolate outline) spans ~665px across (opaque bbox 665x637, centred on the image
+# centre ~334,320). Rendered by the BallGloss child Node2D via draw_texture_rect centred on the origin,
+# scaled so the ball DIAMETER == 2*BALL_RADIUS. The ball is a RigidBody2D with rotation UNLOCKED, so the
+# child inherits the body's spin and the seam visibly ROLLS (desired) — no per-frame rotate needed. ---
+const BALL_TEX: Texture2D = preload("res://assets/objects/ball.png")
+const BALL_TEX_DIAM := 665.0         # circular-body diameter in image px (opaque bbox width)
+
 var _sense_area: Area2D
 var _touch_cd: Dictionary = {}       # player instance_id -> seconds of cooldown remaining
 
@@ -126,13 +135,13 @@ func receive_hazard_impulse(impulse: Vector2) -> void:
 	linear_velocity += impulse / maxf(mass, 0.01)
 	linear_velocity = linear_velocity.limit_length(BALL_MAX_SPEED)
 
-## Glossy team-neutral hero ball: chocolate outline, white body, gold seam ring, bright shine dot.
+## Glossy team-neutral hero ball: the ball.png sprite drawn centred on the origin. As a child Node2D it
+## inherits the RigidBody's transform, so the baked gold seam ROLLS with the ball's physics spin.
 class BallGloss:
 	extends Node2D
 	func _draw() -> void:
-		var r := Ball.BALL_RADIUS
-		draw_circle(Vector2.ZERO, r + 4.0, Color(0.231, 0.141, 0.106))            # chocolate outline
-		draw_circle(Vector2.ZERO, r, Color(0.97, 0.97, 0.99))                     # white body
-		draw_arc(Vector2.ZERO, r - 6.0, 0.0, TAU, 40, Color(1.0, 0.82, 0.25, 0.9), 6.0)   # gold seam ring
-		draw_arc(Vector2.ZERO, r - 4.0, PI * 0.15, PI * 0.85, 20, Color(0.72, 0.74, 0.82, 0.8), 5.0)  # bottom shade
-		draw_circle(Vector2(-r * 0.34, -r * 0.36), r * 0.24, Color(1, 1, 1, 0.95))         # shine dot
+		var scale_u := (2.0 * Ball.BALL_RADIUS) / Ball.BALL_TEX_DIAM
+		var tw := float(Ball.BALL_TEX.get_width()) * scale_u
+		var th := float(Ball.BALL_TEX.get_height()) * scale_u
+		# centred on the origin (image centre ~= ball-circle centre); the transform handles the roll.
+		draw_texture_rect(Ball.BALL_TEX, Rect2(Vector2(-tw * 0.5, -th * 0.5), Vector2(tw, th)), false)

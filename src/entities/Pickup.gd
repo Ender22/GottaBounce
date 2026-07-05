@@ -9,6 +9,18 @@ extends Area2D
 
 const MASK_PLAYERS := 1 << 0   # senses Player bodies (matches GoalGate)
 
+# --- Glossy Toybox collect-token sprite (no-code-drawn-assets paydown; same pattern as the hazard/ball
+# wirings). A glossy gold coin with an embossed star + glow. Image 615x596; the bright coin body spans
+# ~555px (bright bbox 555x544, centred at image ~307,290.5). The token BODY (chocolate rim + gold body +
+# inner ring + shine) is replaced by this sprite, coin-centre pinned to the pickup origin (+ the bob) and
+# scaled so the coin DIAMETER == 2*r. The soft halo PULSE and the collect-flash stay as code VFX (juice). ---
+const TOKEN_TEX: Texture2D = preload("res://assets/objects/token.png")
+const TOKEN_TEX_W := 615.0
+const TOKEN_TEX_H := 596.0
+const TOKEN_COIN_DIAM := 555.0   # bright coin diameter in image px
+const TOKEN_COIN_CX := 307.0     # bright coin centre x in image px
+const TOKEN_COIN_CY := 290.5     # bright coin centre y in image px
+
 var r: float = 46.0
 var collected: bool = false
 var _t: float = 0.0
@@ -54,10 +66,8 @@ func _draw() -> void:
 	var bob := 6.0 * sin(_t * 3.0)
 	var c := Vector2(0.0, bob)
 	var pulse := 1.0 + 0.06 * sin(_t * 5.0)
-	var gold := Color(1.0, 0.82, 0.25)
-	var dark := Color(0.20, 0.14, 0.06)
-	draw_circle(c, (r + 8.0) * pulse, Color(1.0, 0.9, 0.4, 0.14))   # soft halo
-	draw_circle(c, r + 4.0, dark)                                    # chocolate rim
-	draw_circle(c, r, gold)                                          # token body
-	draw_arc(c, r - 8.0, 0.0, TAU, 40, Color(1.0, 0.95, 0.7, 0.9), 5.0)  # inner ring
-	draw_circle(c + Vector2(-r * 0.32, -r * 0.34), r * 0.24, Color(1, 1, 1, 0.95))  # shine dot
+	draw_circle(c, (r + 8.0) * pulse, Color(1.0, 0.9, 0.4, 0.14))   # soft halo (kept code VFX juice)
+	# token BODY: the coin sprite, coin-centre pinned to c, scaled so the coin DIAMETER == 2*r.
+	var scale_u := (2.0 * r) / TOKEN_COIN_DIAM
+	var tl := c - Vector2(TOKEN_COIN_CX * scale_u, TOKEN_COIN_CY * scale_u)
+	draw_texture_rect(TOKEN_TEX, Rect2(tl, Vector2(TOKEN_TEX_W * scale_u, TOKEN_TEX_H * scale_u)), false)
