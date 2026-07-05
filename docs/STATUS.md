@@ -64,10 +64,12 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   `v9` (level-designer's creative idea bank — ice/low-friction, jump-in cannons, + original inventions;
   landing shortly). Hazard doctrine = LETHAL w/ telegraphy+fairness+credit (DECISIONS 2026-07-05).
 - **BUILD SEQUENCE (do in this order):**
-  1. **v6 Wave A mechanics** — spinning_hammer FIRST (reuses MovingHazard motion + the `Hazard.kill()`
-     path spikes use), then crusher, falling_debris; then destructible_block + bomb; moving_platform LAST
-     (hard — solid moving collider). Each: new LevelLoader object type + entity + telegraph VFX; validate
-     rendered (M-DODGEABLE ≥8/10, no unavoidable instakill, symmetric, geometry-integrity).
+  1. **v6 Wave A mechanics** — DONE: `spinning_hammer` (`SpinningHammer.gd` + `levels/hammer_arena.json`),
+     `destructible_block` (+ COLLAPSING ARENA `levels/meltdown_box.json`, owner headline). REUSABLE lethal
+     plumbing established (contact->kill Area2D, phase-clock+dwell oscillator, self-render telegraphy,
+     LevelLoader wiring; destructible `group` count contract). NEXT: crusher, falling_debris (reuse hammer
+     plumbing), then bomb, then moving_platform LAST (hard — solid moving collider). Each: LevelLoader
+     object type + entity + telegraph; validate rendered (dodgeable, no unavoidable instakill, symmetric).
   2. Fan out: BRAWL gimmick circuits (v6), Trials challenge types (v7 framework+parity FIRST, then one
      course per type as its mechanic lands), Sports pitches (v8 — the_box/long_haul/the_bowl authorable NOW
      with no new mechanic; hazard pitches block on their mechanic).
