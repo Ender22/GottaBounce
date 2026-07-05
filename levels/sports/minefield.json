@@ -1,0 +1,39 @@
+{
+  "name": "Minefield",
+  "version": 1,
+  "theme": "scrap",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "design_intent": "SPORTS hazard court (v8_sports_courts.md tier 3, hazard='bomb'). The center_pitch shell (2800x1600, strict mirror about x=1400 -- a known-fair symmetric base) with the two mid-caroms REMOVED and a SYMMETRIC FIELD of landmines/fuse bombs scattered across the midfield. Luck-and-chaos energy but STRICTLY fair (identical mines both halves). A mine detonation PUNTS the ball (Bomb._punt_balls -> Ball.receive_hazard_impulse, ~1500px/s point-blank, re-capped to 2400 chaseable) and INSTAKILLS a nearby player (the EXISTING kill(&ring_out) path; SPORTS respawns at 99 lives, never eliminates). Goals off a mine-punt = the laugh. SYMMETRY (SC-SYM/SYM-3): the central fuse bomb sits ON the centre axis (inherently symmetric); every other mine is a MIRROR PAIR at the same y with IDENTICAL params/phase, so no instant pressures one team's half more. SYM-4 (no own-goal machine): the outermost mine pair is at x900/x1900 (blast_radius 280 -> blasts reach at most x620/x2180), ~310px clear of the goal mouths (x170..310 / x2490..2630); no blast overlaps a goal mouth, so a punt sends the ball into OPEN play, never reliably into one net. TELEGRAPHY (§2.0#2): proximity landmines show a pulsing trigger ring while armed, then an accelerating blink + expanding warning ring to the exact lethal radius before blowing; the central fuse bomb counts a visible fuse and beats on a steady ~4s pulse (the guaranteed chaos heartbeat at dead centre, right where the kickoff ball rests). SC-CALM parity N/A (this is a chaos court). NO powerup_spawners. Spawns verbatim from center_pitch (x500/700 left, x2100/2300 right); nearest spawn x700 to nearest mine x900 keeps players clear of a live trigger ring (trigger_radius 180). Skilled power-shots still score (SC-CHAOS) -- chaos ADDS accidents, doesn't replace intent. FLIGHT GATE (from center_pitch): centre x=1400, nearest inner spawn x700 -> 700px (> 527 spring drift), centre-to-far-goal 1160px -> boost required.",
+  "sky_top": "#2a2b22",
+  "sky_bottom": "#4a4a34",
+  "bounds": { "left": 0, "right": 2800, "top": 0, "bottom": 1600 },
+  "platforms": [
+    { "x": 200,  "y": 1350, "w": 2400, "h": 120, "tier": "trampoline" },
+    { "x": 200,  "y": 130,  "w": 2400, "h": 80,  "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 200,  "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 60,   "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" },
+    { "x": 2510, "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 2510, "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 2660, "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0 },
+    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1 },
+
+    { "type": "bomb", "trigger": "proximity", "x": 900,  "y": 1180, "blast_radius": 280, "kill_radius": 140, "trigger_radius": 180, "telegraph_lead": 0.75, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 1900, "y": 1180, "blast_radius": 280, "kill_radius": 140, "trigger_radius": 180, "telegraph_lead": 0.75, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 1150, "y": 1180, "blast_radius": 280, "kill_radius": 140, "trigger_radius": 180, "telegraph_lead": 0.75, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 1650, "y": 1180, "blast_radius": 280, "kill_radius": 140, "trigger_radius": 180, "telegraph_lead": 0.75, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 1050, "y": 720,  "blast_radius": 260, "kill_radius": 130, "trigger_radius": 170, "telegraph_lead": 0.8, "recur": 7.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 1750, "y": 720,  "blast_radius": 260, "kill_radius": 130, "trigger_radius": 170, "telegraph_lead": 0.8, "recur": 7.0 },
+
+    { "type": "bomb", "trigger": "fuse", "x": 1400, "y": 1180, "fuse_s": 3.0, "telegraph_lead": 1.2, "recur": 4.0, "blast_radius": 320, "kill_radius": 160, "arm_delay": 0.3 },
+
+    { "type": "player_spawn", "x": 500,  "y": 1150 },
+    { "type": "player_spawn", "x": 700,  "y": 950 },
+    { "type": "player_spawn", "x": 2300, "y": 1150 },
+    { "type": "player_spawn", "x": 2100, "y": 950 }
+  ]
+}

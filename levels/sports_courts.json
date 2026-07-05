@@ -1,15 +1,18 @@
 {
-  "_comment": "Sports courts (v8_sports_courts.md §4). Read by SportsMode._load_court_set + Settings.is_court_unlocked. Mirrors circuits.json/course_sets.json. tier = calm->chaos rank (also the unlock order); hazard = which v6 mechanic it needs (blank = no dep); unlock = gate: 'always' | 'circuit:<id>' (cleared BRAWL circuit) | 'sports_matches:N' | 'sports_wins:N'. Selection: SportsMode.configure resolves config.single_arena_path as a court id here, a '<set>#rotate_key' random-draw, OR a direct res:// path; anything unresolved/locked/missing falls back to default_court (the CD #7 ball-through-world guard). Only courts whose file exists are listed; the_bowl/minefield/the_crusher are authored in a later wave.",
+  "_comment": "Sports courts (v8_sports_courts.md §4). Read by SportsMode._load_court_set + Settings.is_court_unlocked. Mirrors circuits.json/course_sets.json. tier = calm->chaos rank (also the unlock order); hazard = which v6 mechanic it needs (blank = no dep); unlock = gate: 'always' | 'circuit:<id>' (cleared BRAWL circuit) | 'sports_matches:N' | 'sports_wins:N'. Selection: SportsMode.configure resolves config.single_arena_path as a court id here, a '<set>#rotate_key' random-draw, OR a direct res:// path; anything unresolved/locked/missing falls back to default_court (the CD #7 ball-through-world guard). Only courts whose file exists are listed.",
   "default_court": "center_pitch",
   "courts": [
     { "id": "center_pitch",  "path": "res://levels/sports_court.json",         "display_name": "CENTER PITCH",  "tier": 1, "hazard": "",                "unlock": "always" },
     { "id": "the_box",       "path": "res://levels/sports/the_box.json",       "display_name": "THE BOX",       "tier": 1, "hazard": "",                "unlock": "always" },
     { "id": "long_haul",     "path": "res://levels/sports/long_haul.json",     "display_name": "LONG HAUL",     "tier": 1, "hazard": "",                "unlock": "always" },
+    { "id": "the_bowl",      "path": "res://levels/sports/the_bowl.json",      "display_name": "THE BOWL",      "tier": 2, "hazard": "",                "unlock": "sports_matches:2" },
     { "id": "hammer_yard",   "path": "res://levels/sports/hammer_yard.json",   "display_name": "HAMMER YARD",   "tier": 3, "hazard": "spinning_hammer", "unlock": "circuit:scrapworks" },
+    { "id": "minefield",     "path": "res://levels/sports/minefield.json",     "display_name": "MINEFIELD",     "tier": 3, "hazard": "bomb",            "unlock": "circuit:mayhem_mile" },
+    { "id": "the_crusher",   "path": "res://levels/sports/the_crusher.json",   "display_name": "THE CRUSHER",   "tier": 4, "hazard": "crusher",         "unlock": "sports_wins:2" },
     { "id": "the_scrapheap", "path": "res://levels/sports/the_scrapheap.json", "display_name": "THE SCRAPHEAP", "tier": 5, "hazard": "spinning_hammer+bomb", "unlock": "sports_wins:3" }
   ],
   "rotate_sets": {
-    "calm_ladder": ["center_pitch", "the_box", "long_haul"],
-    "chaos_night": ["hammer_yard", "the_scrapheap"]
+    "calm_ladder": ["center_pitch", "the_box", "long_haul", "the_bowl"],
+    "chaos_night": ["hammer_yard", "minefield", "the_crusher", "the_scrapheap"]
   }
 }

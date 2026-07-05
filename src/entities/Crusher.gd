@@ -65,6 +65,9 @@ var retract_time: float = 0.5        # seconds of the RETRACT (open) ramp
 var telegraph_lead: float = 0.55     # windup shudder/flash lead BEFORE the close begins (fairness tell)
 var anvil: bool = false              # true = head2 is a FIXED anvil (head + anvil); head1 does the travel
 
+const BALL_EJECT_CD := 0.5           # one ball-eject per this many seconds (no per-frame machine-gun)
+var _ball_cd: float = 0.0            # per-crusher ball-eject cooldown remaining
+
 var _t: float = 0.0
 var _c: float = 0.0                  # closedness in [0,1]: 0 = open, 1 = crushed
 var _tele: float = 0.0               # telegraph intensity in [0,1] (windup shudder/flash)
@@ -223,9 +226,12 @@ func _position_sprites() -> void:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	if _ball_cd > 0.0:
+		_ball_cd = maxf(0.0, _ball_cd - delta)
 	_update(_t)
 	queue_redraw()
 	_kill_overlapping()
+	_eject_ball()
 
 ## LETHAL contact — the whole mechanic. Any live Killable body overlapping either head dies via the
 ## EXISTING kill pipeline with cause &"ring_out" (§2.0#1): no new impulse, no shove, no hitstun. The
@@ -242,6 +248,36 @@ func _kill_overlapping() -> void:
 			continue
 		if body.has_method("kill"):
 			body.kill(&"ring_out", null)
+
+## Ball-eject (v8_sports_courts.md §3.2): the crusher is overlap-only, so the sports Ball is never
+## physically trapped between the plates — but a ball sitting in the crush lane as the heads CLOSE would
+## just be ignored. Instead, EJECT it along the OPEN axis (perpendicular to the slam) via the one
+## mode-owned Ball hook: a ball in the lane during the close/slam squirts out sideways at
+## Ball.BALL_HAMMER_IMPULSE (~2000px/s, re-capped to 2400 chaseable). Because the eject is along the
+## open axis (VERTICAL for a horizontal crusher), the ball goes into OPEN play, never toward a goal
+## (SYM-4) and never held (anti-softlock §5). Gated to live combat + a per-crusher cooldown so one clean
+## eject per slam, not a per-frame machine-gun. Mode-owned: touches no ball-physics constant, only the
+## one ball entry point (the SpinningHammer._whack_ball / Bomb._punt_balls pattern).
+func _eject_ball() -> void:
+	if not _lethal or _ball_cd > 0.0:
+		return
+	if _c < 0.5:
+		return   # only while the heads are closing/closed (the crush), not during the open dwell
+	var along := _along()
+	var perp := along.orthogonal()
+	var lane_along := open_gap * 0.5 + head_len   # generous lane length along the slam axis
+	var lane_perp := head_w * 0.5                 # lane width across the slam axis
+	for b in get_tree().get_nodes_in_group("sports_ball"):
+		if not is_instance_valid(b) or not b.has_method("receive_hazard_impulse"):
+			continue
+		var rel: Vector2 = b.global_position - center
+		if absf(rel.dot(along)) > lane_along or absf(rel.dot(perp)) > lane_perp:
+			continue
+		var p := rel.dot(perp)
+		var dir: Vector2 = perp * (1.0 if p >= 0.0 else -1.0)   # push further out along the open axis
+		b.receive_hazard_impulse(dir * Ball.BALL_HAMMER_IMPULSE)
+		_ball_cd = BALL_EJECT_CD
+		break
 
 # ------------------------------------------------------------------ telegraphy (INV-12: display only)
 # The head BODIES are now the crusher.png sprites (children, kept fresh in _position_sprites). _draw keeps
