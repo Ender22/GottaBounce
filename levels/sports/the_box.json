@@ -1,0 +1,31 @@
+{
+  "name": "The Box",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "design_intent": "SPORTS calm court #2 (v8_sports_courts.md tier 1, SIZE variety). A SMALL/TIGHT (2000x1200) strict-mirror two-goal pitch: short lanes, close walls -> fast possession swaps, wall-carom bank shots, constant contact. NO hazards, NO powerup_spawners (SYM-6, SC-CALM-CLEAN). SYMMETRY (SC-SYM, the CD #7 fix): every element is a vertical-axis mirror about centre x=1000 -- both mid bumpers sit at the SAME y=520 so gravity treats both halves identically. FLIGHT GATE (GAME_ESSENCE Rule A): centre x=1000; nearest inner spawn x=1440/560 -> 440px to centre (> 395 trampoline drift); centre-to-far-goal 1000->240 = 760px (> 527 spring drift), so reaching the ball and pressing it to the far goal REQUIRE boost. Full-width TRAMPOLINE floor (y1000) + bumper ceiling/walls -> no flat standable ground (Pillar 2). Goal mouth y470..730 each end (centre y=600); goal_zone just inside, back wall seals the pocket.",
+  "sky_top": "#123a5c",
+  "sky_bottom": "#1f6ea8",
+  "bounds": { "left": 0, "right": 2000, "top": 0, "bottom": 1200 },
+  "platforms": [
+    { "x": 200,  "y": 1000, "w": 1600, "h": 120, "tier": "trampoline" },
+    { "x": 200,  "y": 100,  "w": 1600, "h": 70,  "tier": "bumper" },
+    { "x": 200,  "y": 170,  "w": 90,   "h": 300, "tier": "bumper" },
+    { "x": 200,  "y": 730,  "w": 90,   "h": 270, "tier": "bumper" },
+    { "x": 70,   "y": 170,  "w": 80,   "h": 830, "tier": "bumper" },
+    { "x": 1710, "y": 170,  "w": 90,   "h": 300, "tier": "bumper" },
+    { "x": 1710, "y": 730,  "w": 90,   "h": 270, "tier": "bumper" },
+    { "x": 1850, "y": 170,  "w": 80,   "h": 830, "tier": "bumper" },
+    { "x": 700,  "y": 520,  "w": 120,  "h": 120, "tier": "bumper" },
+    { "x": 1180, "y": 520,  "w": 120,  "h": 120, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "goal_zone", "x": 240,  "y": 600, "w": 120, "h": 260, "team": 0 },
+    { "type": "goal_zone", "x": 1760, "y": 600, "w": 120, "h": 260, "team": 1 },
+    { "type": "player_spawn", "x": 380,  "y": 860 },
+    { "type": "player_spawn", "x": 560,  "y": 650 },
+    { "type": "player_spawn", "x": 1620, "y": 860 },
+    { "type": "player_spawn", "x": 1440, "y": 650 }
+  ]
+}

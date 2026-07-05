@@ -23,6 +23,13 @@ const BALL_DRIVE_GAIN := 0.9         # + this * player speed (fly faster -> hit 
 const BALL_SMASH_MULT := 2.0         # x this on a super-active / hitstun body (the power shot)
 const BALL_TOUCH_CD := 0.12          # per-player contact cooldown (one clean strike per touch)
 
+# --- mode-owned HAZARD->ball impulse magnitudes (v8_sports_courts.md §3.1). NOT Tuning feel consts:
+# read by the hazards that punt the ball (hammer whack, debris drop) via receive_hazard_impulse. The
+# bomb blast reuses Tuning.explosion_impulse_center (FEEL §4.1) directly. All are re-capped to
+# BALL_MAX_SPEED (2400) so even a full whack stays chaseable. ---
+const BALL_HAMMER_IMPULSE := 1200.0  # rotor whack: 1200/0.6 = ~2000 px/s from rest (power-shot band)
+const BALL_DEBRIS_IMPULSE := 900.0   # dropped-weight punt: ~1500 px/s (firm knock, below a hammer whack)
+
 const LAYER_BALL := 1 << 6           # the ball's OWN, otherwise-unused bit (players neither sense nor collide)
 const MASK_SURFACES := 1 << 2        # bounces off every platform / bumper wall / floor / ceiling
 const MASK_PLAYERS := 1 << 0         # the sensing area detects Player bodies

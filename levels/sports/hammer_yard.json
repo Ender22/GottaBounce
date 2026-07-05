@@ -1,0 +1,30 @@
+{
+  "name": "Hammer Yard",
+  "version": 1,
+  "theme": "scrap",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "design_intent": "SPORTS hazard court (v8_sports_courts.md tier 3). The center_pitch shell (2800x1600, strict mirror about x=1400) with the two mid-caroms REMOVED and a single CENTRAL spinning_hammer on the exact centre axis. The rotor sweeps the midfield: it WHACKS the loose ball around (SpinningHammer._whack_ball -> Ball.receive_hazard_impulse, ~2000px/s from rest) and SPLATS a careless player (the existing kill(&ring_out) path; SPORTS respawns at 99 lives, never eliminates). SYMMETRY (SC-SYM/SYM-3): a single hazard ON the centre axis is inherently mirror-symmetric -> no side bias. SYM-4 (no own-goal machine): pivot (1400,300), arm_len 520, arc 130deg -> the head sweeps x929..1871 (the central third) and y520..820, ~620px clear of each goal mouth (x170..310 / x2490..2630) -> a whack sends the ball into OPEN play, never into a near net; the swept arc never overlaps a goal mouth. Clear beat: dwell_frac 0.26 at each apex + arc < 180deg leaves a wide clear window each ~4.5s period. NO powerup_spawners. Kickoff ball spawns at centre (1400,~800) right in the head's low pass -> the headline fun. Goals/spawns/walls verbatim from center_pitch (a known-fair symmetric shell).",
+  "sky_top": "#2a2320",
+  "sky_bottom": "#4a3b30",
+  "bounds": { "left": 0, "right": 2800, "top": 0, "bottom": 1600 },
+  "platforms": [
+    { "x": 200,  "y": 1350, "w": 2400, "h": 120, "tier": "trampoline" },
+    { "x": 200,  "y": 130,  "w": 2400, "h": 80,  "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 200,  "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 60,   "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" },
+    { "x": 2510, "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 2510, "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 2660, "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0 },
+    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1 },
+    { "type": "spinning_hammer", "pivot": { "x": 1400, "y": 300 }, "arm_len": 520, "arc_deg": 130, "base_deg": 0, "period_s": 4.5, "dwell_frac": 0.26, "radius": 72, "head_len": 150, "head_w": 96 },
+    { "type": "player_spawn", "x": 500,  "y": 1150 },
+    { "type": "player_spawn", "x": 700,  "y": 950 },
+    { "type": "player_spawn", "x": 2300, "y": 1150 },
+    { "type": "player_spawn", "x": 2100, "y": 950 }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "Long Haul",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "design_intent": "SPORTS calm court #3 (v8_sports_courts.md tier 1, SIZE variety). A BIG/OPEN (3600x1900) strict-mirror two-goal pitch: wide open middle, tall airspace -> long boost runs, midfield interception reads, the biggest power-shot arcs in the set. NO hazards, NO powerup_spawners (SYM-6, SC-CALM-CLEAN). SYMMETRY (SC-SYM): every element mirrors about centre x=1800; the single mid-bumper pair sits at the SAME y=560 (both halves identical under gravity). FLIGHT GATE: centre x=1800; nearest inner spawn x=2850/750 -> 1050px to centre (>> 395 trampoline drift); centre-to-far-goal 1800->245 = 1555px (>> 527 spring drift) -> long boosted flights, fuel management matters. Full-width TRAMPOLINE floor (y1650) + bumper ceiling/walls -> no flat standable ground (Pillar 2). Goal mouth y760..1100 (centre y=930); goal_zone just inside, back wall seals the pocket. Deliberately sparse bumpers keep the middle open for the flagship long arcs.",
+  "sky_top": "#123a5c",
+  "sky_bottom": "#1f6ea8",
+  "bounds": { "left": 0, "right": 3600, "top": 0, "bottom": 1900 },
+  "platforms": [
+    { "x": 200,  "y": 1650, "w": 3200, "h": 120,  "tier": "trampoline" },
+    { "x": 200,  "y": 130,  "w": 3200, "h": 80,   "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 550,  "tier": "bumper" },
+    { "x": 200,  "y": 1100, "w": 90,   "h": 550,  "tier": "bumper" },
+    { "x": 60,   "y": 210,  "w": 80,   "h": 1440, "tier": "bumper" },
+    { "x": 3310, "y": 210,  "w": 90,   "h": 550,  "tier": "bumper" },
+    { "x": 3310, "y": 1100, "w": 90,   "h": 550,  "tier": "bumper" },
+    { "x": 3460, "y": 210,  "w": 80,   "h": 1440, "tier": "bumper" },
+    { "x": 1275, "y": 560,  "w": 150,  "h": 130,  "tier": "bumper" },
+    { "x": 2175, "y": 560,  "w": 150,  "h": 130,  "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "goal_zone", "x": 245,  "y": 930, "w": 130, "h": 340, "team": 0 },
+    { "type": "goal_zone", "x": 3355, "y": 930, "w": 130, "h": 340, "team": 1 },
+    { "type": "player_spawn", "x": 500,  "y": 1350 },
+    { "type": "player_spawn", "x": 750,  "y": 1050 },
+    { "type": "player_spawn", "x": 3100, "y": 1350 },
+    { "type": "player_spawn", "x": 2850, "y": 1050 }
+  ]
+}

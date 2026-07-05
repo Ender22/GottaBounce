@@ -42,6 +42,14 @@ var radius: float = 70.0                 # the lethal head (the blade mass) coll
 var head_len: float = 150.0              # visual blade length along the arm
 var head_w: float = 96.0                 # visual blade width across the arm
 
+# --- mode-owned ball-whack (v8_sports_courts.md §3.2). The rotor senses the sports Ball by DISTANCE
+# to the blade head (group "sports_ball"), NOT via its collision mask (which stays players+props for
+# the kill path), so no mask change is needed and BRAWL levels — where the group is empty — are a pure
+# no-op. One clean whack per pass via a per-contact cooldown (the _touch_cd shape). The ball is never
+# killed (it has no kill()); the hammer only calls the one mode-owned Ball hook. ---
+const BALL_WHACK_CD := 0.4             # seconds between ball whacks (one clean strike per sweep)
+var _ball_cd: float = 0.0
+
 var _t: float = 0.0
 var _head_pos: Vector2 = Vector2.ZERO
 var _prev_head_pos: Vector2 = Vector2.ZERO
@@ -115,8 +123,11 @@ func _physics_process(delta: float) -> void:
 	if delta > 0.0:
 		_head_speed = (_head_pos - _prev_head_pos).length() / delta
 	_shape.position = _head_pos
+	if _ball_cd > 0.0:
+		_ball_cd = maxf(0.0, _ball_cd - delta)
 	queue_redraw()
 	_kill_overlapping()
+	_whack_ball()
 
 ## LETHAL contact — the whole mechanic. Any live Killable body overlapping the head dies via the
 ## EXISTING kill pipeline with cause &"ring_out" (§2.0#1): no new impulse, no shove, no hitstun. The
@@ -131,6 +142,30 @@ func _kill_overlapping() -> void:
 			continue
 		if body.has_method("kill"):
 			body.kill(&"ring_out", null)
+
+## Ball-whack (v8_sports_courts.md §3.2): when the blade head sweeps over the sports Ball, punt it
+## along the blade's SWING direction (blended slightly outward from the pivot so a ball at an apex
+## dwell — where swing speed is ~0 — still flies off), at Ball.BALL_HAMMER_IMPULSE. One whack per
+## BALL_WHACK_CD so a lingering ball isn't machine-gunned. Impulse capped to BALL_MAX_SPEED by the
+## hook, so the whack reads as a cannon-strike yet stays chaseable (Pillar 5). Mode-owned: touches no
+## ball-physics constant, only the one ball entry point.
+func _whack_ball() -> void:
+	if _ball_cd > 0.0:
+		return
+	var reach := radius + Ball.BALL_RADIUS
+	for b in get_tree().get_nodes_in_group("sports_ball"):
+		if not is_instance_valid(b) or not b.has_method("receive_hazard_impulse"):
+			continue
+		if (b.global_position - _head_pos).length() > reach:
+			continue
+		var swing: Vector2 = _head_pos - _prev_head_pos
+		var radial: Vector2 = _head_pos - pivot
+		var dir: Vector2 = radial.normalized() if radial.length() > 1.0 else Vector2.DOWN
+		if swing.length() > 1.0:
+			dir = (swing.normalized() * 0.75 + dir * 0.25).normalized()
+		b.receive_hazard_impulse(dir * Ball.BALL_HAMMER_IMPULSE)
+		_ball_cd = BALL_WHACK_CD
+		break
 
 # ------------------------------------------------------------------ telegraphy (INV-12: display only)
 func _draw() -> void:

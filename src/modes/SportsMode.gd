@@ -14,6 +14,10 @@ extends GameMode
 const HUD_SCENE := preload("res://scenes/ui/SportsHUD.tscn")
 const BALL_SCRIPT := preload("res://src/entities/Ball.gd")
 const DEFAULT_ARENA := "res://levels/sports_court.json"
+# The court-set library (v8_sports_courts.md §4). Mirrors circuits.json: SportsMode reads it to
+# resolve a court SELECTION (a court id, a rotate-set ref, or a direct path) into the arena path,
+# preserving the CD #7 fallback (any unresolved/locked/missing -> DEFAULT_ARENA, never a crash).
+const COURT_SET_PATH := "res://levels/sports_courts.json"
 
 # team presentation (matches GoalZone.TEAM_COLORS)
 const TEAM_NAMES := ["RED", "BLUE"]
@@ -30,6 +34,7 @@ var _last_scoring_team: int = -1
 var _last_scored_stage: int = -1       # idempotency guard: increment at most once per stage
 
 var _ball: Ball = null                 # the live stage ball (freed + re-created each kickoff)
+var _court_set_cache: Dictionary = {}  # parsed sports_courts.json (lazy; {by_id, default_path, rotate})
 
 # --- bot-objective geometry (mode-owned, NOT fenced player-feel Tuning — this is WHERE to go, the
 # bot's existing movement/boost carries it there). To hit the ball toward the ENEMY goal a bot must
@@ -66,12 +71,87 @@ func configure(runner, config: MatchConfig) -> void:
 	# non-enclosed / missing level the ball falls through the world forever. Default to the sports court
 	# whenever the configured path is empty, whitespace, or points at a file that does not exist.
 	var want: String = str(config.single_arena_path).strip_edges() if config != null else ""
-	if want == "" or not FileAccess.file_exists(want):
-		want = DEFAULT_ARENA
-	_arena_path = want
+	_arena_path = _resolve_court(want)
 	_team_scores = [0, 0]
 	_last_scoring_team = -1
 	_last_scored_stage = -1
+
+## Resolve a court SELECTION to an arena PATH via the court-set (v8_sports_courts.md §4.2), keeping the
+## CD #7 robustness fallback: SPORTS is an ENCLOSED-court mode, so ANY unresolved / locked / missing
+## selection resolves to the default court (never a crash, never the ball-through-world bug). Accepts,
+## in priority order: (1) "" -> the set's default court; (2) "<anything>#key" -> a random UNLOCKED
+## member of that rotate_set (§4.2 rotate flow); (3) a known court ID from sports_courts.json (if
+## unlocked + its file exists); (4) a direct res:// path to an existing file (the ArenaSelect flow).
+func _resolve_court(want: String) -> String:
+	var set_data := _load_court_set()
+	var default_path: String = str(set_data.get("default_path", DEFAULT_ARENA))
+	if want == "":
+		return default_path
+	if want.contains("#"):
+		var pick := _pick_from_rotate(set_data, want.get_slice("#", 1))
+		return pick if pick != "" else default_path
+	var by_id: Dictionary = set_data.get("by_id", {})
+	if by_id.has(want):
+		var c: Dictionary = by_id[want]
+		if _court_unlocked(str(c.get("id", want))):
+			var p := str(c.get("path", ""))
+			if p != "" and FileAccess.file_exists(p):
+				return p
+		return default_path
+	if FileAccess.file_exists(want):
+		return want
+	return default_path
+
+## Parse + cache sports_courts.json into {by_id: {id->court dict}, default_path, rotate: {key->[ids]}}.
+## Absent / malformed file -> a safe stub whose default_path is DEFAULT_ARENA (back-compat).
+func _load_court_set() -> Dictionary:
+	if not _court_set_cache.is_empty():
+		return _court_set_cache
+	var out := {"by_id": {}, "default_path": DEFAULT_ARENA, "rotate": {}}
+	if FileAccess.file_exists(COURT_SET_PATH):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(COURT_SET_PATH))
+		if typeof(parsed) == TYPE_DICTIONARY:
+			var d := parsed as Dictionary
+			var by_id := {}
+			var courts: Variant = d.get("courts", [])
+			if typeof(courts) == TYPE_ARRAY:
+				for c in (courts as Array):
+					if typeof(c) == TYPE_DICTIONARY and str((c as Dictionary).get("id", "")) != "":
+						by_id[str((c as Dictionary)["id"])] = c
+			out["by_id"] = by_id
+			var dc := str(d.get("default_court", ""))
+			if by_id.has(dc):
+				out["default_path"] = str((by_id[dc] as Dictionary).get("path", DEFAULT_ARENA))
+			var rot: Variant = d.get("rotate_sets", {})
+			if typeof(rot) == TYPE_DICTIONARY:
+				out["rotate"] = rot
+	_court_set_cache = out
+	return out
+
+## Random UNLOCKED court path from a rotate_set (§4.2). "" if the key is unknown or every member is
+## locked / missing (caller falls back to the default court).
+func _pick_from_rotate(set_data: Dictionary, key: String) -> String:
+	var rot: Dictionary = set_data.get("rotate", {})
+	if not rot.has(key) or typeof(rot[key]) != TYPE_ARRAY:
+		return ""
+	var by_id: Dictionary = set_data.get("by_id", {})
+	var pool: Array = []
+	for cid in (rot[key] as Array):
+		var s := str(cid)
+		if by_id.has(s) and _court_unlocked(s):
+			var p := str((by_id[s] as Dictionary).get("path", ""))
+			if p != "" and FileAccess.file_exists(p):
+				pool.append(p)
+	if pool.is_empty():
+		return ""
+	return str(pool[randi() % pool.size()])
+
+## Unlock gate (§4.3), delegated to Settings.is_court_unlocked (the v6 progression tie-in). Defaults
+## OPEN if the API is absent so selection never hard-locks in an odd build state.
+func _court_unlocked(court_id: String) -> bool:
+	if Settings != null and Settings.has_method("is_court_unlocked"):
+		return bool(Settings.is_court_unlocked(court_id))
+	return true
 
 ## Humans first, then bots, clamped to an EVEN total >= 2 (spec §1; clamp + log, never crash). Build
 ## _teams in the SAME order the runner spawns (plan[i] -> player i), splitting the roster in half. Each

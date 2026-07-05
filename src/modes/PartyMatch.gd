@@ -748,6 +748,7 @@ func _enter_match_end(widx: int) -> void:
 	_match_winner = widx
 	_prompt_shown = false
 	_record_progression(widx)   # v6 §4: unlock-progression trigger (BRAWL circuit matches only)
+	_record_sports_progression(widx)   # v8 §4.3: Sports court unlock trigger (SPORTS matches only)
 	# finalize any in-flight stage record so QA can read the winning stage
 	if not _cur_stats.is_empty():
 		_cur_stats["length_s"] = round_clock
@@ -780,6 +781,15 @@ func _record_progression(widx: int) -> void:
 	for i in range(mini(_config.human_count, scores.size())):
 		human_kills += int(scores[i])
 	Settings.record_match_result(str(_config.circuit_id), human_won, human_kills)
+
+## v8_sports_courts.md §4.3 unlock trigger: record a finished SPORTS match into Settings progression
+## (bumps sports_matches; a HUMAN win bumps sports_wins -> the chaos-finale gate). No-op for every
+## non-SPORTS mode (they never touch Sports progression). Mirrors _record_progression.
+func _record_sports_progression(widx: int) -> void:
+	if _config == null or _config.mode_id != &"sports":
+		return
+	var human_won: bool = widx >= 0 and widx < _config.human_count
+	Settings.record_sports_result(human_won)
 
 func _tick_match_end(delta: float) -> void:
 	_state_t += delta

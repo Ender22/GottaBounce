@@ -28,6 +28,14 @@ const BUSES := {"master": "Master", "music": "Music", "sfx": "SFX"}
 const CIRCUITS_PATH := "res://levels/circuits.json"
 const UNLOCK_PITY_MATCHES := 3
 
+# --- SPORTS court unlock (v8_sports_courts.md §4.3) --- Sports courts unlock through the SAME
+# [progression] block. A court's "unlock" rule (from sports_courts.json) is one of: "always"; a
+# cross-mode "circuit:<id>" (cleared BRAWL circuit -> reuses circuits_cleared); "sports_matches:N";
+# or "sports_wins:N" (the marquee chaos-finale gate). Sports counters are Sports-specific so BRAWL
+# play never unlocks a Sports court and vice-versa.
+const SPORTS_COURTS_PATH := "res://levels/sports_courts.json"
+var _sports_court_rules: Dictionary = {}   # cached court_id -> unlock rule string
+
 var master: float = 1.0
 var music: float = 1.0
 var sfx: float = 1.0
@@ -37,6 +45,8 @@ var fullscreen: bool = false
 var matches_played: int = 0
 var matches_won: int = 0
 var total_kills: int = 0
+var sports_matches: int = 0     # Sports matches finished (any result) — "sports_matches:N" unlock gate
+var sports_wins: int = 0        # Sports matches WON by a human — "sports_wins:N" unlock gate
 var circuits_cleared: PackedStringArray = PackedStringArray()   # ids of circuits WON (mastery set)
 var pending_unlock: String = ""                                 # one id to celebrate next ArenaSelect (consume-once)
 var _circuit_plays: Dictionary = {}                             # circuit_id -> matches played on it (pity path)
@@ -115,6 +125,8 @@ func _load() -> void:
 	matches_played = int(cfg.get_value("progression", "matches_played", 0))
 	matches_won = int(cfg.get_value("progression", "matches_won", 0))
 	total_kills = int(cfg.get_value("progression", "total_kills", 0))
+	sports_matches = int(cfg.get_value("progression", "sports_matches", 0))
+	sports_wins = int(cfg.get_value("progression", "sports_wins", 0))
 	circuits_cleared = _split_csv(str(cfg.get_value("progression", "circuits_cleared", "")))
 	_circuit_plays = _parse_plays(str(cfg.get_value("progression", "circuit_plays", "")))
 	pending_unlock = str(cfg.get_value("progression", "pending_unlock", ""))
@@ -128,6 +140,8 @@ func _save() -> void:
 	cfg.set_value("progression", "matches_played", matches_played)
 	cfg.set_value("progression", "matches_won", matches_won)
 	cfg.set_value("progression", "total_kills", total_kills)
+	cfg.set_value("progression", "sports_matches", sports_matches)
+	cfg.set_value("progression", "sports_wins", sports_wins)
 	cfg.set_value("progression", "circuits_cleared", ",".join(circuits_cleared))
 	cfg.set_value("progression", "circuit_plays", _plays_to_str())
 	cfg.set_value("progression", "pending_unlock", pending_unlock)
@@ -190,6 +204,53 @@ func pity_matches_remaining(circuit_id: String) -> int:
 	if pred == "":
 		return 0
 	return maxi(0, UNLOCK_PITY_MATCHES - int(_circuit_plays.get(pred, 0)))
+
+# ------------------------------------------------------------------- SPORTS progression (v8 §4.3)
+
+## Record a finished SPORTS match (call at MATCH_END, Sports mode only — PartyMatch._record_sports_
+## progression). Bumps the Sports match counter; a HUMAN win also bumps the Sports-wins counter (the
+## chaos-finale gate). Write-through. BRAWL/TRIALS/GAUNTLET never call this.
+func record_sports_result(human_won: bool) -> void:
+	sports_matches += 1
+	if human_won:
+		sports_wins += 1
+	_save()
+
+## True if a Sports court is playable (v8 §4.3). Reads the court's "unlock" rule from
+## sports_courts.json: "always" (or absent/unknown court) -> open; "circuit:<id>" -> that BRAWL
+## circuit is in circuits_cleared; "sports_matches:N" -> sports_matches >= N; "sports_wins:N" ->
+## sports_wins >= N. An unrecognised rule defaults OPEN (never hard-lock in an odd data state).
+func is_court_unlocked(court_id: String) -> bool:
+	var rule := _court_unlock_rule(court_id)
+	if rule == "" or rule == "always":
+		return true
+	var parts := rule.split(":")
+	var kind := str(parts[0])
+	var arg := str(parts[1]) if parts.size() > 1 else ""
+	match kind:
+		"circuit":
+			return circuits_cleared.has(arg)
+		"sports_matches":
+			return sports_matches >= int(arg)
+		"sports_wins":
+			return sports_wins >= int(arg)
+		_:
+			return true
+
+## The unlock-rule string for a court id from sports_courts.json (cached), or "" if the file/court is
+## absent (treated as always-open by is_court_unlocked).
+func _court_unlock_rule(court_id: String) -> String:
+	if _sports_court_rules.is_empty() and FileAccess.file_exists(SPORTS_COURTS_PATH):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SPORTS_COURTS_PATH))
+		if typeof(parsed) == TYPE_DICTIONARY:
+			var courts: Variant = (parsed as Dictionary).get("courts", [])
+			if typeof(courts) == TYPE_ARRAY:
+				for c in (courts as Array):
+					if typeof(c) == TYPE_DICTIONARY:
+						var cid := str((c as Dictionary).get("id", ""))
+						if cid != "":
+							_sports_court_rules[cid] = str((c as Dictionary).get("unlock", "always"))
+	return str(_sports_court_rules.get(court_id, ""))
 
 # ------------------------------------------------------------------- progression helpers
 

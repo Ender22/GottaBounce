@@ -1,0 +1,34 @@
+{
+  "name": "The Scrapheap",
+  "version": 1,
+  "theme": "scrap",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "design_intent": "SPORTS chaos finale (v8_sports_courts.md tier 5). The hammer_yard shell (2800x1600, strict mirror about x=1400) with the central spinning_hammer PLUS two MIRRORED landmine pairs -> hammer + mines together, goals half-accidental hilarity. SYMMETRY (SC-SYM/SYM-3): the hammer sits ON the centre axis (inherently symmetric); each mine PAIR is a mirror pair at the same y with IDENTICAL params/phase, so no instant pressures one team's half more. NOTE (deviation, reported): the full v8 spec also lists a falling_debris cadence here; this build scopes the finale to hammer+mines (both already interact with the ball) and defers debris ball-punt -- flagged, not silently dropped. SYM-4 (no own-goal machine): mines sit at x1080/1720 (y1180, low) and x1180/1620 (y640, mid), blast_radius 300 -> blasts reach at most x780/x2020, ~470px clear of the goal mouths (x170..310 / x2490..2630); no blast overlaps a goal mouth, so a mine punt sends the ball into open play. Ball-hazard: hammer whacks the ball (~2000px/s), a mine blast PUNTS it (Bomb._punt_balls -> Ball.receive_hazard_impulse, ~1500px/s point-blank), both re-capped to 2400 (chaseable). Fuse mines recur with telegraphed accelerating blink; clear windows remain (hammer dwell + fuse leads). NO powerup_spawners. Skilled power-shots still score (SC-CHAOS) -- chaos ADDS accidents, doesn't replace intent.",
+  "sky_top": "#241d1a",
+  "sky_bottom": "#45332a",
+  "bounds": { "left": 0, "right": 2800, "top": 0, "bottom": 1600 },
+  "platforms": [
+    { "x": 200,  "y": 1350, "w": 2400, "h": 120, "tier": "trampoline" },
+    { "x": 200,  "y": 130,  "w": 2400, "h": 80,  "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 200,  "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 60,   "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" },
+    { "x": 2510, "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 2510, "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 2660, "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0 },
+    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1 },
+    { "type": "spinning_hammer", "pivot": { "x": 1400, "y": 300 }, "arm_len": 520, "arc_deg": 130, "base_deg": 0, "period_s": 4.5, "dwell_frac": 0.26, "radius": 72, "head_len": 150, "head_w": 96 },
+    { "type": "bomb", "trigger": "fuse", "x": 1080, "y": 1180, "fuse_s": 2.0, "telegraph_lead": 1.0, "recur": 2.6, "blast_radius": 300, "kill_radius": 150, "arm_delay": 0.3 },
+    { "type": "bomb", "trigger": "fuse", "x": 1720, "y": 1180, "fuse_s": 2.0, "telegraph_lead": 1.0, "recur": 2.6, "blast_radius": 300, "kill_radius": 150, "arm_delay": 0.3 },
+    { "type": "bomb", "trigger": "fuse", "x": 1180, "y": 640,  "fuse_s": 2.4, "telegraph_lead": 1.1, "recur": 3.0, "blast_radius": 300, "kill_radius": 150, "arm_delay": 1.4 },
+    { "type": "bomb", "trigger": "fuse", "x": 1620, "y": 640,  "fuse_s": 2.4, "telegraph_lead": 1.1, "recur": 3.0, "blast_radius": 300, "kill_radius": 150, "arm_delay": 1.4 },
+    { "type": "player_spawn", "x": 500,  "y": 1150 },
+    { "type": "player_spawn", "x": 700,  "y": 950 },
+    { "type": "player_spawn", "x": 2300, "y": 1150 },
+    { "type": "player_spawn", "x": 2100, "y": 950 }
+  ]
+}
