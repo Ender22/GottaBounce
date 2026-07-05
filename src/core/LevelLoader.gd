@@ -66,6 +66,11 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# v1_moving_hazard.md §1: a kinematic SHOVE-hazard (pendulum/sweep). Its own layer
 				# (layer 5), senses players, calls Player.receive_shove on contact — NEVER kills.
 				_build_moving_hazard(o, parent)
+			"spinning_hammer":
+				# v6_party_gimmicks_circuits.md §2.1: a LETHAL rotor-blade hazard. Modelled on the
+				# MovingHazard phase-clock motion but its head instakills on contact via the EXISTING
+				# kill pipeline (kill(&"ring_out")) — the SAME path spikes/Hazard.gd use, NOT a shove.
+				_build_spinning_hammer(o, parent)
 			"start_gate":
 				# v3_content_plan B.3 (TRIALS): the run's spawn + respawn point. Reuses the existing
 				# spawn path — appended as a spawn so _spawn_at(0) / the multi-life respawn use it.
@@ -180,5 +185,13 @@ static func _build_spikes(o: Dictionary, parent: Node2D) -> void:
 ## and self-moves on a deterministic phase clock; LevelLoader only constructs + configures it.
 static func _build_moving_hazard(o: Dictionary, parent: Node2D) -> void:
 	var h := MovingHazard.new()
+	h.setup_from_json(o)
+	parent.add_child(h)
+
+## v6_party_gimmicks_circuits.md §2.1: build the LETHAL spinning-hammer from JSON. It self-renders
+## (arm/blade/swept-arc telegraphy) and self-moves on a deterministic phase clock; its head kills any
+## player it touches via the existing kill pipeline (NO new death impulse; fence per §2.0/§7).
+static func _build_spinning_hammer(o: Dictionary, parent: Node2D) -> void:
+	var h := SpinningHammer.new()
 	h.setup_from_json(o)
 	parent.add_child(h)
