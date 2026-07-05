@@ -2,6 +2,19 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** CONTENT INITIATIVE FANNED OUT ACROSS ALL 3 MODES (owner vision realized). Built on the 5
+  shared lethal hazards: BRAWL = MAYHEM MILE wild circuit + random-draw rotation + unlock progression;
+  TRIALS = 6 objective types (Survive/Destroy-all/Physics-puzzle/Collect/Precision + Reach-goal) w/ proof
+  courses (the owner's hammer-vigil/breakout/ball-cannon); SPORTS = 5 pitches calm->chaos (center/box/
+  long_haul/hammer_yard/scrapheap) via a court-set w/ unlock gates, strict mirror-symmetry (hammer_yard
+  fairness confirmed by bot-match variance, not one-sided). `Ball.receive_hazard_impulse` + hammer-whacks-
+  ball wired. Specs v6-v9. BACKLOG (clearly scoped): moving_platform (the one hard solid-collider mechanic),
+  fuller circuit/course/pitch batteries (the_bowl/minefield/the_crusher, v7's full 8 courses, more circuits),
+  always-on-hazard pre-combat lethality fix (gate on combat_started / raise spawns), Sports court-select UI,
+  cumulative-kill cosmetic unlock track, CD#7 polish (menu arena-thumbnails + mode-icons, Trials medal tuning).
+  PROCESS NOTE: a build agent stalled TWICE in a "launch background fairness-sweep then end turn waiting"
+  loop; the lead took over + validated with a bounded bot-match sample. Watch for this antipattern.
+
 - **2026-07-05** PARTY CONTENT LOOP SHIPPED (owner initiative). 5 LETHAL gimmick mechanics built +
   validated (spinning_hammer, destructible_block→COLLAPSING ARENA, crusher, falling_debris, bomb/landmine
   — all reuse one contact→`kill("ring_out")` pattern + phase-clock oscillator + self-render telegraphy +

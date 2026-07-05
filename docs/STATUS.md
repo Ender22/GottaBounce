@@ -71,11 +71,18 @@ Brawl circuits + Trials challenge-types + Sports pitches.
      solid moving collider; deferred so it doesn't gate the fun).
   2. **BRAWL circuit — DONE:** MAYHEM MILE (`mayhem_mile`, 12-pool draw-6 tier-sorted). Random-draw rotation
      + UNLOCK PROGRESSION DONE (Settings [progression], mastery+pity, ArenaSelect locked cards + celebration).
-  3. **Fan-out STILL TODO (hazards ready):** Trials challenge types (v7 — framework+REACH_GOAL parity FIRST,
-     then Survive/Destroy-all/Physics-puzzle courses using hammer/destructible/bomb+ball); Sports hazard
-     pitches (v8 — the_box/long_haul/the_bowl need NO mechanic; hammer_yard/minefield/crusher/scrapheap use
-     the built hazards + the ball-impulse hook). Then cumulative-kill cosmetic unlock track (counter exists).
-- Sports bot-FAIRNESS fix is committed + validated (mirror-symmetric court + per-team skill balance).
+  3. **Fan-out DONE across all 3 modes:** TRIALS challenge types (6 types + proof courses, `varied` set) +
+     SPORTS pitches (5 courts calm->chaos + court-set + unlock gates) both built + validated. Sports
+     bot-fairness fix committed (mirror-symmetric court + per-team skill balance).
+- **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
+  (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
+  v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
+  fix (gate on combat_started / raise spawns under blades); Sports court-select UI (plumbing selects by
+  court_id today); cumulative-kill cosmetic unlock track (counter exists); CD#7 polish (menu arena-thumbnails
+  + mode-card icons, Trials medal-time tuning via a movement bot, plain-button focus accent-border); goat
+  squash/charge + super-charge poses (art pass #2, paste-edit technique); goat logo; all-six readability gate.
+- **PROCESS WATCH:** a build agent stalled TWICE in a "launch bg sweep -> end turn waiting" loop without
+  harvesting; the lead took over + validated with a BOUNDED bot-match sample. If an agent does this, take over.
 
 ## Prior polish/quality backlog (behind the content initiative)
 Trials medal-time tighten (movement-bot/human run — CD flag), all-six goat readability gate (spawn 6 in a
