@@ -2,6 +2,14 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** GAUNTLET mode COMPLETE (Phase 4 mode #3). Survival vs escalating bot waves; waves as
+  runner stages; data-driven `gauntlet_waves.json`; shared defender-life pool; score=highest wave;
+  GauntletHUD. ONE additive runner hook `wave_spawn_plan()->[]` (BRAWL/TRIALS untouched) drives
+  `_despawn_bots`+wave spawn in `_begin_stage`. Validated: waves 1-3 spawn/escalate, DEFEAT ("OVERWHELMED
+  — REACHED WAVE N") fires; BRAWL + TRIALS regression clean; parse clean; no Tuning touched. The game is
+  now THREE modes (Brawl / Trials / Gauntlet). Spec `docs/specs/v4_gauntlet_mode.md`. Backlog: victory
+  runtime-drive (logic verified by inspection + symmetric to defeat), G-BOTFOCUS credited-kill-share measure.
+
 - **2026-07-05** TRIALS mode COMPLETE (first new mode; Phase 4 pillar #1). `TrialsMode` (solo, reach-goal,
   fall=respawn+2s, medals) proved the GameMode seam scales with ONE additive hook (`polls_goal()`);
   BRAWL unaffected. Data-driven 5-course campaign (`levels/course_sets.json` + `levels/courses/*.json`):
