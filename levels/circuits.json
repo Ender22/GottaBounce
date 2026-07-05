@@ -1,0 +1,20 @@
+{
+	"_comment": "Themed circuits (v3_content_plan PART A): curated, ORDERED arena rotations with a difficulty arc. Level ids resolve to res://levels/<id>.json (same as PartyMatch.LEVEL_POOL). Played in authored order, looping, when MatchConfig.arena_mode == CIRCUIT.",
+	"circuits": {
+		"meadow_mile": {
+			"display_name": "MEADOW MILE",
+			"difficulty": 1,
+			"levels": ["grassy_expanse", "islands_void", "the_cliff", "twin_chasms"]
+		},
+		"scrapworks": {
+			"display_name": "THE SCRAPWORKS",
+			"difficulty": 2,
+			"levels": ["bumper_gauntlet", "drop_chamber", "wrecking_yard", "the_ascent"]
+		},
+		"high_wire": {
+			"display_name": "THE HIGH WIRE",
+			"difficulty": 3,
+			"levels": ["atoll", "the_spine", "spires"]
+		}
+	}
+}

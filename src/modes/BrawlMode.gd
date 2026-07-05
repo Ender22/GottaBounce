@@ -15,6 +15,12 @@ var _pool: Array = []
 var _bag: Array = []
 var _last_level_path := ""
 
+# CIRCUIT rotation (Phase 3, v3_content_plan PART A): when true, `_pool` plays in AUTHORED order and
+# loops (via `_ordered_idx`) instead of using the shuffle-bag. RANDOM_ALL / SINGLE keep _ordered=false.
+const CIRCUITS_PATH := "res://levels/circuits.json"
+var _ordered := false
+var _ordered_idx := 0
+
 # --- identity / presentation ---
 func id() -> StringName:
 	return &"brawl"
@@ -30,12 +36,51 @@ func configure(runner, config: MatchConfig) -> void:
 	# read config into the runner (defaults reproduce Tuning.match_target_kills / lives_per_player)
 	runner.match_target_kills = config.kills_to_win
 	runner.lives_per_player = config.lives_per_player
-	# build the level sequence: SINGLE -> one arena; RANDOM_ALL (default) -> the whole pool
-	if config.arena_mode == MatchConfig.ArenaMode.SINGLE and str(config.single_arena_path) != "":
+	# build the level sequence: CIRCUIT -> authored ordered list; SINGLE -> one arena;
+	# RANDOM_ALL (default) -> the whole pool (shuffle-bag). Only CIRCUIT is _ordered.
+	_ordered = false
+	_ordered_idx = 0
+	if config.arena_mode == MatchConfig.ArenaMode.CIRCUIT:
+		var circuit := _load_circuit(str(config.circuit_id))
+		if not circuit.is_empty():
+			_pool = circuit
+			_ordered = true
+		else:
+			push_warning("BrawlMode: unknown/empty circuit_id '%s' -> falling back to RANDOM_ALL" % str(config.circuit_id))
+			_pool = runner.LEVEL_POOL.duplicate()
+	elif config.arena_mode == MatchConfig.ArenaMode.SINGLE and str(config.single_arena_path) != "":
 		_pool = [config.single_arena_path]
 	else:
 		_pool = runner.LEVEL_POOL.duplicate()
 	_reset_bag()
+
+## Resolve a circuit_id to an ordered Array of res:// level paths from levels/circuits.json.
+## Returns [] on any failure (missing file / bad JSON / unknown id / empty levels) so configure()
+## can fall back to RANDOM_ALL without crashing (spec A.2#3).
+func _load_circuit(circuit_id: String) -> Array:
+	if circuit_id == "":
+		return []
+	if not FileAccess.file_exists(CIRCUITS_PATH):
+		push_warning("BrawlMode: %s not found" % CIRCUITS_PATH)
+		return []
+	var txt := FileAccess.get_file_as_string(CIRCUITS_PATH)
+	var parsed: Variant = JSON.parse_string(txt)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		push_warning("BrawlMode: %s is not a JSON object" % CIRCUITS_PATH)
+		return []
+	var circuits: Variant = (parsed as Dictionary).get("circuits", {})
+	if typeof(circuits) != TYPE_DICTIONARY or not (circuits as Dictionary).has(circuit_id):
+		return []
+	var entry: Variant = (circuits as Dictionary)[circuit_id]
+	if typeof(entry) != TYPE_DICTIONARY:
+		return []
+	var ids: Variant = (entry as Dictionary).get("levels", [])
+	if typeof(ids) != TYPE_ARRAY:
+		return []
+	var out: Array = []
+	for lid in (ids as Array):
+		out.append("res://levels/%s.json" % str(lid))
+	return out
 
 ## Per-slot descriptors: humans first, then bots (today's spawn order). Skin/character indexed by
 ## player from the config; bot level = Tuning.bot_levels rotation when difficulty 0 (today), else fixed.
@@ -68,6 +113,14 @@ func _reset_bag() -> void:
 ## Draw the next level from the shuffle-bag; reshuffle when empty, avoiding an immediate repeat when
 ## the pool has >=2 entries. A 1-entry pool (SINGLE) returns that level every time (no rotation).
 func next_level_path(_runner) -> String:
+	# CIRCUIT: draw sequentially in authored order, looping when the list is exhausted (spec A.2#3).
+	if _ordered:
+		if _pool.is_empty():
+			return ""
+		var p: String = str(_pool[_ordered_idx % _pool.size()])
+		_ordered_idx += 1
+		_last_level_path = p
+		return p
 	if _bag.is_empty():
 		_reset_bag()
 		if _pool.size() >= 2 and _bag.size() > 1 and str(_bag[0]) == _last_level_path:

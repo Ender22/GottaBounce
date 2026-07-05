@@ -8,6 +8,15 @@ extends MenuScreen
 ## accent from a spread palette. When per-arena thumbnails/theme colours land they drop into the slot.
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
+const CIRCUITS_PATH := "res://levels/circuits.json"
+
+# Per-circuit accent (circuits.json carries no colour; keep the spread-palette convention). Keyed by
+# circuit id so a new circuit just needs an entry here (else falls back to the RANDOM pink).
+const CIRCUIT_COLORS := {
+	"meadow_mile": Color("#54c94a"),   # bright meadow green (on-ramp)
+	"scrapworks": Color("#a15fff"),    # arcade violet (industrial)
+	"high_wire": Color("#4ad0a8"),     # high teal (exposure)
+}
 
 const RANDOM := {"path": "", "name": "RANDOM ROTATION", "tag": "A new peak every round.",
 	"color": Color("#ff5fa8"), "glyph": "?", "random": true}
@@ -31,8 +40,38 @@ const ARENAS := [
 
 var _cards: Array[Button] = []
 
+## Load levels/circuits.json into an ordered Array of card-data dicts (marked "circuit": true).
+## Returns [] on any failure so the screen still shows RANDOM + arenas (never crashes).
+func _load_circuit_cards() -> Array:
+	var out: Array = []
+	if not FileAccess.file_exists(CIRCUITS_PATH):
+		return out
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(CIRCUITS_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return out
+	var circuits: Variant = (parsed as Dictionary).get("circuits", {})
+	if typeof(circuits) != TYPE_DICTIONARY:
+		return out
+	for cid in (circuits as Dictionary).keys():
+		var entry: Variant = (circuits as Dictionary)[cid]
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var diff: int = int((entry as Dictionary).get("difficulty", 1))
+		var levels: Array = (entry as Dictionary).get("levels", [])
+		var stars := ""
+		for s in range(3):
+			stars += "*" if s < diff else "."
+		out.append({
+			"circuit_id": str(cid),
+			"name": "%s\n%s  %d arenas" % [str((entry as Dictionary).get("display_name", cid)), stars, levels.size()],
+			"color": CIRCUIT_COLORS.get(str(cid), MenuFX.ACCENT_PINK),
+			"circuit": true,
+		})
+	return out
+
 func _ready() -> void:
-	var all: Array = [RANDOM]
+	var all: Array = _load_circuit_cards()
+	all.append(RANDOM)
 	all.append_array(ARENAS)
 	for a in all:
 		var card: Button = CARD.instantiate()
@@ -78,12 +117,18 @@ func activate(c: Control) -> void:
 		return
 	var a: Dictionary = c.get_meta("arena", {})
 	var cfg: MatchConfig = GameConfig.match_config
-	if bool(a.get("random", false)):
+	if bool(a.get("circuit", false)):
+		cfg.arena_mode = MatchConfig.ArenaMode.CIRCUIT
+		cfg.circuit_id = StringName(str(a["circuit_id"]))
+		cfg.single_arena_path = ""
+	elif bool(a.get("random", false)):
 		cfg.arena_mode = MatchConfig.ArenaMode.RANDOM_ALL
 		cfg.single_arena_path = ""
+		cfg.circuit_id = &""
 	else:
 		cfg.arena_mode = MatchConfig.ArenaMode.SINGLE
 		cfg.single_arena_path = str(a["path"])
+		cfg.circuit_id = &""
 	if shell != null:
 		shell.launch_match()
 

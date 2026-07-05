@@ -15,6 +15,7 @@ enum ArenaMode { RANDOM_ALL = 0, SINGLE = 1, CIRCUIT = 2 }  # CIRCUIT reserved f
 @export var skin_ids: PackedStringArray = PackedStringArray(["pink", "blue", "green", "yellow"])  # per-player color skin
 @export var arena_mode: int = ArenaMode.RANDOM_ALL          # RANDOM_ALL = shuffle-bag over the pool; SINGLE = one arena
 @export var single_arena_path: String = ""                 # used only when arena_mode == SINGLE
+@export var circuit_id: StringName = &""                   # used only when arena_mode == CIRCUIT; key into levels/circuits.json
 @export var kills_to_win: int = 10                          # overrides Tuning.match_target_kills for the match
 @export var lives_per_player: int = 1                       # overrides Tuning.lives_per_player for the match
 
