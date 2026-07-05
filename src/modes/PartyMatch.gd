@@ -219,6 +219,9 @@ func _ready() -> void:
 func _spawn_player(i: int, desc: Dictionary) -> void:
 	var p := Player.new()
 	p.skin = str(desc.get("skin", "pink"))
+	# v2 feel deltas: resolve this slot's character profile BEFORE add_child so Player._ready() can
+	# size the collider from it. Unknown/"bouncer" -> Standard (all identity) = today's feel.
+	p.profile = CharacterProfiles.for_id(str(desc.get("character", "bouncer")))
 	add_child(p)
 	p.global_position = _spawn_at(i)
 	players.append(p)

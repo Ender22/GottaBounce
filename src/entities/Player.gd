@@ -76,6 +76,11 @@ const WINGS_FLAP_IMPULSE := 540.0
 var _down_angle := PI * 0.5    # local-gravity direction angle (for body orientation, P8)
 var last_attacker = null       # for kill credit (P9); cleared after a couple seconds
 var skin := "pink"             # character sprite color (set by the mode before add_child)
+# v2 character feel deltas (docs/specs/v2_character_feel_deltas.md): the thin additive multiplier
+# layer. Set by the mode BEFORE add_child so _ready() can size the collider from it. Defaults to a
+# Standard (all-identity) profile so a Player built without one (dev/test) behaves exactly as today.
+var profile: CharacterProfile = null
+var _radius := BODY_RADIUS     # per-instance body radius = BODY_RADIUS * profile.eff_size() (collider == art)
 var _attacker_timer := 0.0
 var _attacker_age := 0.0        # v2_kill_shape §3: seconds since last_attacker was set. The record is
                                 # RETAINED for kill_credit_window_ringout (6.0); kill() gates the credit
@@ -152,9 +157,16 @@ func _ready() -> void:
 	add_to_group("players")      # powerups (slow-mo / black hole) act on the group
 	fuel = Tuning.fuel_max
 
+	# v2 feel deltas: resolve the profile (Standard fallback) and derive the per-instance radius.
+	# size_scale scales the COLLIDER and the drawn ball TOGETHER (art bible: collider == art), so the
+	# CircleShape2D radius always equals the drawn body radius at every size. Standard = 44.0 (x1.0).
+	if profile == null:
+		profile = CharacterProfiles.standard()
+	_radius = BODY_RADIUS * profile.eff_size()
+
 	var cs := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = BODY_RADIUS
+	circle.radius = _radius
 	cs.shape = circle
 	add_child(cs)
 
@@ -165,7 +177,7 @@ func _ready() -> void:
 	var spts := PackedVector2Array()
 	for i in range(24):
 		var a := TAU * (float(i) / 24.0)
-		spts.append(Vector2(cos(a) * BODY_RADIUS * 1.35, sin(a) * BODY_RADIUS * 0.36))
+		spts.append(Vector2(cos(a) * _radius * 1.35, sin(a) * _radius * 0.36))
 	_shadow.polygon = spts
 	_shadow.color = Color(0.118, 0.169, 0.251, 0.30)   # #1E2B40
 	_shadow.visible = false
@@ -232,7 +244,7 @@ func _ready() -> void:
 	if ResourceLoader.exists(squash_path):
 		_squash_tex = load(squash_path)
 	_sprite = Sprite2D.new()
-	_sprite_scale = (2.2 * BODY_RADIUS) / (_idle_tex.get_width() * SPRITE_BALL_FRAC)
+	_sprite_scale = (2.2 * _radius) / (_idle_tex.get_width() * SPRITE_BALL_FRAC)
 	_apply_idle_sprite()
 	_skin_flip.add_child(_sprite)
 	# Cross-skin damage flush (docs/briefs/damage_pulse_visual.md): a crimson overlay of the same
@@ -268,7 +280,7 @@ func _ready() -> void:
 	_hit_area.collision_mask = LAYER_PLAYERS | (1 << 1)   # detect players + props
 	var hcs := CollisionShape2D.new()
 	var hc := CircleShape2D.new()
-	hc.radius = BODY_RADIUS + 6.0
+	hc.radius = _radius + 6.0
 	hcs.shape = hc
 	_hit_area.add_child(hcs)
 	add_child(_hit_area)
@@ -287,7 +299,7 @@ func _apply_squash_sprite() -> void:
 	_sprite.scale = Vector2.ONE * k
 	var world_h := _squash_tex.get_height() * k
 	_sprite.offset = Vector2(-0.05 * _squash_tex.get_width(),
-		(BODY_RADIUS - world_h * 0.5) / k)
+		(_radius - world_h * 0.5) / k)
 
 func _make_exhaust(is_fire: bool) -> CPUParticles2D:
 	# Textureless in v0 (default square particles, scaled small) — texture wiring returns with art.
@@ -465,18 +477,24 @@ func _physics_process(delta: float) -> void:
 		# Sustained thrust has a TERMINAL speed (FEEL §3.2). Only push until the velocity component
 		# along the aim reaches that cap — so holding boost can't ramp you to the global ceiling.
 		# Bounces and super-boost are exempt (they set velocity directly and can exceed it).
-		var thrust_cap := Tuning.normal_boost_max_speed * mult * speed_mult
+		# v2 feel: boost_power_mult scales normal_boost_max_speed AND normal_boost_accel together.
+		# INV-1 held by clamp: 760 * 1.12 = 851 < smash_impact_min (900) — plain boost never smashes.
+		var bp := profile.eff_boost_power()
+		var thrust_cap := Tuning.normal_boost_max_speed * bp * mult * speed_mult
 		var along := velocity.dot(aim_dir)
 		if along < thrust_cap:
-			var add := Tuning.normal_boost_accel * mult * speed_mult * delta
+			var add := Tuning.normal_boost_accel * bp * mult * speed_mult * delta
 			add = minf(add, thrust_cap - along)   # don't overshoot the terminal speed
 			velocity += aim_dir * add
 		if not fuel_locked:
 			fuel = maxf(0.0, fuel - Tuning.normal_boost_drain() * delta)
 	elif not _sb_aiming and _pulled <= 0.0:
 		# (skipped while black-hole-pulled: the auto-brake toward vx=0 would fight the pull)
-		var target_x := Tuning.air_drift_max_speed * clampf(intent.aim.x, -1.0, 1.0)
-		velocity.x = move_toward(velocity.x, target_x, Tuning.air_drift_accel * delta)
+		# v2 feel: air_control_mult scales air_drift_max_speed AND air_drift_accel together. Air drift
+		# is "place your landing," never flight; even at 1.20 (408 px/s) it stays far below the 900 gate.
+		var ac := profile.eff_air_control()
+		var target_x := Tuning.air_drift_max_speed * ac * clampf(intent.aim.x, -1.0, 1.0)
+		velocity.x = move_toward(velocity.x, target_x, Tuning.air_drift_accel * ac * delta)
 
 	# Wings: flap to fly (powerup) — active airborne, INV-11 OK
 	if wings_flaps > 0 and intent.flap and not just_activated:
@@ -571,7 +589,10 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 		var n := _axis_snap(col.get_normal())
 		if collider.has_meta("bounce_tier_height"):
 			var tier_h: float = collider.get_meta("bounce_tier_height") * bounce_mult
-			velocity = BounceResolver.resolve(velocity, n, tier_h, g.length(), boost_held)
+			# v2 feel: bounce_apex_mult scales ONLY the target height passed to resolve() — NOT the
+			# min_bounce floor (inside resolve, unscaled) and NOT the fuel-refund tier lookup below.
+			var launch_h: float = tier_h * profile.eff_bounce_apex()
+			velocity = BounceResolver.resolve(velocity, n, launch_h, g.length(), boost_held)
 			# Directional influence: holding a direction along the surface as you bounce nudges the
 			# launch that way, so you can steer your arc (e.g. press right on a floor -> up-and-right).
 			var tangent := Vector2(-n.y, n.x)
@@ -720,7 +741,10 @@ func _handle_smashes() -> void:
 				var n := (b.global_position - global_position).normalized()
 				var vdir := velocity.normalized()
 				var s: float = clampf(vdir.dot(n), 0.0, 1.0)
-				var raw_impulse: float = Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker  # physical ceiling
+				# v2 feel: knockback_dealt_mult scales the attacker's impulse BEFORE the smash_impulse_max
+				# clamp (minf below), so top-end hits still clamp identically for everyone — the lever only
+				# shapes SUB-CAP hits (chains/grazes = "hit solidity"). Cannot manufacture a bigger one-shot.
+				var raw_impulse: float = (Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker) * profile.eff_knockback_dealt()  # physical ceiling
 				var launch_scale: float = Tuning.smash_launch_floor + (1.0 - Tuning.smash_launch_floor) * s  # baseline..cap (v2, no gate)
 				var impulse_mag: float = minf(raw_impulse, Tuning.smash_impulse_max * launch_scale)   # baseline -> cap, never above physical
 				# v3 §12.3: read the victim's PRE-HIT damage level (before receive_smash escalates it) and
@@ -772,7 +796,10 @@ func _handle_smashes() -> void:
 				var n := (b.global_position - global_position).normalized()
 				var vdir := velocity.normalized()
 				var s: float = clampf(vdir.dot(n), 0.0, 1.0)
-				var raw_impulse: float = Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker  # physical ceiling
+				# v2 feel: knockback_dealt_mult scales the attacker's impulse BEFORE the smash_impulse_max
+				# clamp (minf below), so top-end hits still clamp identically for everyone — the lever only
+				# shapes SUB-CAP hits (chains/grazes = "hit solidity"). Cannot manufacture a bigger one-shot.
+				var raw_impulse: float = (Tuning.smash_impulse_base + my_speed * Tuning.smash_impulse_from_attacker) * profile.eff_knockback_dealt()  # physical ceiling
 				var launch_scale: float = Tuning.smash_launch_floor + (1.0 - Tuning.smash_launch_floor) * s  # baseline..cap (v2, no gate)
 				var impulse_mag: float = minf(raw_impulse, Tuning.smash_impulse_max * launch_scale)   # baseline -> cap, never above physical
 				# v3 §12.3: launch multiplier by victim's pre-hit damage level. Props have no damage_level
@@ -889,7 +916,10 @@ func receive_smash(impulse: Vector2, attacker, s: float = 1.0, angular_kick: flo
 		EventBus.player_damaged.emit(self, damage_level)   # audio: Lv1 / Lv2 escalate cue
 	# Smashed while aiming (spec §1.1): aim CANCELS, (stung) fuel retained, no super fires.
 	cancel_super_aim()
-	velocity = (velocity + impulse).limit_length(Tuning.max_speed)
+	# v2 feel: knockback_taken_mult scales HOW FAR I fly, applied to the impulse BEFORE the max_speed
+	# clamp. Deliberately NOT applied to the sting/hitstun reads above (those keep the unscaled impulse
+	# — the lever is weight, not immunity). Floor 0.90 keeps a clean centered super still lethal (§1.1).
+	velocity = (velocity + impulse * profile.eff_knockback_taken()).limit_length(Tuning.max_speed)
 	if attacker != null and attacker is Player:
 		last_attacker = attacker
 		_attacker_timer = Tuning.kill_credit_window_ringout   # v2_kill_shape §3: retain 6.0; kill() gates by cause
@@ -1234,7 +1264,7 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			var pts := PackedVector2Array()
 			for i in range(29):
 				var aa := -PI * 0.5 + ang * (float(i) / 28.0)
-				pts.append(Vector2(cos(aa), sin(aa)) * (BODY_RADIUS + 16.0))
+				pts.append(Vector2(cos(aa), sin(aa)) * (_radius + 16.0))
 			_charge_ring.points = pts
 			_charge_ring.default_color = Color(1.0, 0.95, 0.25).lerp(Color(1.0, 0.16, 0.05), fuse)
 			if _ring_bg:
@@ -1285,13 +1315,13 @@ func _update_contact_shadow() -> void:
 		return
 	var space := get_world_2d().direct_space_state
 	var from := global_position
-	var to := from + Vector2(0.0, SHADOW_MAX_HEIGHT + BODY_RADIUS + 4.0)
+	var to := from + Vector2(0.0, SHADOW_MAX_HEIGHT + _radius + 4.0)
 	var q := PhysicsRayQueryParameters2D.create(from, to, MASK_SURFACES)
 	var hit := space.intersect_ray(q)
 	if hit.is_empty():
 		_shadow.visible = false
 		return
-	var height: float = maxf(0.0, (hit["position"].y - from.y) - BODY_RADIUS)
+	var height: float = maxf(0.0, (hit["position"].y - from.y) - _radius)
 	var k := clampf(1.0 - height / SHADOW_MAX_HEIGHT, 0.0, 1.0)
 	if k <= 0.02 or _dead:
 		_shadow.visible = false
