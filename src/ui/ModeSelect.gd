@@ -10,8 +10,8 @@ const MODES := [
 		"color": Color("#ff5fa8"), "glyph": "B", "soon": false},
 	{"id": "trials", "name": "TRIALS", "tag": "Beat the clock. Just you and the jetpack.",
 		"color": Color("#4aa8ff"), "glyph": "T", "soon": false},
-	{"id": "gauntlet", "name": "GAUNTLET", "tag": "Survive the endless Herd.",
-		"color": Color("#a15fff"), "glyph": "G", "soon": true},
+	{"id": "gauntlet", "name": "GAUNTLET", "tag": "Hold the line. They keep coming, you keep flying.",
+		"color": Color("#a15fff"), "glyph": "G", "soon": false},
 	{"id": "sports", "name": "SPORTS", "tag": "Headbutt the ball, not each other. (Okay, each other too.)",
 		"color": Color("#ff7a2d"), "glyph": "S", "soon": true},
 ]

@@ -48,6 +48,12 @@ func is_stage_over(_runner) -> bool:
 func polls_goal() -> bool:
 	return false
 
+## Additive seam (v4_gauntlet): descriptors for bots to spawn AT THE START of the stage about to begin
+## (runner.stage_index). Lets a mode swap its bot roster PER STAGE (GAUNTLET waves). BRAWL/TRIALS return
+## [] -> the runner skips the whole block -> byte-for-byte parity (C7). Same descriptor shape as spawn_plan.
+func wave_spawn_plan(_runner) -> Array:
+	return []
+
 ## Scoring hook applied on every death. BRAWL: +1 credited kill / -1 self-fall floored at 0.
 func on_kill(_runner, _killer_idx: int, _victim_idx: int, _cause) -> void:
 	pass

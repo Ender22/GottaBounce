@@ -54,6 +54,7 @@ const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 const MODE_REGISTRY := {
 	&"brawl": preload("res://src/modes/BrawlMode.gd"),
 	&"trials": preload("res://src/modes/TrialsMode.gd"),
+	&"gauntlet": preload("res://src/modes/GauntletMode.gd"),
 }
 # Front-end shell hooks (v1_frontend_shell §5): pause overlay + return-to-menu on quit.
 const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
@@ -239,6 +240,31 @@ func _spawn_player(i: int, desc: Dictionary) -> void:
 	else:
 		p.set_provider(InputBot.new(p, self, int(desc.get("bot_level", 2))))
 
+## v4_gauntlet: free every non-human player and compact the parallel per-player arrays so indices stay
+## consistent (humans keep their stable 0..h-1 indices; bots are always appended after them). Called from
+## _begin_stage BETWEEN stages (nothing in flight) for a mode whose wave_spawn_plan() is non-empty; BRAWL/
+## TRIALS return [] so this NEVER runs for them (byte-for-byte parity). At call time _stage_deltas /
+## _had_contact / _smash_off_stage were just cleared in _begin_stage, so only the persistent per-player
+## arrays (scores, lives_left, and the lazily-grown camera arrays) need compacting here.
+func _despawn_bots() -> void:
+	for i in range(players.size() - 1, -1, -1):
+		var p = players[i]
+		if not is_instance_valid(p) or not p.is_in_group("human"):
+			if is_instance_valid(p):
+				p.queue_free()
+			players.remove_at(i)
+			scores.remove_at(i)
+			lives_left.remove_at(i)
+			if i < _combat_active_t.size():
+				_combat_active_t.remove_at(i)
+			if i < _cluster_linger_t.size():
+				_cluster_linger_t.remove_at(i)
+	# trim any stale trailing camera entries so they can't outlive the roster
+	if _combat_active_t.size() > players.size():
+		_combat_active_t.resize(players.size())
+	if _cluster_linger_t.size() > players.size():
+		_cluster_linger_t.resize(players.size())
+
 ## Current per-player skins (QA readout; C7 "_skins() equivalent"). Reflects the live spawn plan.
 func _skins() -> Array:
 	var out: Array = []
@@ -321,6 +347,14 @@ func _begin_stage() -> void:
 	_smash_off_stage.clear()
 	# rotate the level BEFORE the pop-in so the establishing shot frames the new level (§6)
 	_load_stage(_mode.next_level_path(self))
+	# NEW (v4_gauntlet, additive). A mode with a per-stage bot roster (GAUNTLET waves) swaps its bots
+	# here, AFTER _load_stage and BEFORE the per-player respawn/pop-in loop below (so the new bots get
+	# respawn + pop-in + name tags for free). BRAWL/TRIALS return [] -> this block never runs -> parity.
+	var wave: Array = _mode.wave_spawn_plan(self)
+	if not wave.is_empty():
+		_despawn_bots()                       # free the previous wave's (now-dead) bots, compact parallel arrays
+		for desc in wave:
+			_spawn_player(players.size(), desc)   # REUSE the exact runner spawn path (humans-first invariant holds)
 	if _camera != null:
 		_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
 	_hud.hide_center()
