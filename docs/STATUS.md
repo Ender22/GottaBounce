@@ -74,17 +74,26 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   3. **Fan-out DONE across all 3 modes:** TRIALS challenge types (6 types + proof courses, `varied` set) +
      SPORTS pitches (5 courts calm->chaos + court-set + unlock gates) both built + validated. Sports
      bot-fairness fix committed (mirror-symmetric court + per-team skill balance).
-- **ART-DEBT PAYDOWN (owner "no code-drawn/SVG assets" rule) — CLOSING:** all code-drawn OBJECT bodies are being
-  replaced with generated Glossy Toybox sprites (transient telegraph/VFX + gameplay-contract overlays stay code).
-  DONE+committed+wired+rendered-validated: `hazards/hammer.png` (SpinningHammer), `bomb.png` (Bomb/landmine),
-  `crusher.png` (Crusher heads), `wrecking_ball.png` (FallingDebris chunks + MovingHazard pendulum),
-  `flatbed_cart.png` (MovingPlatform vehicle deck). IN FLIGHT (gameplay-programmer, owns game port): the 3 remaining
-  non-hazard bodies — `objects/ball.png` (Ball.gd sports), `objects/crate.png` (DestructibleBlock.gd — tiled at
-  height-scale, tier bounce-mat strip kept on top), `objects/token.png` (Pickup.gd). After that lands+committed, NO
-  code-drawn object body remains — only intended telegraph/VFX (RingOfFire/StormBall/GoalZone glow/LandTarget reticle).
-- **UI POLISH BRIEF (owner "gorgeous, Mario-Kart bar" priority) — IN FLIGHT:** ui-ux-designer is writing
-  `docs/briefs/frontend_visual_polish.md` (per-screen tech-demo→Mario-Kart gap + exact art-asset spec + priority).
-  This scopes the NEXT slice after art-debt closes (mode-card icons, arena thumbnails/circuit crests, char portraits, logo).
+- **ART-DEBT PAYDOWN (owner "no code-drawn/SVG assets" rule) — DONE (Task #7 complete).** ALL code-drawn object
+  bodies replaced with generated Glossy Toybox sprites (transient telegraph/VFX + gameplay-contract overlays stay
+  code). Committed+wired+rendered-validated: `hazards/hammer.png` (SpinningHammer), `bomb.png` (Bomb/landmine),
+  `crusher.png` (Crusher heads), `wrecking_ball.png` (FallingDebris chunks + MovingHazard pendulum), `flatbed_cart.png`
+  (MovingPlatform vehicle deck), `objects/ball.png` (Ball.gd — rolls via RigidBody transform), `objects/crate.png`
+  (DestructibleBlock.gd — 2D grid-tiled off shorter edge so crates stay square on wide floors AND tall walls; tier
+  bounce-mat strip kept on top), `objects/token.png` (Pickup.gd). NO code-drawn object body remains — only intended
+  telegraph/VFX (RingOfFire/StormBall/GoalZone glow/LandTarget reticle/PowerupBubble shell).
+- **UI-POLISH SLICE (owner "gorgeous, Mario-Kart bar" priority) — STARTED.** Brief done: `docs/briefs/frontend_visual_polish.md`
+  (finding: the shell is a CORRECT UI wearing placeholder skins; the whole gap is ~1 logo + 4 mode dioramas + baked arena
+  thumbnails [a tool, ~0 art] + up to 6 char portraits + a free title bobber-wiring pass — all drop into slots the shell
+  already animates). Priority order: TITLE → ModeSelect → ArenaSelect → CharacterSelect.
+  - **ModeSelect dioramas (art):** `ui/modes/mode_brawl.png` (horn clash) + `ui/modes/mode_trials.png` (ring rocket)
+    DONE+committed. **mode_gauntlet + mode_sports DEFERRED** — ChatGPT image-gen hung 3+min on both 2026-07-05 night
+    (draft prompts queued in the ChatGPT tabs); retry+harvest, then wire all 4 into `MenuCard` Art slot (hide the Glyph).
+  - **TITLE bobbers (free wiring) — IN FLIGHT:** gameplay-programmer wiring the 6 existing goat idle sprites as parallax
+    bobbers on MainMenu per brief §4b (Pogo+Butch front flanking buttons, 4 smaller behind; independent y-bob/drift/sway).
+  - **NOT YET DONE (next up):** wire the 2 (→4) mode dioramas into ModeSelect cards; baked arena-thumbnail TOOL (§3b —
+    render each level via ArenaRenderer to `assets/ui/thumbs/*`, drop into ArenaSelect cards — fixes the worst screen for ~0 art);
+    goat logo (art, brief §4c — mascot-on-wordmark; text-gen is unreliable, consider emblem+engine-text); char beauty poses.
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
