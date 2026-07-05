@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-06** CREATIVE-DIRECTOR FULL-GAME VERDICT (`docs/feedback/cd_2026-07-06_fullgame.md`): **SHIP-class, short FIX
+  punch-list, NOT rethink** — a cohesive, purchasable party brawler, no regressions from the UI/art/content waves. BRAWL
+  delivers the full fantasy (bounce→fly→aimed super-smash→off-screen ring-out→SD); front-end is Mario-Kart-tier; motion health
+  clean everywhere. PUNCH-LIST (acting on the autonomous-safe items now): (1) FUN-CRITICAL — a dirty DEV save had MUSIC=0%, so
+  every playtest ran ON MUTE → repair the dev save + verify audio actually fires (the subjective MIX still needs a HUMAN LISTEN
+  — flagged for owner, AI can't hear); (2) SPORTS-to-10-goals too long vs the 10-30s pillar → lowering Sports goal target to ~6
+  (BRAWL kill target left at owner-set 10); (3) progression save could show a later circuit unlocked while its predecessor is
+  locked (dirty save + missing guard) → add an unlock-chain integrity guard that self-heals. FLAGGED FOR OWNER (not auto-changed):
+  BRAWL match_target_kills — owner-set 10, but CD AND QA independently recommend ~7 for the one-more-round feel; Trials medal
+  times are PROVISIONAL pending a movement-bot tuning pass. Minor/later: Gauntlet solo default 1 life is harsh; minefield ceiling
+  mines under-trigger; Trials SURVIVE/PHYSICS archetypes express flight-required as dodge/aim rather than traversal (per v7, ok).
+
 - **2026-07-05** ART-DEBT PAYDOWN EXTENDED beyond hazards to ALL code-drawn gameplay BODIES (same owner
   no-code-drawn-assets rule). Audited `src/entities/` for `draw_circle/draw_rect/draw_polygon`; the true
   BODY offenders (vs legitimate telegraph/VFX/particle draws in RingOfFire/StormBall/PowerupBubble shell/
