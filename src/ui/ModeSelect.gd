@@ -16,6 +16,15 @@ const MODES := [
 		"color": Color("#ff7a2d"), "glyph": "S", "soon": false},
 ]
 
+# Glossy-Toybox action dioramas per mode (frontend_visual_polish.md §1c). Drops into the MenuCard
+# Art slot; set_art() auto-hides the placeholder Glyph letter.
+const MODE_ART := {
+	"brawl": preload("res://assets/ui/modes/mode_brawl.png"),
+	"trials": preload("res://assets/ui/modes/mode_trials.png"),
+	"gauntlet": preload("res://assets/ui/modes/mode_gauntlet.png"),
+	"sports": preload("res://assets/ui/modes/mode_sports.png"),
+}
+
 @onready var _row: HBoxContainer = $CardRow
 @onready var _back: Button = $Header/BackBtn
 @onready var _toast: Label = $Toast
@@ -30,6 +39,8 @@ func _ready() -> void:
 		_row.add_child(card)
 		var data := (m as Dictionary).duplicate()
 		data["name_variation"] = &"ModeTitle"
+		if MODE_ART.has(m["id"]):
+			data["art"] = MODE_ART[m["id"]]
 		card.set_card(data)
 		card.set_meta("mode", m)
 		register(card, 1.14)
