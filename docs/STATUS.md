@@ -64,19 +64,18 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   `v9` (level-designer's creative idea bank — ice/low-friction, jump-in cannons, + original inventions;
   landing shortly). Hazard doctrine = LETHAL w/ telegraphy+fairness+credit (DECISIONS 2026-07-05).
 - **BUILD SEQUENCE (do in this order):**
-  1. **v6 Wave A mechanics** — DONE: `spinning_hammer` (`SpinningHammer.gd` + `levels/hammer_arena.json`),
-     `destructible_block` (+ COLLAPSING ARENA `levels/meltdown_box.json`, owner headline). REUSABLE lethal
-     plumbing established (contact->kill Area2D, phase-clock+dwell oscillator, self-render telegraphy,
-     LevelLoader wiring; destructible `group` count contract). NEXT: crusher, falling_debris (reuse hammer
-     plumbing), then bomb, then moving_platform LAST (hard — solid moving collider). Each: LevelLoader
-     object type + entity + telegraph; validate rendered (dodgeable, no unavoidable instakill, symmetric).
-  2. Fan out: BRAWL gimmick circuits (v6), Trials challenge types (v7 framework+parity FIRST, then one
-     course per type as its mechanic lands), Sports pitches (v8 — the_box/long_haul/the_bowl authorable NOW
-     with no new mechanic; hazard pitches block on their mechanic).
-  3. Unlock progression (v6 §unlock: Settings [progression]; ArenaSelect locked cards + celebration).
-- **PENDING QA to re-check after builds:** Sports fair (neither team >65%, both goals) — the bot-fairness
-  fix was in flight this session; CONFIRM it committed (git log for "Sports: bot ball-awareness" and a
-  follow-up fairness fix) and that a bot match is fair before building Sports pitches on top.
+  1. **v6 mechanics — DONE (5 lethal hazards, all validated + committed):** spinning_hammer, destructible_block
+     (+ COLLAPSING ARENA meltdown_box), crusher, falling_debris, bomb/landmine (+ `Ball.receive_hazard_impulse`).
+     Reusable plumbing: contact->kill Area2D, phase-clock+dwell oscillator, self-render telegraphy, LevelLoader
+     wiring, destructible `group`-count contract. STILL TODO: **moving_platform** (the one hard mechanic —
+     solid moving collider; deferred so it doesn't gate the fun).
+  2. **BRAWL circuit — DONE:** MAYHEM MILE (`mayhem_mile`, 12-pool draw-6 tier-sorted). Random-draw rotation
+     + UNLOCK PROGRESSION DONE (Settings [progression], mastery+pity, ArenaSelect locked cards + celebration).
+  3. **Fan-out STILL TODO (hazards ready):** Trials challenge types (v7 — framework+REACH_GOAL parity FIRST,
+     then Survive/Destroy-all/Physics-puzzle courses using hammer/destructible/bomb+ball); Sports hazard
+     pitches (v8 — the_box/long_haul/the_bowl need NO mechanic; hammer_yard/minefield/crusher/scrapheap use
+     the built hazards + the ball-impulse hook). Then cumulative-kill cosmetic unlock track (counter exists).
+- Sports bot-FAIRNESS fix is committed + validated (mirror-symmetric court + per-team skill balance).
 
 ## Prior polish/quality backlog (behind the content initiative)
 Trials medal-time tighten (movement-bot/human run — CD flag), all-six goat readability gate (spawn 6 in a

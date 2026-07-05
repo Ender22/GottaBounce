@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** PARTY CONTENT LOOP SHIPPED (owner initiative). 5 LETHAL gimmick mechanics built +
+  validated (spinning_hammer, destructible_block→COLLAPSING ARENA, crusher, falling_debris, bomb/landmine
+  — all reuse one contact→`kill("ring_out")` pattern + phase-clock oscillator + self-render telegraphy +
+  LevelLoader wiring; dodgeable, telegraphed, self-fall/knock-in credit, no fenced constant). First WILD
+  circuit **MAYHEM MILE** (renamed from "the_gauntlet" to dodge the GAUNTLET-mode clash) — 8-stage
+  escalating chaos, 12-level `pool` drawn 6 tier-sorted per play. UNLOCK PROGRESSION: Settings
+  [progression], mastery-first + pity (win circuit N or play 3× → unlock N+1), unlock chain from
+  circuits.json `order`, ArenaSelect locked cards + one-shot celebration, persisted. Full loop = hazards →
+  wild circuit → random draw → unlocks. `Ball.receive_hazard_impulse` added (unblocks Sports hazard
+  pitches). DEFERRED: moving_platform (hard solid-collider), Trials challenge types (v7 — hazards ready),
+  Sports hazard pitches (v8 — ready), cumulative-kill cosmetic track. Specs v6-v9.
+
 - **2026-07-05** HAZARD DOCTRINE UPDATED (owner ruling): gimmick hazards are **LETHAL by default**, NOT
   recoverable-shove. Rationale: in a game where you die every ~5s, a non-killing hazard is meaningless
   scenery; a hammer that KILLS on contact (dodge-or-die) is the comedy + tension — death is the punchline.
