@@ -1,0 +1,32 @@
+{
+  "name": "First Sparks",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "THE GAUNTLET — level 1 (tier 1, ON-RAMP). The gentlest lethal-hazard teach: a SPLIT two-island arena over ONE full-width lethal void with a LIGHT proximity-landmine scatter (ONE mine per island, no fuse bomb). Introduces the whole gimmick-circuit vocabulary at the lowest intensity: 'watch the ground, bait rivals onto the mine, and FLY the gap.' Reuses the shipped Bomb entity in proximity/landmine mode -> kill(&ring_out) in the inner kill radius + a radial knockback in the outer blast (the shipped explosion form). kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- a mine detonation instakills every live body in its INNER kill radius via kill(&ring_out); no new death path/scorer. (2) TELEGRAPHY -- each armed mine draws a faint pulsing TRIGGER-RING; on trip it BLINKS + paints an EXPANDING warning ring growing to the exact lethal radius over telegraph_lead 0.9s before it blows -- you see where + when it is lethal and clear it. (3) FAIRNESS -- ONE mine per island, symmetric about x=1440, kept >= 400px from every spawn (well outside the 170px trigger ring, so nobody spawns on a live trigger); most of each 1100px island is safe standing space; each player faces the identical single mine. (4) CREDIT -- a mine kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival knocked/tagged onto the mine within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. No environment scorer.\n\nGEOMETRY (symmetric about x=1440): TWO wide trampoline islands -- A x0..1100 (center 550) / B x1780..2880 (center 2330), both top y1080 -- over ONE full-width lethal void (rim y1260). ONE proximity mine at each island CENTER (x550 / x2330, y1030). Spawns at the outer/inner island quarters (x150/x950 on A, x1930/x2730 on B), each 400px from its mine. Bounds -610..3490 x (side blast lines 610px outside the outer island edges), top -2090, bottom 1878 (>= 650px recovery sky under the island bottom).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; spring apex 480 => ~527px max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edges x1100..x1780 = 680px over the void): > 527 (max spring drift) and >> 395 (trampoline drift). NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- DODGE the mine on your island: step outside the pulsing trigger ring, or clear the growing warning ring in the 0.9s telegraph; a stand inside the inner kill radius at detonation = instant off-screen kill. Verb: DODGE (+ READ). The mine never covers the whole island (a big safe standing band always exists) and never blocks the required GAP crossing (it sits at island center, the crossing is at the island edges).\n- Zero-boost off either island reaches NO other surface across the 680px gap (falls into the void): flight is REQUIRED; the mine reshapes the fight on-island, it never creates a bounce path across the gap.\n\nSIGNATURE / DISTINCT: the CIRCUIT OPENER -- one hazard, one beat, a split two-island shape (distinct from minefield's single wide floor and hammer_arena's three islands). One-sentence C3 read: 'dodge the one mine on your island, bait a rival onto it, and boost the gap.' VOID READS AS DEATH via the pit_void_rendering treatment (dark bottomless gradient + canyon walls + under-lip AO + hazard-red rim/chevrons + falling motes).",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#5A5048",
+  "sky_bottom": "#B0A290",
+  "bounds": { "left": -610, "right": 3490, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 1100, "h": 128, "tier": "trampoline" },
+    { "x": 1780, "y": 1080, "w": 1100, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 4100, "h": 618, "wall_px": 120 },
+
+    { "type": "bomb", "trigger": "proximity", "x": 550,  "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 170, "telegraph_lead": 0.9, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 2330, "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 170, "telegraph_lead": 0.9, "recur": 6.0 },
+
+    { "type": "player_spawn", "x": 150,  "y": 1000 },
+    { "type": "player_spawn", "x": 950,  "y": 1000 },
+    { "type": "player_spawn", "x": 1930, "y": 1000 },
+    { "type": "player_spawn", "x": 2730, "y": 1000 },
+
+    { "type": "powerup_spawner", "x": 350,  "y": 900 },
+    { "type": "powerup_spawner", "x": 2530, "y": 900 }
+  ]
+}

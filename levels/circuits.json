@@ -15,6 +15,21 @@
 			"display_name": "THE HIGH WIRE",
 			"difficulty": 3,
 			"levels": ["atoll", "the_spine", "spires"]
+		},
+		"mayhem_mile": {
+			"display_name": "MAYHEM MILE",
+			"difficulty": 4,
+			"_comment": "The first WILD gimmick-BRAWL circuit (v6_party_gimmicks_circuits.md). 8 ~10s lethal-hazard chaos stages on an ESCALATING wildness arc: single readable hazard (t1) -> bigger single-family threat (t2) -> multi-hazard chaos + the collapsing-arena finale (t3). Every stage is a real BRAWL stage (off-screen-kill through-line, flight-required 680px void gaps, symmetric telegraphed dodgeable hazards). Ordered loop (the shipped format); the ~20-authored/10-drawn pool is a later enhancement.",
+			"levels": [
+				"gauntlet_mine_lite",
+				"hammer_arena",
+				"gauntlet_twin_swing",
+				"minefield",
+				"gauntlet_dropzone",
+				"hazard_yard",
+				"gauntlet_pandemonium",
+				"meltdown_box"
+			]
 		}
 	}
 }

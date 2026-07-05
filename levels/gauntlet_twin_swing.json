@@ -1,0 +1,39 @@
+{
+  "name": "Twin Swing",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "THE GAUNTLET — level 3 (tier 2, bigger single-family threat). Escalates the single-hammer beat (hammer_arena) to TWO lethal rotor hammers, each mounted over one of the two VOID GAPS of a symmetric flagship three-island arena, running OFFSET rhythms (phase 0.0 vs 0.5) so their swings alternate. The hook: the two required crossings are now TIMED GATES -- you fly the gap when its blade lifts. Reuses the shipped SpinningHammer -> kill(&ring_out) on head contact (NOT a shove). kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- each head instakills on contact via kill(&ring_out); no new impulse/hitstun. (2) TELEGRAPHY -- two SINGLE bold blades on a slow readable rotation (period_s 4.0), each painting a hazard-red swept-arc guide, with a ~0.96s DWELL at each apex (dwell_frac 0.24) = the clear beat you cross on. Each blade sweeps arc_deg 150 (< 360) so a >= 120deg clear window ALWAYS returns; it never sweeps a full circle. (3) FAIRNESS -- each hammer pivots over ITS gap; at its apexes the blade lifts HIGH and OUT to ~y633 over the island edges (well above the y~1080 crossing altitude), so the gap is only briefly threatened as the blade passes straight-down through bottom-center, and a >= 1s clear window returns every period. Islands A, B, C are permanent refuges (no blade ever sweeps their tops). Offset phases mean the two gates are never both mid-slam at once. No player spawns under a blade. (4) CREDIT -- a hammer kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival who knocked the victim into a blade within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. No environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor, mirrors hammer_arena): three flat trampoline islands over ONE full-width void: A x0..900 / B x1580..2480 / C x3160..4060, all top y1080, separated by 680px void gaps. Hammer 1 pivots over the A<->B gap center (1240, 480); hammer 2 over the B<->C gap center (2820, 480); both arm_len 590, arc_deg 150, period_s 4.0, radius 70, dwell_frac 0.24, phase 0.0 and 0.5. At bottom-of-swing (theta 0) a head sits at (gap_center, 1070) = mid-gap at crossing altitude (the timed threat); toward the apexes it rises to (gap_center +/- 570, 633) -- up high and out over the island edges (safe). Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering (dark gradient + canyon walls + under-lip AO + hazard-red rim/chevrons + falling motes).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; spring apex 480 => ~527px max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edges x900..x1580 = 680px over void, GATED by hammer 1): > 527 and >> 395. NORMAL BOOST REQUIRED, TIMED to the blade's apex-dwell clear window; a mistimed boost into the bottom-center swing = instant off-screen kill; a miss = fall into the void. Verb: FLY (+ TIME).\n- GAP B<->C (x2480..x3160 = 680px, GATED by hammer 2, offset phase): identical, on the alternate beat. Verb: FLY (+ TIME).\n- Each hammer NEVER makes its gap crossing uncrossable (the >= 1s apex-dwell clear window always returns, with the blade lifted high and clear of crossing altitude), and neither sweeps an island top, so a safe standing refuge (A/B/C) and a crossing window always exist.\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the hammers TIME the crossings, they never create a bounce path.\n\nSIGNATURE / DISTINCT: TWO offset hammers that turn the required crossings into timed gates (hammer_arena has ONE hammer over a surface fight; this gates the GAPS and doubles the beat). One-sentence C3 read: 'boost each gap when its swinging blade lifts, and knock rivals into a blade or off into the pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#6E6A63",
+  "sky_bottom": "#B8AE9E",
+  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+
+    { "type": "spinning_hammer",
+      "pivot": { "x": 1240, "y": 480 },
+      "arm_len": 590, "arc_deg": 150, "period_s": 4.0, "phase": 0.0,
+      "radius": 70, "head_len": 160, "head_w": 104, "dwell_frac": 0.24 },
+    { "type": "spinning_hammer",
+      "pivot": { "x": 2820, "y": 480 },
+      "arm_len": 590, "arc_deg": 150, "period_s": 4.0, "phase": 0.5,
+      "radius": 70, "head_len": 160, "head_w": 104, "dwell_frac": 0.24 },
+
+    { "type": "player_spawn", "x": 300,  "y": 1000 },
+    { "type": "player_spawn", "x": 600,  "y": 1000 },
+    { "type": "player_spawn", "x": 2030, "y": 1000 },
+    { "type": "player_spawn", "x": 3460, "y": 1000 },
+    { "type": "player_spawn", "x": 3760, "y": 1000 },
+
+    { "type": "powerup_spawner", "x": 450,  "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 900 },
+    { "type": "powerup_spawner", "x": 3610, "y": 900 }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "Pandemonium",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "THE GAUNTLET — level 7 (tier 3, MULTI-HAZARD CHAOS). Every island is deadly: a lethal rotor HAMMER sweeps the CENTER island B while a proximity LANDMINE sits on each SIDE island (A and C). Two hazard families at once on a symmetric flagship three-island arena over ONE full-width void -- the penultimate chaos peak before the collapsing-arena finale. Reuses the shipped SpinningHammer (head contact = kill(&ring_out)) + Bomb landmines (inner-radius kill(&ring_out) + outer knockback). kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- hammer head + mine inner radius both instakill via kill(&ring_out); no new death path/scorer. (2) TELEGRAPHY -- the hammer is a SINGLE bold blade on a readable period_s 4.0 with a ~0.96s apex DWELL (the clear beat) + a hazard-red swept-arc guide; each mine draws a pulsing trigger ring and an expanding warning ring over telegraph_lead 0.9s. (3) FAIRNESS -- the hammer arc (150deg) is centered over B; B's EDGES (x1580..~1770 and ~2290..2480) stay below/clear of the sweep = standing refuge, and at each apex the blade dwells clear of the opposite half of B. Each side island carries ONE mine at its center, symmetric about x=2030, kept 300px from every spawn (outside the 170px trigger ring). No single island is a guaranteed kill (each has a safe band); ALL spawns are on the two mine islands A/C (none on the hammer island B), each 300px from its mine and clear of the blade's swept arc, so no player idles under the blade or inside a trigger ring during the countdown (the SpinningHammer is live from load) -- island B is reached by flight once combat starts. (4) CREDIT -- any hazard kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival knocked into the blade / onto a mine within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. No environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor, mirrors hammer_arena): three flat trampoline islands over ONE full-width void: A x0..900 / B x1580..2480 / C x3160..4060, all top y1080, separated by 680px void gaps. HAMMER hub at (2030, 480) above island B, arm_len 590, arc_deg 150, period_s 4.0, phase 0.0, radius 70, dwell_frac 0.24 (at bottom-swing the head sits at (2030,1070) = body height over B's central strip; at the apexes it lifts to ~(2030 +/- 570, 633) over the gaps, clear of the B edges). MINES at island A center (450,1030) and island C center (3610,1030), proximity, trigger_radius 170, kill_radius 150, blast_radius 300, telegraph_lead 0.9, recur 6.0. Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering (dark gradient + canyon walls + under-lip AO + hazard-red rim/chevrons + falling motes).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; spring apex 480 => ~527px max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the hammer on B: time the apex-dwell clear beat (~0.96s) or stand on B's clear edges; a mistimed step into the central strip at body height = instant off-screen kill. Verb: DODGE (+ TIME).\n- DODGE the mine on A / C: step outside the trigger ring or clear the 0.9s warning ring; a stand in the inner kill radius at detonation = instant off-screen kill. Verb: DODGE (+ READ).\n- No hazard makes a required GAP crossing uncrossable (the hammer arc over the gaps is high/above crossing altitude; the mines sit at island centers, clear of the crossing lanes) and none creates a bounce path across a gap: flight is REQUIRED; the hazards reshape/time the fight on every island.\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED.\n\nSIGNATURE / DISTINCT: the first level combining a SWEEPING hammer with RADIAL mines (hammer_arena is hammer-only; minefield is mines-only; hazard_yard combines crusher+debris) -- three lethal points across three islands. One-sentence C3 read: 'dodge the swinging blade on the middle island and the mines on the ends, and knock rivals into any of them or off into the pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#59524B",
+  "sky_bottom": "#A89A8A",
+  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+
+    { "type": "spinning_hammer",
+      "pivot": { "x": 2030, "y": 480 },
+      "arm_len": 590, "arc_deg": 150, "period_s": 4.0, "phase": 0.0,
+      "radius": 70, "head_len": 160, "head_w": 104, "dwell_frac": 0.24 },
+
+    { "type": "bomb", "trigger": "proximity", "x": 450,  "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 170, "telegraph_lead": 0.9, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 3610, "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 170, "telegraph_lead": 0.9, "recur": 6.0 },
+
+    { "type": "player_spawn", "x": 150,  "y": 1000 },
+    { "type": "player_spawn", "x": 750,  "y": 1000 },
+    { "type": "player_spawn", "x": 3310, "y": 1000 },
+    { "type": "player_spawn", "x": 3910, "y": 1000 },
+
+    { "type": "powerup_spawner", "x": 450,  "y": 860 },
+    { "type": "powerup_spawner", "x": 2030, "y": 760 },
+    { "type": "powerup_spawner", "x": 3610, "y": 860 }
+  ]
+}
