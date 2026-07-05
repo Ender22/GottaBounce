@@ -38,14 +38,23 @@ func _ready() -> void:
 		var card: Button = CARD.instantiate()
 		card.custom_minimum_size = Vector2(340, 210)
 		_grid.add_child(card)
+		# No taglines on arena tiles (only RANDOM had one, and it clipped on the short card) — the
+		# name band is reserved for 2 lines so 1- and 2-line names align to the same tile height.
 		card.set_card({
-			"name": a["name"], "tag": a.get("tag", ""), "color": a["color"],
+			"name": a["name"], "tag": "", "color": a["color"],
 			"glyph": a.get("glyph", ""),
 		})
+		var plate := card.get_node_or_null("Content/VBox/Plate")
+		if plate is Control:
+			(plate as Control).custom_minimum_size = Vector2(0, 60)
+		var nm := card.get_node_or_null("Content/VBox/NameStrip/Labels/NameLabel")
+		if nm is Control:
+			(nm as Control).custom_minimum_size = Vector2(0, 84)   # fixed 2-line name band
 		card.set_meta("arena", a)
 		register(card, 1.12)
 		_cards.append(card)
 		if bool(a.get("random", false)):
+			card.set_plate_rainbow()
 			_spin_glyph(card)
 	wire_grid(_cards, 4)
 	register(_back, 1.05)

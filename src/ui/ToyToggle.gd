@@ -5,7 +5,9 @@ extends Control
 signal changed(on: bool)
 
 const GREEN := Color(0.329412, 0.788235, 0.290196, 1)
-const OFF_FILL := Color(0.231373, 0.141176, 0.105882, 0.25)
+## OFF track: a visible warm-cream pill (was chocolate@0.25 — invisible on the navy Options panel).
+## The 4px chocolate border + cream knob now read against it; ON fills green. Reads in BOTH states.
+const OFF_FILL := Color(0.792157, 0.768627, 0.729412, 1)
 
 @onready var _bar: ColorRect = $AccentBar
 @onready var _label: Label = $HBox/Label

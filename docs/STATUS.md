@@ -74,10 +74,15 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS
-> **THE CORE VERSUS LOOP IS DONE; THE GAME IS ~25% BUILT.** See `docs/ROADMAP.md` for the full path to
-> a TowerFall/Duck-Game-complete product. Active phase: **Phase 1 — front-end shell + match-config +
-> mode framework** (the scaffolding every character/mode/circuit hangs off). The core versus loop
-> becomes "Brawl" mode inside that shell. The polish backlog below is deferred behind the roadmap.
+> **THE CORE VERSUS LOOP IS DONE; THE GAME IS ~25-30% BUILT.** See `docs/ROADMAP.md`. Active: **Phase 1**.
+> DONE: foundation (GameConfig/GameMode/BrawlMode/Settings/ShellRoot) parity-verified; the Herd goat/ram
+> cast (6 idle sprites) live in-engine; all 6 styled screens built to the UX spec (MainMenu/ModeSelect/
+> CharacterSelect/ArenaSelect/Options/PauseMenu) + full flow, rendered-smoke-verified.
+> IN REVIEW: UI/UX + art-director grading the built screens (owner's hard gate).
+> IMMEDIATE NEXT: apply grade fixes; generate a CLEAN backdrop (current one doubles the reference art's
+> old painted blobs) + a goat-themed title/key-art; drive a full match to verify match-end REMATCH/QUIT
+> routing; then close Phase 1. THEN Phase 2 (per-character feel deltas) / Phase 3 (circuits) / Phase 4 (modes).
+> Art pass #2 (goat squash + horns-forward super-charge poses) is queued.
 
 **OPEN OWNER DECISION:** `match_target_kills` kept at 10 (owner-set); QA recommends 7-8 for a tighter
 ~3-min match (10 = ~4.5min/18-21 stages due to the -1 self-fall score volatility). Will apply if the

@@ -11,8 +11,8 @@ extends Button
 @onready var _grad: TextureRect = $Content/VBox/Plate/Grad
 @onready var _art: TextureRect = $Content/VBox/Plate/Art
 @onready var _glyph: Label = $Content/VBox/Plate/Glyph
-@onready var _name: Label = $Content/VBox/NameLabel
-@onready var _tag: Label = $Content/VBox/TagLabel
+@onready var _name: Label = $Content/VBox/NameStrip/Labels/NameLabel
+@onready var _tag: Label = $Content/VBox/NameStrip/Labels/TagLabel
 @onready var _ribbon: Control = $Ribbon
 @onready var _check: Label = $Check
 
@@ -63,6 +63,29 @@ func set_plate_color(c: Color) -> void:
 	gt.height = 128
 	_grad.texture = gt
 	# plate keeps a chocolate outline + rounded corners
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0)
+	sb.border_color = MenuFX.CHOCO
+	sb.set_border_width_all(4)
+	sb.set_corner_radius_all(12)
+	_plate.add_theme_stylebox_override("panel", sb)
+
+## RANDOM tile: a multi-colour rainbow gradient plate so it reads as the fun default, distinct from
+## any single arena's themed tile (frontend_ux_spec §2.4). Keeps the chocolate outline + rounded corners.
+func set_plate_rainbow() -> void:
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+	grad.colors = PackedColorArray([
+		Color("#ff5fa8"), Color("#ff7a2d"), Color("#ffc93f"),
+		Color("#54c94a"), Color("#4aa8ff"), Color("#a15fff"),
+	])
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill_from = Vector2(0.0, 0.0)
+	gt.fill_to = Vector2(1.0, 1.0)
+	gt.width = 128
+	gt.height = 128
+	_grad.texture = gt
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0)
 	sb.border_color = MenuFX.CHOCO
