@@ -74,13 +74,17 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   3. **Fan-out DONE across all 3 modes:** TRIALS challenge types (6 types + proof courses, `varied` set) +
      SPORTS pitches (5 courts calm->chaos + court-set + unlock gates) both built + validated. Sports
      bot-fairness fix committed (mirror-symmetric court + per-team skill balance).
-- **ART-DEBT PAYDOWN (owner "no code-drawn/SVG assets" rule) — NEARLY DONE:** all hazard BODIES are now
-  generated Glossy Toybox sprites in `assets/hazards/` (transient telegraph VFX stay code). DONE+committed+wired:
-  `hammer.png` (SpinningHammer), `bomb.png` (Bomb/landmine), `crusher.png` (Crusher, mirrored heads).
-  `wrecking_ball.png` (charcoal iron sphere, rivet ring, top eyelet) + `flatbed_cart.png` (rideable orange cart,
-  flat deck) generated+committed 2026-07-05; a gameplay-programmer is WIRING them into FallingDebris.gd (falling
-  chunks), MovingHazard.gd (pendulum ball — reuses wrecking_ball), and MovingPlatform._draw_vehicle (cart). After
-  that lands + is committed, NO code-drawn hazard bodies remain (destructible_block is a bounce-tier block, not a hazard).
+- **ART-DEBT PAYDOWN (owner "no code-drawn/SVG assets" rule) — CLOSING:** all code-drawn OBJECT bodies are being
+  replaced with generated Glossy Toybox sprites (transient telegraph/VFX + gameplay-contract overlays stay code).
+  DONE+committed+wired+rendered-validated: `hazards/hammer.png` (SpinningHammer), `bomb.png` (Bomb/landmine),
+  `crusher.png` (Crusher heads), `wrecking_ball.png` (FallingDebris chunks + MovingHazard pendulum),
+  `flatbed_cart.png` (MovingPlatform vehicle deck). IN FLIGHT (gameplay-programmer, owns game port): the 3 remaining
+  non-hazard bodies — `objects/ball.png` (Ball.gd sports), `objects/crate.png` (DestructibleBlock.gd — tiled at
+  height-scale, tier bounce-mat strip kept on top), `objects/token.png` (Pickup.gd). After that lands+committed, NO
+  code-drawn object body remains — only intended telegraph/VFX (RingOfFire/StormBall/GoalZone glow/LandTarget reticle).
+- **UI POLISH BRIEF (owner "gorgeous, Mario-Kart bar" priority) — IN FLIGHT:** ui-ux-designer is writing
+  `docs/briefs/frontend_visual_polish.md` (per-screen tech-demo→Mario-Kart gap + exact art-asset spec + priority).
+  This scopes the NEXT slice after art-debt closes (mode-card icons, arena thumbnails/circuit crests, char portraits, logo).
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
