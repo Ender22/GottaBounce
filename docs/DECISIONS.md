@@ -2,6 +2,19 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** CAMERA left/right oscillation FIXED (owner-reported). Non-super framing fit only the
+  combat-active cluster (extent = subset), so with 2 players each side it swapped which pair it framed.
+  Now frames ALL living players' AABB (clamped to CAM_MIN_ZOOM); pan still leans to action via the
+  weighted-cluster velocity-lead; super-aim tight framing unchanged. Verified: 0 living players off-frame
+  across live 4-player samples. `PartyMatch._update_camera`.
+- **2026-07-05** PHASE 2 COMPLETE — goat/ram roster now plays differently (feel deltas) + validated.
+  QA verdict TUNE (non-blocking): all invariants held (super kills Butch at the 0.90 kb-taken floor,
+  flight still required for Pogo/Puff at 1.08 apex, motion-health clean, Billy=Standard=baseline, no
+  dominant pick — baseline Billy co-top). Applied the one QA tune: Puff air_control 0.88->0.92 (was the
+  strictly-worst pick via void self-falls). Data-driven CharacterProfile, base Tuning untouched. Records:
+  QA report + `docs/specs/v2_character_feel_deltas.md`. Backlog: all-six readability gate (spawn 6 in a
+  match), longer motion watch of Butch stuck / Ziggy underside (both <1/stage, not the pathology).
+
 - **2026-07-05** PHASE 1 SHIPPED — front-end shell **UI/UX verdict = SHIP** (Mario-Kart bar cleared) +
   art-director FIX list all cleared. A complete goat-themed front-end: MainMenu/ModeSelect/Character
   Select(showcase)/ArenaSelect/Options/PauseMenu, one springy menu system, gamepad-first focus, screen

@@ -78,11 +78,13 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 > DONE: foundation (GameConfig/GameMode/BrawlMode/Settings/ShellRoot) parity-verified; the Herd goat/ram
 > cast (6 idle sprites) live in-engine; all 6 styled screens built to the UX spec (MainMenu/ModeSelect/
 > CharacterSelect/ArenaSelect/Options/PauseMenu) + full flow, rendered-smoke-verified.
-> **PHASE 1 = SHIPPED** (UI/UX SHIP; DECISIONS 2026-07-05). **PHASE 2 = BUILT + IN QA** — CharacterProfile
-> system + 6 profiles (data-driven, on-read clamps, invariants statically verified, Standard/Billy=baseline;
-> `src/core/CharacterProfile(s).gd`, spec `docs/specs/v2_character_feel_deltas.md`). QA validating balance +
-> in-play invariants (super-still-kills-Butch, flight-still-required-Pogo/Puff, motion-health, win-rate spread).
-> IMMEDIATE NEXT: apply any QA tuning, then Phase 3 circuits, Phase 4 modes (trials/gauntlet/sports/puzzle). Non-blocking backlog: plain-button focus accent-border; Vex title
+> **PHASE 1 = SHIPPED** (UI/UX SHIP). **PHASE 2 = COMPLETE** (roster feel deltas; QA verdict TUNE, all
+> invariants held, Puff tuned 0.88->0.92; DECISIONS 2026-07-05). **Camera left/right oscillation FIXED**
+> (owner-reported; frames all living now). IMMEDIATE NEXT: **Phase 3** — themed circuits (group the 11
+> arenas into named curated rotations + author more; wire ArenaSelect/circuit picking) and/or **Phase 4**
+> modes (trials/gauntlet/sports/puzzle) — owner wants content breadth. Backlog: all-six readability gate
+> (spawn 6 in a match), longer Butch-stuck/Ziggy-underside motion watch, plain-button focus accent-border,
+> Vex title bobber cycle, Vex corkscrew, squash/charge poses (art pass #2), arena thumbnails, goat logo. Non-blocking backlog: plain-button focus accent-border; Vex title
 > bobber cycle; Vex corkscrew horns; squash/charge poses (art pass #2); arena per-level thumbnails; goat
 > logo/key-art; drive match-end REMATCH/QUIT to MATCH_END; all-six readability gate (spawn 6 into a match).
 
