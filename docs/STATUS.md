@@ -92,11 +92,22 @@ Brawl circuits + Trials challenge-types + Sports pitches.
     fine + bobbers give mascot presence → §4c goat-on-logo DEFERRED (ChatGPT text-gen is unreliable; poor risk/reward now).
   - **ModeSelect — DONE.** All 4 `ui/modes/mode_{brawl,trials,gauntlet,sports}.png` dioramas generated + WIRED into the cards
     (MODE_ART preload dict + data["art"]; set_art hides the Glyph). Four mini box-covers. Rendered-verified (modeselect_check.png).
-  - **ArenaSelect — IN FLIGHT** (the brief's "worst offender"): gameplay-programmer building a thumbnail-bake TOOL (render each
-    arena via ArenaRenderer → `assets/ui/thumbs/*` ~512x320) + wiring them into the cards (mirrors ModeSelect) + toning down the
-    RANDOM tile. Fixes 11 tinted rectangles → visual map-select, ~0 art cost.
-  - **REMAINING UI polish (nice-to-have):** CharacterSelect beauty-pose busts (§2c, start Pogo+Butch — screen already ships on
-    idles); goat-on-logo (deferred). After ArenaSelect lands, the Mario-Kart-bar UI slice is essentially complete.
+  - **ArenaSelect — DONE.** `tools/ThumbBaker.gd/.tscn` bakes each arena via ArenaRenderer → `assets/ui/thumbs/<id>.png` (19
+    baked + a RANDOM collage); ArenaSelect loads them into card Art slots (existence-guarded `load()`, KEEP_ASPECT_COVERED) +
+    RANDOM tile toned down. Fixed the circuit-card text overflow (name+tag split) + LOCKED-ribbon/header collision (grid band
+    shifted down). Rendered-verified (arenaselect_fixed.png) — a real visual map-select. RE-BAKE: `<exe> --path . res://tools/ThumbBaker.tscn` then `--editor --quit` to reimport.
+  - **CORE UI-POLISH SLICE = COMPLETE** (title/ModeSelect/ArenaSelect all Mario-Kart-tier; CharacterSelect already solid).
+    Remaining nice-to-haves (deferred, non-blocking): CharacterSelect beauty-pose busts (§2c, start Pogo+Butch); goat-on-logo
+    (§4c — current wordmark reads fine + bobbers give mascot presence; ChatGPT text-gen unreliable, poor risk/reward unattended).
+
+## NEXT PHASE — content waves (owner-requested variety)
+- **Sports pitches — IN FLIGHT (level-designer):** authoring the 3 pitches the court-set defers ("later wave") —
+  `the_bowl` (calm funnel), `minefield` (symmetric landmines), `the_crusher` (center crusher) — per `docs/specs/v8_sports_courts.md`,
+  STRICT mirror-symmetry (the earlier one-sidedness was a geometry bug), wired into sports_courts.json + rotate_sets, validated
+  with bounded bot-match fairness checks. Maps to owner's "giant hammer / landmines / calm / chaotic / luck-based madness."
+- **Then:** fuller Trials battery toward v7's 8-course set (existing: 5-course `campaign` + 5-course `varied` proof set); more
+  Brawl circuits + the 3 seed arenas; Phase-5 progression polish; Trials medal-time tuning (movement bot). Consider a
+  creative-director full-game playthrough to re-rank these before investing heavily.
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
