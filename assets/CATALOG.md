@@ -36,6 +36,10 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `objects/ball.png` | SHIP-CANDIDATE | 669x642 white glossy sports ball, bold gold equator seam ring — Ball.gd (sports) body |
 | `objects/crate.png` | SHIP-CANDIDATE | 912x877 honey-wood breakable crate, steel corner brackets + X-brace — DestructibleBlock.gd body (keyout'd fake checkerboard, tol 45) |
 | `objects/token.png` | SHIP-CANDIDATE | glossy gold star coin — Pickup.gd (Trials COLLECT_ALL) token |
+| `ui/modes/mode_brawl.png` | SHIP-CANDIDATE | 1000x576 pink+blue goats clashing horns mid-air + impact star — ModeSelect BRAWL card art |
+| `ui/modes/mode_trials.png` | SHIP-CANDIDATE | 936x732 green goat rocketing through a ring + stopwatch/flag — ModeSelect TRIALS card art |
+| `ui/modes/mode_gauntlet.png` | (gen) | purple hero goat vs silhouette horde — ModeSelect GAUNTLET card art |
+| `ui/modes/mode_sports.png` | (gen) | orange goat headbutting the gold ball into a net — ModeSelect SPORTS card art |
 
 Intake gotchas learned: some generations bake a FAKE checkerboard bg instead of alpha —
 `art.py check` catches it; fix with `art.py keyout --tol 40`. ChatGPT viewer download flow:
