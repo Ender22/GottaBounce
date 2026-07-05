@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** ART-DEBT PAYDOWN EXTENDED beyond hazards to ALL code-drawn gameplay BODIES (same owner
+  no-code-drawn-assets rule). Audited `src/entities/` for `draw_circle/draw_rect/draw_polygon`; the true
+  BODY offenders (vs legitimate telegraph/VFX/particle draws in RingOfFire/StormBall/PowerupBubble shell/
+  GoalZone glow/LandTarget reticle) are: the SPORTS BALL (Ball.gd — the whole mode's focal object), the
+  BREAKABLE CRATE (DestructibleBlock.gd), and the trials TOKEN (Pickup.gd). Generated Glossy Toybox sprites
+  for all three → `assets/objects/{ball,crate,token}.png` (new `assets/objects/` home; crate needed keyout
+  --tol 45 for a fake baked checkerboard). Plus the two remaining hazard bodies: `assets/hazards/
+  wrecking_ball.png` (falling_debris + MovingHazard pendulum) and `flatbed_cart.png` (moving_platform
+  vehicle). All 5 committed. Wiring: hazard bodies (wrecking_ball/cart) + object bodies (ball/crate/token)
+  wired in two serialized gameplay-programmer passes (one game instance at a time). After both, NO code-drawn
+  object body remains — only intended telegraph/VFX. Part of Task #7.
+
 - **2026-07-05** KNOWN DEBT (owner-flagged) — the 5 gimmick hazards render their BODIES via `_draw` CODE
   (hammer blade/arm, crusher heads, debris chunks, bomb/mine, destructible), a deliberate de-risk to prove
   MECHANICS fast, but it bends the strict no-code-drawn-assets rule. RESOLUTION: generate Glossy Toybox
