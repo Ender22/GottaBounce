@@ -86,14 +86,15 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   (finding: the shell is a CORRECT UI wearing placeholder skins; the whole gap is ~1 logo + 4 mode dioramas + baked arena
   thumbnails [a tool, ~0 art] + up to 6 char portraits + a free title bobber-wiring pass — all drop into slots the shell
   already animates). Priority order: TITLE → ModeSelect → ArenaSelect → CharacterSelect.
-  - **ModeSelect dioramas (art):** `ui/modes/mode_brawl.png` (horn clash) + `ui/modes/mode_trials.png` (ring rocket)
-    DONE+committed. **mode_gauntlet + mode_sports DEFERRED** — ChatGPT image-gen hung 3+min on both 2026-07-05 night
-    (draft prompts queued in the ChatGPT tabs); retry+harvest, then wire all 4 into `MenuCard` Art slot (hide the Glyph).
+  - **ModeSelect dioramas (art) — ALL 4 DONE+committed:** `ui/modes/mode_{brawl,trials,gauntlet,sports}.png` (horn clash /
+    ring rocket / goat-vs-horde / goal headbutt). NOT YET WIRED — next: `set_art` per mode in ModeSelect + hide the Glyph label.
+    (NB: gauntlet+sports were slow on ChatGPT [~3min] but completed; sports needed keyout --tol 45 for a baked checkerboard.)
   - **TITLE bobbers (free wiring) — IN FLIGHT:** gameplay-programmer wiring the 6 existing goat idle sprites as parallax
     bobbers on MainMenu per brief §4b (Pogo+Butch front flanking buttons, 4 smaller behind; independent y-bob/drift/sway).
-  - **NOT YET DONE (next up):** wire the 2 (→4) mode dioramas into ModeSelect cards; baked arena-thumbnail TOOL (§3b —
-    render each level via ArenaRenderer to `assets/ui/thumbs/*`, drop into ArenaSelect cards — fixes the worst screen for ~0 art);
-    goat logo (art, brief §4c — mascot-on-wordmark; text-gen is unreliable, consider emblem+engine-text); char beauty poses.
+  - **NEXT UP (need game port — serialize after bobbers land):** (1) wire the 4 mode dioramas into ModeSelect cards (small);
+    (2) baked arena-thumbnail TOOL (§3b — render each level via ArenaRenderer to `assets/ui/thumbs/*`, drop into ArenaSelect
+    cards — fixes the WORST screen for ~0 art). Browser-art item: goat LOGO (§4c mascot-on-wordmark; text-gen unreliable —
+    consider a Pogo emblem + engine-rendered wordmark). Later: char beauty poses/busts (§2c, start Pogo+Butch, double as title).
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
