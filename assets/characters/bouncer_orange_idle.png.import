@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bl22tkorlqkm6"
-path="res://.godot/imported/bouncer_pink_squash.png-a2094c295310ee0ea15a164cea605843.ctex"
+uid="uid://dhhmmied6e4w4"
+path="res://.godot/imported/bouncer_orange_idle.png-fbd93f3efa46b0ac86700fe6b37d440f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/bouncer_pink_squash.png"
-dest_files=["res://.godot/imported/bouncer_pink_squash.png-a2094c295310ee0ea15a164cea605843.ctex"]
+source_file="res://assets/characters/bouncer_orange_idle.png"
+dest_files=["res://.godot/imported/bouncer_orange_idle.png-fbd93f3efa46b0ac86700fe6b37d440f.ctex"]
 
 [params]
 

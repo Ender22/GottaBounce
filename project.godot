@@ -4,12 +4,14 @@ config_version=5
 [application]
 
 config/name="GottaBounce"
-run/main_scene="res://scenes/Arena.tscn"
+run/main_scene="res://scenes/ui/ShellRoot.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
 Tuning="*res://src/core/Tuning.gd"
+GameConfig="*res://src/core/GameConfig.gd"
+Settings="*res://src/core/Settings.gd"
 GravityField="*res://src/core/GravityField.gd"
 EventBus="*res://src/systems/EventBus.gd"
 KillPipeline="*res://src/systems/KillPipeline.gd"

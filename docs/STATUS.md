@@ -4,8 +4,15 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-04 — **GAME COMPLETE & SHIPPING-QUALITY** (capstone smoke = SHIP, zero
-must-fix). Everything below is committed (git log = history).
+**Last updated:** 2026-07-05 — **SCOPE CORRECTION (owner-flagged).** The prior "GAME COMPLETE" label
+was WRONG: it certified the *core versus loop* (physics/feel/bots/11 arenas/audio) — the hard ~25% —
+as if it were the whole game. It is not. Measured against the actual bar (TowerFall Ascension / Duck
+Game), we are ~25%. **What is genuinely done:** the core versus match loop and its feel. **What is
+missing (the other ~75%):** a front-end shell (title / character-select / mode-select / arena-select /
+options / pause — the game currently BOOTS STRAIGHT INTO a hardcoded 1-human+3-bot match), a real
+playable-character roster (goat/ram etc.), themed circuits, and additional game modes (trials/time-
+attack, co-op survival, sports, puzzle). Roadmap: `docs/ROADMAP.md`. Everything in "What exists" below
+is real and validated — it is the foundation, not the finish line.
 
 ## Where we are
 The game is a **lives-based, Duck-Game-style kill-race**: no round timer; each player has lives
@@ -59,11 +66,10 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 (+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
 
 ## NEXT STEPS
-> **THE GAME IS COMPLETE & SHIPPING-QUALITY** (capstone smoke = SHIP, zero must-fix; DECISIONS 2026-07-04).
-> A complete 11-level party brawler: distinct kill-shapes + distinct looks, working kill fantasy (76%
-> credited), intelligent bots (void-avoidance + obstacle-aware ascent), full audio + VFX telegraphy,
-> smoothed camera, tuned pacing, and validation gates (parse/headless/rendered/motion-health/CD).
-> Everything below is OPTIONAL polish — no must-fix remains.
+> **THE CORE VERSUS LOOP IS DONE; THE GAME IS ~25% BUILT.** See `docs/ROADMAP.md` for the full path to
+> a TowerFall/Duck-Game-complete product. Active phase: **Phase 1 — front-end shell + match-config +
+> mode framework** (the scaffolding every character/mode/circuit hangs off). The core versus loop
+> becomes "Brawl" mode inside that shell. The polish backlog below is deferred behind the roadmap.
 
 **OPEN OWNER DECISION:** `match_target_kills` kept at 10 (owner-set); QA recommends 7-8 for a tighter
 ~3-min match (10 = ~4.5min/18-21 stages due to the -1 self-fall score volatility). Will apply if the

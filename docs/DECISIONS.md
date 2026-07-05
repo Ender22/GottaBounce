@@ -2,6 +2,29 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** SCOPE CORRECTED + STUDIO REORG (owner). Prior "GAME COMPLETE" was wrong — it certified
+  the core versus loop (~25%), not the game. Real bar = TowerFall/Duck Game. Plan: `docs/ROADMAP.md`
+  (Phase 1 shell+config+modes → 2 roster → 3 circuits → 4 modes → 5 progression). New **ui-ux-designer**
+  role created (`.claude/agents/ui-ux-designer.md`) with approval authority over every screen; UI bar =
+  Mario Kart. Art via ChatGPT pipeline (owner directive).
+- **2026-07-05** GOAT/RAM CAST LOCKED + un-GATED + SHIPPED (art pass #1). The 2026-07-03 goat-identity
+  ADOPT-STAGED gate is superseded by owner directive making goat/ram THE game identity; the un-charged
+  super already validated as the kill move (CD #4-#6). Cast = "the Herd" (`docs/briefs/character_theme_
+  bible.md`): Pogo(pink,MASCOT)/Butch(blue ram)/Ziggy(green ibex)/Puff(yellow sheep)/Vex(purple markhor)/
+  Billy(orange billy). All 6 idle sprites generated (ChatGPT, self-contained prompts — file:// attach is
+  blocked so no ref image; style held via prompt) + placed in the `bouncer_<color>_idle` slots + verified
+  in-engine (4 in-use goats render clean at gameplay zoom, HUD icons too). Horns bone `#F2E6D0`, additive
+  on the existing blob/collider. Old pink-blob squash retired (goat squash/charge = art pass #2).
+  Art bible: `docs/briefs/character_art_bible.md`. Full-6 readability gate pending char-select.
+- **2026-07-05** PHASE 1 FOUNDATION BUILT (non-visual) + BRAWL parity-verified. `MatchConfig` (Resource)
+  + `GameConfig` autoload + `Settings` autoload (user://settings.cfg, applies buses+window on boot) +
+  `GameMode` seam with `BrawlMode` = verbatim extraction of PartyMatch rules; PartyMatch is now the
+  generic runner reading GameConfig. `main_scene` → `ShellRoot.tscn` (boots straight to brawl for now;
+  styled screens await the UX spec). Parity: clean parse gate, 4 players / kills-to-10 / rotation / SD
+  byte-identical. Deviations: `GameConfig.match`→`match_config` (reserved keyword); Settings volume is
+  baseline-preserving (Music stays −8dB) not literal 0dB. Specs: `docs/specs/v1_frontend_shell.md`,
+  `docs/briefs/frontend_ux_spec.md`.
+
 - **2026-07-04** GAME COMPLETE — capstone integrated smoke = **SHIP, zero must-fix**. Full 11-level
   roster (islands_void, grassy_expanse, drop_chamber, the_spine, twin_chasms, the_cliff, atoll, spires,
   bumper_gauntlet, the_ascent, wrecking_yard) all load/render/rotate; 100% off-screen kills everywhere;

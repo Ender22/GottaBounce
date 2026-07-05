@@ -7,9 +7,13 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 |-------|--------|-------|
 | `reference/style_north_star.png` | reference | v1 title screen; the style bible image |
 | `reference/logo_v1.png` | reference | v1 logo (untrimmed; regenerate for launch) |
-| `characters/bouncer_pink_idle.png` | SHIP-CANDIDATE | 761x526, real alpha. First-gen hero test |
-| `characters/bouncer_{blue,green,yellow}_idle.png` | SHIP-CANDIDATE | consistent species, P2-P4 |
-| `characters/bouncer_pink_squash.png` | SHIP-CANDIDATE | 805x284 landing pose |
+| `characters/bouncer_pink_idle.png` | SHIP-CANDIDATE | POGO (pink pygmy-goat, MASCOT). Goat/ram roster art pass #1, 2026-07-05 |
+| `characters/bouncer_blue_idle.png` | SHIP-CANDIDATE | BUTCH (blue bighorn ram, curled horns) |
+| `characters/bouncer_green_idle.png` | SHIP-CANDIDATE | ZIGGY (green ibex, backswept horns) |
+| `characters/bouncer_yellow_idle.png` | SHIP-CANDIDATE | PUFF (yellow fluffy sheep, cloud-fluff silhouette) |
+| `characters/bouncer_purple_idle.png` | SHIP-CANDIDATE | VEX (purple markhor, spiral horns) — P5 |
+| `characters/bouncer_orange_idle.png` | SHIP-CANDIDATE | BILLY (orange billy goat, beard) — P6 |
+| _(squash/charge poses)_ | ART PASS #2 | goat squash + horns-forward super-charge poses pending; old pink-blob squash retired |
 | `world/grass/body_std.png` | SHIP-CANDIDATE | 1284x243, 3-slice 22/56/22, plain middle |
 | `world/grass/platform_wide.png` | hero-only | 914x335 whole-sprite (mid flowers = unsliceable) |
 | `world/tiers/mat_*.png` (x4) | SHIP-CANDIDATE | tier mats per brief; 3-slice 18/64/18; legend check passed |

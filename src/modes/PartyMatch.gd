@@ -42,13 +42,16 @@ const LEVEL_POOL: Array[String] = [
 	"res://levels/the_ascent.json",
 	"res://levels/wrecking_yard.json",
 ]
-const NUM_BOTS := 3
-# Character skins: P1 is always pink; bots take blue/green/yellow in order.
-const BOT_SKINS: Array[String] = ["blue", "green", "yellow"]
+# Player color palette, indexed by player (presentation only; skin IDENTITY comes from the config's
+# skin_ids — v1_frontend_shell §2.2). P1 pink / bots blue/green/yellow reproduce today; 4 extra hues
+# extend the palette to the 8-player invariant ceiling so a larger config never indexes out of range.
 const PLAYER_COLORS: Array[Color] = [
-	Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f")]
-const HUD_SCENE := preload("res://scenes/ui/MatchHUD.tscn")
+	Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f"),
+	Color("#b06bff"), Color("#ff8a3f"), Color("#3fd8d0"), Color("#f0f0f0")]
 const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
+# GameMode registry (v1_frontend_shell §3.2): mode_id -> mode script. PartyMatch is a regular (non-
+# autoload) script, so preloading the class_name mode scripts here is safe.
+const MODE_REGISTRY := {&"brawl": preload("res://src/modes/BrawlMode.gd")}
 
 # --- Camera 2x policy (docs/briefs/camera_2x_policy.md) ---
 # Action-cluster framing + readability-floored zoom on the wide grassy_expanse. The old fit-to-global-
@@ -101,6 +104,12 @@ var round_stats: Array = []      # per-stage QA record: {stage_index, level_name
                                  # supers_fired[...], smashes[...]}
 var _cur_stats: Dictionary = {}  # the stage currently being recorded
 
+# --- mode + config seam (v1_frontend_shell §2/§3) ---
+var _config: MatchConfig         # this match's config (from GameConfig; defaults reproduce today)
+var _mode                        # the active GameMode instance (the rules seam)
+var match_target_kills: int = 10 # match-scoped kill target (set from config; default = Tuning value)
+var lives_per_player: int = 1    # match-scoped lives (set from config; default = Tuning value)
+
 # --- arena contract (InputBot / Playtest) ---
 var players: Array = []
 var bounds: Rect2
@@ -119,9 +128,7 @@ var _combat_active_t: Array = [] # per-player: seconds left in the combat-active
 var _cluster_linger_t: Array = []# per-player: seconds left lingering in the framing cluster (hysteresis)
 var _edge_indicators             # EdgeIndicators overlay (off-screen player chevrons)
 
-# level rotation (shuffle-bag)
-var _bag: Array = []
-var _last_level_path := ""
+# level rotation (shuffle-bag) lives in the mode now (BrawlMode)
 
 # stage/match bookkeeping
 var _state_t := 0.0
@@ -145,10 +152,19 @@ var _prompt_shown := false
 var _name_tags: Array = []
 
 func _ready() -> void:
+	# resolve the config + mode FIRST (v1_frontend_shell §2/§3): a fresh/default GameConfig reproduces
+	# today's boot exactly. configure() sets the match target/lives and builds the level sequence.
+	_config = GameConfig.match_config
+	if _config == null:
+		GameConfig.reset_to_defaults()
+		_config = GameConfig.match_config
+	var mode_script = MODE_REGISTRY.get(_config.mode_id, MODE_REGISTRY[&"brawl"])
+	_mode = mode_script.new()
+	_mode.configure(self, _config)
+
 	bounds = Rect2(-120, -120, 2160, 1380)
 	_level_root = Node2D.new()
 	add_child(_level_root)
-	_reset_bag()
 	_load_stage(LEVEL_POOL[0])   # a level exists before the camera/HUD reference _stage_rect
 
 	_camera = CameraController.new()
@@ -173,13 +189,13 @@ func _ready() -> void:
 	add_child(_pu_director)
 	_pu_director.setup(self, _pu_points)
 
-	# P1 human + 3 bots (spec §4: mixed 2/3/4 lineup from Tuning.bot_levels)
-	_spawn_player(0, true)
-	for b in range(NUM_BOTS):
-		_spawn_player(1 + b, false)
+	# spawn per the mode's plan (BRAWL default: 1 pink human + 3 bots, mixed 2/3/4 from Tuning.bot_levels)
+	var plan: Array = _mode.spawn_plan(self, _config)
+	for i in range(plan.size()):
+		_spawn_player(i, plan[i])
 
-	# corner HUD cards visible immediately (spec §1 BOOT)
-	_hud = HUD_SCENE.instantiate()
+	# corner HUD cards visible immediately (spec §1 BOOT); HUD variant comes from the mode
+	_hud = _mode.hud_scene().instantiate()
 	add_child(_hud)
 	_hud.setup(players, PLAYER_COLORS, _skins())
 
@@ -194,43 +210,35 @@ func _ready() -> void:
 
 	_start_match()
 
-func _spawn_player(i: int, human: bool) -> void:
+## Spawn one player from a mode spawn-plan descriptor (v1_frontend_shell §3.2):
+## {human:bool, skin:String, character:String, bot_level:int, seed_damage:int, team:int}.
+func _spawn_player(i: int, desc: Dictionary) -> void:
 	var p := Player.new()
-	p.skin = "pink" if human else BOT_SKINS[(i - 1) % BOT_SKINS.size()]
+	p.skin = str(desc.get("skin", "pink"))
 	add_child(p)
 	p.global_position = _spawn_at(i)
 	players.append(p)
 	scores.append(0)
-	lives_left.append(Tuning.lives_per_player)
-	if human:
+	lives_left.append(lives_per_player)
+	var sd: int = int(desc.get("seed_damage", 0))
+	if sd > 0 and p.has_method("seed_damage"):
+		p.seed_damage(sd)
+	if bool(desc.get("human", false)):
 		p.set_provider(InputHuman.new())
 		p.add_to_group("human")
 	else:
-		var lvl: int = Tuning.bot_levels[(i - 1) % Tuning.bot_levels.size()]
-		p.set_provider(InputBot.new(p, self, lvl))
+		p.set_provider(InputBot.new(p, self, int(desc.get("bot_level", 2))))
 
+## Current per-player skins (QA readout; C7 "_skins() equivalent"). Reflects the live spawn plan.
 func _skins() -> Array:
-	var out: Array = ["pink"]
-	for b in range(NUM_BOTS):
-		out.append(BOT_SKINS[b % BOT_SKINS.size()])
+	var out: Array = []
+	for p in players:
+		out.append(p.skin if is_instance_valid(p) else "")
 	return out
 
 # ------------------------------------------------------------------- level rotation (§6)
-
-func _reset_bag() -> void:
-	_bag = LEVEL_POOL.duplicate()
-	_bag.shuffle()
-
-## Draw the next level from the shuffle-bag; reshuffle when empty, avoiding an immediate repeat when
-## the pool has >=2 entries. With a 1-level pool this returns that level every time (graceful replay).
-func _next_level_path() -> String:
-	if _bag.is_empty():
-		_reset_bag()
-		if LEVEL_POOL.size() >= 2 and _bag.size() > 1 and str(_bag[0]) == _last_level_path:
-			_bag.append(_bag.pop_front())
-	var path: String = str(_bag.pop_front())
-	_last_level_path = path
-	return path
+# The shuffle-bag rotation moved into BrawlMode.next_level_path (v1_frontend_shell §3). The runner
+# just asks the mode for the next stage's level via `_mode.next_level_path(self)`.
 
 func _load_stage(path: String) -> void:
 	for c in _level_root.get_children():
@@ -278,7 +286,7 @@ func _start_match() -> void:
 	_pending_match_point.clear()
 	_tiebreaker_next = false
 	_match_winner = -1
-	_reset_bag()               # fresh shuffle-bag each match (spec §6)
+	_mode.configure(self, _config)   # fresh level sequence (shuffle-bag) each match (spec §6)
 	_hud.reset_scores()
 	EventBus.match_started.emit()   # audio: (re)start gameplay music
 	_begin_stage()
@@ -302,7 +310,7 @@ func _begin_stage() -> void:
 	_had_contact.clear()
 	_smash_off_stage.clear()
 	# rotate the level BEFORE the pop-in so the establishing shot frames the new level (§6)
-	_load_stage(_next_level_path())
+	_load_stage(_mode.next_level_path(self))
 	if _camera != null:
 		_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
 	_hud.hide_center()
@@ -312,7 +320,7 @@ func _begin_stage() -> void:
 		_stage_deltas.append(0)
 		_had_contact.append(false)
 		_smash_off_stage.append(false)
-		lives_left[i] = Tuning.lives_per_player
+		lives_left[i] = lives_per_player
 		p.respawn(_spawn_at(i))
 		p.frozen = true
 		p.visible = false
@@ -492,24 +500,19 @@ func _on_killed(victim, cause, attacker) -> void:
 			"t": round_clock,
 		})
 		_cur_stats["end_cause"] = str(cause)   # the stage-deciding death overwrites last
-	# kill credit vs suicide (spec §2). Every cause counts; dead attackers still score
-	# ("beyond the grave"); being killed is never -1. Score is CUMULATIVE kills.
+	# kill credit vs suicide (spec §2), delegated to the mode's scoring hook. Every cause counts; dead
+	# attackers still score ("beyond the grave"); being killed is never -1. Score is CUMULATIVE kills.
 	var ai: int = players.find(attacker) if attacker != null else -1
-	if ai >= 0 and ai != idx:
-		scores[ai] = int(scores[ai]) + 1
-		_stage_deltas[ai] = int(_stage_deltas[ai]) + 1
-		if not _first_blood_fired:
-			_first_blood_fired = true
-			_hud.show_top("FIRST BLOOD!", PLAYER_COLORS[ai], 1.0)
-			EventBus.first_blood.emit(ai)   # audio: announcer
-	elif int(scores[idx]) > 0:   # suicide: -1 to your own kill total, floored at 0 (spec §2)
-		scores[idx] = int(scores[idx]) - 1
-		_stage_deltas[idx] = int(_stage_deltas[idx]) - 1
+	_mode.on_kill(self, ai, idx, cause)
+	if ai >= 0 and ai != idx and not _first_blood_fired:
+		_first_blood_fired = true
+		_hud.show_top("FIRST BLOOD!", PLAYER_COLORS[ai], 1.0)
+		EventBus.first_blood.emit(ai)   # audio: announcer
 	# kill-race feedback: pips track cumulative kills and pop the INSTANT a kill is credited (spec §4)
 	_hud.animate_scores(scores.duplicate())
 	# MATCH-END on the winning KILL (spec §2): the final kill IS the hero moment — freeze here,
-	# do not wait for STAGE_END. Requires a strict single leader at >= target.
-	var widx := _match_over_leader()
+	# do not wait for STAGE_END. Requires a strict single leader at >= target (mode decides).
+	var widx: int = _mode.match_winner(self)
 	if widx >= 0:
 		_enter_match_end(widx)
 		return
@@ -569,23 +572,6 @@ func _classify_blast_edge(victim) -> String:
 		return "left"
 	return "right"
 
-## The single leader at >= match_target_kills, or -1 if no one leads at target (spec §2 strict lead).
-func _match_over_leader() -> int:
-	var mx := -1
-	var leaders := 0
-	var widx := -1
-	for i in range(scores.size()):
-		var s := int(scores[i])
-		if s > mx:
-			mx = s
-			leaders = 1
-			widx = i
-		elif s == mx:
-			leaders += 1
-	if mx >= Tuning.match_target_kills and leaders == 1:
-		return widx
-	return -1
-
 ## Configurable multi-life respawn (spec §3 — dormant at lives_per_player = 1). Respawns at a spawn
 ## point after respawn_delay with the existing _spawn_protect invuln and a fresh (healed) damage level.
 func _respawn_after_death(i: int) -> void:
@@ -604,7 +590,7 @@ func _respawn_after_death(i: int) -> void:
 ## against the freeze so the pillar-4 turnaround contract (death -> next BOUNCE <= 4.5s) holds.
 func _decide_stage_end(deferred: bool) -> void:
 	var ne := _not_eliminated_players()
-	if ne.size() >= 2:
+	if not _mode.is_stage_over(self):   # BRAWL: >= 2 not-eliminated -> stage continues
 		return
 	# double-KO: the tied (just-eliminated) players revive ONCE into sudden death (spec §5)
 	if ne.size() == 0 and _recent_dead.size() >= 2 and not _revived_this_stage:
@@ -670,11 +656,9 @@ func _enter_stage_end(deferred := false) -> void:
 	for p in players:
 		if is_instance_valid(p) and not p.is_dead():
 			p.frozen = true
-	var txt := "NOBODY SURVIVES"
-	var col := Color.WHITE
-	if _stage_winner >= 0:
-		txt = "P%d SURVIVES!" % (_stage_winner + 1)
-		col = PLAYER_COLORS[_stage_winner]
+	var banner: Dictionary = _mode.stage_end_banner(self)
+	var txt: String = str(banner.get("text", "NOBODY SURVIVES"))
+	var col: Color = banner.get("color", Color.WHITE)
 	_hud.show_center(txt, col, Tuning.round_end_freeze - 0.35, _deltas_line())
 	_hud.animate_scores(scores.duplicate())
 
@@ -684,7 +668,7 @@ func _tick_stage_end(delta: float) -> void:
 		return
 	# Safety match-end check (spec §2): normally the match already ended on the winning kill; this
 	# only catches a strict leader that appeared without a live match-end check (defensive).
-	var widx := _match_over_leader()
+	var widx: int = _mode.match_winner(self)
 	if widx >= 0:
 		_enter_match_end(widx)
 		return
@@ -692,11 +676,11 @@ func _tick_stage_end(delta: float) -> void:
 	var mx := -1
 	for s in scores:
 		mx = maxi(mx, int(s))
-	if mx >= Tuning.match_target_kills:
+	if mx >= match_target_kills:
 		_tiebreaker_next = true
 	# MATCH POINT: first time a player hits target-1 kills (spec §4)
 	for i in range(scores.size()):
-		if int(scores[i]) >= Tuning.match_target_kills - 1 and not _match_point_announced.has(i):
+		if int(scores[i]) >= match_target_kills - 1 and not _match_point_announced.has(i):
 			_match_point_announced[i] = true
 			_pending_match_point.append(i)
 	_begin_stage()
@@ -721,7 +705,8 @@ func _enter_match_end(widx: int) -> void:
 		w.play_win_pop()
 		_camera.set_frame(w.global_position, MATCH_END_ZOOM)   # punch-zoom (FEEL §7)
 	EventBus.match_won.emit(widx)   # audio: win fanfare + scoreboard music
-	_hud.show_match_end("P%d WINS THE MATCH!" % (widx + 1), PLAYER_COLORS[widx], _scoreline())
+	var banner: Dictionary = _mode.match_end_banner(self)
+	_hud.show_match_end(str(banner.get("text", "")), banner.get("color", Color.WHITE), str(banner.get("subline", "")))
 
 func _tick_match_end(delta: float) -> void:
 	_state_t += delta

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://shellroot0001"]
+
+[ext_resource type="Script" path="res://src/ui/ShellRoot.gd" id="1_shell"]
+
+[node name="ShellRoot" type="Node"]
+script = ExtResource("1_shell")
