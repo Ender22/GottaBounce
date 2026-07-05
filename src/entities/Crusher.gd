@@ -1,0 +1,240 @@
+class_name Crusher
+extends Area2D
+## LETHAL crush-hazard (docs/specs/v6_party_gimmicks_circuits.md §2.2 + §2.0 lethal doctrine). Two
+## steel heads (or a head + a fixed anvil) periodically SLAM together on a telegraphed rhythm and
+## CRUSH-kill anyone caught in their path at the moment of impact; then RETRACT, leaving a clear open
+## gap (the safe beat) for the rest of the cycle. It is a direct sibling of `SpinningHammer` and reuses
+## the SAME plumbing: a lethal-contact Area2D on LAYER_HAZARDS whose overlap routes to
+## `body.kill(&"ring_out", null)` (the EXISTING kill path spikes/Hazard.gd use — NOT a shove), a
+## deterministic phase-clock oscillator with a long OPEN DWELL (the clear beat), self-rendering `_draw`
+## telegraphy (hazard-stripe faces + a windup shudder/flash before each slam), and LevelLoader wiring.
+##
+## DOCTRINE (§2.0):
+##   (1) LETHAL by default — the heads instakill on contact via kill(&"ring_out"); no new death
+##       impulse/hitstun, no shove. Identical to the hammer head.
+##   (2) TELEGRAPHY — a long OPEN DWELL (the clear safe beat), then a windup SHUDDER + hazard-red FLASH
+##       on the closing faces for `telegraph_lead` seconds BEFORE a fast, readable close. The player
+##       learns the rhythm and clears the crush lane on the open beat.
+##   (3) FAIRNESS — the open dwell is long enough to cross/leave with skill; the heads only sweep their
+##       own lane (refuge always exists beside/above it); symmetric — everyone faces the same threat.
+##       A crusher that closes with no windup / no open beat is a DO-NOT-SHIP variant (§2.2).
+##   (4) CREDIT (INV-9) — the crusher is NOT a Player, so it NEVER sets last_attacker. A kill with no
+##       attacker resolves as an uncredited self-fall (killer = -1); a rival who knocked/tagged the
+##       victim within kill_credit_window_ringout (6.0s) is credited by the EXISTING ring-out window.
+##       No invented environment scorer.
+##
+## Motion is a DETERMINISTIC phase clock (no physics ODE, no randomness) — the same self-rendering,
+## self-clocked entity shape SpinningHammer established. All params come from level JSON (INV-7); NO
+## Tuning constant is touched — the kill pipeline is reused as-is (fence per §2.0 / §7).
+##
+## Collision: on LAYER_HAZARDS (layer 4, the instakill layer Hazard.gd lives on), sensing players +
+## props. Overlap-only (the de-risked ship, matching the hammer): the heads clip the visual but the
+## overlap kills; solid collision is an optional polish follow-up.
+
+const LAYER_HAZARDS := 1 << 3               # 8 — layer 4, the instakill hazard layer (Hazard.gd's layer)
+const MASK_TARGETS := (1 << 0) | (1 << 1)   # players (1) + enemies/props (2), matching Hazard.gd
+
+# --- geometry / config (from JSON; all data, no Tuning) ---
+var center: Vector2 = Vector2.ZERO   # the crush point (both heads converge here)
+var axis: String = "horizontal"      # "horizontal" (heads slam left<->right) | "vertical" (top<->bottom)
+var head_len: float = 200.0          # head size ALONG the slam axis (the striking depth)
+var head_w: float = 170.0            # head size ACROSS the slam axis (the lane width)
+var open_gap: float = 560.0          # inner-face separation when fully OPEN (the passable safe gap)
+var closed_gap: float = 30.0         # inner-face separation at full CLOSE (the crush gap)
+var period_s: float = 2.6            # a full open->close->open cycle (owner: crusher ~2-3s)
+var phase: float = 0.0               # 0..1 phase offset (multiple crushers can run offset rhythms)
+var close_time: float = 0.34         # seconds of the fast, readable CLOSE ramp
+var closed_time: float = 0.22        # seconds dwelling CLOSED (the lethal slam window)
+var retract_time: float = 0.5        # seconds of the RETRACT (open) ramp
+var telegraph_lead: float = 0.55     # windup shudder/flash lead BEFORE the close begins (fairness tell)
+var anvil: bool = false              # true = head2 is a FIXED anvil (head + anvil); head1 does the travel
+
+var _t: float = 0.0
+var _c: float = 0.0                  # closedness in [0,1]: 0 = open, 1 = crushed
+var _tele: float = 0.0               # telegraph intensity in [0,1] (windup shudder/flash)
+var _open_dwell: float = 1.5         # derived: the OPEN safe beat (period minus the moving phases)
+var _shape1: CollisionShape2D
+var _shape2: CollisionShape2D
+var _rng := RandomNumberGenerator.new()
+
+func setup_from_json(o: Dictionary) -> void:
+	var cc = o.get("center", {"x": 0.0, "y": 0.0})
+	center = Vector2(float(cc.get("x", 0.0)), float(cc.get("y", 0.0)))
+	axis = str(o.get("axis", "horizontal"))
+	head_len = float(o.get("head_len", 200.0))
+	head_w = float(o.get("head_w", 170.0))
+	open_gap = float(o.get("open_gap", 560.0))
+	closed_gap = maxf(0.0, float(o.get("closed_gap", 30.0)))
+	period_s = maxf(0.4, float(o.get("period_s", 2.6)))
+	phase = float(o.get("phase", 0.0))
+	close_time = maxf(0.05, float(o.get("close_time", 0.34)))
+	closed_time = maxf(0.02, float(o.get("closed_time", 0.22)))
+	retract_time = maxf(0.05, float(o.get("retract_time", 0.5)))
+	telegraph_lead = maxf(0.0, float(o.get("telegraph_lead", 0.55)))
+	anvil = bool(o.get("anvil", false))
+
+func _ready() -> void:
+	# node at world origin: local == global, so _draw / shape positions are all in world coords.
+	position = Vector2.ZERO
+	collision_layer = LAYER_HAZARDS
+	collision_mask = MASK_TARGETS
+	monitoring = true
+	set_meta("hazard", true)
+	set_meta("crusher", true)
+	# the OPEN DWELL is whatever is left of the period after the three moving phases (the clear beat).
+	_open_dwell = maxf(0.1, period_s - close_time - closed_time - retract_time)
+	_shape1 = _make_head_shape()
+	_shape2 = _make_head_shape()
+	add_child(_shape1)
+	add_child(_shape2)
+	_update(0.0)
+	z_index = 40   # over platforms/void, under HUD
+
+func _make_head_shape() -> CollisionShape2D:
+	var cs := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = _head_size()
+	cs.shape = rect
+	return cs
+
+func _head_size() -> Vector2:
+	# head_len is ALONG the slam axis; head_w is ACROSS it.
+	if axis == "vertical":
+		return Vector2(head_w, head_len)
+	return Vector2(head_len, head_w)
+
+func _along() -> Vector2:
+	return Vector2(0.0, 1.0) if axis == "vertical" else Vector2(1.0, 0.0)
+
+## Phase clock in [0,1] cycle: a long OPEN dwell (c=0, the clear beat) -> fast CLOSE ramp (0->1) ->
+## brief CLOSED dwell (c=1, the lethal slam) -> RETRACT ramp (1->0). Also derives the telegraph
+## intensity (windup) over the last `telegraph_lead` seconds of the open dwell. Deterministic; the
+## smootherstep ramps join the flat dwells with zero velocity discontinuity (natural, readable).
+func _tick(t: float) -> void:
+	var u := fposmod(t / period_s + phase, 1.0) * period_s   # seconds into the cycle
+	_tele = 0.0
+	# 1) OPEN dwell (the safe beat) — c = 0; telegraph ramps up over its final telegraph_lead seconds.
+	if u < _open_dwell:
+		_c = 0.0
+		if telegraph_lead > 0.0 and u > _open_dwell - telegraph_lead:
+			_tele = clampf((u - (_open_dwell - telegraph_lead)) / telegraph_lead, 0.0, 1.0)
+		return
+	u -= _open_dwell
+	# 2) CLOSE ramp (fast, readable) — telegraph stays hot through the slam.
+	if u < close_time:
+		_c = _smoother(u / close_time)
+		_tele = 1.0
+		return
+	u -= close_time
+	# 3) CLOSED dwell (the lethal slam window).
+	if u < closed_time:
+		_c = 1.0
+		_tele = 1.0
+		return
+	u -= closed_time
+	# 4) RETRACT ramp (heads pull back open).
+	_c = 1.0 - _smoother(clampf(u / retract_time, 0.0, 1.0))
+
+static func _smoother(x: float) -> float:
+	x = clampf(x, 0.0, 1.0)
+	return x * x * x * (x * (x * 6.0 - 15.0) + 10.0)
+
+## Head CENTER for head i (dir -1 = head1, +1 = head2) at the current closedness. Inner-face gap
+## lerps open_gap -> closed_gap; the head center sits half a head_len beyond its inner face.
+func _head_center(dir: float, c: float) -> Vector2:
+	var gap := lerpf(open_gap, closed_gap, c)
+	var off := gap * 0.5 + head_len * 0.5
+	return center + _along() * (dir * off)
+
+func _update(t: float) -> void:
+	_tick(t)
+	# anvil mode: head2 is fixed at its CLOSED position (the immovable anvil); head1 does all the travel.
+	_shape1.position = _head_center(-1.0, _c)
+	_shape2.position = _head_center(1.0, 1.0 if anvil else _c)
+
+func _physics_process(delta: float) -> void:
+	_t += delta
+	_update(_t)
+	queue_redraw()
+	_kill_overlapping()
+
+## LETHAL contact — the whole mechanic. Any live Killable body overlapping either head dies via the
+## EXISTING kill pipeline with cause &"ring_out" (§2.0#1): no new impulse, no shove, no hitstun. The
+## &"ring_out" cause inherits the 6.0s ring-out credit window, so a rival who knocked the victim in
+## within the window is credited and an untouched victim is an uncredited self-fall (§2.0#4). The
+## crusher NEVER passes itself as attacker (it is not a Player -> no invented environment scorer).
+func _kill_overlapping() -> void:
+	for body in get_overlapping_bodies():
+		if not is_instance_valid(body):
+			continue
+		if body.has_method("is_dead") and body.is_dead():
+			continue
+		if body.has_method("kill"):
+			body.kill(&"ring_out", null)
+
+# ------------------------------------------------------------------ telegraphy (INV-12: display only)
+func _draw() -> void:
+	var steel := Color(0.16, 0.17, 0.20)
+	var steel_hi := Color(0.34, 0.36, 0.42)
+	var steel_lo := Color(0.09, 0.10, 0.13)
+	var along := _along()
+	# 1) the guide RAILS: faint tracks showing each head's full travel (open extent -> crush point).
+	var rail := Color(0.30, 0.31, 0.36, 0.35)
+	var r1_open := _head_center(-1.0, 0.0)
+	var r2_open := _head_center(1.0, 0.0)
+	draw_line(r1_open, r2_open, rail, 6.0)
+	# 2) a hazard-red danger band across the crush lane during the windup/slam (reads the lethal zone).
+	if _tele > 0.0:
+		var perp := along.orthogonal()
+		var lane_half := head_w * 0.5
+		var danger := Color(0.86, 0.16, 0.16, 0.10 + 0.28 * _tele)
+		var band := PackedVector2Array([
+			center - along * (open_gap * 0.5) - perp * lane_half,
+			center + along * (open_gap * 0.5) - perp * lane_half,
+			center + along * (open_gap * 0.5) + perp * lane_half,
+			center - along * (open_gap * 0.5) + perp * lane_half,
+		])
+		draw_colored_polygon(band, danger)
+	# 3) the two heads (shudder-jittered during the windup; the collider is NOT moved).
+	var shudder := Vector2.ZERO
+	if _tele > 0.0 and _c <= 0.0:
+		_rng.seed = hash(center) + int(_t * 120.0)
+		shudder = Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * (4.0 * _tele)
+	_draw_head(_shape1.position + shudder, 1.0, steel, steel_hi, steel_lo)
+	_draw_head(_shape2.position - shudder, -1.0, steel, steel_hi, steel_lo)
+
+## One steel head: a bevelled block with hazard chevrons on its INNER (striking) face. `face_dir` points
+## from the head toward the crush center (which side gets the hazard stripes / the bright edge).
+func _draw_head(c: Vector2, face_dir: float, steel: Color, steel_hi: Color, steel_lo: Color) -> void:
+	var along := _along()
+	var perp := along.orthogonal()
+	var sz := _head_size()
+	var hl := sz.x * 0.5 if axis != "vertical" else sz.y * 0.5   # half-extent ALONG the axis
+	var hw := sz.y * 0.5 if axis != "vertical" else sz.x * 0.5   # half-extent ACROSS the axis
+	# body quad
+	var quad := PackedVector2Array([
+		c - along * hl - perp * hw, c - along * hl + perp * hw,
+		c + along * hl + perp * hw, c + along * hl - perp * hw,
+	])
+	draw_colored_polygon(quad, steel)
+	# a darker back half for a bevel read
+	var back := c - along * (hl * face_dir * 0.5)
+	draw_colored_polygon(PackedVector2Array([
+		back - along * (hl * face_dir * 0.5) - perp * hw,
+		back - along * (hl * face_dir * 0.5) + perp * hw,
+		back + along * (hl * face_dir * 0.5) + perp * hw,
+		back + along * (hl * face_dir * 0.5) - perp * hw,
+	]), steel_lo)
+	# hazard chevron stripes on the INNER (striking) face — high-contrast lethal read.
+	var danger := Color(0.86, 0.16, 0.16, 0.92)
+	var face := c + along * (hl * face_dir)   # the leading face toward the crush center
+	for k in range(3):
+		var band_out := face - along * (face_dir * (hl * 0.22 * float(k)))
+		var band_in := face - along * (face_dir * (hl * 0.22 * float(k) + hl * 0.16))
+		var stripe := PackedVector2Array([
+			band_out - perp * hw, band_out + perp * hw,
+			band_in + perp * hw, band_in - perp * hw,
+		])
+		draw_colored_polygon(stripe, danger if (k % 2 == 0) else steel_hi)
+	# rim highlight
+	draw_polyline(PackedVector2Array([quad[0], quad[1], quad[2], quad[3], quad[0]]), steel_hi, 4.0)

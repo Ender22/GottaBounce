@@ -77,6 +77,18 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# footing is lost. NOT a hazard — the void/fall is the killer (§2.0 credit unchanged).
 				# The COLLAPSING ARENA (meltdown_box.json) is a full floor of these on a timed cascade.
 				_build_destructible_block(o, parent)
+			"crusher":
+				# v6_party_gimmicks_circuits.md §2.2: a LETHAL crush-hazard. Two steel heads (or a head
+				# + a fixed anvil) slam together on a telegraphed rhythm and crush-kill anyone caught in
+				# their path at impact, then retract to a clear open gap. Lethal via the EXISTING kill
+				# pipeline (kill(&"ring_out")) — the SAME path spikes/spinning_hammer use, NOT a shove.
+				_build_crusher(o, parent)
+			"falling_debris":
+				# v6_party_gimmicks_circuits.md §2.3: a LETHAL debris spawner. Drops giant balls from the
+				# top on a cadence; each chunk is telegraphed by a growing ground shadow BEFORE it falls,
+				# is lethal on contact via the EXISTING kill pipeline (kill(&"ring_out")), and despawns on
+				# landing / off-screen. Same lethal-contact + phase-clock plumbing as spinning_hammer.
+				_build_falling_debris(o, parent)
 			"start_gate":
 				# v3_content_plan B.3 (TRIALS): the run's spawn + respawn point. Reuses the existing
 				# spawn path — appended as a spawn so _spawn_at(0) / the multi-life respawn use it.
@@ -99,7 +111,7 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))
 			"physics_prop", "bomb", "container", "physics_structure", \
-			"gravity_source", "moving_platform", "crusher", "fan":
+			"gravity_source", "moving_platform", "fan":
 				# v0: these entity types are not ported yet — skip cleanly so old levels still load.
 				push_warning("LevelLoader: '%s' not ported in v0 — skipped (%s)" % [otype, path])
 			_:
@@ -210,3 +222,20 @@ static func _build_destructible_block(o: Dictionary, parent: Node2D) -> void:
 	var b := DestructibleBlock.new()
 	b.setup_from_json(o)
 	parent.add_child(b)
+
+## v6_party_gimmicks_circuits.md §2.2: build the LETHAL crusher from JSON. Two heads (or head + anvil)
+## on a deterministic phase clock; the heads self-render (steel + hazard-stripe faces + windup shudder)
+## and instakill any player they overlap via the existing kill pipeline (NO new death impulse; fence
+## per §2.0/§7). Sibling of _build_spinning_hammer.
+static func _build_crusher(o: Dictionary, parent: Node2D) -> void:
+	var c := Crusher.new()
+	c.setup_from_json(o)
+	parent.add_child(c)
+
+## v6_party_gimmicks_circuits.md §2.3: build the LETHAL falling-debris spawner from JSON. It drops
+## chunks on a cadence, telegraphs each with a ground shadow, self-renders the shadows + chunks, and
+## instakills on chunk contact via the existing kill pipeline (NO new death impulse; fence per §2.0/§7).
+static func _build_falling_debris(o: Dictionary, parent: Node2D) -> void:
+	var d := FallingDebris.new()
+	d.setup_from_json(o)
+	parent.add_child(d)
