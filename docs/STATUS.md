@@ -78,11 +78,13 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 > DONE: foundation (GameConfig/GameMode/BrawlMode/Settings/ShellRoot) parity-verified; the Herd goat/ram
 > cast (6 idle sprites) live in-engine; all 6 styled screens built to the UX spec (MainMenu/ModeSelect/
 > CharacterSelect/ArenaSelect/Options/PauseMenu) + full flow, rendered-smoke-verified.
-> **PHASES 1-3 DONE + PHASE 4 IN PROGRESS (3 of ~4 modes).** P1 front-end (UI/UX SHIP), P2 roster feel
-> (QA'd), camera FIXED, P3 circuits, and Phase 4: **BRAWL + TRIALS (5-course) + GAUNTLET (waves)** all
-> shipped. The game is now a THREE-mode, rostered, circuited, front-ended product. IMMEDIATE NEXT:
-> **Sports** (bounce-ball into goals — needs a ball+goal entity + team scoring; design in progress) then
-> **Puzzle** (evaluate). Then Phase 5 progression/unlocks + the polish/quality backlog.
+> **PHASES 1-3 DONE + PHASE 4 = FOUR MODES SHIPPED.** P1 front-end (UI/UX SHIP), P2 roster feel (QA'd),
+> camera FIXED, P3 circuits, and Phase 4: **BRAWL + TRIALS (5 courses) + GAUNTLET (waves) + SPORTS
+> (bounce-ball)** all built + regression-clean. A four-mode, rostered, circuited, front-ended party game.
+> IMMEDIATE NEXT: QA Sports for FUN (rally quality/motion-health over a full bot match — the flagged gap);
+> optional **Puzzle** (mode #5, most bespoke — evaluate value vs polish); then Phase 5 progression + the
+> polish/quality backlog (Trials medal-time tighten, all-six readability gate, art pass #2, Vex corkscrew,
+> goat logo, 3 seed arenas, arena thumbnails, focus accent-border, Gauntlet G-BOTFOCUS + victory drive).
 > Polish/quality backlog: Trials medal-time tighten (movement-bot or human run), all-six readability gate,
 > Butch-stuck/Ziggy-underside longer motion watch, plain-button focus accent-border, Vex title bobber cycle,
 > Vex corkscrew horns, goat squash/charge poses (art pass #2), 3 seed circuit arenas, arena thumbnails, goat logo. Non-blocking backlog: plain-button focus accent-border; Vex title

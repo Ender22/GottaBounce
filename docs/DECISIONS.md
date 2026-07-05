@@ -2,6 +2,15 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** SPORTS mode COMPLETE (Phase 4 mode #4). 2-team bounce-ball into goals; new `Ball` entity
+  (StormBall physics clone, weapon-stripped, self-driven from player contact ×2 on super/hitstun; never a
+  weapon), `GoalZone`, `SportsHUD`, `sports_court.json`; goal = a runner stage. ONE new additive hook
+  `on_stage_ready()->pass` (spawns the ball prop; BRAWL/TRIALS/GAUNTLET no-op -> 0 balls, parity verified).
+  Validated: ball drive/power-shot, goal->score(soccer)->kickoff, team win at cap, no elimination; 3-mode
+  regression clean; no fenced constant touched. **The game is now FOUR modes** (Brawl/Trials/Gauntlet/
+  Sports). Spec `docs/specs/v5_sports_mode.md`. QA-flag: full bot-vs-bot rally/feel/motion-health match
+  not yet watched (fun-verification pending); flight-required by geometry; 1v1 default (2v2 supported).
+
 - **2026-07-05** GAUNTLET mode COMPLETE (Phase 4 mode #3). Survival vs escalating bot waves; waves as
   runner stages; data-driven `gauntlet_waves.json`; shared defender-life pool; score=highest wave;
   GauntletHUD. ONE additive runner hook `wave_spawn_plan()->[]` (BRAWL/TRIALS untouched) drives
