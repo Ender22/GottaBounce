@@ -78,13 +78,15 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 > DONE: foundation (GameConfig/GameMode/BrawlMode/Settings/ShellRoot) parity-verified; the Herd goat/ram
 > cast (6 idle sprites) live in-engine; all 6 styled screens built to the UX spec (MainMenu/ModeSelect/
 > CharacterSelect/ArenaSelect/Options/PauseMenu) + full flow, rendered-smoke-verified.
-> **PHASE 1 = SHIPPED** (UI/UX SHIP). **PHASE 2 = COMPLETE** (roster feel deltas; QA verdict TUNE, all
-> invariants held, Puff tuned 0.88->0.92; DECISIONS 2026-07-05). **Camera left/right oscillation FIXED**
-> (owner-reported; frames all living now). IMMEDIATE NEXT: **Phase 3** — themed circuits (group the 11
-> arenas into named curated rotations + author more; wire ArenaSelect/circuit picking) and/or **Phase 4**
-> modes (trials/gauntlet/sports/puzzle) — owner wants content breadth. Backlog: all-six readability gate
-> (spawn 6 in a match), longer Butch-stuck/Ziggy-underside motion watch, plain-button focus accent-border,
-> Vex title bobber cycle, Vex corkscrew, squash/charge poses (art pass #2), arena thumbnails, goat logo. Non-blocking backlog: plain-button focus accent-border; Vex title
+> **PHASES 1-3 DONE + PHASE 4 STARTED.** P1 front-end (UI/UX SHIP), P2 roster feel (QA'd), camera
+> oscillation FIXED, P3 circuits (3 rotations), and **P4 mode #1 = TRIALS COMPLETE** (5-course campaign,
+> seam proven via polls_goal()). The game is now genuinely multi-mode (BRAWL + TRIALS) with a roster,
+> circuits, and a full front-end. IMMEDIATE NEXT (Phase 4 remaining modes): **Gauntlet** (solo/co-op
+> survival vs waves — reuses combat+bots), **Sports** (bounce-ball into goals — needs a ball+goal entity),
+> **Puzzle** (clear-the-room — evaluate). Then progression/unlocks (Phase 5).
+> Polish/quality backlog: Trials medal-time tighten (movement-bot or human run), all-six readability gate,
+> Butch-stuck/Ziggy-underside longer motion watch, plain-button focus accent-border, Vex title bobber cycle,
+> Vex corkscrew horns, goat squash/charge poses (art pass #2), 3 seed circuit arenas, arena thumbnails, goat logo. Non-blocking backlog: plain-button focus accent-border; Vex title
 > bobber cycle; Vex corkscrew horns; squash/charge poses (art pass #2); arena per-level thumbnails; goat
 > logo/key-art; drive match-end REMATCH/QUIT to MATCH_END; all-six readability gate (spawn 6 into a match).
 

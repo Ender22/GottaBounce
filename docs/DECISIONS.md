@@ -2,6 +2,15 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** TRIALS mode COMPLETE (first new mode; Phase 4 pillar #1). `TrialsMode` (solo, reach-goal,
+  fall=respawn+2s, medals) proved the GameMode seam scales with ONE additive hook (`polls_goal()`);
+  BRAWL unaffected. Data-driven 5-course campaign (`levels/course_sets.json` + `levels/courses/*.json`):
+  Tank Run / Fuel Line / Stepping Stones / Pendulum Pass / The Climb — escalating, each a distinct
+  movement lesson, all flight-required vs current Tuning, validated in-engine (load/order/clear/summary).
+  KNOWN: medal times are movement-math estimates (no human/movement-bot clean run yet) — clearable with
+  headroom, tighten later (candidate: a movement-capable Trials bot = SOTA "bots as feel instruments").
+  Remaining Phase-4 modes: Gauntlet (survival vs waves), Sports (bounce-ball), Puzzle.
+
 - **2026-07-05** CAMERA left/right oscillation FIXED (owner-reported). Non-super framing fit only the
   combat-active cluster (extent = subset), so with 2 players each side it swapped which pair it framed.
   Now frames ALL living players' AABB (clamped to CAM_MIN_ZOOM); pan still leans to action via the
