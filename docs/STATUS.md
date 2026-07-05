@@ -4,127 +4,100 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-05 — **SCOPE CORRECTION (owner-flagged).** The prior "GAME COMPLETE" label
-was WRONG: it certified the *core versus loop* (physics/feel/bots/11 arenas/audio) — the hard ~25% —
-as if it were the whole game. It is not. Measured against the actual bar (TowerFall Ascension / Duck
-Game), we are ~25%. **What is genuinely done:** the core versus match loop and its feel. **What is
-missing (the other ~75%):** a front-end shell (title / character-select / mode-select / arena-select /
-options / pause — the game currently BOOTS STRAIGHT INTO a hardcoded 1-human+3-bot match), a real
-playable-character roster (goat/ram etc.), themed circuits, and additional game modes (trials/time-
-attack, co-op survival, sports, puzzle). Roadmap: `docs/ROADMAP.md`. Everything in "What exists" below
-is real and validated — it is the foundation, not the finish line.
+**Last updated:** 2026-07-05 — the game is now a **cohesive FOUR-MODE party brawler** (up from a single
+hardcoded match at the start of the day). Everything below "What exists" is committed + validated. An
+owner-driven **content-expansion initiative** (wild gimmick levels + more circuits/courts/pitches +
+unlock progression, across all modes) is DESIGNED and about to enter the BUILD phase — see IN-FLIGHT.
 
-## Where we are
-The game is a **lives-based, Duck-Game-style kill-race**: no round timer; each player has lives
-(default 1); stages end by last-one-standing; players race to a cumulative **10 kills across
-frequently-rotating levels**; sudden death = a true simultaneous double-KO only. Combat is
-bounce → fly (jetpack REQUIRED to traverse) → **un-charged super-smash (the kill move)** → recover,
-with a **transient damage system** (Lv1 slow red pulse / Lv2 fast, +33%/+66% launch, 8s heal) and
-**edge-relative, off-screen kills** (near-edge dead-on = out; mid-stage healthy survives = the
-recovery gamble). Foundation is healthy (the "crash + 28fps" scare was refuted — see Watch-out).
-**CURRENT FOCUS:** DONE — the game is complete & capstone-verified (SHIP). What's left is an optional
-polish backlog only (see NEXT STEPS). Historical detail below.
-
-**CURRENT FOCUS (historical):** 10-LEVEL CIRCUIT built, THEMED, and validated per-level; bot head-banging FIXED
-(obstacle-aware ascent) + a permanent **bot-motion-health probe** in the QA feed + motion-quality now
-a QA obligation (GAME_ESSENCE). Circuit levels each have a distinct kill-shape AND a distinct look
-(meadow / dark drum / steel high-sky / golden-hour / bright morning / teal atoll / indigo twilight /
-arcade violet / dusk). CORE GAME COMPLETE & SHIPPING-QUALITY — **CD VERDICT #6 = SHIP** (couch-ready; all 4 fantasy verbs
-confirmed hands-on; credited kills 76%; motion clean; audio/VFX/10 themed levels/match-end/powerups all
-land). Circuit-wide QA passed C1-C6; both QA must-fixes done (underside-hover exploit fixed + VFX
-telegraphy shipped). Remaining = NON-BLOCKING polish/stretch: (1) match-pacing sanity-check at human
-pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) delta-banner edge case;
-+ the stretch backlog (moving-hazard/wrecking_yard, bot flee-to-heal, goat, audio polish).
+## Where we are (the game today)
+A goat/ram party brawler — "Duck Game × Smash Bros, no guns" — with a full front-end and four modes,
+all on a pluggable `GameMode` seam:
+- **BRAWL** — the core versus kill-race (bounce→fly→smash→recover, un-charged super, off-screen kills,
+  lives, cumulative-kills-to-N, level rotation, SD-on-double-KO). The proven fantasy.
+- **TRIALS** — solo time-attack, 5-course campaign, reach-goal/beat-par, fall=respawn+penalty, medals.
+- **GAUNTLET** — solo/co-op survival vs escalating bot waves, shared defender-life pool, score=highest wave.
+- **SPORTS** — 2-team bounce-ball into goals (Ball entity, GoalZone, team scoring).
+Cast = **the Herd**: 6 goat/ram heroes (Pogo/Butch/Ziggy/Puff/Vex/Billy) that PLAY differently (feel
+deltas). Content = 11 arenas in 3 circuits. Front-end = title/mode/character/arena/options/pause.
 
 ## What exists (committed + validated)
-- **[NEW 2026-07-05] Phase 1 foundation:** `GameConfig` autoload + `MatchConfig` resource, `Settings`
-  autoload (user://settings.cfg, applies buses+window on boot), `GameMode` seam + `BrawlMode` (versus
-  loop extracted; PartyMatch = generic runner reading GameConfig). `main_scene`=ShellRoot (boots to
-  brawl; styled screens IN PROGRESS via gameplay-programmer against `docs/briefs/frontend_ux_spec.md`).
-- **[NEW 2026-07-05] The Herd — goat/ram cast (art pass #1):** all 6 idle sprites live in the
-  `bouncer_<color>_idle` slots + verified in-engine — Pogo(pink,mascot)/Butch(blue ram)/Ziggy(green ibex)/
-  Puff(yellow sheep)/Vex(purple markhor)/Billy(orange billy). Squash/charge poses = pass #2. Bible:
-  `docs/briefs/character_theme_bible.md` + `character_art_bible.md`.
-- **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
-  SD only via double-KO), lives, cumulative-kills-to-10, level rotation (shuffle-bag), match-end panel.
-- **Combat:** un-charged super (aim→blast, drain-all), two-tier SHOVE/SMASH with **hit-solidity**
-  launch (dead-center flies / glance spins), damage system (Lv1/Lv2 + cross-skin crimson pulse —
-  verified on all skins), edge-relative off-screen kills, ring-out credit (6s window), §2.3a dry-reflect.
-- **Bots** (`InputBot`, human-sim, never cheat): refuel-rhythm, dodge-super, 1v1 **finisher**
-  (closes the endgame at scale), **chase-the-wounded**; L2/L3/L4 shipped. (FLEE-to-heal is specced
-  but only partially effective — see next steps.)
-- **Arena/render:** `islands_void` = **FLAGSHIP** (LEVEL_POOL primary): 4 separated islands + 2
-  boost-only spring thrones over one full-width lethal void; flight REQUIRED (680px gaps > spring
-  drift, pads > spring apex — verified fuel=0 falls in). `grassy_expanse` (2× wide, central-pit
-  variant) = secondary pool entry. Glossy Toybox renderer; **camera-at-2x** (0.60 zoom floor,
-  action-cluster framing, off-screen edge chevrons). `dev_arena` = deprecated "mini" (out of pool).
-- **Audio:** `AudioManager` autoload (INV-12 subscriber, pooled voices, read-only thrust poll) +
-  Master→Music/SFX bus layout; 23 SFX in `assets/sfx/` (sourced from SamuraiRobot lib); 9 EventBus
-  flow/feedback signals wired (bounce/smash-by-solidity/super/damage/heal/pickup/countdown/announcer/
-  win) + gameplay/scoreboard music. Live-verified (408 SFX fired in COMBAT). Follow-ups: UI-click
-  unwired (no button .tscn yet); per-powerup activate SFX + real announcer VO are polish.
-- **Studio:** roles in `.claude/agents/` incl. **creative-director** (fantasy-fit gate);
-  `docs/GAME_ESSENCE.md` (every role runs the fantasy-fit check); validation via `tools/run_game.ps1`
-  + `python tools/gbplay.py`.
+- **Front-end shell** (Phase 1, UI/UX verdict SHIP): `ShellRoot` screen-stack → MainMenu/ModeSelect/
+  CharacterSelect/ArenaSelect/Options/PauseMenu; one springy gamepad-first menu system (`src/ui/*`,
+  `scenes/ui/*`, `assets/ui/theme.tres`). Boot = `res://scenes/ui/ShellRoot.tscn`.
+- **Config + mode framework:** `GameConfig` autoload + `MatchConfig` resource; `Settings` autoload
+  (user://settings.cfg, applies buses+window on boot). `GameMode` seam (`src/modes/GameMode.gd`) with
+  additive null-default hooks — `polls_goal`, `wave_spawn_plan`, `on_stage_ready`, `bot_objective`,
+  `camera_framing`. `PartyMatch` = generic runner reading GameConfig + delegating to `_mode`.
+- **Modes:** `BrawlMode` (versus loop extracted; the baseline — BRAWL is byte-for-byte the old game),
+  `TrialsMode` (+ `GoalGate`, `levels/course_sets.json`, `levels/courses/*.json`, `TrialsHUD`),
+  `GauntletMode` (+ `levels/gauntlet_waves.json`, `GauntletHUD`, `_despawn_bots`), `SportsMode`
+  (+ `Ball`, `GoalZone`, `SportsHUD`, `levels/sports_court.json`). All mutually regression-clean.
+- **Roster:** `assets/characters/bouncer_{pink,blue,green,yellow,purple,orange}_idle.png` = the 6 goats;
+  `CharacterProfile`/`CharacterProfiles` per-character feel deltas (data, base Tuning UNTOUCHED, Billy=Standard).
+- **Circuits:** `levels/circuits.json` — Meadow Mile / Scrapworks / High Wire over the 11 arenas.
+- **Combat/feel/bots/audio/arena render:** the original validated core (un-charged super, SHOVE/SMASH
+  solidity, damage system, edge-relative kills, ring-out credit; InputBot L2-L4 human-sim; AudioManager;
+  Glossy Toybox `ArenaRenderer`). Camera frames ALL living players (2026-07-05 oscillation fix).
+- **Studio:** roles in `.claude/agents/` incl. **ui-ux-designer** (front-end approval), creative-director
+  (fantasy-fit), art-director, game-designer, level-designer, gameplay-programmer, qa-playtester.
 
 ## Read order on fresh context
-`docs/STATUS.md` (this) → `docs/VISION.md` → `docs/GAME_ESSENCE.md` → the recent owner directives in
-`docs/feedback/` (2026-07-03 lives/damage/kill-race + arena-size; **2026-07-04 arena-variety+audio**)
-→ `docs/DECISIONS.md` (newest-first) → specs: `v1_party_killrace.md`, `v0_kill_zone_recovery.md`
-(+ `v1_kill_economy_at_scale.md`, `v2_kill_shape_edges.md`) → `docs/PIPELINE.md`.
+`docs/STATUS.md` (this) → `docs/ROADMAP.md` → `docs/GAME_ESSENCE.md` → `docs/VISION.md` →
+`docs/DECISIONS.md` (newest-first — the 2026-07-05 entries cover the whole rebuild + rulings) → the
+mode/content specs: `docs/specs/v1_frontend_shell.md`, `v2_character_feel_deltas.md`, `v3_content_plan.md`,
+`v4_gauntlet_mode.md`, `v5_sports_mode.md`, **`v6_party_gimmicks_circuits.md`, `v7_trials_challenge_types.md`,
+`v8_sports_courts.md`, `v9_idea_bank.md`** (the content initiative) → `docs/briefs/character_theme_bible.md`
++ `character_art_bible.md` → `docs/PIPELINE.md`. Memory: [[gottabounce-session4-scope-correction]],
+[[gottabounce-chatgpt-image-paste]].
 
-## NEXT STEPS
-> **THE CORE VERSUS LOOP IS DONE; THE GAME IS ~25-30% BUILT.** See `docs/ROADMAP.md`. Active: **Phase 1**.
-> DONE: foundation (GameConfig/GameMode/BrawlMode/Settings/ShellRoot) parity-verified; the Herd goat/ram
-> cast (6 idle sprites) live in-engine; all 6 styled screens built to the UX spec (MainMenu/ModeSelect/
-> CharacterSelect/ArenaSelect/Options/PauseMenu) + full flow, rendered-smoke-verified.
-> **PHASES 1-3 DONE + PHASE 4 = FOUR MODES SHIPPED.** P1 front-end (UI/UX SHIP), P2 roster feel (QA'd),
-> camera FIXED, P3 circuits, and Phase 4: **BRAWL + TRIALS (5 courses) + GAUNTLET (waves) + SPORTS
-> (bounce-ball)** all built + regression-clean. A four-mode, rostered, circuited, front-ended party game.
-> **CD VERDICT #7 = FIX** (whole game cohesive + delivers the fantasy; one broken pillar). Prioritized:
-> (1) **Sports bot fairness** — team 1 always wins; being fixed NOW (+ empty-arena fallback bug). (2) Menu
-> art: arena thumbnails + mode-card icons (biggest "tech-demo" tells). (3) Verify TRIALS medal times
-> (movement-bot/human). (4) GAUNTLET G-BOTFOCUS free-clears. (5) **DO NOT build Puzzle yet** (deepen the 4).
-> Minor: Sports end-zoom empty-net, Gauntlet banner overlap, confirm gamepad-A activates the shell. Then
-> Phase 5 progression + remaining polish (all-six readability gate, Vex corkscrew, goat squash/charge +
-> super-charge poses via paste-edit, goat logo, 3 seed circuit arenas, focus accent-border).
-> Polish/quality backlog: Trials medal-time tighten (movement-bot or human run), all-six readability gate,
-> Butch-stuck/Ziggy-underside longer motion watch, plain-button focus accent-border, Vex title bobber cycle,
-> Vex corkscrew horns, goat squash/charge poses (art pass #2), 3 seed circuit arenas, arena thumbnails, goat logo. Non-blocking backlog: plain-button focus accent-border; Vex title
-> bobber cycle; Vex corkscrew horns; squash/charge poses (art pass #2); arena per-level thumbnails; goat
-> logo/key-art; drive match-end REMATCH/QUIT to MATCH_END; all-six readability gate (spawn 6 into a match).
+## IN-FLIGHT — RESUME HERE (content-expansion initiative)
+**Design is DONE (5 committed specs); BUILD is the constraint (one rendered test / game instance at a
+time).** The plans all fan out from ONE shared foundation — build the gimmick MECHANICS once, reuse across
+Brawl circuits + Trials challenge-types + Sports pitches.
 
-**OPEN OWNER DECISION:** `match_target_kills` kept at 10 (owner-set); QA recommends 7-8 for a tighter
-~3-min match (10 = ~4.5min/18-21 stages due to the -1 self-fall score volatility). Will apply if the
-owner chooses 7/8.
+- **Specs ready to build from:** `v6` (lethal gimmick mechanics ranked: spinning_hammer→crusher→
+  falling_debris→bomb→destructible_block→moving_platform + collapsing-arena archetype; 4 new circuits
+  Foundry/Midway/Convoy/Meltdown w/ 20-authored-10-drawn rotation; mastery-first unlock progression).
+  `v7` (Trials objective types: Survive/Destroy-all/Physics-puzzle/Collect/Precision via optional course
+  `objective` block, absent=REACH_GOAL back-compat, zero new runner hooks; 8 example courses).
+  `v8` (8 Sports pitches calm→chaos, strict mirror-symmetry, `Ball.receive_hazard_impulse` hook).
+  `v9` (level-designer's creative idea bank — ice/low-friction, jump-in cannons, + original inventions;
+  landing shortly). Hazard doctrine = LETHAL w/ telegraphy+fairness+credit (DECISIONS 2026-07-05).
+- **BUILD SEQUENCE (do in this order):**
+  1. **v6 Wave A mechanics** — spinning_hammer FIRST (reuses MovingHazard motion + the `Hazard.kill()`
+     path spikes use), then crusher, falling_debris; then destructible_block + bomb; moving_platform LAST
+     (hard — solid moving collider). Each: new LevelLoader object type + entity + telegraph VFX; validate
+     rendered (M-DODGEABLE ≥8/10, no unavoidable instakill, symmetric, geometry-integrity).
+  2. Fan out: BRAWL gimmick circuits (v6), Trials challenge types (v7 framework+parity FIRST, then one
+     course per type as its mechanic lands), Sports pitches (v8 — the_box/long_haul/the_bowl authorable NOW
+     with no new mechanic; hazard pitches block on their mechanic).
+  3. Unlock progression (v6 §unlock: Settings [progression]; ArenaSelect locked cards + celebration).
+- **PENDING QA to re-check after builds:** Sports fair (neither team >65%, both goals) — the bot-fairness
+  fix was in flight this session; CONFIRM it committed (git log for "Sports: bot ball-awareness" and a
+  follow-up fairness fix) and that a bot match is fair before building Sports pitches on top.
 
-**Optional polish backlog (none blocking):**
-- Generate `assets/world/bumper_post.png` to retire the graceful grey bumper stand-in (bumper_gauntlet/
-  drop_chamber/wrecking_yard). Pre-existing art backlog.
-- Hazard follow-ups: solid moving collider (overlap-only today), metallic clang SFX, sweep-kind visual
-  check; wrecking_yard larger-sample left/right spawn-bias check; trivial `hazard_assisted` cross-stage
-  carryover cleanup; keep an eye on the_ascent occasional `underside_boosted` (3/stage, not the pathology).
-- Sunny-cluster per-level visual signature (CD #6 #2 — reserved generated-tileset upgrade).
-- Bot flee-to-heal (RETREAT half of the damage/heal loop — structurally marginal at 8s heal vs short stages).
-- Goat/ram shape prototype (non-circular collider + solidity-by-hit-position; DECISIONS 2026-07-03).
-- Audio polish: UI-click when a button .tscn exists; per-powerup activate SFX; real announcer VO.
-- Minor: atoll radial-well reads a bit linear; grassy K1 marginal (edges 57%/pit 36%); grassy median 29s.
-- Whiff-arrest fix `v1a_super_whiff_safety.md` (OPTIONAL — CD #5 ruled the whiff acceptable).
-- Historic art-fix list (far-zoom mat, real font, skull icon, black-hole vignette) — see git history.
+## Prior polish/quality backlog (behind the content initiative)
+Trials medal-time tighten (movement-bot/human run — CD flag), all-six goat readability gate (spawn 6 in a
+match), Vex corkscrew horns + goat squash/charge + super-charge poses (art pass #2, use the paste-edit
+technique [[gottabounce-chatgpt-image-paste]]), goat-themed logo/key-art, arena thumbnails + mode-card
+icons (CD #7 "tech-demo" tells), plain-button focus accent-border, Gauntlet G-BOTFOCUS + victory-drive,
+Sports 2v2/co-op presets + end-zoom empty-net, Gauntlet banner overlap, confirm gamepad-A activates shell.
+Do NOT build Puzzle mode #5 yet (CD #7: deepen the 4). match_target_kills=10 (owner-set; QA suggested 7-8).
 
 ## Watch out for (hard-won)
-- **The "native crash ~12 stages" + "fps 79→28" were BOTH REFUTED (2026-07-04) — do NOT chase them.**
-  Crash = almost certainly ZOMBIE Godot processes eating VRAM under gl_compatibility (operational, not
-  code) → always launch via `tools/run_game.ps1` (kills strays) + assert a single instance before long
-  runs. "28fps" = Windows throttling the UNFOCUSED QA window; true fps is 300-1000+, physics is fixed
-  120Hz DECOUPLED from render (never corrupts sim/feel). Full record: `docs/briefs/perf_crash_
-  investigation_2026-07-04.md` (annotated REFUTED). LESSON: confirm hypotheses EMPIRICALLY before
-  escalating/fixing — static analysis produced plausible-but-wrong suspects here.
-- **Background agents can zombie** (spawn a monitor then "wait" forever): they leave a stray game/
-  python holding port 9090 → the next run acts slow or the wrong instance answers. Kill strays
-  (`tools/stop_game.ps1` + taskkill) and verify the scene path before trusting a run.
-- **gbplay `eval` gotcha:** a `for` loop with `; return` on the same line pulls the return INTO the
-  loop (runs 1 iteration). Put `return` on its own line, or set things explicitly without a loop.
-- Windows/PowerShell/Godot: ASCII-only .ps1, `Start-Process` arg quoting (a mis-quoted --path can
-  launch the OLD sibling project which ALSO serves 9090 — verify scene path), Bash for Godot runs,
-  `dangerouslyDisableSandbox: true` on Godot shell calls. (CLAUDE.md has the full list.)
+- **RENDERED BUILDS ARE SERIALIZED:** only ONE game instance (port 9090) — never run two game-driving
+  agents at once. Boot now goes through the shell (MainMenu); to test a match directly launch
+  `res://scenes/Arena.tscn` (default GameConfig=brawl), or set `GameConfig.match_config.mode_id` via eval
+  then `get_tree().change_scene_to_file(...)`. `get_tree().current_scene` on the shell = MainMenu, NOT the match.
+- **gbplay `eval`:** context is a Node (has `get_tree()`), NOT the match — reach the match via
+  `get_tree().current_scene`. Multi-line evals run (side effects) but return null; single-expression evals
+  return values. A `for` loop with `; return` same-line pulls return into the loop.
+- **Background agents can zombie** holding port 9090 → next run acts slow/wrong. Kill strays
+  (`tools/stop_game.ps1` + taskkill); always launch via `tools/run_game.ps1`; verify scene path.
+- **The "crash ~12 stages" + "fps 79→28" were BOTH REFUTED (2026-07-04)** — do not chase; zombie procs +
+  unfocused-window throttling. Physics is fixed 120Hz decoupled from render.
+- **ChatGPT art:** attach references via clipboard Ctrl+V (STA PowerShell SetImage); edit-outputs need
+  `art.py keyout --tol 45`; download via the share-modal Download button. See [[gottabounce-chatgpt-image-paste]].
+- Windows/PowerShell/Godot: ASCII-only .ps1; `dangerouslyDisableSandbox:true` on Godot shell calls; console
+  exe `C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe`; a mis-quoted --path can launch
+  the OLD sibling project (also serves 9090 — verify scene path). (CLAUDE.md has the full list.)
