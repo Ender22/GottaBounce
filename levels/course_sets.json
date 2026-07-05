@@ -1,0 +1,11 @@
+{
+  "_comment": "Trials course sets (ordered, played once). Read by TrialsMode._load_course_set. Mirrors circuits.json. Level-designer authors courses under levels/courses/ and lists them here in difficulty order.",
+  "sets": {
+    "campaign": {
+      "display_name": "TRIALS",
+      "courses": [
+        "res://levels/courses/course_01_tank_run.json"
+      ]
+    }
+  }
+}

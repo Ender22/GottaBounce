@@ -17,9 +17,11 @@ const HUD_SCENE := preload("res://scenes/ui/TrialsHUD.tscn")
 const FALL_PENALTY := 2.0
 
 # The authored course SET (ordered, played ONCE — no loop; the match ends after the last course).
-# v1 ships ONE proof course; the level-designer authors the full battery (courses 2-3) as a follow-up.
-# (A data-driven course-set id -> levels/course_sets.json lookup mirrors circuits.json and is the
-# follow-up hook; the proof set is inlined here so this task stands alone.)
+# Data-driven: the ordered course list is read from levels/course_sets.json (mirrors circuits.json) so
+# the level-designer authors/reorders courses as DATA. PROOF_SET is the safe fallback if the data file
+# is missing/malformed or a set is empty (the mode always has at least one runnable course).
+const COURSE_SETS_PATH := "res://levels/course_sets.json"
+const DEFAULT_SET_ID := "campaign"
 const PROOF_SET: Array[String] = ["res://levels/courses/course_01_tank_run.json"]
 
 const MEDAL_COLORS := {
@@ -60,7 +62,7 @@ func configure(runner, _config: MatchConfig) -> void:
 	# existing multi-life respawn path) instead of eliminating -> ending the stage. Never a kill-race.
 	runner.lives_per_player = 99
 	runner.match_target_kills = 999999   # so a stray on_kill can never trip the kill-race match end
-	_course_set = PROOF_SET.duplicate()
+	_course_set = _load_course_set(DEFAULT_SET_ID)
 	_course_idx = 0
 	_cur_path = ""
 	_cur_medal_times = {}
@@ -170,6 +172,29 @@ func best_time() -> float:
 	return float(_best_times.get(_cur_path, 0.0))
 
 # --- internals ---
+
+## Load an ordered course list from levels/course_sets.json by set id. Keeps only course paths whose
+## file exists. Falls back to PROOF_SET on any failure so the mode is ALWAYS runnable.
+func _load_course_set(set_id: String) -> Array:
+	if FileAccess.file_exists(COURSE_SETS_PATH):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(COURSE_SETS_PATH))
+		if typeof(parsed) == TYPE_DICTIONARY:
+			var sets: Variant = (parsed as Dictionary).get("sets", {})
+			if typeof(sets) == TYPE_DICTIONARY and (sets as Dictionary).has(set_id):
+				var entry: Variant = (sets as Dictionary)[set_id]
+				var courses: Variant = (entry as Dictionary).get("courses", []) if typeof(entry) == TYPE_DICTIONARY else []
+				if typeof(courses) == TYPE_ARRAY:
+					var out: Array = []
+					for c in (courses as Array):
+						var p := str(c)
+						if FileAccess.file_exists(p):
+							out.append(p)
+						else:
+							push_warning("TrialsMode: course missing, skipped: " + p)
+					if not out.is_empty():
+						return out
+	push_warning("TrialsMode: course_sets.json unusable for set '" + set_id + "' — using proof course")
+	return PROOF_SET.duplicate()
 
 ## Read {gold,silver,bronze} from a course JSON. Returns {} on any failure (HUD shows no medal, never crashes).
 func _read_medal_times(path: String) -> Dictionary:
