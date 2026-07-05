@@ -20,6 +20,23 @@ extends Area2D
 const LAYER_MOVING_HAZARD := 1 << 4    # 16 — layer 5, distinct from instakill LAYER_HAZARDS (1<<3)
 const MASK_PLAYERS := 1 << 0
 
+# --- Glossy Toybox wrecking-ball sprite (pays down the no-code-drawn-assets debt; owner-flagged; same
+# pattern as the hammer/bomb/crusher/falling_debris wiring). A charcoal iron SPHERE with a rivet ring +
+# a small eyelet loop on top. Image is 689x772: the SPHERE fills the bottom (diameter == the 689px image
+# width) and the top ~83px is the decorative eyelet. Sphere CENTRE in image coords = (W/2, H - W/2) =
+# (344.5, 427.5) (verified from the alpha silhouette). The code-drawn ball BODY is replaced by this
+# sprite via draw_texture_rect, scaled so the visible sphere == 2*radius (small OVERSCALE so the metal
+# always covers the shove-body — fair reads) and the sphere centre pinned to `_ball_pos`. The eyelet
+# sticks straight up, which reads as the arm's attachment for the pendulum. The swept danger-arc, the
+# anchor mount and the rigid arm stay as code telegraph. ---
+const WBALL_TEX: Texture2D = preload("res://assets/hazards/wrecking_ball.png")
+const WBALL_TEX_W := 689.0
+const WBALL_TEX_H := 772.0
+const WBALL_SPHERE_DIAM := 689.0       # sphere diameter in image px (== image width)
+const WBALL_SPHERE_CX := 344.5         # sphere centre x in image px (W/2)
+const WBALL_SPHERE_CY := 427.5         # sphere centre y in image px (H - diam/2; eyelet above)
+const WBALL_OVERSCALE := 1.05          # metal slightly overhangs the shove-body radius (fair reads)
+
 # --- motion params (from JSON; all data, no Tuning) ---
 var kind: String = "pendulum"
 var pivot: Vector2 = Vector2.ZERO
@@ -139,7 +156,7 @@ func _draw() -> void:
 		# the rail + a faint danger stripe along the swept lane
 		draw_line(p0, p1, danger, 22.0)
 		draw_line(p0, p1, steel.darkened(0.2), 6.0)
-		_draw_ball(_ball_pos, steel, steel_hi)
+		_draw_ball(_ball_pos)
 		return
 	# pendulum: the swept danger-arc (faint), the anchor mount, the rigid arm, the ball.
 	var pts := PackedVector2Array()
@@ -155,13 +172,13 @@ func _draw() -> void:
 	# rigid arm
 	draw_line(pivot, _ball_pos, steel_hi, 14.0)
 	draw_line(pivot, _ball_pos, steel, 8.0)
-	_draw_ball(_ball_pos, steel, steel_hi)
+	_draw_ball(_ball_pos)
 
-func _draw_ball(c: Vector2, steel: Color, steel_hi: Color) -> void:
-	# bold, high-contrast industrial mass (readability pillar) + a rim highlight + rust bolts.
-	draw_circle(c, radius, steel)
-	draw_arc(c, radius, 0.0, TAU, 48, steel_hi, 5.0, true)
-	draw_circle(c + Vector2(-radius * 0.32, -radius * 0.32), radius * 0.22, steel_hi)
-	var rust := Color(0.45, 0.28, 0.16)
-	for a in [0.0, 1.2, 2.5, 3.9, 5.1]:
-		draw_circle(c + Vector2(cos(a), sin(a)) * radius * 0.62, 5.0, rust)
+# The ball BODY is now the wrecking_ball sprite: its metal SPHERE (image bottom, diameter
+# WBALL_SPHERE_DIAM) is centred on `c` with a visible diameter of 2*radius*OVERSCALE, and the eyelet
+# sticks up ABOVE it (reading as the arm's attachment). The full image is stretched into a rect via
+# draw_texture_rect; the top-left is derived so the sphere-centre image point lands exactly on `c`.
+func _draw_ball(c: Vector2) -> void:
+	var s := (2.0 * radius * WBALL_OVERSCALE) / WBALL_SPHERE_DIAM
+	var top_left := Vector2(c.x - WBALL_SPHERE_CX * s, c.y - WBALL_SPHERE_CY * s)
+	draw_texture_rect(WBALL_TEX, Rect2(top_left, Vector2(WBALL_TEX_W * s, WBALL_TEX_H * s)), false)

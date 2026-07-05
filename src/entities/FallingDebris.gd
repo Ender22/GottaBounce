@@ -27,6 +27,24 @@ extends Node2D
 const LAYER_HAZARDS := 1 << 3               # 8 — layer 4, the instakill hazard layer (Hazard.gd's layer)
 const MASK_TARGETS := (1 << 0) | (1 << 1)   # players (1) + enemies/props (2), matching Hazard.gd
 
+# --- Glossy Toybox wrecking-ball sprite (pays down the no-code-drawn-assets debt; owner-flagged; same
+# pattern as the hammer/bomb/crusher wiring). A charcoal iron SPHERE with a rivet ring + a small eyelet
+# loop on top. Image is 689x772: the SPHERE fills the bottom (diameter == the 689px image width) and the
+# top ~83px is the decorative eyelet. Sphere CENTRE in image coords = (W/2, H - W/2) = (344.5, 427.5)
+# (verified from the alpha silhouette: bbox bottom y=769 matches a circle of r=344.5 centred at y=427.5).
+# Each falling chunk's grey code circle BODY is replaced by this sprite via draw_texture_rect, scaled so
+# the visible sphere == 2*chunk_radius (with a small OVERSCALE so the metal always covers the lethal
+# circle — fairness) and the sphere centre pinned to the chunk's physics position (eyelet sticks up). The
+# ground shadow, the drop/warning line, the motion streak and the red hazard-rim danger arc stay as code
+# telegraph. ---
+const WBALL_TEX: Texture2D = preload("res://assets/hazards/wrecking_ball.png")
+const WBALL_TEX_W := 689.0
+const WBALL_TEX_H := 772.0
+const WBALL_SPHERE_DIAM := 689.0            # sphere diameter in image px (== image width)
+const WBALL_SPHERE_CX := 344.5              # sphere centre x in image px (W/2)
+const WBALL_SPHERE_CY := 427.5              # sphere centre y in image px (H - diam/2; eyelet above)
+const WBALL_OVERSCALE := 1.05               # metal slightly overhangs the lethal circle (fair reads)
+
 # --- config (from JSON; all data, no Tuning) ---
 var columns: Array = []              # explicit impact x's; if empty, random within [x_min, x_max]
 var x_min: float = 0.0
@@ -218,17 +236,24 @@ func _draw() -> void:
 		draw_arc(at, rx * 1.15, 0.0, TAU, 40, ring, 4.0)
 		# faint drop line from above hinting the fall path
 		draw_line(Vector2(x, spawn_y * 0.5 + floor_y * 0.5), at, Color(0.90, 0.18, 0.16, 0.10 + 0.18 * prog), 3.0)
-	# 2) each live chunk: a bold dark steel ball with a highlight + hazard rim + a short motion streak.
+	# 2) each live chunk: the wrecking_ball sprite BODY + a short motion streak + a red hazard rim.
 	for ch in _chunks:
 		var c := Vector2(float(ch["x"]), float(ch["y"]))
-		# motion streak (reads speed/direction)
+		# motion streak (reads speed/direction) — kept transient telegraph VFX
 		draw_line(c - Vector2(0, chunk_radius * 1.6), c, Color(0.10, 0.11, 0.14, 0.35), chunk_radius * 0.9)
-		draw_circle(c, chunk_radius, Color(0.15, 0.16, 0.19))
-		draw_circle(c, chunk_radius * 0.98, Color(0.20, 0.22, 0.27))
-		# bevel highlight
-		draw_circle(c - Vector2(chunk_radius * 0.32, chunk_radius * 0.32), chunk_radius * 0.34, Color(0.42, 0.45, 0.52, 0.8))
-		# hazard rim
+		# BODY: the wrecking_ball sprite (sphere == 2*chunk_radius, centred on the chunk, eyelet up)
+		_draw_wrecking_ball(c, chunk_radius)
+		# hazard rim (red danger arc) — kept transient telegraph, drawn over the sphere edge
 		draw_arc(c, chunk_radius * 0.92, 0.0, TAU, 32, Color(0.86, 0.16, 0.16, 0.85), 5.0)
+
+# Draw the wrecking_ball sprite so its metal SPHERE (image bottom, diameter WBALL_SPHERE_DIAM) is
+# centred on `c` with a visible diameter of 2*r*OVERSCALE, and the eyelet sticks up ABOVE it. The full
+# image (sphere + eyelet) is stretched into a rect via draw_texture_rect; the top-left is derived so the
+# sphere centre image point (WBALL_SPHERE_CX, WBALL_SPHERE_CY) lands exactly on `c`.
+func _draw_wrecking_ball(c: Vector2, r: float) -> void:
+	var s := (2.0 * r * WBALL_OVERSCALE) / WBALL_SPHERE_DIAM
+	var top_left := Vector2(c.x - WBALL_SPHERE_CX * s, c.y - WBALL_SPHERE_CY * s)
+	draw_texture_rect(WBALL_TEX, Rect2(top_left, Vector2(WBALL_TEX_W * s, WBALL_TEX_H * s)), false)
 
 func _draw_ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts := PackedVector2Array()

@@ -36,6 +36,18 @@ const LAYER_SURFACES := 1 << 2       # 4 — bounce_surfaces layer (matches Leve
 const LAYER_PLAYERS := 1 << 0        # 1 — the top sensor senses player bodies
 const RIDER_REACH := 118.0           # top sensor band height above the deck (~ a resting player's body)
 
+# --- Glossy Toybox flatbed-cart sprite (pays down the no-code-drawn-assets debt; owner-flagged; same
+# pattern as the hammer/bomb/crusher wiring). A rideable toy cart: a flat metal STANDING DECK across the
+# top, an orange hazard-striped body, and 4 chunky wheels below. Image is 1143x412; the metal deck plate
+# spans the full image width and its TOP FACE sits at image y~0 (verified from the alpha silhouette:
+# full-width deck band across the top rows). The code-drawn "hover-car" vehicle BODY is replaced by this
+# sprite via draw_texture_rect, scaled so the deck spans the collider width `w` and the image TOP aligns
+# with the deck collider's TOP edge (local -hh, the standing surface); the striped body + wheels hang
+# below the collider. The bounce-deck variant (_draw_deck) is UNCHANGED. ---
+const CART_TEX: Texture2D = preload("res://assets/hazards/flatbed_cart.png")
+const CART_TEX_W := 1143.0
+const CART_TEX_H := 412.0
+
 # --- geometry / motion params (from JSON; all data, no Tuning) ---
 var w: float = 420.0
 var h: float = 48.0
@@ -239,31 +251,13 @@ func _draw_deck() -> void:
 func _draw_vehicle() -> void:
 	var hw := w * 0.5
 	var hh := h * 0.5
-	# a low-slung futuristic hover-car: chassis deck (you stand on the top), a swept cabin, a glowing
-	# thruster skirt, and running lights. The COLLIDER is the flat deck; the art bleeds below it.
-	# drop shadow
+	# The vehicle BODY is now the flatbed_cart sprite. The COLLIDER is the flat top deck; the striped
+	# body + wheels bleed below it. drop shadow kept as a grounding VFX.
 	draw_rect(Rect2(Vector2(-hw, -hh + 10.0), Vector2(w, h + 40.0)), Color(0.03, 0.05, 0.09, 0.30))
-	# lower chassis (extends below the collider)
-	var chassis := PackedVector2Array([
-		Vector2(-hw, -hh), Vector2(hw, -hh),
-		Vector2(hw - 26.0, hh + 44.0), Vector2(-hw + 26.0, hh + 44.0),
-	])
-	draw_colored_polygon(chassis, STEEL)
-	# thruster skirt glow underneath
-	draw_rect(Rect2(Vector2(-hw + 30.0, hh + 30.0), Vector2(w - 60.0, 14.0)), Color(NEON.r, NEON.g, NEON.b, 0.55))
-	# swept cabin fin toward the rear (reads a travel silhouette without hiding the standing surface)
-	var cabin := PackedVector2Array([
-		Vector2(-hw + 30.0, -hh), Vector2(-hw + 96.0, -hh - 42.0),
-		Vector2(-hw + 150.0, -hh),
-	])
-	draw_colored_polygon(cabin, STEEL_HI)
-	# top deck plate (the standing surface)
-	draw_rect(Rect2(Vector2(-hw, -hh), Vector2(w, 12.0)), DECK)
-	draw_rect(Rect2(Vector2(-hw, -hh), Vector2(w, 4.0)), RAIL)
+	# BODY: deck spans the collider width `w`; image TOP (the metal deck plate's top face) aligns with
+	# the deck collider's TOP edge (-hh, the standing surface). Wheels/body hang below.
+	var s := w / CART_TEX_W
+	draw_texture_rect(CART_TEX, Rect2(Vector2(-hw, -hh), Vector2(w, CART_TEX_H * s)), false)
+	# tier-colored bounce mat, if this deck is authored as a moving trampoline (unchanged identity read)
 	if has_meta("bounce_tier_height") or has_meta("bumper"):
 		draw_rect(Rect2(Vector2(-hw, -hh), Vector2(w, 6.0)), Color(1.0, 0.85, 0.2))
-	# running lights along the flank
-	for i in range(5):
-		var lx := lerpf(-hw + 40.0, hw - 40.0, float(i) / 4.0)
-		draw_circle(Vector2(lx, hh + 6.0), 5.0, NEON)
-	draw_polyline(chassis, STEEL_HI, 2.0)
