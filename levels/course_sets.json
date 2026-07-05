@@ -13,13 +13,16 @@
     },
     "varied": {
       "display_name": "TRIALS: CHALLENGES",
-      "_comment": "v7 objective-type proof set: one course per new challenge type (ramps control -> rhythm -> management -> brain-teaser). Fuller 8-course battery is a later level-design wave.",
+      "_comment": "v7 objective-type battery, 8 courses, ordered mild->wild: control (PRECISION/COLLECT) -> route-under-motion (COLLECT+cart) -> rhythm (SURVIVE hammer -> SURVIVE dual-crusher) -> management (DESTROY) -> brain-teaser (PHYSICS direct -> PHYSICS bank capstone). t_cart_convoy / t_crush_corridor / t_bank_shot are the wave-2 additions. PROVISIONAL medal thresholds -- flagged for a movement-bot tuning pass.",
       "courses": [
-        "res://levels/courses/t_token_dash.json",
         "res://levels/courses/t_pinpoint.json",
+        "res://levels/courses/t_token_dash.json",
+        "res://levels/courses/t_cart_convoy.json",
         "res://levels/courses/t_hammer_vigil.json",
+        "res://levels/courses/t_twin_hammers.json",
         "res://levels/courses/t_breakout_box.json",
-        "res://levels/courses/t_ball_cannon.json"
+        "res://levels/courses/t_ball_cannon.json",
+        "res://levels/courses/t_bank_shot.json"
       ]
     }
   }
