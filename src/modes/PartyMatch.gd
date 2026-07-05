@@ -55,6 +55,7 @@ const MODE_REGISTRY := {
 	&"brawl": preload("res://src/modes/BrawlMode.gd"),
 	&"trials": preload("res://src/modes/TrialsMode.gd"),
 	&"gauntlet": preload("res://src/modes/GauntletMode.gd"),
+	&"sports": preload("res://src/modes/SportsMode.gd"),
 }
 # Front-end shell hooks (v1_frontend_shell §5): pause overlay + return-to-menu on quit.
 const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
@@ -370,6 +371,11 @@ func _begin_stage() -> void:
 		p.visible = false
 		_hud.set_dead(i, false)
 	_stage_start_alive = players.size()
+	# NEW (v5_sports, additive). After players are placed + the wave block, a mode may spawn/re-center a
+	# stage-scoped PROP (SPORTS re-spawns the Ball at kickoff). BRAWL/TRIALS/GAUNTLET inherit the base
+	# no-op -> this call does literally nothing for them -> byte-for-byte parity (same guarantee as
+	# wave_spawn_plan). This is the ENTIRE runner delta for SPORTS: one no-op seam + this one call site.
+	_mode.on_stage_ready(self)
 	state = "STAGE_INTRO"
 	if _tiebreaker_next:
 		_tiebreaker_next = false

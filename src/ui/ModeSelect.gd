@@ -13,7 +13,7 @@ const MODES := [
 	{"id": "gauntlet", "name": "GAUNTLET", "tag": "Hold the line. They keep coming, you keep flying.",
 		"color": Color("#a15fff"), "glyph": "G", "soon": false},
 	{"id": "sports", "name": "SPORTS", "tag": "Headbutt the ball, not each other. (Okay, each other too.)",
-		"color": Color("#ff7a2d"), "glyph": "S", "soon": true},
+		"color": Color("#ff7a2d"), "glyph": "S", "soon": false},
 ]
 
 @onready var _row: HBoxContainer = $CardRow

@@ -1,0 +1,31 @@
+{
+  "name": "Sports Court",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "design_intent": "SPORTS pitch (docs/specs/v5_sports_mode.md §5). A SYMMETRIC, two-goal, all-bouncy enclosed court for the bounce-ball mode: NO flat standable ground (a full-width TRAMPOLINE floor keeps players + ball in constant motion, Pillar 2), bumper side walls with a mid-height GOAL MOUTH each end, a goal_zone just inside each mouth (team:0 left / team:1 right) with a bumper BACK WALL behind it so a scored ball can't leave bounds, a bumper CEILING to seal the top, and two free-standing bumpers for carom chaos. Zero powerup_spawners (disables the powerup director, TRIALS' trick).\n\nFLIGHT GATE (GAME_ESSENCE Rule A): the pitch is CENTER x=1400. End spawns sit at x=500/700 (left) and x=2100/2300 (right); the ball kicks off at centre (1400, ~800). Nearest-spawn-to-centre horizontal distance is 700px (x700->1400) and 900px (x500->1400), and centre-to-goal is ~1160px (x1400->x240). Both exceed the 527px max spring drift and far exceed the 395px trampoline drift, so reaching the ball at centre and pressing it to the far goal REQUIRE boost (a zero-boost bounce-hop falls short). Movement is load-bearing, not scenery. kill_shape 'sports_court' is cosmetic (enclosed pitch, players never ring out into a void; high lives respawn any rare escape).\n\nGEOMETRY: interior x290..2510, floor top y=1350 (trampoline), ceiling bottom y=210 (bumper). Left wall x200..290 split into y210..650 + y950..1350, leaving a 300px goal mouth at y650..950; left back wall x60..140 seals the pocket; goal_zone (team 0, RED defends) centred x=240 y=800 140x300. Right side mirrored (right wall x2510..2600, back wall x2660..2740, goal_zone team 1 x=2560). Two interior bumpers (x1000 y380 / x1660 y1080) reshape airborne lines between centre and each goal. Bounds 0..2800 x, 0..1600 y enclose everything.",
+  "sky_top": "#123a5c",
+  "sky_bottom": "#1f6ea8",
+  "bounds": { "left": 0, "right": 2800, "top": 0, "bottom": 1600 },
+  "platforms": [
+    { "x": 200,  "y": 1350, "w": 2400, "h": 120, "tier": "trampoline" },
+    { "x": 200,  "y": 130,  "w": 2400, "h": 80,  "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 200,  "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 60,   "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" },
+    { "x": 2510, "y": 210,  "w": 90,   "h": 440, "tier": "bumper" },
+    { "x": 2510, "y": 950,  "w": 90,   "h": 400, "tier": "bumper" },
+    { "x": 2660, "y": 210,  "w": 80,   "h": 1140,"tier": "bumper" },
+    { "x": 1000, "y": 380,  "w": 140,  "h": 120, "tier": "bumper" },
+    { "x": 1660, "y": 1080, "w": 140,  "h": 120, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0 },
+    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1 },
+    { "type": "player_spawn", "x": 500,  "y": 1150 },
+    { "type": "player_spawn", "x": 700,  "y": 950 },
+    { "type": "player_spawn", "x": 2300, "y": 1150 },
+    { "type": "player_spawn", "x": 2100, "y": 950 }
+  ]
+}

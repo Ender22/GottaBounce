@@ -77,6 +77,13 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				var gg := GoalGate.new()
 				gg.setup_from_json(o)
 				parent.add_child(gg)
+			"goal_zone":
+				# v5_sports_mode.md §3 (SPORTS): the team-tagged goal-mouth trigger. Area2D on the BALL
+				# layer; first overlap latches `scored` and (group "goal_zone") ends the stage via
+				# SportsMode.is_stage_over. Mirrors the goal_gate case above.
+				var gz := GoalZone.new()
+				gz.setup_from_json(o)
+				parent.add_child(gz)
 			"powerup_spawner":
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))

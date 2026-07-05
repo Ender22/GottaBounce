@@ -1,0 +1,206 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/SportsHUD.gd" id="1_hud"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[node name="SportsHUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="RedPanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 0.0
+anchor_top = 0.0
+offset_left = 40.0
+offset_top = 28.0
+grow_horizontal = 1
+theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+
+[node name="RedBox" type="VBoxContainer" parent="Root/RedPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 0
+
+[node name="RedName" type="Label" parent="Root/RedPanel/RedBox"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "RED"
+horizontal_alignment = 1
+
+[node name="RedScore" type="Label" parent="Root/RedPanel/RedBox"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+theme_override_font_sizes/font_size = 96
+text = "0"
+horizontal_alignment = 1
+
+[node name="RedCap" type="Label" parent="Root/RedPanel/RedBox"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "TO 5"
+horizontal_alignment = 1
+
+[node name="BluePanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 0.0
+offset_left = -260.0
+offset_top = 28.0
+offset_right = -40.0
+grow_horizontal = 0
+theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+
+[node name="BlueBox" type="VBoxContainer" parent="Root/BluePanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 0
+
+[node name="BlueName" type="Label" parent="Root/BluePanel/BlueBox"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "BLUE"
+horizontal_alignment = 1
+
+[node name="BlueScore" type="Label" parent="Root/BluePanel/BlueBox"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+theme_override_font_sizes/font_size = 96
+text = "0"
+horizontal_alignment = 1
+
+[node name="BlueCap" type="Label" parent="Root/BluePanel/BlueBox"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "TO 5"
+horizontal_alignment = 1
+
+[node name="GoalFlash" type="ColorRect" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.294118, 0.415686, 0)
+
+[node name="GoalFlashLabel" type="Label" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.3
+anchor_right = 0.5
+anchor_bottom = 0.3
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"BannerCenter"
+theme_override_font_sizes/font_size = 150
+text = "GOAL!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopBand" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 190.0
+offset_bottom = 300.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="TopCenter" type="CenterContainer" parent="Root/TopBand"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBanner" type="Label" parent="Root/TopBand/TopCenter"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerTop"
+text = ""
+horizontal_alignment = 1
+
+[node name="CenterC" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterBox" type="VBoxContainer" parent="Root/CenterC"]
+visible = false
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="CenterText" type="Label" parent="Root/CenterC/CenterBox"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+text = ""
+horizontal_alignment = 1
+
+[node name="CenterSub" type="Label" parent="Root/CenterC/CenterBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+text = ""
+horizontal_alignment = 1
+
+[node name="CenterPrompt" type="Label" parent="Root/CenterC/CenterBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerPrompt"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchPanel" type="PanelContainer" parent="Root/CenterC"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+
+[node name="MatchBox" type="VBoxContainer" parent="Root/CenterC/MatchPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="MatchText" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchSub" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+text = ""
+horizontal_alignment = 1
+
+[node name="MatchPrompt" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BannerPrompt"
+text = ""
+horizontal_alignment = 1

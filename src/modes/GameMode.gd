@@ -54,6 +54,13 @@ func polls_goal() -> bool:
 func wave_spawn_plan(_runner) -> Array:
 	return []
 
+## Additive seam (v5_sports): called at the TAIL of PartyMatch._begin_stage(), after players are placed
+## and the wave_spawn_plan block, so a mode can spawn/re-center a stage-scoped PROP (SPORTS re-spawns the
+## Ball at kickoff). BRAWL/TRIALS/GAUNTLET inherit this no-op -> byte-for-byte parity (the identical
+## argument that protects C7 for wave_spawn_plan). SPORTS is the only override.
+func on_stage_ready(_runner) -> void:
+	pass
+
 ## Scoring hook applied on every death. BRAWL: +1 credited kill / -1 self-fall floored at 0.
 func on_kill(_runner, _killer_idx: int, _victim_idx: int, _cause) -> void:
 	pass

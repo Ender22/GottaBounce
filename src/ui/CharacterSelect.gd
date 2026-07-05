@@ -42,6 +42,7 @@ var _cards: Array[Button] = []
 var _steppers: Array = []
 var _trials := false      # TRIALS is solo (no bot/kills/lives strip; lock-in launches the run directly)
 var _gauntlet := false    # GAUNTLET is solo too (waves spawn dynamically; lock-in launches directly)
+var _sports := false      # SPORTS is a team preset (1v1: 1 human + 1 bot; single mode-owned arena)
 var _current := 0
 var _locked := false
 var _pose_rest := Vector2.ZERO
@@ -51,6 +52,7 @@ var _spinning := false
 func _ready() -> void:
 	_trials = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"trials"
 	_gauntlet = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"gauntlet"
+	_sports = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"sports"
 	# build the 2x3 hero grid
 	for i in range(HEROES.size()):
 		var h: Dictionary = HEROES[i]
@@ -70,7 +72,7 @@ func _ready() -> void:
 	# match-settings strip. TRIALS is solo (1 human, no bots, no kill target) — HIDE the strip and skip
 	# its focus wiring; a hero lock-in launches the run directly (see _go_arena). BRAWL keeps the strip.
 	register(_back, 1.05)
-	if _trials or _gauntlet:
+	if _trials or _gauntlet or _sports:
 		var tray := get_node_or_null("SettingsTray")
 		if tray != null:
 			(tray as CanvasItem).visible = false
@@ -282,6 +284,17 @@ func _go_arena() -> void:
 		cfg.human_count = 1
 		cfg.bot_count = 0
 		cfg.lives_per_player = 4
+		shell.launch_match()
+	elif _sports:
+		# SPORTS skips ArenaSelect (single mode-owned pitch) and launches straight in: a 1v1 preset
+		# (1 human + 1 bot = even total 2). SportsMode overrides skins by team colorway + forces the
+		# runner economy inert; kills_to_win is reused as the goal cap (default 5).
+		var cfg: MatchConfig = GameConfig.match_config
+		cfg.mode_id = &"sports"
+		cfg.human_count = 1
+		cfg.bot_count = 1
+		cfg.arena_mode = MatchConfig.ArenaMode.SINGLE
+		cfg.single_arena_path = "res://levels/sports_court.json"
 		shell.launch_match()
 	else:
 		shell.go_forward("arena")
