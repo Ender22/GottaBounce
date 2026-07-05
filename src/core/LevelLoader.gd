@@ -71,6 +71,12 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# MovingHazard phase-clock motion but its head instakills on contact via the EXISTING
 				# kill pipeline (kill(&"ring_out")) — the SAME path spikes/Hazard.gd use, NOT a shove.
 				_build_spinning_hammer(o, parent)
+			"destructible_block":
+				# v6_party_gimmicks_circuits.md §2.5 + §2.8: a bounce-tier SURFACE with HP / a timed
+				# erosion trigger that BREAKS and disappears (telegraphed cracks + shudder first), so
+				# footing is lost. NOT a hazard — the void/fall is the killer (§2.0 credit unchanged).
+				# The COLLAPSING ARENA (meltdown_box.json) is a full floor of these on a timed cascade.
+				_build_destructible_block(o, parent)
 			"start_gate":
 				# v3_content_plan B.3 (TRIALS): the run's spawn + respawn point. Reuses the existing
 				# spawn path — appended as a spawn so _spawn_at(0) / the multi-life respawn use it.
@@ -195,3 +201,12 @@ static func _build_spinning_hammer(o: Dictionary, parent: Node2D) -> void:
 	var h := SpinningHammer.new()
 	h.setup_from_json(o)
 	parent.add_child(h)
+
+## v6_party_gimmicks_circuits.md §2.5/§2.8: build a destructible_block from JSON. It self-renders
+## (steel body + tier mat + crack/shudder telegraphy) and self-clocks its timed erosion off
+## EventBus.combat_started; on break it disables its collider (footing lost) and vanishes. Its bounce
+## contract is IDENTICAL to a normal platform (tier meta), so BounceResolver reads it unchanged.
+static func _build_destructible_block(o: Dictionary, parent: Node2D) -> void:
+	var b := DestructibleBlock.new()
+	b.setup_from_json(o)
+	parent.add_child(b)
