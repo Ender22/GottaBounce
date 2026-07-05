@@ -78,14 +78,18 @@ func _load_circuit_cards() -> Array:
 		for s in range(3):
 			stars += "*" if s < diff else "."
 		var unlocked: bool = Settings.is_circuit_unlocked(str(cid))
-		var name_text: String
+		# The circuit NAME reads as the name; the arenas-count (unlocked) or the unlock hint (locked)
+		# goes into the smaller TAG/subtitle slot so a long "WIN X TO UNLOCK" wraps inside the card
+		# instead of overflowing the name band (frontend card grammar: name + optional tagline).
+		var tag_text: String
 		if unlocked:
-			name_text = "%s\n%s  %d arenas" % [display, stars, count]
+			tag_text = "%s  %d arenas" % [stars, count]
 		else:
-			name_text = "%s\n%s" % [display, _lock_hint(str(cid))]
+			tag_text = _lock_hint(str(cid))
 		out.append({
 			"circuit_id": str(cid),
-			"name": name_text,
+			"name": display,
+			"tag": tag_text,
 			"color": CIRCUIT_COLORS.get(str(cid), MenuFX.ACCENT_PINK),
 			"circuit": true,
 			"locked": not unlocked,
@@ -130,7 +134,7 @@ func _ready() -> void:
 		# No taglines on arena tiles (only RANDOM had one, and it clipped on the short card) — the
 		# name band is reserved for 2 lines so 1- and 2-line names align to the same tile height.
 		card.set_card({
-			"name": a["name"], "tag": "", "color": a["color"],
+			"name": a["name"], "tag": a.get("tag", ""), "color": a["color"],
 			"glyph": a.get("glyph", ""), "art": thumb,
 		})
 		if thumb != null:
