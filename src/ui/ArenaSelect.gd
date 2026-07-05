@@ -9,6 +9,10 @@ extends MenuScreen
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
 const CIRCUITS_PATH := "res://levels/circuits.json"
+# Baked wide arena thumbnails (frontend_visual_polish.md §3b), one per arena id, produced offline by
+# tools/ThumbBaker.tscn. Loaded (not preloaded) + existence-guarded so a missing bake just falls back
+# to the themed gradient tile — never a parse failure. "_random" is the RANDOM card's shuffle collage.
+const THUMB_DIR := "res://assets/ui/thumbs"
 
 # Per-circuit accent (circuits.json carries no colour; keep the spread-palette convention). Keyed by
 # circuit id so a new circuit just needs an entry here (else falls back to the RANDOM pink).
@@ -98,6 +102,19 @@ func _lock_hint(cid: String) -> String:
 		return "%d MORE MATCH%s TO UNLOCK" % [remaining, "" if remaining == 1 else "ES"]
 	return "WIN %s TO UNLOCK" % pred_name
 
+## Baked thumbnail for a card, or null (falls back to the themed gradient tile). Circuit cards get
+## none (they play a rotation, not one arena); RANDOM gets the shuffle collage; an arena gets its bake.
+func _thumb_for(a: Dictionary) -> Texture2D:
+	if bool(a.get("circuit", false)):
+		return null
+	var id := "_random" if bool(a.get("random", false)) else str(a.get("path", "")).get_file().get_basename()
+	if id == "":
+		return null
+	var path := "%s/%s.png" % [THUMB_DIR, id]
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
 func _ready() -> void:
 	var all: Array = _load_circuit_cards()
 	all.append(RANDOM)
@@ -106,12 +123,23 @@ func _ready() -> void:
 		var card: Button = CARD.instantiate()
 		card.custom_minimum_size = Vector2(340, 210)
 		_grid.add_child(card)
+		# Baked arena thumbnail (or the RANDOM shuffle collage) -> the card Art slot, mirroring the
+		# ModeSelect MODE_ART pattern (set_art auto-hides the placeholder glyph). Circuits have no
+		# per-arena thumb (they play a rotation); they keep the themed gradient plate.
+		var thumb := _thumb_for(a)
 		# No taglines on arena tiles (only RANDOM had one, and it clipped on the short card) — the
 		# name band is reserved for 2 lines so 1- and 2-line names align to the same tile height.
 		card.set_card({
 			"name": a["name"], "tag": "", "color": a["color"],
-			"glyph": a.get("glyph", ""),
+			"glyph": a.get("glyph", ""), "art": thumb,
 		})
+		if thumb != null:
+			# opaque map-select thumbnails COVER the plate (full-bleed, cropped) rather than the
+			# transparent-diorama KEEP_ASPECT_CENTERED the scene defaults to; the themed accent border +
+			# gradient still frame it via the plate's chocolate outline + 10px inset (§3b).
+			var art := card.get_node_or_null("Content/VBox/Plate/Art")
+			if art is TextureRect:
+				(art as TextureRect).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		var plate := card.get_node_or_null("Content/VBox/Plate")
 		if plate is Control:
 			(plate as Control).custom_minimum_size = Vector2(0, 60)
@@ -123,7 +151,10 @@ func _ready() -> void:
 		_cards.append(card)
 		if bool(a.get("locked", false)) and card.has_method("set_locked"):
 			card.set_locked(true)
-		if bool(a.get("random", false)):
+		# RANDOM (§3b hierarchy fix): the old rainbow gradient + spinning "?" was the flashiest tile on
+		# the screen, out-shining the real arenas. It now wears a calm 3-arena shuffle collage (baked as
+		# _random.png). If that collage is missing, fall back to the rainbow so it never reads as blank.
+		if bool(a.get("random", false)) and thumb == null:
 			card.set_plate_rainbow()
 			_spin_glyph(card)
 	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger)
