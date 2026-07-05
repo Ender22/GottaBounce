@@ -89,6 +89,13 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# is lethal on contact via the EXISTING kill pipeline (kill(&"ring_out")), and despawns on
 				# landing / off-screen. Same lethal-contact + phase-clock plumbing as spinning_hammer.
 				_build_falling_debris(o, parent)
+			"bomb":
+				# v6_party_gimmicks_circuits.md §2.4 + v8_sports_courts.md §3.2: a LETHAL radial-blast
+				# hazard (fuse bomb / proximity landmine). On detonation it instakills bodies in its inner
+				# kill radius via the EXISTING kill pipeline (kill(&"ring_out") — NOT a shove) and applies
+				# a radial KNOCKBACK to players/props (Forces, the shipped explosion form) + a PUNT to the
+				# sports Ball (Ball.receive_hazard_impulse). Telegraphed fuse/blink + warning ring; recurs.
+				_build_bomb(o, parent)
 			"start_gate":
 				# v3_content_plan B.3 (TRIALS): the run's spawn + respawn point. Reuses the existing
 				# spawn path — appended as a spawn so _spawn_at(0) / the multi-life respawn use it.
@@ -110,7 +117,7 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 			"powerup_spawner":
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))
-			"physics_prop", "bomb", "container", "physics_structure", \
+			"physics_prop", "container", "physics_structure", \
 			"gravity_source", "moving_platform", "fan":
 				# v0: these entity types are not ported yet — skip cleanly so old levels still load.
 				push_warning("LevelLoader: '%s' not ported in v0 — skipped (%s)" % [otype, path])
@@ -239,3 +246,13 @@ static func _build_falling_debris(o: Dictionary, parent: Node2D) -> void:
 	var d := FallingDebris.new()
 	d.setup_from_json(o)
 	parent.add_child(d)
+
+## v6_party_gimmicks_circuits.md §2.4 + v8_sports_courts.md §3.2: build a LETHAL bomb/landmine from JSON.
+## It self-renders (casing + fuse blink + expanding warning ring showing the exact lethal radius) and
+## self-clocks; on detonation it instakills bodies in its inner kill radius via the existing kill
+## pipeline (NO new death impulse) and applies a radial KNOCKBACK to players/props (Forces) + a PUNT to
+## the sports Ball (receive_hazard_impulse). Sibling of _build_spinning_hammer / _build_crusher.
+static func _build_bomb(o: Dictionary, parent: Node2D) -> void:
+	var b := Bomb.new()
+	b.setup_from_json(o)
+	parent.add_child(b)

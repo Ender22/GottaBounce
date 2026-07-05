@@ -108,6 +108,17 @@ func _drive_from(p: Player) -> void:
 	linear_velocity += strike_dir * mag / maxf(mass, 0.01)
 	linear_velocity = linear_velocity.limit_length(BALL_MAX_SPEED)
 
+## The ONE mode-owned hazard->ball entry point (v8_sports_courts.md §3.1). A hazard (bomb blast,
+## hammer whack, debris drop, crusher eject) calls this to punt the ball; it is the SAME impulse form
+## `_drive_from` uses internally (`velocity += impulse / mass`, then re-cap to BALL_MAX_SPEED = 2400),
+## which is the FEEL_REFERENCE §4.1 "explosion on props" math verbatim. Keeping ALL ball-force logic
+## here behind one method means hazards never reach into ball-physics constants — they just call this.
+## The 2400 cap guarantees even a point-blank blast stays chaseable (a hazard can't fling the ball
+## into an untrackable blur). NOT a Tuning feel constant — mode-owned, alongside the drive constants.
+func receive_hazard_impulse(impulse: Vector2) -> void:
+	linear_velocity += impulse / maxf(mass, 0.01)
+	linear_velocity = linear_velocity.limit_length(BALL_MAX_SPEED)
+
 ## Glossy team-neutral hero ball: chocolate outline, white body, gold seam ring, bright shine dot.
 class BallGloss:
 	extends Node2D

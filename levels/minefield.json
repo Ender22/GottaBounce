@@ -1,0 +1,38 @@
+{
+  "name": "Minefield",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MINEFIELD — the PROOF level for the bomb/landmine LETHAL gimmick (v6_party_gimmicks_circuits.md §2.4 + §2.0 lethal doctrine). A single wide industrial floor over ONE full-width lethal void, seeded with a SYMMETRIC field of proximity LANDMINES plus one central periodic FUSE bomb. Kill identity stays 'get knocked/splatted off into the void': step on a mine and you DIE in its inner kill radius (via the EXISTING kill(&ring_out) pipeline — the same path spikes/hammer use, NOT a shove), OR the blast KNOCKS you (and anyone nearby) outward toward the side voids for a ring-out. The money play is to bait/knock a rival onto a live mine or into a blast (credited via the 6s ring-out window). kill_shape = void_is_floor -> QA uses K1' (off-screen + blast kills; low uncredited self-fall).\n\nDOCTRINE FIT (§2.0): (1) LETHAL — a mine detonation instakills every live body in its INNER kill radius via kill(&ring_out); the blast's only new force is a radial KNOCKBACK (the shipped Forces explosion form + Ball.receive_hazard_impulse for the ball), no new death path/scorer. (2) TELEGRAPHY — each landmine shows a faint pulsing TRIGGER-RING while armed; on trip it BEEPS + BLINKS at an accelerating rate and paints an EXPANDING warning ring that grows to the exact lethal radius over telegraph_lead (0.75s) before it blows; the central fuse bomb counts a visible fuse. You always see where + when it is lethal and can clear the ring -> DODGEABLE. (3) FAIRNESS — the blast radius is finite + telegraphed; mines are in SYMMETRIC pairs about the arena centre (x=1800) and kept clear of all spawns (nearest mine >= 400px from the nearest spawn, well outside the 190px trigger ring, so nobody spawns on a live trigger); every player faces the identical field. (4) CREDIT — a mine kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival who knocked/tagged the victim onto the mine / into the blast within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. No invented environment scorer.\n\nGEOMETRY (symmetric about x=1800): ONE wide trampoline floor x300..3300 (w3000, top y1080) over ONE full-width lethal void (rim y1260). Knocked off either END (x<300 or x>3300) = ring-out into the void; a mine's inner kill radius is a direct instakill. LANDMINES (proximity, recur 6s) in symmetric pairs: A at x=1150 / x=2450, B at x=1500 / x=2100 (all centre y=1030, sitting on the floor). One central FUSE bomb at x=1800 y=1030 (periodic, fuse_s 3.0, recur 4.0) that blows on a steady beat = the guaranteed chaos pulse at dead centre. Spawns at the CLEAR far ends (x=450/750 left, x=2850/3150 right) + none under a trigger ring. Bounds -300..3900 x (side blast lines ~600px outside the floor ends), top -1200, bottom 1900 (>= ~690px recovery sky under the floor bottom y1208).\n\nSIGNATURE / DISTINCT: this is the first RADIAL-BLAST hazard (hammer=sweeping arc, crusher=slamming plates, debris=falling drops; the mine is a stationary radial pop). One-sentence read: 'dance across the mine seeds, bait rivals onto them, ride the central fuse-bomb's pulse.' Mines both KILL (inner radius) and KNOCK (outer radius) -> dodge/knockback chaos. VOID READS AS DEATH via the pit_void_rendering treatment (dark bottomless gradient + canyon walls + under-lip AO + hazard-red rim/chevrons).",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#5A5048",
+  "sky_bottom": "#B0A290",
+  "bounds": { "left": -300, "right": 3900, "top": -1200, "bottom": 1900 },
+  "platforms": [
+    { "x": 300, "y": 1080, "w": 3000, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -300, "y": 1260, "w": 4200, "h": 640, "wall_px": 120 },
+
+    { "type": "bomb", "trigger": "proximity", "x": 1150, "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 190, "telegraph_lead": 0.75, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 2450, "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 190, "telegraph_lead": 0.75, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 1500, "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 190, "telegraph_lead": 0.75, "recur": 6.0 },
+    { "type": "bomb", "trigger": "proximity", "x": 2100, "y": 1030,
+      "blast_radius": 300, "kill_radius": 150, "trigger_radius": 190, "telegraph_lead": 0.75, "recur": 6.0 },
+
+    { "type": "bomb", "trigger": "fuse", "x": 1800, "y": 1030,
+      "blast_radius": 340, "kill_radius": 170, "fuse_s": 3.0, "telegraph_lead": 1.2, "recur": 4.0 },
+
+    { "type": "player_spawn", "x": 450,  "y": 1000 },
+    { "type": "player_spawn", "x": 750,  "y": 1000 },
+    { "type": "player_spawn", "x": 2850, "y": 1000 },
+    { "type": "player_spawn", "x": 3150, "y": 1000 },
+
+    { "type": "powerup_spawner", "x": 900,  "y": 900 },
+    { "type": "powerup_spawner", "x": 2700, "y": 900 }
+  ]
+}
