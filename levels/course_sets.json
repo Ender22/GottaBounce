@@ -4,7 +4,11 @@
     "campaign": {
       "display_name": "TRIALS",
       "courses": [
-        "res://levels/courses/course_01_tank_run.json"
+        "res://levels/courses/course_01_tank_run.json",
+        "res://levels/courses/course_02_fuel_line.json",
+        "res://levels/courses/course_03_stepping_stones.json",
+        "res://levels/courses/course_04_pendulum_pass.json",
+        "res://levels/courses/course_05_the_climb.json"
       ]
     }
   }

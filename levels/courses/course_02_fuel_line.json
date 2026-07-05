@@ -1,0 +1,25 @@
+{
+  "name": "Fuel Line",
+  "version": 3,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "TRIALS course 2 of 5 (v3_content_plan PART B; productizes v1_movement_courses.md Course 1 'Tank Run' as the JETPACK GAP-CHAINING + FUEL-ECONOMY lesson). MOVEMENT LESSON: chain a long series of boost-crossings across escalating gaps while BANKING fuel by double-bouncing each pad (+20/bounce, fuel_per_bounce), closing with a SUPER-only final leap. Harder than course_01 (more legs, gaps escalate 620->700, tighter fuel), same horizontal A->B shape.\n\nDERIVED vs CURRENT Tuning.gd (NOT stale v1): trampoline apex 270px, spring 480px, air_drift_max 340px/s, gravity 1600 => zero-boost SAME-HEIGHT drift = ~395px off a trampoline / ~527px off a spring (the MAX any bounce can drift). normal_boost_max 760px/s, drain fuel_max/tank_seconds = 100/3.5 = 28.6/s, so ~26.5 px per fuel unit flat-out; a bounce refunds +20. super_boost_impulse_full 2800 (straight-up rise 2800^2/(2*1600)=2450px; flat range at 45deg 2800^2/1600=4900px).\n\nLAYOUT: start pad (left) + five tiny trampoline stepping pads over one full-width lethal void + a wide goal pad (right, dropped 180px). Gaps (edge-to-edge): 620 / 660 / 700 / 640 / 700, then a FINAL SUPER GAP of 1400px to the goal pad. Heights wobble 980-1020 so the run reads, then the goal drops to 1180 so a super's gravity arc lands on it.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight-required proof, GAME_ESSENCE Rule A):\n- Gaps 1-5 (620/660/700/640/700px, all same-ish height): every one > 527 (max spring drift) and >> 395 (trampoline drift). A zero-boost bounce falls ~230-300px short and drops into the void. NORMAL BOOST REQUIRED each leg (~0.85-0.95s @760 => ~24-28 fuel/leg). Verb: FLY. (Rule A.)\n- FUEL ECONOMY (the lesson): five boost-legs cost ~130 fuel but the tank holds 100; you MUST double-bounce each pad to bank +40 and fly tight arcs (a greedy continuous-boost run drains ~pad 4 and drops into the void by design, mirroring Tank Run F1). Verb: FLY + BANK.\n- FINAL GAP (1400px, goal pad 180px lower): 1400px @760 = 1.84s = ~53 fuel of sustained boost, which you do NOT have banked after five legs — the reliable clear is a SUPER (dumps the tank, 2800 impulse, easily crosses 1400 with the 180px drop giving the arc room). >> any bounce reach. Verb: SUPER (or a perfectly-banked normal boost). (Rule A + economy gate.)\n- No pad-to-pad bounce path exists: every gap exceeds a spring's 527px reach, so a body reaches the next pad ONLY by boosting. Horizontal distance is load-bearing, not scenery.\n\nKILL: full-width display void; falling below the derived bottom blast line rings out -> TrialsMode respawns at start_gate + adds +2.0s (NOT elimination). Bounds DERIVED from play_rect (no override): side clamps to ~720 (wide level), bottom = lowest pad +670, top = highest pad -2650.\n\nMEDAL TIMES (ROUGH, re-derived + drive-checked): a clean managed run boosts 5 legs (~0.9s each) double-bouncing to bank, then supers the finale => ~9-12s skilled. gold 11.0 / silver 16.0 / bronze 24.0.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "platforms": [
+    { "x": 0,    "y": 1000, "w": 360, "h": 128, "tier": "trampoline" },
+    { "x": 980,  "y": 980,  "w": 150, "h": 128, "tier": "trampoline" },
+    { "x": 1790, "y": 1010, "w": 150, "h": 128, "tier": "trampoline" },
+    { "x": 2640, "y": 980,  "w": 150, "h": 128, "tier": "trampoline" },
+    { "x": 3430, "y": 1020, "w": 150, "h": 128, "tier": "trampoline" },
+    { "x": 4280, "y": 1000, "w": 150, "h": 128, "tier": "trampoline" },
+    { "x": 5830, "y": 1180, "w": 400, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -720, "y": 1360, "w": 7700, "h": 640, "wall_px": 120 },
+    { "type": "start_gate", "x": 160, "y": 900 },
+    { "type": "goal_gate", "x": 6030, "y": 1030, "w": 240, "h": 320 }
+  ],
+  "medal_times": { "gold": 11.0, "silver": 16.0, "bronze": 24.0 }
+}
