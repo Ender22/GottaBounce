@@ -16,7 +16,11 @@ const CIRCUIT_COLORS := {
 	"meadow_mile": Color("#54c94a"),   # bright meadow green (on-ramp)
 	"scrapworks": Color("#a15fff"),    # arcade violet (industrial)
 	"high_wire": Color("#4ad0a8"),     # high teal (exposure)
+	"mayhem_mile": Color("#ff5a4a"),   # danger red (wild gimmick circuit)
 }
+# circuit id -> display name, filled while loading cards (used to phrase locked-card unlock hints).
+var _circuit_display: Dictionary = {}
+var _pending_celebrate := ""
 
 const RANDOM := {"path": "", "name": "RANDOM ROTATION", "tag": "A new peak every round.",
 	"color": Color("#ff5fa8"), "glyph": "?", "random": true}
@@ -56,18 +60,43 @@ func _load_circuit_cards() -> Array:
 		var entry: Variant = (circuits as Dictionary)[cid]
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
-		var diff: int = int((entry as Dictionary).get("difficulty", 1))
-		var levels: Array = (entry as Dictionary).get("levels", [])
+		var ed: Dictionary = entry as Dictionary
+		var diff: int = int(ed.get("difficulty", 1))
+		var display := str(ed.get("display_name", cid))
+		_circuit_display[str(cid)] = display
+		# arenas-per-play: a random-draw circuit plays `draw_count` of its pool; an ordered circuit
+		# plays its whole `levels` list.
+		var draw_count: int = int(ed.get("draw_count", 0))
+		var pool: Array = ed.get("pool", [])
+		var levels: Array = ed.get("levels", [])
+		var count: int = draw_count if (draw_count > 0 and pool.size() > 0) else levels.size()
 		var stars := ""
 		for s in range(3):
 			stars += "*" if s < diff else "."
+		var unlocked: bool = Settings.is_circuit_unlocked(str(cid))
+		var name_text: String
+		if unlocked:
+			name_text = "%s\n%s  %d arenas" % [display, stars, count]
+		else:
+			name_text = "%s\n%s" % [display, _lock_hint(str(cid))]
 		out.append({
 			"circuit_id": str(cid),
-			"name": "%s\n%s  %d arenas" % [str((entry as Dictionary).get("display_name", cid)), stars, levels.size()],
+			"name": name_text,
 			"color": CIRCUIT_COLORS.get(str(cid), MenuFX.ACCENT_PINK),
 			"circuit": true,
+			"locked": not unlocked,
 		})
 	return out
+
+## Phrase the unlock condition for a locked circuit card (v6 §4.3): the pity path once the predecessor
+## has been played at least once, else the mastery (win) hint. Uppercase to match the card name band.
+func _lock_hint(cid: String) -> String:
+	var pred := Settings.unlock_predecessor(cid)
+	var pred_name := str(_circuit_display.get(pred, pred)).to_upper()
+	var remaining := Settings.pity_matches_remaining(cid)
+	if remaining < Settings.UNLOCK_PITY_MATCHES and remaining > 0:
+		return "%d MORE MATCH%s TO UNLOCK" % [remaining, "" if remaining == 1 else "ES"]
+	return "WIN %s TO UNLOCK" % pred_name
 
 func _ready() -> void:
 	var all: Array = _load_circuit_cards()
@@ -92,9 +121,13 @@ func _ready() -> void:
 		card.set_meta("arena", a)
 		register(card, 1.12)
 		_cards.append(card)
+		if bool(a.get("locked", false)) and card.has_method("set_locked"):
+			card.set_locked(true)
 		if bool(a.get("random", false)):
 			card.set_plate_rainbow()
 			_spin_glyph(card)
+	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger)
+	_pending_celebrate = Settings.take_pending_unlock()
 	wire_grid(_cards, 4)
 	register(_back, 1.05)
 	_cards[_cards.size() - 1].focus_neighbor_bottom = _cards[_cards.size() - 1].get_path_to(_back)
@@ -116,6 +149,11 @@ func activate(c: Control) -> void:
 		on_back()
 		return
 	var a: Dictionary = c.get_meta("arena", {})
+	# locked circuit: no launch -- a denied buzz + a small shake, then bail (v6 §4.3)
+	if bool(a.get("locked", false)):
+		AudioManager.play_sfx("ui_click", {"pitch": 0.55, "pitch_var": 0.0, "volume_db": -3.0})
+		_deny_shake(c)
+		return
 	var cfg: MatchConfig = GameConfig.match_config
 	if bool(a.get("circuit", false)):
 		cfg.arena_mode = MatchConfig.ArenaMode.CIRCUIT
@@ -131,6 +169,57 @@ func activate(c: Control) -> void:
 		cfg.circuit_id = &""
 	if shell != null:
 		shell.launch_match()
+
+## After the shared entry stagger, fire the one-shot unlock celebration if one is pending (v6 §4.3).
+func enter() -> void:
+	super.enter()
+	if _pending_celebrate != "":
+		_play_unlock_celebration(_pending_celebrate)
+		_pending_celebrate = ""
+
+## One-shot "you earned it" moment: a banner flash + a pop/focus-snap on the just-unlocked card, with
+## the win announcer sting. The pending flag was already consumed (take_pending_unlock) so it fires once.
+func _play_unlock_celebration(cid: String) -> void:
+	var banner := get_node_or_null("UnlockBanner")
+	var display := str(_circuit_display.get(cid, cid)).to_upper()
+	# find the (now-unlocked) card for this circuit
+	var target: Button = null
+	for card in _cards:
+		var a: Dictionary = card.get_meta("arena", {})
+		if bool(a.get("circuit", false)) and str(a.get("circuit_id", "")) == cid:
+			target = card
+			break
+	# delay until the stagger has mostly landed, then celebrate
+	get_tree().create_timer(0.5).timeout.connect(func() -> void:
+		AudioManager.play_sfx("ui_click", {"pitch": 1.5, "pitch_var": 0.0, "volume_db": 0.0})
+		EventBus.match_won.emit(0)   # reuse the win fanfare sting (presentation only)
+		if banner is Label:
+			(banner as Label).text = "CIRCUIT UNLOCKED\n%s" % display
+			banner.visible = true
+			banner.modulate.a = 0.0
+			banner.pivot_offset = banner.size * 0.5
+			banner.scale = Vector2(0.7, 0.7)
+			var tb := banner.create_tween()
+			tb.set_parallel(true)
+			tb.tween_property(banner, "modulate:a", 1.0, 0.25)
+			tb.tween_property(banner, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tb.chain().tween_interval(1.4)
+			tb.chain().tween_property(banner, "modulate:a", 0.0, 0.4)
+			tb.chain().tween_callback(func() -> void: banner.visible = false)
+		if is_instance_valid(target):
+			target.grab_focus()
+			target.pivot_offset = target.size * 0.5
+			var tc := target.create_tween()
+			tc.tween_property(target, "scale", Vector2(1.22, 1.22), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tc.tween_property(target, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT))
+
+## Locked-card denied feedback: a quick horizontal shake (no launch).
+func _deny_shake(c: Control) -> void:
+	var rest := c.position
+	var t := c.create_tween()
+	t.tween_property(c, "position:x", rest.x - 10.0, 0.05)
+	t.tween_property(c, "position:x", rest.x + 10.0, 0.06)
+	t.tween_property(c, "position:x", rest.x, 0.05)
 
 func _spin_glyph(card: Button) -> void:
 	var glyph := card.get_node_or_null("Content/VBox/Plate/Glyph")

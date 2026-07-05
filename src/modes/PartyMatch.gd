@@ -747,6 +747,7 @@ func _enter_match_end(widx: int) -> void:
 	_state_t = 0.0
 	_match_winner = widx
 	_prompt_shown = false
+	_record_progression(widx)   # v6 §4: unlock-progression trigger (BRAWL circuit matches only)
 	# finalize any in-flight stage record so QA can read the winning stage
 	if not _cur_stats.is_empty():
 		_cur_stats["length_s"] = round_clock
@@ -764,6 +765,21 @@ func _enter_match_end(widx: int) -> void:
 	EventBus.match_won.emit(widx)   # audio: win fanfare + scoreboard music
 	var banner: Dictionary = _mode.match_end_banner(self)
 	_hud.show_match_end(str(banner.get("text", "")), banner.get("color", Color.WHITE), str(banner.get("subline", "")))
+
+## v6 §4.2 unlock trigger: record a finished BRAWL CIRCUIT match into Settings progression (win +
+## per-circuit play + cumulative kills; may set pending_unlock). Guarded so it is a no-op for every
+## non-circuit match (RANDOM_ALL / SINGLE) and every non-BRAWL mode -> they never touch progression.
+func _record_progression(widx: int) -> void:
+	if _config == null or _config.mode_id != &"brawl":
+		return
+	if _config.arena_mode != MatchConfig.ArenaMode.CIRCUIT or str(_config.circuit_id) == "":
+		return
+	# a HUMAN win = the winner slot is one of the humans-first slots (players[0..human_count-1])
+	var human_won: bool = widx >= 0 and widx < _config.human_count
+	var human_kills := 0
+	for i in range(mini(_config.human_count, scores.size())):
+		human_kills += int(scores[i])
+	Settings.record_match_result(str(_config.circuit_id), human_won, human_kills)
 
 func _tick_match_end(delta: float) -> void:
 	_state_t += delta

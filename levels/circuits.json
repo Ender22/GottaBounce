@@ -1,5 +1,6 @@
 {
-	"_comment": "Themed circuits (v3_content_plan PART A): curated, ORDERED arena rotations with a difficulty arc. Level ids resolve to res://levels/<id>.json (same as PartyMatch.LEVEL_POOL). Played in authored order, looping, when MatchConfig.arena_mode == CIRCUIT.",
+	"_comment": "Themed circuits (v3_content_plan PART A + v6_party_gimmicks_circuits.md). Curated arena rotations with a difficulty arc. Level ids resolve to res://levels/<id>.json. Two rotation shapes: (1) ORDERED loop -- a plain `levels` array (string ids), played in authored order, looping (the shipped format). (2) RANDOM DRAW -- an optional `pool` array of {id, tier} + `draw_count` + `draw_mode`:'shuffle': each play SHUFFLES the pool, takes draw_count, and tier-sorts the drawn slice mild->wild (~20 authored / ~10 drawn per play, v6 3.2/3.3). `tier` (1-3) is the within-circuit wildness rank used only to order the drawn subset. Top-level `order` is the UNLOCK chain (v6 4.2): circuit N+1 unlocks when N is WON or played 3x (Settings progression).",
+	"order": ["meadow_mile", "scrapworks", "high_wire", "mayhem_mile"],
 	"circuits": {
 		"meadow_mile": {
 			"display_name": "MEADOW MILE",
@@ -19,16 +20,22 @@
 		"mayhem_mile": {
 			"display_name": "MAYHEM MILE",
 			"difficulty": 4,
-			"_comment": "The first WILD gimmick-BRAWL circuit (v6_party_gimmicks_circuits.md). 8 ~10s lethal-hazard chaos stages on an ESCALATING wildness arc: single readable hazard (t1) -> bigger single-family threat (t2) -> multi-hazard chaos + the collapsing-arena finale (t3). Every stage is a real BRAWL stage (off-screen-kill through-line, flight-required 680px void gaps, symmetric telegraphed dodgeable hazards). Ordered loop (the shipped format); the ~20-authored/10-drawn pool is a later enhancement.",
-			"levels": [
-				"gauntlet_mine_lite",
-				"hammer_arena",
-				"gauntlet_twin_swing",
-				"minefield",
-				"gauntlet_dropzone",
-				"hazard_yard",
-				"gauntlet_pandemonium",
-				"meltdown_box"
+			"draw_count": 6,
+			"draw_mode": "shuffle",
+			"_comment": "The WILD gimmick-BRAWL circuit (v6). RANDOM-DRAW demo: a ~12-stage pool; each play shuffles + draws 6 + tier-sorts them into a mild->wild micro-arc, so every round is a fresh escalating set. tier 1 = single readable hazard on-ramp; tier 2 = a bigger single-family threat; tier 3 = multi-hazard chaos + the collapsing-arena finale. Every stage is a real BRAWL stage (off-screen-kill through-line, flight-required void gaps, symmetric telegraphed dodgeable hazards). The 8 gimmick stages are joined by 4 reused base/hazard stages to reach the ~10-12 pool.",
+			"pool": [
+				{ "id": "gauntlet_mine_lite", "tier": 1 },
+				{ "id": "hammer_arena", "tier": 1 },
+				{ "id": "wrecking_yard", "tier": 1 },
+				{ "id": "bumper_gauntlet", "tier": 1 },
+				{ "id": "gauntlet_twin_swing", "tier": 2 },
+				{ "id": "minefield", "tier": 2 },
+				{ "id": "gauntlet_dropzone", "tier": 2 },
+				{ "id": "hazard_yard", "tier": 2 },
+				{ "id": "drop_chamber", "tier": 2 },
+				{ "id": "gauntlet_pandemonium", "tier": 3 },
+				{ "id": "meltdown_box", "tier": 3 },
+				{ "id": "islands_void", "tier": 1 }
 			]
 		}
 	}

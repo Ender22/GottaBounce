@@ -100,6 +100,18 @@ func set_soon(on: bool) -> void:
 	if on:
 		$Content.modulate = Color(0.62, 0.60, 0.58, 1.0)
 
+## LOCKED (unlock-progression, v6 §4.3): reuse the SOON ribbon + desaturate treatment but stamp it
+## "LOCKED" -- greyed, not selectable (the screen's activate() no-ops on a locked card). Same
+## established look as the coming-soon tiles so the locked state reads instantly without new art.
+func set_locked(on: bool) -> void:
+	is_soon = on   # reuse the ribbon-visible flag path (screens read this to gate activation if desired)
+	_ribbon.visible = on
+	var lbl := _ribbon.get_node_or_null("Sash/SoonLabel")
+	if lbl is Label:
+		(lbl as Label).text = "LOCKED" if on else "SOON"
+	if on:
+		$Content.modulate = Color(0.5, 0.49, 0.55, 1.0)
+
 func show_check(on: bool) -> void:
 	_check.visible = on
 	if on:

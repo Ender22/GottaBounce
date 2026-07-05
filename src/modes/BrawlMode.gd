@@ -41,7 +41,7 @@ func configure(runner, config: MatchConfig) -> void:
 	_ordered = false
 	_ordered_idx = 0
 	if config.arena_mode == MatchConfig.ArenaMode.CIRCUIT:
-		var circuit := _load_circuit(str(config.circuit_id))
+		var circuit := _resolve_circuit(str(config.circuit_id))
 		if not circuit.is_empty():
 			_pool = circuit
 			_ordered = true
@@ -55,32 +55,76 @@ func configure(runner, config: MatchConfig) -> void:
 	_reset_bag()
 
 ## Resolve a circuit_id to an ordered Array of res:// level paths from levels/circuits.json.
-## Returns [] on any failure (missing file / bad JSON / unknown id / empty levels) so configure()
-## can fall back to RANDOM_ALL without crashing (spec A.2#3).
-func _load_circuit(circuit_id: String) -> Array:
-	if circuit_id == "":
+## Two rotation shapes (v6 §3.2/§3.3):
+##   RANDOM DRAW -- if the entry has a non-empty `pool` (array of {id,tier} or bare ids) AND a
+##     `draw_count` > 0 (and draw_mode != "ordered"): shuffle the pool, slice min(draw_count, size),
+##     then sort the slice ASCENDING by tier so the drawn subset ramps mild -> wild. A DIFFERENT
+##     subset (and micro-arc) each call -- this is what makes "a new peak every round".
+##   ORDERED loop -- else fall back to the plain `levels` array in authored order (the shipped
+##     format; back-compat, the base circuits are untouched).
+## Returns [] on any failure (missing file / bad JSON / unknown id / empty) so configure() can fall
+## back to RANDOM_ALL without crashing (spec A.2#3).
+func _resolve_circuit(circuit_id: String) -> Array:
+	var entry := _load_circuit_entry(circuit_id)
+	if entry.is_empty():
 		return []
+	# --- RANDOM DRAW path (pool + draw_count) ---
+	var pool_raw: Variant = entry.get("pool", [])
+	var draw_count: int = int(entry.get("draw_count", 0))
+	var draw_mode := str(entry.get("draw_mode", "shuffle"))
+	if typeof(pool_raw) == TYPE_ARRAY and (pool_raw as Array).size() > 0 and draw_count > 0:
+		var items: Array = []
+		for it in (pool_raw as Array):
+			var d := _id_tier(it)
+			if str(d["id"]) != "":
+				items.append(d)
+		if not items.is_empty():
+			if draw_mode != "ordered":
+				items.shuffle()
+			var n: int = mini(draw_count, items.size())
+			items = items.slice(0, n)
+			# mild -> wild micro-arc: order the drawn slice by tier (random order kept WITHIN a tier)
+			items.sort_custom(func(a, b): return int(a["tier"]) < int(b["tier"]))
+			var out: Array = []
+			for d in items:
+				out.append("res://levels/%s.json" % str(d["id"]))
+			return out
+	# --- ORDERED loop path (plain `levels` array; shipped format) ---
+	var ids: Variant = entry.get("levels", [])
+	if typeof(ids) != TYPE_ARRAY:
+		return []
+	var out2: Array = []
+	for it in (ids as Array):
+		var d := _id_tier(it)
+		if str(d["id"]) != "":
+			out2.append("res://levels/%s.json" % str(d["id"]))
+	return out2
+
+## Read the raw circuit entry dict from levels/circuits.json (or {} on any failure).
+func _load_circuit_entry(circuit_id: String) -> Dictionary:
+	if circuit_id == "":
+		return {}
 	if not FileAccess.file_exists(CIRCUITS_PATH):
 		push_warning("BrawlMode: %s not found" % CIRCUITS_PATH)
-		return []
+		return {}
 	var txt := FileAccess.get_file_as_string(CIRCUITS_PATH)
 	var parsed: Variant = JSON.parse_string(txt)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("BrawlMode: %s is not a JSON object" % CIRCUITS_PATH)
-		return []
+		return {}
 	var circuits: Variant = (parsed as Dictionary).get("circuits", {})
 	if typeof(circuits) != TYPE_DICTIONARY or not (circuits as Dictionary).has(circuit_id):
-		return []
+		return {}
 	var entry: Variant = (circuits as Dictionary)[circuit_id]
 	if typeof(entry) != TYPE_DICTIONARY:
-		return []
-	var ids: Variant = (entry as Dictionary).get("levels", [])
-	if typeof(ids) != TYPE_ARRAY:
-		return []
-	var out: Array = []
-	for lid in (ids as Array):
-		out.append("res://levels/%s.json" % str(lid))
-	return out
+		return {}
+	return entry as Dictionary
+
+## Normalize a pool/levels item (a bare "id" string OR a {"id","tier"} dict) to {id, tier}.
+func _id_tier(item: Variant) -> Dictionary:
+	if typeof(item) == TYPE_DICTIONARY:
+		return {"id": str((item as Dictionary).get("id", "")), "tier": int((item as Dictionary).get("tier", 1))}
+	return {"id": str(item), "tier": 1}
 
 ## Per-slot descriptors: humans first, then bots (today's spawn order). Skin/character indexed by
 ## player from the config; bot level = Tuning.bot_levels rotation when difficulty 0 (today), else fixed.
