@@ -62,9 +62,13 @@ func configure(runner, config: MatchConfig) -> void:
 	runner.lives_per_player = 99
 	runner.match_target_kills = 999999
 	_goal_cap = maxi(1, config.kills_to_win)
-	_arena_path = str(config.single_arena_path) if str(config.single_arena_path) != "" else DEFAULT_ARENA
-	if not FileAccess.file_exists(_arena_path):
-		_arena_path = DEFAULT_ARENA
+	# Defensive arena resolution (CD robustness fix): SPORTS is an ENCLOSED-court mode; if it ever loads a
+	# non-enclosed / missing level the ball falls through the world forever. Default to the sports court
+	# whenever the configured path is empty, whitespace, or points at a file that does not exist.
+	var want: String = str(config.single_arena_path).strip_edges() if config != null else ""
+	if want == "" or not FileAccess.file_exists(want):
+		want = DEFAULT_ARENA
+	_arena_path = want
 	_team_scores = [0, 0]
 	_last_scoring_team = -1
 	_last_scored_stage = -1
@@ -98,7 +102,12 @@ func spawn_plan(_runner, config: MatchConfig) -> Array:
 		var is_human: bool = i < humans
 		var lvl: int = 0
 		if not is_human:
-			lvl = clampi(config.bot_difficulty, 1, 5) if config.bot_difficulty > 0 else Tuning.bot_levels[(i - humans) % Tuning.bot_levels.size()]
+			# Skill BALANCE across teams (fairness fix): index the mixed bot-level rotation by the
+			# player's WITHIN-team slot, not the global bot sequence. This makes the k-th bot on team 0
+			# and the k-th bot on team 1 draw the SAME level, so bot-vs-bot teams are skill-mirrored. The
+			# old (i - humans) sequence handed the whole second half (always team 1) the higher levels
+			# (e.g. the L4 menace), a per-team skill edge to BLUE on top of the geometry bias.
+			lvl = clampi(config.bot_difficulty, 1, 5) if config.bot_difficulty > 0 else Tuning.bot_levels[within % Tuning.bot_levels.size()]
 		out.append({
 			"human": is_human, "skin": skin, "character": config.character_for(i),
 			"bot_level": lvl, "seed_damage": 0, "team": team,
@@ -181,10 +190,19 @@ func bot_objective(runner, bot_player) -> Variant:
 	if to_goal.length() < 1.0:
 		return ball_pos
 	to_goal = to_goal.normalized()
-	# on the ball -> drive THROUGH it toward the enemy goal (power-shot contact); else line up BEHIND it
-	if bot_player.global_position.distance_to(ball_pos) < BOT_ON_BALL_DIST:
+	# The strike point behind the ball, on the side AWAY from the enemy goal.
+	var behind: Vector2 = ball_pos - to_goal * BOT_APPROACH_OFFSET
+	# Only DRIVE THROUGH when we are BOTH close AND actually behind the ball (on the away-from-goal
+	# side): from_ball . (-to_goal) > 0 means the ball lies between us and the goal, so pushing through
+	# it sends it goalward. This is the "earned goal" gate — a bot that is beside/in front of the ball
+	# (within BOT_ON_BALL_DIST but on the wrong side) no longer swipes it sideways ("drift"); it first
+	# flies to `behind` to line the shot up, then drives through. Symmetric for both teams.
+	var from_ball: Vector2 = bot_player.global_position - ball_pos
+	var close: bool = bot_player.global_position.distance_to(ball_pos) < BOT_ON_BALL_DIST
+	var behind_ball: bool = from_ball.dot(-to_goal) > 0.0
+	if close and behind_ball:
 		return ball_pos + to_goal * BOT_DRIVE_THROUGH
-	return ball_pos - to_goal * BOT_APPROACH_OFFSET
+	return behind
 
 ## Frame the WHOLE court so both goal mouths + the ball stay on screen through a rally. Returns the
 ## full arena bounds (the enclosed court): it always contains both goal zones and the ball, so the
