@@ -33,6 +33,9 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `hazards/crusher.png` | SHIP-CANDIDATE | 774x657 metallic press block, hazard chevrons + rivets — wired into Crusher.gd (two mirrored heads) |
 | `hazards/wrecking_ball.png` | SHIP-CANDIDATE | 689x772 charcoal iron sphere, rivet ring + top eyelet — falling_debris body (eyelet decorative; collider = sphere) |
 | `hazards/flatbed_cart.png` | SHIP-CANDIDATE | 1143x412 rideable toy cart, orange hazard-stripe body + 4 chunky wheels, flat metal standing deck — moving_platform vehicle skin |
+| `objects/ball.png` | SHIP-CANDIDATE | 669x642 white glossy sports ball, bold gold equator seam ring — Ball.gd (sports) body |
+| `objects/crate.png` | SHIP-CANDIDATE | 912x877 honey-wood breakable crate, steel corner brackets + X-brace — DestructibleBlock.gd body (keyout'd fake checkerboard, tol 45) |
+| `objects/token.png` | SHIP-CANDIDATE | glossy gold star coin — Pickup.gd (Trials COLLECT_ALL) token |
 
 Intake gotchas learned: some generations bake a FAKE checkerboard bg instead of alpha —
 `art.py check` catches it; fix with `art.py keyout --tol 40`. ChatGPT viewer download flow:
