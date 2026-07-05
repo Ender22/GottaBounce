@@ -2,6 +2,14 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** KNOWN DEBT (owner-flagged) — the 5 gimmick hazards render their BODIES via `_draw` CODE
+  (hammer blade/arm, crusher heads, debris chunks, bomb/mine, destructible), a deliberate de-risk to prove
+  MECHANICS fast, but it bends the strict no-code-drawn-assets rule. RESOLUTION: generate Glossy Toybox
+  SPRITES for each hazard body (+ moving_platform/vehicle) via the ChatGPT paste-edit pipeline and wire them
+  as textures (replace the `_draw` body). Transient TELEGRAPH overlays (swept-arc danger guide, fuse glow)
+  MAY stay code VFX (consistent w/ existing juice/particles) — only the OBJECT bodies must be real art.
+  High-priority; clear before ship. Task #7.
+
 - **2026-07-05** CONTENT INITIATIVE FANNED OUT ACROSS ALL 3 MODES (owner vision realized). Built on the 5
   shared lethal hazards: BRAWL = MAYHEM MILE wild circuit + random-draw rotation + unlock progression;
   TRIALS = 6 objective types (Survive/Destroy-all/Physics-puzzle/Collect/Precision + Reach-goal) w/ proof

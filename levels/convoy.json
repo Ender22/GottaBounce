@@ -1,0 +1,44 @@
+{
+  "name": "The Convoy",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "THE CONVOY — the MOVING-PLATFORM proof level (v6_party_gimmicks_circuits.md §2.6; the_convoy circuit signature, §3.1 row 5). The owner fantasy: 'fight on top of moving futuristic cars.' A dusk highway over ONE full-width lethal void: two STATIC anchor islands (A left / B right, the spawns) and THREE drifting VEHICLES ferrying across the chasm between them. Kill identity = knock rivals OFF a vehicle / island into the bottom blast void -> off the screen (kill_shape class = void_is_floor -> QA uses K1' per docs/specs/v2a_kill_shape_void_floor_addendum.md, NOT the central_pit target). The vehicles are RIDABLE FOOTING (MovingPlatform: an AnimatableBody2D solid deck that CARRIES a standing rider along its path via a top-sensor sticky delta), NOT hazards — they never kill; the void does.\n\nSYMMETRY / FAIRNESS: strictly mirror-symmetric about x=2800. A (x0..720) and B (x4880..5600) are identical trampoline islands; ferries MV_L (center 1640) and MV_R (center 3960) are mirror images with identical amp/period/phase; MV_C is a vertical bobber dead-center. No side is a free kill; every player faces the same ferry rhythm.\n\nWHY IT NEEDS MOVING PLATFORMS (the mechanic proof): the void gap A<->B is 4160px, far beyond any bounce/boost single crossing. You cross ONLY by riding the ferries and hopping between them: stand on MV_L as it drifts toward center, boost across the (flight-required) gap to MV_C or MV_R while it drifts to meet you, then on to B. A rider is CARRIED with the vehicle (stays on, moves together); to change vehicles you must FLY (the gaps between ride surfaces always exceed a spring bounce's reach). A rider carried out over the void who does nothing is safe on the deck; knocked off, they fall (or boost-recover). This is the moving_platform carry + hop-between + flight-required-to-cross loop.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270px, air_drift_max 340px/s, gravity 1600 => zero-boost horizontal reach ~395px off a trampoline / ~527px off a spring = the MAX possible bounce-drift; normal_boost_max 760px/s crosses ~500-580px in <0.9s @ ~22 fuel, bounce refunds +20; NO springs on this map so 395px is the actual max bounce reach). Ferry decks are w=380 (half-width 190); movers oscillate on a deterministic phase clock with a dwell at each end (a beat to hop on/off):\n- MV_L horizontal center 1640 amp 200 -> deck-x range 1440..1840, LEFT edge sweeps 1250..1650, RIGHT edge sweeps 1630..2030.\n- MV_R (mirror) center 3960 amp 200 -> deck LEFT edge sweeps 3570..3970, RIGHT edge sweeps 3950..4350.\n- MV_C vertical center (2800,980) amp 200 -> deck-x fixed 2610..2990, bobs y 780..1180 (a rising/falling mid perch), deck-x edges static 2610 / 2990.\n- GAP A->MV_L: island A right edge x720 to MV_L LEFT edge at its CLOSEST approach (1250) = 530px over open void. > 527 (max spring drift) and >> 395 (trampoline drift). NORMAL BOOST REQUIRED; miss = fall into the void. Ride MV_L's leftward drift to shorten the boosted hop, but you still FLY it. Verb: FLY (+ TIME the drift).\n- GAP MV_L->MV_C: MV_L RIGHT edge at closest (2030) to MV_C left edge (2610) = 580px over void. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP MV_C->MV_R: MV_C right edge (2990) to MV_R LEFT edge at closest (3570) = 580px over void. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP MV_R->B: MV_R RIGHT edge at closest (4350) to island B left edge (4880) = 530px over void. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- Every crossing (>=530px) exceeds even a spring bounce's reach (527) and far exceeds the actual max trampoline drift (395), and there is NO spring on the map, so NO route across the arena exists without the jetpack. The vehicles MOVE the ride surfaces closer/farther on a readable clock but never close a gap below the flight-required threshold at their closest approach -- so a rider always FLIES between them; the drift only reshapes/times the boosted line. GI-2 (no-strand): the ferries oscillate on a FIXED bounded path (they never leave boost range of a neighboring surface), and static islands A/B always anchor the ends, so no player is stranded; there is no static geometry a ferry can pin a rider against (open sky above the void), so no silent pin-kill.\n\nRECOVERY GAMBLE: island/deck bottoms (~1156-1208) to the bottom blast line (y1878) = ~670-720px of open recovery sky over the void (>= 650, Rule D) -> a healthy fuelled player knocked/carried toward the void boosts back to a surface (the recovery gamble); a near-edge dead-on super spikes them past the rim. VOID READS AS DEATH via the pit_void_rendering treatment (dark bottomless gradient + canyon walls + under-lip AO + matte hazard-red rim/chevrons along y1260 + falling motes). Dusk open_sky (clouds on, horizon glow) reads as a twilight highway.",
+  "backdrop": "open_sky",
+  "clouds": true,
+  "horizon_glow": true,
+  "sky_top": "#243056",
+  "sky_bottom": "#C9743E",
+  "bounds": { "left": -560, "right": 6160, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 720, "h": 128, "tier": "trampoline" },
+    { "x": 4880, "y": 1080, "w": 720, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -560, "y": 1260, "w": 6720, "h": 618, "wall_px": 120 },
+
+    { "type": "moving_platform", "vehicle": true,
+      "center": { "x": 1640, "y": 980 },
+      "axis_deg": 0, "amplitude": 200, "w": 380, "h": 48,
+      "period_s": 4.6, "phase": 0.0, "dwell_frac": 0.14 },
+
+    { "type": "moving_platform", "vehicle": true,
+      "center": { "x": 2800, "y": 980 },
+      "axis_deg": 90, "amplitude": 200, "w": 380, "h": 48,
+      "period_s": 5.6, "phase": 0.25, "dwell_frac": 0.12 },
+
+    { "type": "moving_platform", "vehicle": true,
+      "center": { "x": 3960, "y": 980 },
+      "axis_deg": 0, "amplitude": 200, "w": 380, "h": 48,
+      "period_s": 4.6, "phase": 0.0, "dwell_frac": 0.14 },
+
+    { "type": "player_spawn", "x": 240, "y": 1000 },
+    { "type": "player_spawn", "x": 520, "y": 1000 },
+    { "type": "player_spawn", "x": 5080, "y": 1000 },
+    { "type": "player_spawn", "x": 5360, "y": 1000 },
+
+    { "type": "powerup_spawner", "x": 380,  "y": 900 },
+    { "type": "powerup_spawner", "x": 2800, "y": 700 },
+    { "type": "powerup_spawner", "x": 5220, "y": 900 }
+  ]
+}

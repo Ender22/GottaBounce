@@ -96,6 +96,16 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# a radial KNOCKBACK to players/props (Forces, the shipped explosion form) + a PUNT to the
 				# sports Ball (Ball.receive_hazard_impulse). Telegraphed fuse/blink + warning ring; recurs.
 				_build_bomb(o, parent)
+			"moving_platform":
+				# v6_party_gimmicks_circuits.md §2.6: a SOLID MOVING SURFACE that CARRIES riders — the one
+				# new physics system (a moving solid collider). An AnimatableBody2D deck translating on a
+				# deterministic phase-clock path; players standing on it ride ALONG via a thin top-sensor
+				# sticky carry (Player is MOTION_MODE_FLOATING, so Godot's grounded-only platform-follow is
+				# a no-op — the v6 sticky fallback is the shipped path). NOT a hazard (never kills); a rider
+				# carried off-stage dies via the existing void kill (credit unchanged). Skinnable as a
+				# "vehicle" (owner's "fight on top of moving futuristic cars"). Touches physics -> the
+				# change-control artifact is MovingPlatform.gd (mirrors the moving_hazard collision add).
+				_build_moving_platform(o, parent)
 			"start_gate":
 				# v3_content_plan B.3 (TRIALS): the run's spawn + respawn point. Reuses the existing
 				# spawn path — appended as a spawn so _spawn_at(0) / the multi-life respawn use it.
@@ -135,7 +145,7 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))
 			"physics_prop", "container", "physics_structure", \
-			"gravity_source", "moving_platform", "fan":
+			"gravity_source", "fan":
 				# v0: these entity types are not ported yet — skip cleanly so old levels still load.
 				push_warning("LevelLoader: '%s' not ported in v0 — skipped (%s)" % [otype, path])
 			_:
@@ -273,3 +283,13 @@ static func _build_bomb(o: Dictionary, parent: Node2D) -> void:
 	var b := Bomb.new()
 	b.setup_from_json(o)
 	parent.add_child(b)
+
+## v6_party_gimmicks_circuits.md §2.6: build a moving_platform from JSON. An AnimatableBody2D deck on
+## LAYER_SURFACES that translates on a deterministic phase-clock path (endpoints or center+axis+amp),
+## self-renders (deck or vehicle skin + a static path rail), and CARRIES riders via a thin top-sensor
+## sticky delta (Player is MOTION_MODE_FLOATING, so grounded platform-follow is a no-op). NOT a hazard
+## — the void/fall stays the killer; NO fenced constant touched. Sibling of _build_moving_hazard.
+static func _build_moving_platform(o: Dictionary, parent: Node2D) -> void:
+	var m := MovingPlatform.new()
+	m.setup_from_json(o)
+	parent.add_child(m)
