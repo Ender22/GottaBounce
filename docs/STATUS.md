@@ -86,15 +86,17 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   (finding: the shell is a CORRECT UI wearing placeholder skins; the whole gap is ~1 logo + 4 mode dioramas + baked arena
   thumbnails [a tool, ~0 art] + up to 6 char portraits + a free title bobber-wiring pass — all drop into slots the shell
   already animates). Priority order: TITLE → ModeSelect → ArenaSelect → CharacterSelect.
-  - **ModeSelect dioramas (art) — ALL 4 DONE+committed:** `ui/modes/mode_{brawl,trials,gauntlet,sports}.png` (horn clash /
-    ring rocket / goat-vs-horde / goal headbutt). NOT YET WIRED — next: `set_art` per mode in ModeSelect + hide the Glyph label.
-    (NB: gauntlet+sports were slow on ChatGPT [~3min] but completed; sports needed keyout --tol 45 for a baked checkerboard.)
-  - **TITLE bobbers (free wiring) — IN FLIGHT:** gameplay-programmer wiring the 6 existing goat idle sprites as parallax
-    bobbers on MainMenu per brief §4b (Pogo+Butch front flanking buttons, 4 smaller behind; independent y-bob/drift/sway).
-  - **NEXT UP (need game port — serialize after bobbers land):** (1) wire the 4 mode dioramas into ModeSelect cards (small);
-    (2) baked arena-thumbnail TOOL (§3b — render each level via ArenaRenderer to `assets/ui/thumbs/*`, drop into ArenaSelect
-    cards — fixes the WORST screen for ~0 art). Browser-art item: goat LOGO (§4c mascot-on-wordmark; text-gen unreliable —
-    consider a Pogo emblem + engine-rendered wordmark). Later: char beauty poses/busts (§2c, start Pogo+Butch, double as title).
+  - **TITLE — DONE.** Bobbers were ALREADY built (Backdrop.gd, Phase 1 — the brief's "never built" was wrong; agent
+    correctly did NOT duplicate). Fixed the one real bug: purple Vex was parked behind the logo → moved to clear sky, all
+    6 Herd now visible. Rendered-verified gorgeous (tools/out/title_fixed_2.png). LOGO: current yellow/cyan wordmark reads
+    fine + bobbers give mascot presence → §4c goat-on-logo DEFERRED (ChatGPT text-gen is unreliable; poor risk/reward now).
+  - **ModeSelect — DONE.** All 4 `ui/modes/mode_{brawl,trials,gauntlet,sports}.png` dioramas generated + WIRED into the cards
+    (MODE_ART preload dict + data["art"]; set_art hides the Glyph). Four mini box-covers. Rendered-verified (modeselect_check.png).
+  - **ArenaSelect — IN FLIGHT** (the brief's "worst offender"): gameplay-programmer building a thumbnail-bake TOOL (render each
+    arena via ArenaRenderer → `assets/ui/thumbs/*` ~512x320) + wiring them into the cards (mirrors ModeSelect) + toning down the
+    RANDOM tile. Fixes 11 tinted rectangles → visual map-select, ~0 art cost.
+  - **REMAINING UI polish (nice-to-have):** CharacterSelect beauty-pose busts (§2c, start Pogo+Butch — screen already ships on
+    idles); goat-on-logo (deferred). After ArenaSelect lands, the Mario-Kart-bar UI slice is essentially complete.
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
