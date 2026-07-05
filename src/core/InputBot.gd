@@ -370,6 +370,14 @@ func _decide() -> void:
 		_cached_boost = me.fuel > 2.0 and (me.velocity.dot(dir) < -60.0 or must_cross)
 		_hunt = false
 		return
+	# --- MODE OBJECTIVE OVERRIDE (v5_sports bot-play fix): if the active mode supplies a world point to
+	# go to (SPORTS -> a strike point on the ball), fly there with the EXISTING movement/boost logic and
+	# skip the nearest_opponent hunt. Default (BRAWL/TRIALS/GAUNTLET) returns null -> unchanged below.
+	# Evaluated AFTER refuel (secure fuel first) and AFTER reflexive _danger_recover (checked in poll).
+	var objective: Variant = _mode_objective()
+	if objective is Vector2:
+		_pursue_objective(objective, pos)
+		return
 	# §2c flee-to-heal RETREAT: a wounded bot may break off to safe ground to heal, bounded by
 	# flee_max / finisher_flee_max so the chaser always closes. Evaluated AFTER refuel (secure fuel
 	# first) and AFTER reflexive _danger_recover (checked in poll — safety always wins).
@@ -426,6 +434,33 @@ func _decide() -> void:
 		_cached_aim = _jitter(to_land.normalized()) if to_land.length() > 160.0 else Vector2.ZERO
 		_cached_boost = me.fuel > 35.0 and to_land.length() > 360.0
 		_hunt = false
+
+## Ask the active mode for a world-point objective this tick (v5_sports bot-play fix). Returns a
+## Vector2 (fly here) or null (no override -> default hunt). `arena._mode` is the runner's GameMode;
+## the base GameMode.bot_objective returns null, so BRAWL/TRIALS/GAUNTLET are byte-for-byte unchanged.
+func _mode_objective() -> Variant:
+	if arena == null or not ("_mode" in arena):
+		return null
+	var mode = arena._mode
+	if mode == null or not mode.has_method("bot_objective"):
+		return null
+	return mode.bot_objective(arena, me)
+
+## Fly toward a mode-supplied world point using the SAME steering the hunt path uses: jittered aim at
+## the target, boost when it's far enough and there's fuel to spend. No super, no hunt-commit — the
+## objective (e.g. the SPORTS strike point) fully governs WHERE; poll() still runs the ascent-detour +
+## feeler-steer on the resulting aim, so the bot routes around bumpers instead of head-banging them.
+func _pursue_objective(target: Vector2, pos: Vector2) -> void:
+	_cached_super = false
+	_hunt = false
+	var d: Vector2 = target - pos
+	var dist := d.length()
+	if dist < 1.0:
+		_cached_aim = Vector2.ZERO
+		_cached_boost = false
+		return
+	_cached_aim = _jitter(d.normalized())
+	_cached_boost = dist > 90.0 and me.fuel > 2.0
 
 ## §2c RETREAT state machine. Returns true when RETREAT is driving movement this tick (caller returns).
 ## Entry: damaged + no attack opportunity + a heal window worth fleeing for, rolled on flee_skill.

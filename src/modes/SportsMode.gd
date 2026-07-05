@@ -31,6 +31,14 @@ var _last_scored_stage: int = -1       # idempotency guard: increment at most on
 
 var _ball: Ball = null                 # the live stage ball (freed + re-created each kickoff)
 
+# --- bot-objective geometry (mode-owned, NOT fenced player-feel Tuning — this is WHERE to go, the
+# bot's existing movement/boost carries it there). To hit the ball toward the ENEMY goal a bot must
+# contact it from the side AWAY from that goal, so it flies to a point behind the ball; once basically
+# on the ball it aims THROUGH it toward the goal (a boosting/super/hitstun contact = a power shot). ---
+const BOT_APPROACH_OFFSET := 150.0     # how far BEHIND the ball (away from enemy goal) the strike point sits
+const BOT_ON_BALL_DIST := 240.0        # within this of the ball -> stop lining up, drive THROUGH it goalward
+const BOT_DRIVE_THROUGH := 220.0       # how far PAST the ball (toward goal) to aim when driving through
+
 # --- identity / presentation ---
 func id() -> StringName:
 	return &"sports"
@@ -153,6 +161,45 @@ func stage_end_banner(runner) -> Dictionary:
 		_last_scoring_team = scoring
 	return {"text": "GOAL!   RED %d — %d BLUE" % [int(_team_scores[0]), int(_team_scores[1])],
 		"color": TEAM_COLORS[scoring]}
+
+## Bot SPORTS objective (the load-bearing fix): steer the bot to a point that lets it hit the BALL
+## toward its ENEMY goal. Approach the ball from the side AWAY from the enemy goal; once basically on
+## the ball, aim THROUGH it toward the goal so the boosting contact drives it goalward. Returns a world
+## Vector2 the bot flies to via its existing movement, or null (no ball yet) -> bot uses its default path.
+func bot_objective(runner, bot_player) -> Variant:
+	if not is_instance_valid(_ball):
+		return null
+	var idx: int = runner.players.find(bot_player)
+	if idx < 0 or idx >= _teams.size():
+		return null
+	var my_team: int = int(_teams[idx])
+	var enemy_goal: Vector2 = _enemy_goal_center(runner, my_team)
+	if enemy_goal == Vector2.INF:
+		return null
+	var ball_pos: Vector2 = _ball.global_position
+	var to_goal: Vector2 = enemy_goal - ball_pos
+	if to_goal.length() < 1.0:
+		return ball_pos
+	to_goal = to_goal.normalized()
+	# on the ball -> drive THROUGH it toward the enemy goal (power-shot contact); else line up BEHIND it
+	if bot_player.global_position.distance_to(ball_pos) < BOT_ON_BALL_DIST:
+		return ball_pos + to_goal * BOT_DRIVE_THROUGH
+	return ball_pos - to_goal * BOT_APPROACH_OFFSET
+
+## Frame the WHOLE court so both goal mouths + the ball stay on screen through a rally. Returns the
+## full arena bounds (the enclosed court): it always contains both goal zones and the ball, so the
+## shared camera fits a FIXED extent instead of chasing the player cluster (which let the ball/goals
+## drift off-frame). BRAWL/others return null -> the default cluster framing is UNCHANGED.
+func camera_framing(runner) -> Variant:
+	return runner.bounds
+
+## The world-centre of the goal_zone whose DEFENDING team is NOT `my_team` (the goal the bot attacks),
+## or Vector2.INF if none is found.
+func _enemy_goal_center(runner, my_team: int) -> Vector2:
+	for z in runner.get_tree().get_nodes_in_group("goal_zone"):
+		if int(z.team) != my_team:
+			return z.global_position
+	return Vector2.INF
 
 func match_end_banner(_runner) -> Dictionary:
 	var win_team: int = 0 if int(_team_scores[0]) > int(_team_scores[1]) else 1

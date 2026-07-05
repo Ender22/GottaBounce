@@ -76,3 +76,18 @@ func stage_end_banner(_runner) -> Dictionary:
 ## {text, color, subline} for the match-end banner (e.g. "P1 WINS THE MATCH!").
 func match_end_banner(_runner) -> Dictionary:
 	return {}
+
+# --- bot / camera seams (v5_sports bot-play fix) ---
+## Additive seam: a mode may override WHERE a bot wants to go this reaction tick, returning a world
+## Vector2 objective the bot steers/boosts toward using its EXISTING movement logic. Default null ->
+## InputBot falls through to its unchanged nearest_opponent hunt path (BRAWL/TRIALS/GAUNTLET behave
+## byte-for-byte as before). SPORTS returns a strike point on the ball (fly there, bump it goalward).
+func bot_objective(_runner, _bot_player) -> Variant:
+	return null
+
+## Additive seam: a mode may return a FIXED world-space Rect2 the shared camera should frame (fit the
+## whole rect on screen) instead of the default player-cluster framing. Default null -> _update_camera
+## uses its existing cluster logic UNCHANGED (BRAWL/others byte-for-byte). SPORTS returns the court rect
+## so both goal mouths + the ball stay on screen throughout a rally.
+func camera_framing(_runner) -> Variant:
+	return null

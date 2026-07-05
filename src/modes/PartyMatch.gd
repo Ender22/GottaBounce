@@ -892,6 +892,16 @@ func _mark_combat_active(idx: int) -> void:
 func _update_camera() -> void:
 	if _camera == null:
 		return
+	# MODE FIXED FRAMING (v5_sports): a mode may return a world Rect2 to frame the whole play area (SPORTS
+	# -> the court, so both goals + the ball stay on screen). null -> the default cluster framing below is
+	# UNCHANGED (BRAWL/TRIALS/GAUNTLET byte-for-byte). set_frame reuses the existing smoothing.
+	var framing: Variant = _mode.camera_framing(self)
+	if framing is Rect2:
+		var fr: Rect2 = framing
+		var fz := minf(1920.0 / maxf(fr.size.x, 1.0), 1080.0 / maxf(fr.size.y, 1.0))
+		fz = clampf(fz, CAM_MIN_ZOOM, CAM_MAX_ZOOM)
+		_camera.set_frame(fr.get_center(), fz)
+		return
 	var dt := get_physics_process_delta_time()
 	while _combat_active_t.size() < players.size():
 		_combat_active_t.append(0.0)
