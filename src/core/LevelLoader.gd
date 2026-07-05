@@ -114,6 +114,23 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				var gz := GoalZone.new()
 				gz.setup_from_json(o)
 				parent.add_child(gz)
+			"pickup":
+				# v7_trials_challenge_types.md §1.3 (COLLECT_ALL): a floating token Area2D that latches
+				# `collected` on player overlap and joins group "trials_pickup". Thin GoalGate-latch clone.
+				var pk := Pickup.new()
+				pk.setup_from_json(o)
+				parent.add_child(pk)
+			"land_target":
+				# v7_trials_challenge_types.md §1.3 (PRECISION_LAND): a soft-landing pad Area2D that latches
+				# `landed` only below land_speed_max and joins group "trials_target". GoalGate-latch clone.
+				var lt := LandTarget.new()
+				lt.setup_from_json(o)
+				parent.add_child(lt)
+			"ball":
+				# v7_trials_challenge_types.md §2.4 (PHYSICS_PUZZLE): a spawn POINT only. The Ball itself is
+				# (re)spawned here by TrialsMode.on_stage_ready (the SPORTS ball-spawn pattern) so it can be
+				# auto-reset on a missed shot; LevelLoader just skips the marker cleanly.
+				pass
 			"powerup_spawner":
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))

@@ -1,0 +1,31 @@
+{
+  "name": "Ball Cannon",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "TRIALS PHYSICS_PUZZLE proof course (v7_trials_challenge_types.md §2.4, owner example t_ball_cannon). A fuse bomb detonates and its radial blast PUNTS the resting Ball across a gap into the goal mouth. The clear-test is the SPORTS GoalZone latch (any goal_zone.scored). The Ball auto-resets to its spawn if a shot misses (settles/leaves bounds) so it can never be lost, and each reset ticks the attempt counter; gold = solve first blast.\n\nDERIVED BLAST->BALL->GOAL (vs current Tuning explosion_impulse_center=1600, Ball mass 0.6, gravity 1600): the Ball rests at (400,1000) on a marshmallow launch pad (top 1060, ball radius 60). The bomb sits below-left at (300,1150); punt dir = (ball-bomb).normalized() = (0.555,-0.832) (up + slightly right), dist 180px. blast_radius 560 => linear falloff 0.679; with impulse_center 1500 the punt magnitude is 1500*0.679 = 1019, /mass 0.6 => launch velocity 1697 px/s = (vx 942, vy -1412). Projectile from (400,1000): apex ~623px up (y~377) at t~0.88s, descending through (1750,620) at t~1.43s -- dead-center of the goal mouth placed there (center 1750,620, w420 h560 => x 1540-1960, y 340-900). The intended one-blast solution lands in the goal.\n\nThe player spawns on a side pad at (900,1000), ~600px from the bomb (kill_radius 200) so the blast never kills them; the player has no traversal task here -- they read the arc and (in a fuller variant) can nudge the ball. The fuse recurs (~5.5s cadence) so a missed shot re-fires after the auto-reset returns the ball to spawn.\n\nMEDAL (attempts, fewer better): gold 1 (first blast), silver 2, bronze 5.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "bounds": { "left": -400, "top": -400, "right": 2700, "bottom": 1620 },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "score_by": "attempts",
+    "medal_attempts": { "gold": 1, "silver": 2, "bronze": 5 },
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    { "x": 270, "y": 1060, "w": 260, "h": 60, "tier": "marshmallow" },
+    { "x": 800, "y": 1060, "w": 260, "h": 120, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -400, "y": 1320, "w": 3100, "h": 300, "wall_px": 120 },
+    { "type": "start_gate", "x": 930, "y": 980 },
+    { "type": "ball", "x": 400, "y": 1000 },
+    { "type": "bomb", "x": 300, "y": 1150, "blast_radius": 560, "kill_radius": 200,
+      "trigger": "fuse", "fuse_s": 2.0, "telegraph_lead": 1.0, "recur": 3.5, "arm_delay": 0.3,
+      "impulse_center": 1500 },
+    { "type": "goal_zone", "x": 1750, "y": 620, "w": 420, "h": 560, "team": 0 }
+  ]
+}

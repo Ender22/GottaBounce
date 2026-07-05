@@ -1,0 +1,28 @@
+{
+  "name": "Breakout Box",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "TRIALS DESTROY_ALL proof course (v7_trials_challenge_types.md §2.3, owner example t_breakout_box). Smash every destructible_block ringing a central launch pad over the void WITHOUT over-launching into the pit. The clear-test is the umbrella group 'destructible' emptying (last block breaks). A fall respawns at start_gate (+2s), never ends the course.\n\nDESIGN vs current Tuning: a central trampoline pad (x760 w400, top 1080) is the safe footing; five destructible blocks (break_on 'hit', hp 1 -> one solid >=300px/s bounce breaks each after a 0.28s crack telegraph) sit within a single boost of the pad: three in an arc overhead (break by boosting UP into them) + one on each side (break by boosting sideways). Every block is a trampoline-tier SURFACE so a clean contact both bounces you and lands the hit. normal_boost_max 760px/s reaches each block from the pad; the risk is over-boosting past a block into the void => a fall (+2s). No block is anyone's sole footing (the central pad always remains) so there is no softlock (D-SOFTLOCK n/a here -- that gate binds t_glass_floor).\n\nMEDAL (time, faster better): a clean run breaks 5 blocks in ~9-15s. gold 12.0 / silver 20.0 / bronze 35.0.",
+  "sky_top": "#3a7d44",
+  "sky_bottom": "#cfeecf",
+  "bounds": { "left": -300, "top": -900, "right": 1960, "bottom": 1640 },
+  "objective": {
+    "type": "DESTROY_ALL",
+    "score_by": "time"
+  },
+  "platforms": [
+    { "x": 760, "y": 1080, "w": 400, "h": 120, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -300, "y": 1360, "w": 2260, "h": 280, "wall_px": 120 },
+    { "type": "start_gate", "x": 960, "y": 1000 },
+    { "type": "destructible_block", "x": 500,  "y": 700, "w": 180, "h": 80, "tier": "trampoline", "break_on": "hit", "hp": 1 },
+    { "type": "destructible_block", "x": 870,  "y": 600, "w": 180, "h": 80, "tier": "trampoline", "break_on": "hit", "hp": 1 },
+    { "type": "destructible_block", "x": 1240, "y": 700, "w": 180, "h": 80, "tier": "trampoline", "break_on": "hit", "hp": 1 },
+    { "type": "destructible_block", "x": 340,  "y": 1000, "w": 150, "h": 90, "tier": "trampoline", "break_on": "hit", "hp": 1 },
+    { "type": "destructible_block", "x": 1430, "y": 1000, "w": 150, "h": 90, "tier": "trampoline", "break_on": "hit", "hp": 1 }
+  ],
+  "medal_times": { "gold": 12.0, "silver": 20.0, "bronze": 35.0 }
+}

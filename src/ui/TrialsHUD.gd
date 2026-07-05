@@ -57,20 +57,21 @@ func _process(_delta: float) -> void:
 	var mode = _runner._mode
 	if mode == null:
 		return
-	var t: float = float(mode.current_time(_runner))
-	_time_label.text = "%.2f" % t
-	var medal: String = str(mode.medal_for(t))
-	_medal_label.text = "—" if medal == "none" else medal.to_upper()
-	_medal_label.add_theme_color_override("font_color", mode.medal_color(medal))
-	var mt: Dictionary = mode.medal_times()
-	if mt.is_empty():
-		_thresholds_label.text = ""
-	else:
-		_thresholds_label.text = "G %.1f   S %.1f   B %.1f" % [
-			float(mt.get("gold", 0.0)), float(mt.get("silver", 0.0)), float(mt.get("bronze", 0.0))]
-	var best: float = float(mode.best_time())
-	_best_label.text = "BEST %.2f" % best if best > 0.0 else "BEST --"
-	_falls_label.text = "FALLS %d" % int(mode.attempts)
+	# v7: the center readout swaps per the course's objective type (timer / survive-clock / blocks-left /
+	# attempts). REACH_GOAL (and the time-scored COLLECT/PRECISION) keep the original timer readout so the
+	# shipped courses are byte-identical.
+	var otype := "REACH_GOAL"
+	if mode.has_method("objective_type"):
+		otype = str(mode.objective_type())
+	match otype:
+		"SURVIVE":
+			_show_survive(mode)
+		"DESTROY_ALL":
+			_show_destroy(mode)
+		"PHYSICS_PUZZLE":
+			_show_puzzle(mode)
+		_:
+			_show_timer(mode)
 	# fuel gauge from the lone human
 	var ratio := 0.0
 	var players: Array = _runner.players
@@ -81,6 +82,54 @@ func _process(_delta: float) -> void:
 	var fh: float = maxf(0.0, _fuel_bg.size.y - pad * 2.0)
 	_fuel_fill.position = Vector2(pad, pad)
 	_fuel_fill.size = Vector2(fw * clampf(ratio, 0.0, 1.0), fh)
+
+# ------------------------------------------------------------------ per-type center readouts (v7)
+## REACH_GOAL + time-scored types: the original big RUN TIMER + medal-by-time thresholds + best + falls.
+func _show_timer(mode) -> void:
+	var t: float = float(mode.current_time(_runner))
+	_time_label.text = "%.2f" % t
+	var medal: String = str(mode.medal_for(t))
+	_set_medal(mode, medal)
+	var mt: Dictionary = mode.medal_times()
+	if mt.is_empty():
+		_thresholds_label.text = ""
+	else:
+		_thresholds_label.text = "G %.1f   S %.1f   B %.1f" % [
+			float(mt.get("gold", 0.0)), float(mt.get("silver", 0.0)), float(mt.get("bronze", 0.0))]
+	var best: float = float(mode.best_time())
+	_best_label.text = "BEST %.2f" % best if best > 0.0 else "BEST --"
+	_falls_label.text = "FALLS %d" % int(mode.attempts)
+
+## SURVIVE: the survival clock counts UP toward the target; medal is by deaths (fewer = better).
+func _show_survive(mode) -> void:
+	var elapsed: float = float(mode.survive_elapsed(_runner))
+	var target: float = float(mode.survive_target())
+	_time_label.text = "%.1f" % elapsed
+	_thresholds_label.text = "SURVIVE %.0fs" % target
+	_set_medal(mode, str(mode.result_medal(_runner)))
+	_best_label.text = ""
+	_falls_label.text = "DEATHS %d" % int(mode.survive_deaths())
+
+## DESTROY_ALL: the run timer + the live count of blocks still to break; medal per score_by.
+func _show_destroy(mode) -> void:
+	var t: float = float(mode.current_time(_runner))
+	_time_label.text = "%.2f" % t
+	_thresholds_label.text = "SMASH ALL"
+	_set_medal(mode, str(mode.result_medal(_runner)))
+	_best_label.text = ""
+	_falls_label.text = "BLOCKS %d" % int(mode.blocks_remaining(_runner))
+
+## PHYSICS_PUZZLE: the attempt count is the hero readout; medal by fewest attempts.
+func _show_puzzle(mode) -> void:
+	_time_label.text = "%d" % int(mode.puzzle_attempts())
+	_thresholds_label.text = "ATTEMPTS"
+	_set_medal(mode, str(mode.result_medal(_runner)))
+	_best_label.text = ""
+	_falls_label.text = "BALL -> GOAL"
+
+func _set_medal(mode, medal: String) -> void:
+	_medal_label.text = "—" if medal == "none" else medal.to_upper()
+	_medal_label.add_theme_color_override("font_color", mode.medal_color(medal))
 
 # ------------------------------------------------------------------ CENTER banner (frozen / pre-round)
 func show_center(text: String, color: Color, hold: float, sub := "") -> void:
