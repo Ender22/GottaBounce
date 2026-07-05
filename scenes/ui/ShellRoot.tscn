@@ -1,6 +1,26 @@
-[gd_scene load_steps=2 format=3 uid="uid://shellroot0001"]
+[gd_scene load_steps=3 format=3 uid="uid://shellroot0001"]
 
 [ext_resource type="Script" path="res://src/ui/ShellRoot.gd" id="1_shell"]
+[ext_resource type="Script" path="res://src/ui/Backdrop.gd" id="2_backdrop"]
 
 [node name="ShellRoot" type="Node"]
 script = ExtResource("1_shell")
+
+[node name="BackdropLayer" type="CanvasLayer" parent="."]
+layer = 0
+
+[node name="Backdrop" type="Control" parent="BackdropLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_backdrop")
+
+[node name="ScreenLayer" type="CanvasLayer" parent="."]
+layer = 1
+
+[node name="OverlayLayer" type="CanvasLayer" parent="."]
+layer = 5

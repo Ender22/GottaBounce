@@ -52,6 +52,10 @@ const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 # GameMode registry (v1_frontend_shell §3.2): mode_id -> mode script. PartyMatch is a regular (non-
 # autoload) script, so preloading the class_name mode scripts here is safe.
 const MODE_REGISTRY := {&"brawl": preload("res://src/modes/BrawlMode.gd")}
+# Front-end shell hooks (v1_frontend_shell §5): pause overlay + return-to-menu on quit.
+const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
+const SHELL_SCENE := "res://scenes/ui/ShellRoot.tscn"
+var _pause_overlay: CanvasLayer = null
 
 # --- Camera 2x policy (docs/briefs/camera_2x_policy.md) ---
 # Action-cluster framing + readability-floored zoom on the wide grassy_expanse. The old fit-to-global-
@@ -718,7 +722,24 @@ func _tick_match_end(delta: float) -> void:
 	if Input.is_action_just_pressed(&"menu_accept"):
 		_start_match()
 	elif Input.is_action_just_pressed(&"menu_back"):
-		get_tree().quit()
+		# match-end QUIT returns to the shell MainMenu (v1_frontend_shell §9 C9), NOT app-quit
+		get_tree().change_scene_to_file(SHELL_SCENE)
+
+## menu_back during a live match opens the PauseMenu overlay (v1_frontend_shell §5 C8). MATCH_END is
+## handled by _tick_match_end (its menu_back = QUIT-to-menu), so ignore it here.
+func _unhandled_input(e: InputEvent) -> void:
+	if state == "MATCH_END" or state == "BOOT":
+		return
+	if e.is_action_pressed(&"menu_back") and not is_instance_valid(_pause_overlay):
+		get_viewport().set_input_as_handled()
+		_open_pause()
+
+func _open_pause() -> void:
+	_pause_overlay = PAUSE_SCENE.instantiate()
+	add_child(_pause_overlay)
+	if _pause_overlay.has_method("setup"):
+		_pause_overlay.setup(self)
+	get_tree().paused = true
 
 func _deltas_line() -> String:
 	var parts: Array[String] = []

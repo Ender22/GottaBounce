@@ -1,0 +1,228 @@
+[gd_scene load_steps=4 format=3 uid="uid://charselect0001"]
+
+[ext_resource type="Script" path="res://src/ui/CharacterSelect.gd" id="1_char"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
+
+[node name="CharacterSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_char")
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0784314, 0.0784314, 0.156863, 0.55)
+
+[node name="Header" type="Control" parent="."]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 0.12
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="BackBtn" type="Button" parent="Header"]
+custom_minimum_size = Vector2(180, 64)
+layout_mode = 1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 40.0
+offset_top = -32.0
+offset_right = 220.0
+offset_bottom = 32.0
+focus_mode = 2
+theme_type_variation = &"ShellBtn"
+text = "< BACK"
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 260.0
+mouse_filter = 2
+theme_type_variation = &"BannerTop"
+text = "CHOOSE YOUR BOUNCER"
+vertical_alignment = 1
+
+[node name="Stage" type="Control" parent="."]
+layout_mode = 1
+anchor_left = 0.02
+anchor_top = 0.13
+anchor_right = 0.44
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Spotlight" type="Panel" parent="Stage"]
+layout_mode = 1
+anchor_left = 0.12
+anchor_top = 0.04
+anchor_right = 0.88
+anchor_bottom = 0.66
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Pose" type="TextureRect" parent="Stage"]
+layout_mode = 1
+anchor_left = 0.14
+anchor_top = 0.05
+anchor_right = 0.86
+anchor_bottom = 0.62
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameBanner" type="Panel" parent="Stage"]
+layout_mode = 1
+anchor_left = 0.06
+anchor_top = 0.66
+anchor_right = 0.94
+anchor_bottom = 0.79
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="HeroName" type="Label" parent="Stage/NameBanner"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 76
+text = "POGO"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Blurb" type="Label" parent="Stage"]
+layout_mode = 1
+anchor_left = 0.04
+anchor_top = 0.8
+anchor_right = 0.96
+anchor_bottom = 0.94
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"BannerSub"
+text = "Can't stop boinging. Won't stop boinging."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Grid" type="GridContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.46
+anchor_top = 0.12
+anchor_right = 0.98
+anchor_bottom = 0.65
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/h_separation = 36
+theme_override_constants/v_separation = 30
+columns = 3
+
+[node name="SettingsTray" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.46
+anchor_top = 0.67
+anchor_right = 0.98
+anchor_bottom = 0.87
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"SettingsTray"
+
+[node name="StripRow" type="HBoxContainer" parent="SettingsTray"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="ReadyPrompt" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 0.02
+anchor_top = 0.88
+anchor_right = 0.44
+anchor_bottom = 0.94
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"BannerPrompt"
+theme_override_colors/font_color = Color(0.329412, 0.788235, 0.290196, 1)
+text = "P1 READY — (A) FIGHT!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Footer" type="Control" parent="."]
+layout_mode = 1
+anchor_top = 0.92
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="HintBox" type="HBoxContainer" parent="Footer"]
+layout_mode = 1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 96.0
+offset_top = -24.0
+offset_right = 1400.0
+offset_bottom = 24.0
+mouse_filter = 2
+script = ExtResource("3_hint")
+hints = PackedStringArray("A|Ready", "B|Back", "< >|Pick", "R|Random")
+
+[node name="Version" type="Label" parent="Footer"]
+layout_mode = 1
+anchor_left = 0.7
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -24.0
+offset_right = -64.0
+offset_bottom = 24.0
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0.6)
+theme_type_variation = &"Hint"
+text = "v0.1"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="P1Flag" type="Panel" parent="."]
+visible = false
+custom_minimum_size = Vector2(58, 40)
+offset_right = 58.0
+offset_bottom = 40.0
+mouse_filter = 2
+
+[node name="P1Label" type="Label" parent="P1Flag"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 24
+text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1

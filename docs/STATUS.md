@@ -37,6 +37,14 @@ pace (top fun risk — IN PROGRESS); (2) sunny-cluster visual signature; (3) del
 + the stretch backlog (moving-hazard/wrecking_yard, bot flee-to-heal, goat, audio polish).
 
 ## What exists (committed + validated)
+- **[NEW 2026-07-05] Phase 1 foundation:** `GameConfig` autoload + `MatchConfig` resource, `Settings`
+  autoload (user://settings.cfg, applies buses+window on boot), `GameMode` seam + `BrawlMode` (versus
+  loop extracted; PartyMatch = generic runner reading GameConfig). `main_scene`=ShellRoot (boots to
+  brawl; styled screens IN PROGRESS via gameplay-programmer against `docs/briefs/frontend_ux_spec.md`).
+- **[NEW 2026-07-05] The Herd — goat/ram cast (art pass #1):** all 6 idle sprites live in the
+  `bouncer_<color>_idle` slots + verified in-engine — Pogo(pink,mascot)/Butch(blue ram)/Ziggy(green ibex)/
+  Puff(yellow sheep)/Vex(purple markhor)/Billy(orange billy). Squash/charge poses = pass #2. Bible:
+  `docs/briefs/character_theme_bible.md` + `character_art_bible.md`.
 - **Match:** `PartyMatch` kill-race state machine (STAGE_INTRO→COUNTDOWN→COMBAT→STAGE_END→next|MATCH_END;
   SD only via double-KO), lives, cumulative-kills-to-10, level rotation (shuffle-bag), match-end panel.
 - **Combat:** un-charged super (aim→blast, drain-all), two-tier SHOVE/SMASH with **hit-solidity**
