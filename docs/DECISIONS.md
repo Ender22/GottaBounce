@@ -2,6 +2,17 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-05** HAZARD DOCTRINE UPDATED (owner ruling): gimmick hazards are **LETHAL by default**, NOT
+  recoverable-shove. Rationale: in a game where you die every ~5s, a non-killing hazard is meaningless
+  scenery; a hammer that KILLS on contact (dodge-or-die) is the comedy + tension — death is the punchline.
+  This RELAXES the 2026-07-04 moving_hazard "shove not kill" rule to a per-hazard choice (the wrecking_yard
+  pendulum stays non-lethal by ITS design; new gimmick hazards kill). Lethal-hazard requirements: (a)
+  TELEGRAPHY — learnable rhythm/windup so it's avoidable with SKILL, never a random unfair instakill; (b)
+  FAIRNESS — an escape beat, everyone faces it symmetrically; (c) CREDIT — hazard-kill w/ no attacker =
+  uncredited self-fall (INV-9, no invented environment scorer); knocked-into-hazard credits the knocker via
+  the 6s ring-out window. New headline archetype: **COLLAPSING ARENA / LAST-ONE-FLYING** (all ground erodes
+  -> jetpack survival scramble). Feeds `docs/specs/v6_party_gimmicks_circuits.md`.
+
 - **2026-07-05** CD VERDICT #7 = **FIX** on the complete four-mode game. The whole holds together as ONE
   cohesive, shipped-quality product (front-end + Herd cast + circuits + 4 modes); BRAWL delivers the full
   fantasy (best), GAUNTLET a solid solo hook (2nd), TRIALS a clean change-of-pace (thinnest — no smash/kill;
