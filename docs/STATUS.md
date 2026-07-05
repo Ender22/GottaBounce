@@ -101,13 +101,16 @@ Brawl circuits + Trials challenge-types + Sports pitches.
     (§4c — current wordmark reads fine + bobbers give mascot presence; ChatGPT text-gen unreliable, poor risk/reward unattended).
 
 ## NEXT PHASE — content waves (owner-requested variety)
-- **Sports pitches — IN FLIGHT (level-designer):** authoring the 3 pitches the court-set defers ("later wave") —
-  `the_bowl` (calm funnel), `minefield` (symmetric landmines), `the_crusher` (center crusher) — per `docs/specs/v8_sports_courts.md`,
-  STRICT mirror-symmetry (the earlier one-sidedness was a geometry bug), wired into sports_courts.json + rotate_sets, validated
-  with bounded bot-match fairness checks. Maps to owner's "giant hammer / landmines / calm / chaotic / luck-based madness."
-- **Then:** fuller Trials battery toward v7's 8-course set (existing: 5-course `campaign` + 5-course `varied` proof set); more
-  Brawl circuits + the 3 seed arenas; Phase-5 progression polish; Trials medal-time tuning (movement bot). Consider a
-  creative-director full-game playthrough to re-rank these before investing heavily.
+- **Sports pitches — DONE (8 total).** Added `the_bowl` (calm funnel), `minefield` (symmetric landmines), `the_crusher`
+  (center horizontal crusher, ejects ball vertically) + `Crusher._eject_ball`. All strict mirror-symmetric, bot-match validated,
+  wired into sports_courts.json (unlock gates use REAL circuits). WATCH: minefield leaned BLUE 5/5 but all margins 1-2 goals
+  (~58%, under the 65% bar) — reads as first-touch variance; re-sample if it recurs.
+- **Trials battery — IN FLIGHT (level-designer):** growing the `varied` set from 5 proof courses to ~8 with a difficulty ramp,
+  spread across objective types, reusing the new mechanics (crusher/moving_platform/pendulum). Medal times set PROVISIONAL —
+  need a movement-bot tuning pass (known gap). Each validated completable in-engine.
+- **Then (re-rank first):** run a CREATIVE-DIRECTOR full-game playthrough (all 4 modes + front-end) to find the highest-value
+  remaining work before investing more. Candidate backlog: more Brawl circuits + the 3 seed arenas; Phase-5 progression polish;
+  Trials medal-time tuning (movement bot); CharacterSelect beauty-pose busts; always-on-hazard pre-combat lethality guard.
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
