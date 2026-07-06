@@ -4,10 +4,12 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-05 — the game is now a **cohesive FOUR-MODE party brawler** (up from a single
-hardcoded match at the start of the day). Everything below "What exists" is committed + validated. An
-owner-driven **content-expansion initiative** (wild gimmick levels + more circuits/courts/pitches +
-unlock progression, across all modes) is DESIGNED and about to enter the BUILD phase — see IN-FLIGHT.
+**Last updated:** 2026-07-06 — **SHIP-class four-mode party brawler** (creative-director full-game verdict:
+purchasable, cohesive, core fantasy lands, no regressions — `docs/feedback/cd_2026-07-06_fullgame.md`).
+This session: art-debt fully paid (all code-drawn bodies → real Glossy-Toybox sprites), full Mario-Kart-bar
+front-end polish (title/ModeSelect/ArenaSelect), content waves (8 Sports pitches + 8 Trials courses), and the
+CD punch-list applied. Remaining work is OWNER-GATED (Brawl kill count, audio mix listen) or minor polish —
+see the "NEEDS OWNER" + "NEXT-UP BACKLOG" sections below. Everything committed + validated.
 
 ## Where we are (the game today)
 A goat/ram party brawler — "Duck Game × Smash Bros, no guns" — with a full front-end and four modes,
@@ -105,12 +107,27 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   (center horizontal crusher, ejects ball vertically) + `Crusher._eject_ball`. All strict mirror-symmetric, bot-match validated,
   wired into sports_courts.json (unlock gates use REAL circuits). WATCH: minefield leaned BLUE 5/5 but all margins 1-2 goals
   (~58%, under the 65% bar) — reads as first-touch variance; re-sample if it recurs.
-- **Trials battery — IN FLIGHT (level-designer):** growing the `varied` set from 5 proof courses to ~8 with a difficulty ramp,
-  spread across objective types, reusing the new mechanics (crusher/moving_platform/pendulum). Medal times set PROVISIONAL —
-  need a movement-bot tuning pass (known gap). Each validated completable in-engine.
-- **Then (re-rank first):** run a CREATIVE-DIRECTOR full-game playthrough (all 4 modes + front-end) to find the highest-value
-  remaining work before investing more. Candidate backlog: more Brawl circuits + the 3 seed arenas; Phase-5 progression polish;
-  Trials medal-time tuning (movement bot); CharacterSelect beauty-pose busts; always-on-hazard pre-combat lethality guard.
+- **Trials battery — DONE (8 courses).** `varied` grown 5→8: +t_cart_convoy (COLLECT, void+cart+refuel), +t_twin_hammers
+  (SURVIVE hard), +t_bank_shot (PHYSICS bank-shot capstone). Difficulty-ramped, each validated completable in-engine. Medal
+  times PROVISIONAL — need a movement-bot tuning pass.
+- **CREATIVE-DIRECTOR full-game verdict — DONE (`docs/feedback/cd_2026-07-06_fullgame.md`): SHIP-class, no rethink, no
+  regressions.** Purchasable-looking cohesive party brawler; BRAWL delivers the full fantasy; motion health clean. Punch-list
+  applied (see below).
+- **CD PUNCH-LIST — APPLIED + committed:** (1) progression unlock-chain integrity guard (Settings.gd — recursive prefix guard +
+  self-healing sanitize; the "High Wire open while Scrapworks locked" impossible state is dead); (2) repaired the dirty DEV save
+  (music was 0% → our playtests ran MUTED; now defaults music=1.0 + clean progression); (3) Sports match length 10→6 goals
+  (`Tuning.sports_goal_target`, split from Brawl's knob); (4) audio verified FIRING (music + SFX). 
+
+## ⚠ NEEDS OWNER (flagged, NOT auto-changed)
+- **BRAWL kill target** = owner-set **10**; CD AND QA independently recommend **~7** for the one-more-round feel. Owner's call —
+  knob is `Tuning.match_target_kills` (now cleanly separate from Sports).
+- **Audio MIX quality** — a HUMAN must LISTEN. Audio is wired + firing (verified), but no one has judged levels/loop/punch (our
+  playtests were accidentally muted until tonight's save repair). AI can't hear this.
+
+## NEXT-UP BACKLOG (autonomous-safe, minor; fresh-session ready)
+- CD minor items: Gauntlet solo default 1 life is harsh (→ ~3); minefield ceiling mines under-trigger (raise/retune spawn).
+- Trials medal-time tuning via a movement bot (all provisional). CharacterSelect beauty-pose busts (§2c, Pogo+Butch first).
+- More Brawl circuits + the 3 seed arenas; always-on-hazard pre-combat lethality guard; goat-on-logo (deferred, text-gen flaky).
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
