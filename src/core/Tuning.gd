@@ -155,6 +155,9 @@ var kill_credit_window_ringout: float = 6.0  # v2_kill_shape §3 RULING 3: EXTEN
                                        #   §1b reconciliation: within 6.0 of a qualifying hit = CREDITED; no
                                        #   qualifying hit in the window = genuine self-fall (-1 self-floor, kept).
 var match_target_kills: int = 10       # v1 §2: first to this many CUMULATIVE kills with a strict lead wins
+                                       #   (BRAWL kill target — OWNER-SET at 10; do NOT retune here for pacing).
+var sports_goal_target: int = 6        # SPORTS goal cap — split from the BRAWL kill target so Sports can hold
+                                       #   the "10-30s one-more-round" cadence (~6 goals) without moving Brawl off 10.
 var match_target_score: int = 10       # RETIRED alias of match_target_kills (v0 back-compat; unused)
 var lives_per_player: int = 1          # v1 §3: default 1 (dead = out for the stage). >1 enables the
                                        #   configurable mid-stage respawn path (non-default, not this slice)

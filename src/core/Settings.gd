@@ -130,6 +130,35 @@ func _load() -> void:
 	circuits_cleared = _split_csv(str(cfg.get_value("progression", "circuits_cleared", "")))
 	_circuit_plays = _parse_plays(str(cfg.get_value("progression", "circuit_plays", "")))
 	pending_unlock = str(cfg.get_value("progression", "pending_unlock", ""))
+	_sanitize_progression()
+
+## Self-heal a corrupt/partial save so the cleared set is always a CONSISTENT PREFIX of the order chain
+## (CD 2026-07-06 #3). A circuit can only legitimately be "cleared" if it was UNLOCKABLE when won: its
+## predecessor must itself be legitimately cleared OR pity-played (>= UNLOCK_PITY_MATCHES). Walking the
+## order once and dropping any cleared entry whose predecessor isn't legit trims dev-test artifacts (e.g.
+## `scrapworks` cleared while `meadow_mile` was only played once) back to a valid state. Rewrites the save
+## once if anything changed so the fix persists. Does NOT invent unlocks — it only removes impossible ones.
+func _sanitize_progression() -> void:
+	var order := _get_circuit_order()
+	if order.is_empty() or circuits_cleared.is_empty():
+		return
+	var clean := PackedStringArray()
+	for i in range(order.size()):
+		var cid := str(order[i])
+		if not circuits_cleared.has(cid):
+			continue
+		if i == 0:
+			clean.append(cid)   # base circuit is always unlockable
+			continue
+		var pred := str(order[i - 1])
+		var pred_ok: bool = clean.has(pred) or int(_circuit_plays.get(pred, 0)) >= UNLOCK_PITY_MATCHES
+		if pred_ok:
+			clean.append(cid)
+		# else: drop cid (and, because clean won't hold it, any successor that depended on it)
+	if clean != circuits_cleared:
+		push_warning("Settings: sanitized inconsistent circuits_cleared %s -> %s" % [circuits_cleared, clean])
+		circuits_cleared = clean
+		_save()
 
 func _save() -> void:
 	var cfg := ConfigFile.new()
@@ -172,12 +201,21 @@ func record_match_result(circuit_id: String, won: bool, kills_this_match: int) -
 ## True if a circuit is playable: the base (first-in-order) is always unlocked; any other is unlocked
 ## once its PREDECESSOR in the chain is WON (in circuits_cleared) OR played UNLOCK_PITY_MATCHES times.
 ## A circuit not present in the order chain is treated as ungated (true) -- SINGLE/RANDOM never call this.
+##
+## PREFIX-INTEGRITY GUARD (CD 2026-07-06 #3): the unlock walk is RECURSIVE — a circuit is unlocked only
+## if its predecessor is ITSELF genuinely unlocked AND (cleared OR pity-played). This makes the unlocked
+## region always a consistent PREFIX of the order chain, so a corrupt/partial save (e.g. `scrapworks`
+## marked cleared while `meadow_mile` was never cleared/pity-played) can NEVER present a later circuit as
+## open while an earlier one reads locked. Normal progression is unchanged: winning/pity the predecessor
+## still unlocks the next circuit in order.
 func is_circuit_unlocked(circuit_id: String) -> bool:
 	var order := _get_circuit_order()
 	var idx := order.find(circuit_id)
 	if idx <= 0:
 		return true   # base circuit (index 0) or not in the chain -> ungated
 	var pred := str(order[idx - 1])
+	if not is_circuit_unlocked(pred):
+		return false  # predecessor not genuinely reachable -> this one can't be either
 	if circuits_cleared.has(pred):
 		return true
 	return int(_circuit_plays.get(pred, 0)) >= UNLOCK_PITY_MATCHES

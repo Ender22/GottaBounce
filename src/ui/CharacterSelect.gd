@@ -288,7 +288,7 @@ func _go_arena() -> void:
 	elif _sports:
 		# SPORTS skips ArenaSelect (single mode-owned pitch) and launches straight in: a 1v1 preset
 		# (1 human + 1 bot = even total 2). SportsMode overrides skins by team colorway + forces the
-		# runner economy inert; kills_to_win is reused as the goal cap (default 5).
+		# runner economy inert; the goal cap comes from Tuning.sports_goal_target (split from kills_to_win).
 		var cfg: MatchConfig = GameConfig.match_config
 		cfg.mode_id = &"sports"
 		cfg.human_count = 1

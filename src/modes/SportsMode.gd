@@ -28,7 +28,7 @@ const TEAM_SKINS := [["pink", "orange"], ["blue", "purple"]]
 # --- mode-owned state (spec §4) ---
 var _team_scores: Array = [0, 0]
 var _teams: Array = []                 # index -> team (0/1), built in spawn_plan (plan[i] -> player i)
-var _goal_cap: int = 5
+var _goal_cap: int = 6                  # fallback; the live cap is set in configure() from Tuning.sports_goal_target
 var _arena_path: String = DEFAULT_ARENA
 var _last_scoring_team: int = -1
 var _last_scored_stage: int = -1       # idempotency guard: increment at most once per stage
@@ -62,11 +62,14 @@ func polls_goal() -> bool:
 # --- match setup ---
 ## Force the runner's own economy inert so it NEVER eliminates or ends on a kill-race (TRIALS/GAUNTLET
 ## pattern): high lives -> any rare out-of-bounds is an instant respawn; huge kill target -> a stray
-## on_kill can never trip the kill-race end. Read the goal cap from the reused kills_to_win. Idempotent.
+## on_kill can never trip the kill-race end. The goal cap is Tuning.sports_goal_target — SPLIT from the
+## shared config.kills_to_win knob so Sports pacing (~6 goals) is independent of the OWNER-SET BRAWL kill
+## target (10). SPORTS has no in-UI target stepper (its settings tray is hidden), so this is the only
+## source of the goal cap. Idempotent.
 func configure(runner, config: MatchConfig) -> void:
 	runner.lives_per_player = 99
 	runner.match_target_kills = 999999
-	_goal_cap = maxi(1, config.kills_to_win)
+	_goal_cap = maxi(1, Tuning.sports_goal_target)
 	# Defensive arena resolution (CD robustness fix): SPORTS is an ENCLOSED-court mode; if it ever loads a
 	# non-enclosed / missing level the ball falls through the world forever. Default to the sports court
 	# whenever the configured path is empty, whitespace, or points at a file that does not exist.
