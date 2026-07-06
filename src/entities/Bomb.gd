@@ -191,7 +191,11 @@ func _update_body() -> void:
 ## for a live player inside trigger_radius, then enters TELEGRAPH.
 func _tick_armed(delta: float) -> void:
 	if trigger == "proximity":
-		if _player_within(trigger_radius):
+		# a LIVE player OR the sports ball inside the ring arms the countdown. The ball matters because on
+		# a sports court the ball is the primary body in the mid-air lanes (elevated mines would otherwise
+		# never trip — players hug the floor); a ball-tripped mine PUNTS the ball (the mode-owned laugh).
+		# Non-sports levels have no "sports_ball" node, so this is inert there (byte-for-byte for them).
+		if _player_within(trigger_radius) or _ball_within(trigger_radius):
 			_enter_telegraph()
 		return
 	# fuse mode
@@ -267,6 +271,16 @@ func _punt_balls(mag: float) -> void:
 		var falloff := 1.0 - dist / blast_radius            # linear falloff (FEEL §4.1)
 		var dir := to_body.normalized() if dist > 0.001 else Vector2.UP
 		b.receive_hazard_impulse(dir * mag * falloff)
+
+## Is a sports Ball within `r` of the bomb centre? (proximity trigger — sports courts only; other
+## levels spawn no "sports_ball" node so this returns false and the mine behaves exactly as before.)
+func _ball_within(r: float) -> bool:
+	for b in get_tree().get_nodes_in_group("sports_ball"):
+		if not is_instance_valid(b):
+			continue
+		if (b.global_position - center).length() <= r:
+			return true
+	return false
 
 ## Is a LIVE player within `r` of the bomb centre? (proximity trigger.)
 func _player_within(r: float) -> bool:
