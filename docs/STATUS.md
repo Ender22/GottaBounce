@@ -124,9 +124,11 @@ Brawl circuits + Trials challenge-types + Sports pitches.
 - **Audio MIX quality** — a HUMAN must LISTEN. Audio is wired + firing (verified), but no one has judged levels/loop/punch (our
   playtests were accidentally muted until tonight's save repair). AI can't hear this.
 
-## NEXT-UP BACKLOG (autonomous-safe, minor; fresh-session ready)
-- CD minor items: Gauntlet solo default 1 life is harsh (→ ~3); minefield ceiling mines under-trigger (raise/retune spawn).
-- Trials medal-time tuning via a movement bot (all provisional). CharacterSelect beauty-pose busts (§2c, Pogo+Butch first).
+## NEXT-UP BACKLOG (autonomous-safe; fresh-session ready)
+- CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);
+  Gauntlet solo lives was a non-issue (already 4 via CharacterSelect — CD saw a dev-launch default).
+- **Trials medal-time tuning** — needs building/using a MOVEMENT BOT (all 8 varied medals are provisional). Bigger task.
+- CharacterSelect beauty-pose busts (§2c, Pogo+Butch first — nice-to-have, screen ships on idles).
 - More Brawl circuits + the 3 seed arenas; always-on-hazard pre-combat lethality guard; goat-on-logo (deferred, text-gen flaky).
 - **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
   (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
