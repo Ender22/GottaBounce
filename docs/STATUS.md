@@ -137,9 +137,15 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   (committed):** two-shelf scrolling layout (WAYS TO PLAY 460x340 / ARENAS 380x280 rails), scroll-to-focused,
   clip bands (header/footer occlusion structurally impossible), ModeContext chip (ArenaSelect + CharacterSelect),
   LB/RB+PgUp/PgDn 3-card jumps, real star icons, per-shelf remembered focus. ShelfRail is reusable — it IS the
-  future Sports court-select container. FOLLOW-UPS open: circuit CREST art (Shelf A plates are sanctioned gradient
-  fallbacks until the art pipeline delivers), HintStrip contrast (P2), CharacterSelect safe-area/type (P3),
-  de-clocked mode_trials.png diorama (P4), pause confirm prompts.
+  future Sports court-select container — and now IS the Sports court select (see backlog DONE entry). AUDIT
+  FOLLOW-UPS CLOSED 2026-07-10: court thumbnails baked (ThumbBaker courts pass, court_<id> namespace);
+  HintStrip contrast pass (P2, cream chips shell-wide + footer no-content enforcement); CharacterSelect
+  safe-area/type (P3, 64px tray inset + 28/40px stepper type); Options tick-gutter + centered panel;
+  PauseMenu hint strip (inside the panel footer — designer caught the first placement overlapping a HUD corner)
+  + two-press REALLY? confirm on QUIT/RESTART. Designer re-grade: PASS all items after the relocation.
+  STILL OPEN: circuit CREST art + de-clocked mode_trials.png diorama (art pipeline); ToyToggle knob scale
+  (P5-minor); CharacterSelect stepper focus treatment (designer F-class follow-up: nothing visibly reads as
+  focused while focus is in the settings strip).
 - **CAMERA (repeated ~5x, owner rules now the acceptance spec):** `docs/feedback/owner_2026-07-10_camera_rules.md`.
   **REWORKED TO THE RULES + committed (see DECISIONS 2026-07-10):** camera_bounds = platform AABB +200; target =
   clamped midpoint of extreme players (cluster/weights/velocity-lead machinery deleted); zoom fits everyone (no

@@ -80,7 +80,8 @@ func _ready() -> void:
 		var cfg: MatchConfig = GameConfig.match_config
 		_add_stepper("HUMANS", ["1", "2", "3", "4"], [1, 2, 3, 4], cfg.human_count - 1, _on_humans)
 		_add_stepper("BOTS", ["0", "1", "2", "3", "4", "5", "6", "7"], [0, 1, 2, 3, 4, 5, 6, 7], cfg.bot_count, _on_bots)
-		_add_stepper("BOT SKILL", ["Mixed", "1", "2", "3", "4", "5"], [0, 1, 2, 3, 4, 5], cfg.bot_difficulty, _on_skill)
+		# "MIX" (was "Mixed") keeps the 40px value inside the stepper's width budget (audit P3 type pass)
+		_add_stepper("BOT SKILL", ["MIX", "1", "2", "3", "4", "5"], [0, 1, 2, 3, 4, 5], cfg.bot_difficulty, _on_skill)
 		_add_stepper("KILLS", ["5", "7", "8", "10"], [5, 7, 8, 10], _index_of([5, 7, 8, 10], cfg.kills_to_win, 3), _on_kills)
 		_add_stepper("LIVES", ["1", "2", "3"], [1, 2, 3], _index_of([1, 2, 3], cfg.lives_per_player, 0), _on_lives)
 		wire_col(_steppers)

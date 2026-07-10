@@ -117,11 +117,15 @@ func enter() -> void:
 		t.set_parallel(true)
 		t.tween_property(it, "scale", Vector2.ONE, 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.05 * i)
 		t.tween_property(it, "modulate:a", 1.0, 0.24).set_delay(0.05 * i)
+	# Header/footer bands are hard no-content zones (ui_audit_2026-07-10 P2): raise the chrome to the
+	# top of the draw order so screen content can never occlude the title or the control hints.
 	var h := header_node()
 	if h != null:
+		h.move_to_front()
 		_slide_in(h, Vector2(0, -60))
 	var f := footer_node()
 	if f != null:
+		f.move_to_front()
 		_slide_in(f, Vector2(0, 60))
 	_entered = true
 	call_deferred("_grab_first")

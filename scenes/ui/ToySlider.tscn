@@ -23,7 +23,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 24
-offset_left = 20.0
+offset_left = 32.0
 offset_right = -20.0
 
 [node name="Label" type="Label" parent="HBox"]

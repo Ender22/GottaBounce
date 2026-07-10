@@ -14,6 +14,11 @@ const OPTIONS := preload("res://scenes/ui/Options.tscn")
 
 var match_ref
 var _options: Control = null
+# Destructive-action confirm (ui_audit_2026-07-10 §1.6#2): first press of RESTART / QUIT TO MENU arms
+# the button ("REALLY?"), second press within the window executes; 1.5s or a focus move disarms.
+const CONFIRM_WINDOW := 1.5
+var _armed: Button = null
+var _arm_gen := 0
 
 func setup(m) -> void:
 	match_ref = m
@@ -38,7 +43,10 @@ func _reg(b: Button) -> void:
 	b.focus_entered.connect(func() -> void:
 		MenuFX.focus_in(b)
 		AudioManager.play_sfx("ui_click", {"pitch": 1.26, "volume_db": -12.0}))
-	b.focus_exited.connect(func() -> void: MenuFX.focus_out(b))
+	b.focus_exited.connect(func() -> void:
+		MenuFX.focus_out(b)
+		if _armed == b:
+			_disarm())
 	b.mouse_entered.connect(func() -> void:
 		if not b.has_focus():
 			b.grab_focus())
@@ -54,11 +62,37 @@ func _on_pressed(b: Button) -> void:
 	if b == _resume:
 		_do_resume()
 	elif b == _restart:
-		_do_restart()
+		if _confirmed(b):
+			_do_restart()
 	elif b == _options_btn:
 		_open_options()
 	elif b == _quit:
-		_do_quit()
+		if _confirmed(b):
+			_do_quit()
+
+## Two-press guard for match-ending actions. Returns true only on the confirming (second) press.
+func _confirmed(b: Button) -> bool:
+	if _armed == b:
+		_disarm()
+		return true
+	_disarm()
+	_armed = b
+	_arm_gen += 1
+	var gen := _arm_gen
+	if not b.has_meta("orig_text"):
+		b.set_meta("orig_text", b.text)
+	b.text = "REALLY?"
+	MenuFX.reject_shake(b)
+	# SceneTreeTimer with process_always=true ticks while the sim is paused
+	get_tree().create_timer(CONFIRM_WINDOW, true).timeout.connect(func() -> void:
+		if _arm_gen == gen and _armed == b:
+			_disarm())
+	return false
+
+func _disarm() -> void:
+	if _armed != null and is_instance_valid(_armed) and _armed.has_meta("orig_text"):
+		_armed.text = str(_armed.get_meta("orig_text"))
+	_armed = null
 
 func _do_resume() -> void:
 	get_tree().paused = false

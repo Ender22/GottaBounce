@@ -5,6 +5,7 @@ extends Control
 
 signal changed(index: int, value: Variant)
 
+@onready var _vbox: VBoxContainer = $VBox
 @onready var _title: Label = $VBox/Title
 @onready var _value: Label = $VBox/Row/Value
 @onready var _minus: Button = $VBox/Row/Minus
@@ -13,6 +14,18 @@ signal changed(index: int, value: Variant)
 var labels: Array = []
 var vals: Array = []
 var index := 0
+
+## Content-fit width (audit P3 type pass): the root is a plain Control, so it must surface its VBox's
+## minimum size for the owning HBox to lay steppers out side by side.
+func _get_minimum_size() -> Vector2:
+	var v := get_node_or_null("VBox")
+	if v == null:
+		return Vector2(0, 104)
+	var m: Vector2 = (v as Control).get_combined_minimum_size()
+	return Vector2(m.x, maxf(m.y, 104.0))
+
+func _ready() -> void:
+	_vbox.minimum_size_changed.connect(update_minimum_size)
 
 func configure(title: String, labels_: Array, vals_: Array, start_index: int) -> void:
 	labels = labels_

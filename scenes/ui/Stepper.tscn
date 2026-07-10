@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/Stepper.gd" id="1_step"]
 
 [node name="Stepper" type="Control"]
-custom_minimum_size = Vector2(210, 96)
+custom_minimum_size = Vector2(0, 104)
 focus_mode = 2
 script = ExtResource("1_step")
 
@@ -21,36 +21,34 @@ alignment = 1
 [node name="Title" type="Label" parent="VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"CardTag"
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_type_variation = &"StepTitle"
 horizontal_alignment = 1
 text = "TITLE"
 
 [node name="Row" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 alignment = 1
 
 [node name="Minus" type="Button" parent="VBox/Row"]
-custom_minimum_size = Vector2(52, 52)
+custom_minimum_size = Vector2(44, 48)
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"StepChip"
 text = "<"
 
 [node name="Value" type="Label" parent="VBox/Row"]
-custom_minimum_size = Vector2(84, 0)
+custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"StepValue"
+theme_type_variation = &"StepValueBig"
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "0"
 
 [node name="Plus" type="Button" parent="VBox/Row"]
-custom_minimum_size = Vector2(52, 52)
+custom_minimum_size = Vector2(44, 48)
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"StepChip"

@@ -1,7 +1,11 @@
 extends HBoxContainer
-## Footer control-hint strip (frontend_ux_spec §1.4). Builds chocolate-outlined rounded glyph chips
-## (reusing the PipEmpty DNA) each followed by a Hint label, from an exported list of "GLYPH|Label"
-## pairs — NOT literal platform glyphs (a real glyph set is a Phase-2 nicety). Pure presentation.
+## Footer control-hint strip (frontend_ux_spec §1.4). Builds cream rounded glyph chips (chocolate
+## glyph on the shell's cream button family — ui_audit_2026-07-10 §1.2#2 contrast pass: the old
+## translucent-chocolate chips vanished on dark grass at couch distance) each followed by a Hint
+## label, from an exported list of "GLYPH|Label" pairs — NOT literal platform glyphs (a real glyph
+## set is a Phase-2 nicety). Pure presentation.
+
+const CREAM := Color(1.0, 0.97, 0.92, 0.96)
 
 @export var hints: PackedStringArray = PackedStringArray()
 @export var green_first := false   # tint the first chip green (ArenaSelect "(A) FIGHT!")
@@ -23,16 +27,19 @@ func rebuild() -> void:
 		add_child(group)
 
 		var chip := Panel.new()
-		chip.custom_minimum_size = Vector2(40, 40)
+		var green: bool = green_first and i == 0
+		# widen the chip for multi-char glyphs ("< >") so the text never spills the pill
+		chip.custom_minimum_size = Vector2(40 + 14 * maxi(0, glyph.length() - 1), 40)
 		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.theme_type_variation = &"PipEmpty"
-		if green_first and i == 0:
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = Color(0.329412, 0.788235, 0.290196, 0.85)
-			sb.border_color = MenuFX.CHOCO
-			sb.set_border_width_all(3)
-			sb.set_corner_radius_all(11)
-			chip.add_theme_stylebox_override("panel", sb)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.329412, 0.788235, 0.290196, 0.92) if green else CREAM
+		sb.border_color = MenuFX.CHOCO
+		sb.set_border_width_all(3)
+		sb.set_corner_radius_all(11)
+		sb.shadow_color = Color(0.12, 0.07, 0.05, 0.3)
+		sb.shadow_size = 3
+		sb.shadow_offset = Vector2(0, 2)
+		chip.add_theme_stylebox_override("panel", sb)
 		group.add_child(chip)
 
 		var gl := Label.new()
@@ -43,9 +50,14 @@ func rebuild() -> void:
 		gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		gl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		gl.add_theme_font_size_override("font_size", 22)
-		gl.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-		gl.add_theme_color_override("font_outline_color", MenuFX.CHOCO)
-		gl.add_theme_constant_override("outline_size", 6)
+		if green:
+			gl.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+			gl.add_theme_color_override("font_outline_color", MenuFX.CHOCO)
+			gl.add_theme_constant_override("outline_size", 6)
+		else:
+			# chocolate glyph on the cream chip — highest-contrast pairing in the palette
+			gl.add_theme_color_override("font_color", MenuFX.CHOCO)
+			gl.add_theme_constant_override("outline_size", 0)
 		gl.text = glyph
 		chip.add_child(gl)
 
