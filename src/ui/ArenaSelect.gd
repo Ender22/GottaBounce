@@ -20,6 +20,7 @@ const CIRCUIT_COLORS := {
 	"meadow_mile": Color("#54c94a"),   # bright meadow green (on-ramp)
 	"scrapworks": Color("#a15fff"),    # arcade violet (industrial)
 	"high_wire": Color("#4ad0a8"),     # high teal (exposure)
+	"the_foundry": Color("#ff8a2a"),   # molten orange (foundry gimmick circuit)
 	"mayhem_mile": Color("#ff5a4a"),   # danger red (wild gimmick circuit)
 }
 # circuit id -> display name, filled while loading cards (used to phrase locked-card unlock hints).

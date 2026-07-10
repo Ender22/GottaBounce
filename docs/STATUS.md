@@ -135,7 +135,16 @@ Brawl circuits + Trials challenge-types + Sports pitches.
 - CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);
   Gauntlet solo lives was a non-issue (already 4 via CharacterSelect — CD saw a dev-launch default).
 - ~~Trials medal-time tuning~~ **DELETED by v10** (binary completion — no medals exist to tune).
-- **THE FOUNDRY circuit validation** (4 arenas in working tree + circuits.json/ArenaSelect wiring — bot-match validate then commit).
+- ~~THE FOUNDRY circuit validation~~ **DONE + committed 2026-07-10.** 4 arenas bot-match validated (press_row/
+  smelter/crucible/meltdown), wired into circuits.json (unlock: win High Wire; Mayhem Mile now gates on Foundry) +
+  ArenaSelect color + baked thumbs. TWO spawn-layout bugs fixed during QA: press_row's middle-island spawns sat in
+  the crusher lanes (bots died <0.2s EVERY round — deterministic; spawns moved to outer islands) and smelter's 4th
+  spawn sat inside the horizontal crusher lane + its right island is fully inside the hammer sweep (primary spawns
+  now on the left island, swept spawns demoted to indices 4-5 per the hammer_arena precedent — 4P matches open with
+  everyone on island A, flagged for level-designer). Pacing after fixes: press_row hot (~5s rounds, WATCH), smelter
+  3.5-15.5s, crucible 8-16s + even scores (best of set), meltdown 6-10s on its ~10s collapse TTL. Also: Hazard.gd
+  (spikes) now gates lethality on combat_started like every other hazard (dormant path — no level ships spikes);
+  TRIALS ModeSelect tagline de-clocked ("Fly the line. Land it, and you're home.").
 - Trials polish follow-ups (from v10 QA): per-COURSE pause restart (today RESTART = whole set); C-CAM watch — author
   multi-player parallel courses screen-scale-aware (>1-screen spread renders far players as edge arrows).
 - CharacterSelect beauty-pose busts (§2c, Pogo+Butch first — nice-to-have, screen ships on idles).

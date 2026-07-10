@@ -1,0 +1,129 @@
+{
+  "name": "Foundry: The Smelter",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: THE SMELTER — the THE FOUNDRY circuit's MULTI-HAZARD stage (tier 2; v6_party_gimmicks_circuits.md §3.1 row 3). Two LETHAL hazard families run on one flagship three-island / one-void map: a HORIZONTAL CRUSHER on the center island B and a giant SPINNING HAMMER over the right island C, so the traverse escalates — spawn safe on A, FLY to B and time the trash-compactor, FLY to C and dodge the rotor. Combining the two proven Batch-1 hazards (each validated solo in hazard_yard / hammer_arena) is the tier-2 step up from the single-family on-ramps. Kill identity stays 'get knocked/splatted off into the void': dodge-or-die the hazards, fight rivals on the islands, and the money play is to KNOCK a rival into the crusher / the blade (credited via the 6s ring-out window) or off into the pit. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0): (A) CRUSHER on island B (center x2030): a HORIZONTAL two-head steel crusher. LETHAL via kill(&ring_out) (no shove). TELEGRAPHY: a long OPEN DWELL (heads parked apart = the clear beat) then a windup SHUDDER + hazard-red FLASH for telegraph_lead 0.55s BEFORE a fast ~0.34s close (period_s 2.6). FAIRNESS: the lethal band SHIFTS — when OPEN the heads sit at B's edges (center x~1750..2310 is a clear refuge); when CLOSED they meet at center (B's LEFT x1580..1815 and RIGHT x2245..2480 edges are clear) — so a standing refuge on B ALWAYS exists (it moves center<->edges; run with the rhythm), and boosting UP above the head band (y~945..1115) also clears a slam. (B) SPINNING HAMMER over island C (hub x3610, above C's center): a single bold blade on a slow readable ~4.5s rotation, arc_deg 150 (< 360 so a >= 120deg / ~1.08s clear window at each apex ALWAYS returns), LETHAL head via kill(&ring_out). At the bottom of its swing the head sits ~y1070 over C's center (kills a standing player in C's central strip); toward the apexes it rises HIGH and out over the gaps (safe crossing altitude), and C's EDGES sit below the arc = safe refuge. FAIRNESS (both): island A is a permanent hazard-free refuge; neither hazard ever covers 100% of B or C; no player spawns inside a hazard (the crusher cycle starts OPEN; hammer spawns are on A / C-edges, never under the blade); symmetric threat. CREDIT (both): a kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival who knocked the victim in within 6.0s is credited by the existing ring-out window; neither hazard sets last_attacker; NO invented environment scorer.\n\nGEOMETRY (flagship void_is_floor, mirrors hammer_arena/hazard_yard): three flat trampoline islands over ONE full-width void: A x0..900 top1080 (REFUGE / spawns) / B x1580..2480 top1080 (CRUSHER, center x2030) / C x3160..4060 top1080 (HAMMER, hub x3610), separated by 680px void gaps (flagship spacing; flight-required, > 527 max spring drift). Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky; outer edges 610px inside the side blast lines). VOID READS AS DEATH via the pit_void_rendering treatment. Molten open_sky (clouds off, horizon glow) = a smelting floor.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px, air_drift_max 340px/s => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the crusher on B: shuffle with its rhythm (center-safe when open, edges-safe when closed) or boost above the head band. Verb: DODGE (+ TIME).\n- DODGE the hammer on C: cross/land on C's central strip only on the apex-dwell clear beat, else hug an edge (below the arc). Verb: DODGE (+ TIME).\n- Neither hazard makes a required GAP crossing uncrossable (the crusher stays over B leaving refuges; the hammer arc over the gaps is HIGH, above crossing altitude, and leaves C's edges + island A clear) and neither creates a bounce path across a gap: flight is REQUIRED; the hazards reshape/time the fight.\n\nSIGNATURE / DISTINCT: the first stage that stacks TWO different lethal hazards (crusher + rotor) into an escalating left-to-right traverse. One-sentence C3 read: 'punch across the compactor island, then dodge the swinging hammer on the right — and shove your rivals into either one.' SPAWN NOTE (QA 2026-07-10): the original spawn at (2030,980) sat INSIDE the horizontal crusher lane (died on the first slam) and the right island lies entirely within the hammer sweep - primary spawns 0-3 are now on/above the hazard-free LEFT island (hammer_arena precedent: swept spawns are indices 4-5, unused in 4-player matches). Flagged for level-designer review: 4-player matches open with everyone on island A.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#241811",
+  "sky_bottom": "#963C12",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1580,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3160,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5280,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "crusher",
+      "axis": "horizontal",
+      "center": {
+        "x": 2030,
+        "y": 1030
+      },
+      "head_len": 200,
+      "head_w": 170,
+      "open_gap": 560,
+      "closed_gap": 30,
+      "period_s": 2.6,
+      "phase": 0.0,
+      "close_time": 0.34,
+      "closed_time": 0.22,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.55
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 3610,
+        "y": 480
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.5,
+      "phase": 0.2,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "player_spawn",
+      "x": 300,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 650,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 450,
+      "y": 700
+    },
+    {
+      "type": "player_spawn",
+      "x": 150,
+      "y": 700
+    },
+    {
+      "type": "player_spawn",
+      "x": 3260,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3960,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2030,
+      "y": 760
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3300,
+      "y": 900
+    }
+  ]
+}

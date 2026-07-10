@@ -1,0 +1,39 @@
+{
+  "name": "Foundry: The Crucible",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: THE CRUCIBLE — the THE FOUNDRY circuit's DESTRUCTIBLE showcase (tier 2; v6_party_gimmicks_circuits.md §3.1 row 3 + §2.5 destructible_block doctrine). A molten-works arena where the COVER and HIGH GROUND are made of breakable steel ingots that shatter as you fight — supers demolish a rival's shelter, bounces crack the ingot columns — so the battlefield RESHAPES live (Pillar 2: a crumbling stack is no camp). Built on the validated flagship three-island / one-void base so TRAVERSAL is guaranteed by PERMANENT trampoline islands (GI-1 safe by construction — the destructibles are cover/high-ground layered ON the permanent islands, never the sole footing of any required crossing, so no stage can ever strand a player). kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.5) — DESTRUCTIBLES ARE SURFACES, NOT HAZARDS (they never contact-kill; the void/fall is the killer, credit unchanged §2.0#4): (a) a central SMELTER STACK on island B — a 2-wide x 2-tall tower of trampoline-tier destructible blocks (break_on 'smash', hp1) forming breakable HIGH GROUND / a powerup perch at its top (y~840); a fired super OR a genuine high-speed launch (>= smash_impact_min) shatters a block, dropping whoever's on top and opening the center. (b) two INGOT COLUMNS, one on A and one on C (break_on 'hit', hp3) — short breakable cover you can bounce down over ~3 contacts to expose a hiding rival. TELEGRAPHY: every block shows staged CRACKS at each hp step + a shudder + a hazard flash the instant before it goes (a break is never a surprise). GEOMETRY-INTEGRITY (GI-1, §2.0): breaking these pushes the FIGHT around (loss of cover / high ground / a drop toward the void) but the ARENA never reaches an unwinnable/stranded state — the three permanent islands + their 680px flight gaps are untouched by any break. This is NOT a collapsing arena (that is foundry_meltdown); here the ground you MUST use to cross never erodes.\n\nGEOMETRY (symmetric flagship void_is_floor, mirrors hammer_arena/hazard_yard): three flat PERMANENT trampoline islands over ONE full-width void: A x0..900 top1080 / B x1580..2480 top1080 (SMELTER STACK, center x2030) / C x3160..4060 top1080, separated by 680px void gaps (flagship spacing; flight-required, > 527 max spring drift). The smelter stack occupies B's CENTER (x1850..2210) leaving B's edges clear; the ingot columns sit on A's right shoulder and C's left shoulder. Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky; outer edges 610px inside the side blast lines). VOID READS AS DEATH via the pit_void_rendering treatment. Molten open_sky (clouds off, horizon glow) = a foundry crucible.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px, air_drift_max 340px/s => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (island edges x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- BREAK/USE the destructibles: bounce ONTO the smelter stack for high ground (270px above B), or SMASH a rival off it / demolish it; crack an ingot column to flush a camper. The breakable footing adds verticality + a reshaping fight but is NEVER load-bearing for a crossing (the permanent islands always are), so no break can strand anyone (GI-1). Verb: SMASH / BOUNCE.\n- Zero-boost from any island reaches NO other surface across a 680px gap (falls into the void): flight is REQUIRED; the destructibles reshape the fight, they never create or remove a crossing.\n\nSIGNATURE / DISTINCT: the first arena where COVER and HIGH GROUND are DESTRUCTIBLE (hazard_yard/hammer_arena have no breakables; meltdown_box/foundry_meltdown erode the FLOOR = collapsing arenas). One-sentence C3 read: 'blow up their cover and take the high ground on the crumbling smelter stack, then knock them off into the pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#1C1510",
+  "sky_bottom": "#703018",
+  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+
+    { "type": "destructible_block", "break_on": "smash", "hp": 1, "group": "crucible_stack", "x": 1850, "y": 960, "w": 180, "h": 120, "tier": "trampoline" },
+    { "type": "destructible_block", "break_on": "smash", "hp": 1, "group": "crucible_stack", "x": 2030, "y": 960, "w": 180, "h": 120, "tier": "trampoline" },
+    { "type": "destructible_block", "break_on": "smash", "hp": 1, "group": "crucible_stack", "x": 1850, "y": 840, "w": 180, "h": 120, "tier": "trampoline" },
+    { "type": "destructible_block", "break_on": "smash", "hp": 1, "group": "crucible_stack", "x": 2030, "y": 840, "w": 180, "h": 120, "tier": "trampoline" },
+
+    { "type": "destructible_block", "break_on": "hit", "hp": 3, "group": "crucible_ingot", "x": 700,  "y": 840, "w": 120, "h": 240, "tier": "bubblegum" },
+    { "type": "destructible_block", "break_on": "hit", "hp": 3, "group": "crucible_ingot", "x": 3240, "y": 840, "w": 120, "h": 240, "tier": "bubblegum" },
+
+    { "type": "player_spawn", "x": 250,  "y": 1000 },
+    { "type": "player_spawn", "x": 500,  "y": 1000 },
+    { "type": "player_spawn", "x": 1650, "y": 1000 },
+    { "type": "player_spawn", "x": 2410, "y": 1000 },
+    { "type": "player_spawn", "x": 3560, "y": 1000 },
+    { "type": "player_spawn", "x": 3810, "y": 1000 },
+    { "type": "powerup_spawner", "x": 400,  "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 760 },
+    { "type": "powerup_spawner", "x": 3660, "y": 900 }
+  ]
+}

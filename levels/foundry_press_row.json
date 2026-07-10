@@ -1,0 +1,134 @@
+{
+  "name": "Foundry: Press Row",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: PRESS ROW — the THE FOUNDRY circuit's crusher ON-RAMP (tier 1; v6_party_gimmicks_circuits.md §3.1 row 3 + §2.2 crusher doctrine). A molten-factory take on the validated flagship three-island / one-void shape (mirrors hammer_arena + hazard_yard), but the CENTER island is a stamping PRESS ROW: two VERTICAL crushers (anvil presses) hammer straight DOWN onto island B on offset rhythms. This is a deliberately DIFFERENT read from hazard_yard's single HORIZONTAL crusher — here the killer comes from ABOVE and the safe beat is a horizontal shuffle between the presses. Single-family (crusher only) = a clean tier-1 introduction to the mechanic before the wilder Foundry stages. Kill identity stays 'get knocked/splatted off into the void': dodge-or-die the presses, fight rivals on the islands, and the money play is to KNOCK a rival under a descending press (credited via the 6s ring-out window) or off an island into the pit. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0) — TWO VERTICAL PRESSES on island B (x1580..2480): anvil-mode crushers (head1 travels DOWN from above, head2 is the fixed anvil embedded at the floor). (1) LETHAL — a head instakills on contact via kill(&ring_out); no impulse/hitstun, no shove — the SAME path spikes/hammer use. (2) TELEGRAPHY — a long ~1.76s OPEN DWELL with the top head parked HIGH (parked head center ~y740, well above a standing player's head ~y970 = the clear beat), then a windup SHUDDER + hazard-red FLASH on the closing faces for telegraph_lead 0.6s BEFORE a fast ~0.34s slam (period_s 2.8). (3) FAIRNESS — each press lane is NARROW (head_w 150): press1 covers x~1740..1890, press2 x~2170..2320, so B's LEFT edge (x1580..1740), CENTER gap (x1890..2170) and RIGHT edge (x2320..2480) are ALWAYS clear standing refuges, AND the presses run at OFFSET phase (0.0 / 0.5) so they never both slam simultaneously. Boosting UP above the parked head also clears a slam. Islands A and C are permanent refuges. The presses never occupy 100% of B's survivable space. NO player spawns on island B AT ALL (QA 2026-07-10: the original clear-gap spawns died in <0.2s every round — the PARKED OPEN head is lethal to brush contact and hangs in the idle-bounce apex band, and combat begins mid-cycle; spawns moved to islands A/C incl. 2 elevated). (4) CREDIT — a press kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival who knocked/tagged the victim within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. The press never sets last_attacker; NO invented environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor, mirrors hammer_arena/hazard_yard): three flat trampoline islands over ONE full-width void: A x0..900 top1080 / B x1580..2480 top1080 (the PRESS ROW, center x2030) / C x3160..4060 top1080, separated by 680px void gaps (flagship spacing; flight-required, > 527 max spring drift). Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky under the islands; outer edges 610px inside the side blast lines). VOID READS AS DEATH via the pit_void_rendering treatment (dark bottomless gradient + canyon walls + under-lip AO + hazard-red rim/chevrons + falling motes). Molten open_sky (clouds off, horizon glow) = a smelting works.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px, air_drift_max 340px/s => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s @ ~26 fuel):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 (max spring drift) and >> 395 (trampoline drift). NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (island edges x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the presses on B: shuffle horizontally into a clear lane (left edge / center gap / right edge always safe) on the 1.76s open beat, or boost UP above the parked head; a mistimed stand under a descending press = instant off-screen kill. Verb: DODGE (+ TIME).\n- Zero-boost from any island reaches NO other surface across a 680px gap (falls into the void): flight is REQUIRED; the presses reshape/time the fight on B, they never create a bounce path across a gap and never make a required crossing uncrossable (they only threaten B's central lanes, leaving the island EDGES and A/C clear).\n\nSIGNATURE / DISTINCT: the first VERTICAL stamping-press level (hazard_yard has a horizontal crusher; hammer_arena a rotor; wrecking_yard a non-lethal pendulum). One-sentence C3 read: 'time your dash across the middle island between the two pile-drivers, and knock rivals under a press or off into the pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#22160F",
+  "sky_bottom": "#8A3A14",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1580,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3160,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5280,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": {
+        "x": 1815,
+        "y": 1080
+      },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.0,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": {
+        "x": 2245,
+        "y": 1080
+      },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.5,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "player_spawn",
+      "x": 300,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 650,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3410,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3760,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 450,
+      "y": 700
+    },
+    {
+      "type": "player_spawn",
+      "x": 3610,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2030,
+      "y": 760
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3610,
+      "y": 900
+    }
+  ]
+}

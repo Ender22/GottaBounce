@@ -1,6 +1,6 @@
 {
 	"_comment": "Themed circuits (v3_content_plan PART A + v6_party_gimmicks_circuits.md). Curated arena rotations with a difficulty arc. Level ids resolve to res://levels/<id>.json. Two rotation shapes: (1) ORDERED loop -- a plain `levels` array (string ids), played in authored order, looping (the shipped format). (2) RANDOM DRAW -- an optional `pool` array of {id, tier} + `draw_count` + `draw_mode`:'shuffle': each play SHUFFLES the pool, takes draw_count, and tier-sorts the drawn slice mild->wild (~20 authored / ~10 drawn per play, v6 3.2/3.3). `tier` (1-3) is the within-circuit wildness rank used only to order the drawn subset. Top-level `order` is the UNLOCK chain (v6 4.2): circuit N+1 unlocks when N is WON or played 3x (Settings progression).",
-	"order": ["meadow_mile", "scrapworks", "high_wire", "mayhem_mile"],
+	"order": ["meadow_mile", "scrapworks", "high_wire", "the_foundry", "mayhem_mile"],
 	"circuits": {
 		"meadow_mile": {
 			"display_name": "MEADOW MILE",
@@ -16,6 +16,19 @@
 			"display_name": "THE HIGH WIRE",
 			"difficulty": 3,
 			"levels": ["atoll", "the_spine", "spires"]
+		},
+		"the_foundry": {
+			"display_name": "THE FOUNDRY",
+			"difficulty": 3,
+			"draw_count": 4,
+			"draw_mode": "shuffle",
+			"_comment": "Molten-factory gimmick circuit (v6_party_gimmicks_circuits.md §3.1 row 3). Signature mechanics: crusher + destructible_block + spinning_hammer + the COLLAPSING-ARENA finale, all validated Batch-1. First authored wave = 4 arenas on the flagship void_is_floor shape, tier-sorted into a mild->wild micro-arc each match (tier 1 press-row crusher on-ramp -> tier 2 destructible + multi-hazard -> tier 3 last-one-flying meltdown finale). FOLLOW-UP: grow the pool toward the v6 ~8-20 target (more crusher/hammer/destructible variants + a second collapsing layout). Unlock chain (top-level `order`): unlocks by WINNING high_wire OR the pity path (Settings progression, v6 §4).",
+			"pool": [
+				{ "id": "foundry_press_row", "tier": 1 },
+				{ "id": "foundry_crucible",  "tier": 2 },
+				{ "id": "foundry_smelter",   "tier": 2 },
+				{ "id": "foundry_meltdown",  "tier": 3 }
+			]
 		},
 		"mayhem_mile": {
 			"display_name": "MAYHEM MILE",
