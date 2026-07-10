@@ -11,6 +11,7 @@ extends Node
 ## It bakes all arenas sequentially then quits (exit code 0). Watch stdout for per-arena OK/FAIL.
 
 const CIRCUITS_PATH := "res://levels/circuits.json"
+const COURTS_PATH := "res://levels/sports_courts.json"
 const OUT_DIR := "res://assets/ui/thumbs"
 const OUT_W := 512
 const OUT_H := 320
@@ -41,16 +42,21 @@ func _bake_all() -> void:
 	_cam.enabled = true
 	_cam.make_current()
 
-	var ids := _arena_ids()
-	print("[ThumbBaker] baking %d arenas -> %s" % [ids.size(), OUT_DIR])
+	# entries = {id, path}: circuit/pool arenas (path derived from id) + sports courts (explicit path,
+	# baked UNDER THE COURT ID so the court-select thumb lookup hits directly).
+	var entries: Array = []
+	for id in _arena_ids():
+		entries.append({"id": id, "path": "res://levels/%s.json" % id})
+	entries.append_array(_court_entries())
+	print("[ThumbBaker] baking %d arenas/courts -> %s" % [entries.size(), OUT_DIR])
 	var ok := 0
 	var fail: Array[String] = []
-	for id in ids:
-		var res := await _bake_one(id)
+	for e in entries:
+		var res := await _bake_one(str(e["id"]), str(e["path"]))
 		if res:
 			ok += 1
 		else:
-			fail.append(id)
+			fail.append(str(e["id"]))
 
 	print("[ThumbBaker] DONE  ok=%d  fail=%d" % [ok, fail.size()])
 	if fail.size() > 0:
@@ -80,8 +86,23 @@ func _arena_ids() -> Array[String]:
 						add.call(str((pe as Dictionary).get("id", "")))
 	return out
 
-func _bake_one(id: String) -> bool:
-	var path := "res://levels/%s.json" % id
+## Sports courts from sports_courts.json: id + explicit level path (courts live under levels/sports/).
+func _court_entries() -> Array:
+	var out: Array = []
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(COURTS_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return out
+	for c in (parsed as Dictionary).get("courts", []):
+		if typeof(c) == TYPE_DICTIONARY:
+			var id := str((c as Dictionary).get("id", ""))
+			var path := str((c as Dictionary).get("path", ""))
+			if id != "" and path != "":
+				# court_ prefix: the court id "minefield" collides with the BRAWL arena "minefield" —
+				# an unprefixed bake overwrites the arena's thumb. ArenaSelect looks up court_<id> first.
+				out.append({"id": "court_" + id, "path": path})
+	return out
+
+func _bake_one(id: String, path: String) -> bool:
 	if not FileAccess.file_exists(path):
 		print("[ThumbBaker]   %s  SKIP (no level file)" % id)
 		return false

@@ -131,11 +131,9 @@ func _lock_hint(cid: String) -> String:
 func _thumb_for(a: Dictionary) -> Texture2D:
 	var path := ""
 	if bool(a.get("court", false)):
-		# court: try the court id, then the level basename (existence-guarded; missing -> gradient plate)
-		var cid_path := "%s/%s.png" % [THUMB_DIR, str(a.get("court_id", ""))]
-		if ResourceLoader.exists(cid_path):
-			return load(cid_path) as Texture2D
-		path = "%s/%s.png" % [THUMB_DIR, str(a.get("path", "")).get_file().get_basename()]
+		# court: court_<id> namespace (ThumbBaker bakes courts under it — the court id "minefield"
+		# collides with the brawl arena of the same name). Missing -> gradient plate.
+		path = "%s/court_%s.png" % [THUMB_DIR, str(a.get("court_id", ""))]
 	elif bool(a.get("circuit", false)):
 		path = "%s/crest_%s.png" % [CREST_DIR, str(a.get("circuit_id", ""))]
 	else:
