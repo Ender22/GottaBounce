@@ -1,5 +1,14 @@
 # Spec: v7 — TRIALS OBJECTIVE-TYPE SYSTEM (varied challenge types)
 
+> **⚠ PARTIALLY SUPERSEDED (2026-07-06) by `docs/specs/v10_trials_completion_model.md`.** v7's
+> **objective-type framework** (the `objective` block, the six types, the absent-block ⇒ REACH_GOAL
+> hinge, the "all variety in the mode, zero new runner hooks" architecture, the example course battery)
+> **STANDS and is the doc-of-record for those.** But v7's **TIME / MEDAL / PAR layer is DEAD** — the
+> owner redirected TRIALS to a Pico-Park-style **binary, no-clock, multi-player-parallel** completion
+> model. Wherever v7 below describes medals, par times, `medal_*` fields, time/attempt/fall scoring, or a
+> single-player-only assumption, **v10 wins.** Read v10 first for the completion model, then v7 for the
+> objective-type mechanics it preserves.
+
 > **Owner:** Lead Game Designer. **Status:** READY FOR BUILD (staged; some types block on v6 mechanics).
 > **v1 — 2026-07-05.**
 >

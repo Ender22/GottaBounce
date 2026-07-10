@@ -1,28 +1,25 @@
 class_name TrialsMode
 extends GameMode
-## TRIALS / TIME-ATTACK (docs/specs/v3_content_plan.md PART B; productizes v1_movement_courses.md).
-## The first NON-kill-race GameMode: solo, no bots, no combat scoring. Run an authored course A->B;
-## the timer runs; a fall out of bounds RESPAWNS the player (+2.0s penalty), it does NOT eliminate;
-## touching the GOAL gate clears the stage and awards a medal; clearing the last course ends the match.
+## TRIALS (docs/specs/v10_trials_completion_model.md — Pico-Park-style BINARY completion). The first
+## NON-kill-race GameMode: no bots, no combat scoring, NO clock / par / medal / best-time / penalty.
+## A course is either COMPLETE or not. A fall out of bounds RESPAWNS the player with ZERO penalty (it
+## never eliminates — lives_per_player = 99). The course COMPLETES the instant EVERY living participant
+## has, on their own, satisfied the objective (all-must-finish). `done` is a STICKY per-player latch — a
+## finished player who then falls does NOT un-complete the course (§1.2). Clearing the last course ends
+## the match.
 ##
-## Proves the GameMode seam scales to a radically different ruleset WITHOUT a PartyMatch rewrite: it
-## fills the same seam methods BRAWL does, reuses the runner's multi-life respawn (B.4) via a high
-## lives count, and adds exactly ONE additive seam — polls_goal() — so the runner ends a stage on
-## goal-touch instead of last-one-standing. No fenced Tuning constant is read or written.
+## v10 supersedes v7's TIME/MEDAL/PAR layer (all stripped) but PRESERVES v7's objective-type framework:
+## the optional top-level "objective" block, the six types, and the absent-block => REACH_GOAL hinge.
+## REACH_GOAL + SURVIVE run full multi-player-parallel (each player flies their own line); the four
+## object-mutation types (DESTROY_ALL/PHYSICS_PUZZLE/COLLECT_ALL/PRECISION_LAND) ship SOLO (§1.3) but
+## still work single-player. Zero new runner hooks — the runner already polls is_stage_over() every
+## combat frame (polls_goal() is true) and spawn_plan already spawns human_count players.
 
 const HUD_SCENE := preload("res://scenes/ui/TrialsHUD.tscn")
 const BALL_SCRIPT := preload("res://src/entities/Ball.gd")
 
-# +2.0s per out-of-bounds fall (design value, spec B.2). NOT a Tuning FEEL constant — it is the mode's
-# own run-clock penalty (the run clock is the score here), so it lives with the mode, per the fence.
-const FALL_PENALTY := 2.0
-
-# --- OBJECTIVE TYPES (docs/specs/v7_trials_challenge_types.md) ---
-# A course declares its win condition via an optional top-level "objective" block; ABSENT => REACH_GOAL
-# (byte-identical to the 5 shipped courses — the back-compat hinge, §1.1). Every type reuses the SAME
-# per-frame is_stage_over() poll (polls_goal() is already true) + a group scan / timer check — NO new
-# runner hook. on_stage_ready() (which already exists on the seam) is newly overridden only to spawn the
-# PHYSICS_PUZZLE Ball. NO fenced Tuning constant is read or written.
+# --- OBJECTIVE TYPES (docs/specs/v7_trials_challenge_types.md framework; v10 completion model) ---
+# A course declares its win condition via an optional top-level "objective" block; ABSENT => REACH_GOAL.
 const OBJ_REACH := "REACH_GOAL"
 const OBJ_SURVIVE := "SURVIVE"
 const OBJ_DESTROY := "DESTROY_ALL"
@@ -31,43 +28,30 @@ const OBJ_COLLECT := "COLLECT_ALL"
 const OBJ_PRECISION := "PRECISION_LAND"
 const OBJ_TYPES := [OBJ_REACH, OBJ_SURVIVE, OBJ_DESTROY, OBJ_PUZZLE, OBJ_COLLECT, OBJ_PRECISION]
 
-# PHYSICS_PUZZLE ball-state thresholds (mode-owned, NOT Tuning feel constants — a puzzle scoring detail).
+# PHYSICS_PUZZLE ball-state thresholds (mode-owned, NOT Tuning feel constants — a puzzle detail).
 const BALL_REST_SPEED := 90.0     # below this the ball counts as "at rest" (a missed shot -> settle timer)
 const BALL_LAUNCH_SPEED := 220.0  # above this the ball counts as "launched" (a blast punted it; arm reset)
 
 # The authored course SET (ordered, played ONCE — no loop; the match ends after the last course).
-# Data-driven: the ordered course list is read from levels/course_sets.json (mirrors circuits.json) so
-# the level-designer authors/reorders courses as DATA. PROOF_SET is the safe fallback if the data file
-# is missing/malformed or a set is empty (the mode always has at least one runnable course).
 const COURSE_SETS_PATH := "res://levels/course_sets.json"
 const DEFAULT_SET_ID := "campaign"
 const PROOF_SET: Array[String] = ["res://levels/courses/course_01_tank_run.json"]
 
-const MEDAL_COLORS := {
-	"gold": Color("#ffd23f"), "silver": Color("#cbd6df"),
-	"bronze": Color("#d68b4c"), "none": Color("#f0f0f0"),
-}
-
 var _course_set: Array = []
 var _course_idx := 0                 # index of the NEXT course to serve (advanced in next_level_path)
 var _cur_path := ""                  # the course currently loaded
-var _cur_medal_times: Dictionary = {}   # {gold,silver,bronze} of the current course
 var _cur_objective: Dictionary = {}     # the current course's "objective" block ({} => REACH_GOAL)
 
-# per-course run state (reset each course in next_level_path)
-var run_penalty := 0.0               # accumulated time penalty on the current course (falls)
-var attempts := 0                    # falls on the current course (the "attempt"/falls counter, HUD)
-
 # --- per-type live state (reset each course in next_level_path) ---
-# SURVIVE: the survival clock is (round_clock - _survive_base); a death resets _survive_base to the
-# current round_clock (progress -> 0, a RETRY not a +2s penalty) and ticks _resets (the death metric).
-var _survive_base := 0.0
-var _resets := 0
+# SURVIVE: per-player. Each participant i has a survival base (_survive_base[i]); while dead it is pinned
+# to round_clock so elapsed holds at 0 (a death is a weightless RETRY). Once elapsed >= target, the
+# per-player _survived[i] latch is set STICKY (a later death never un-completes it). Gate = all survived.
+var _survive_base: Array = []        # Array[float], indexed by participant
+var _survived: Array = []            # Array[bool], sticky per participant
 # DESTROY_ALL: how many destructibles the course started with (guards a 0-block instant-clear).
 var _blocks_total := 0
-# PHYSICS_PUZZLE: the puzzle is scored in attempts (1 = solved first blast); each auto-reset ticks it.
-var _puzzle_attempts := 1
-var _ball = null                     # the spawned Ball (PHYSICS_PUZZLE); untyped so RigidBody2D props read
+# PHYSICS_PUZZLE: auto-reset bookkeeping so the ball can never be lost (unlimited attempts, no score).
+var _ball = null                     # the spawned Ball; untyped so RigidBody2D props read
 var _ball_spawn := Vector2.ZERO      # the "ball" object's spawn point (read from course JSON)
 var _ball_launched := false          # has a blast punted the ball since the last (re)spawn?
 var _settle_t := 0.0                 # seconds the ball has been at rest / out of bounds since launch
@@ -75,10 +59,6 @@ var _last_poll_clock := 0.0          # round_clock at the previous is_stage_over
 # COLLECT_ALL / PRECISION_LAND: totals captured at stage start (guard a 0-member vacuous clear).
 var _pickups_total := 0
 var _targets_total := 0
-
-# set-scoped bookkeeping
-var _best_times: Dictionary = {}     # course path -> best cleared time this session (HUD "BEST")
-var _course_results: Array = []      # [{path, time, medal}] per cleared course (match-end summary)
 
 # --- identity / presentation ---
 func id() -> StringName:
@@ -90,32 +70,26 @@ func display_name() -> String:
 func hud_scene() -> PackedScene:
 	return HUD_SCENE
 
-## Additive seam: TRIALS ends a stage by reaching a goal (no death), so the runner must poll each frame.
+## Additive seam: TRIALS ends a stage by satisfying the objective (no death), so the runner polls each frame.
 func polls_goal() -> bool:
 	return true
 
 # --- match setup ---
 func configure(runner, _config: MatchConfig) -> void:
-	# HIGH lives so a fall consumes a life and the runner RESPAWNS the lone human (B.4 reuse of the
-	# existing multi-life respawn path) instead of eliminating -> ending the stage. Never a kill-race.
+	# HIGH lives so a fall consumes a life and the runner RESPAWNS the player (B.4 reuse of the existing
+	# multi-life respawn path) instead of eliminating -> ending the stage. Never a kill-race. (KEEP — v10.)
 	runner.lives_per_player = 99
 	runner.match_target_kills = 999999   # so a stray on_kill can never trip the kill-race match end
-	# The course SET is selectable via config.circuit_id (reserved set/circuit key; SportsMode reuses
-	# single_arena_path the same way). Empty/unknown => DEFAULT_SET_ID "campaign" (byte-identical default:
-	# a fresh MatchConfig has circuit_id = &"" so the shipped campaign is served exactly as before).
 	var set_id := DEFAULT_SET_ID
 	if _config != null and str(_config.circuit_id) != "":
 		set_id = str(_config.circuit_id)
 	_course_set = _load_course_set(set_id)
 	_course_idx = 0
 	_cur_path = ""
-	_cur_medal_times = {}
 	_cur_objective = {}
-	run_penalty = 0.0
-	attempts = 0
-	_course_results.clear()
 
-## Humans only, NO bots (B.2). v1 = 1 human (solo); the multi-human hot-seat race is a v2 flag.
+## Humans only, NO bots. v10: spawns human_count players — this IS the multi-player spawn (REACH_GOAL /
+## SURVIVE run all-must-finish; the object-mutation types are single-player-recommended, §1.3).
 func spawn_plan(_runner, config: MatchConfig) -> Array:
 	var out: Array = []
 	var n: int = maxi(1, config.human_count)
@@ -128,24 +102,18 @@ func spawn_plan(_runner, config: MatchConfig) -> Array:
 
 # --- stage lifecycle ---
 
-## The next course in authored order, played once. Resets the per-course run clock penalty + attempt
-## counter and caches the course's medal thresholds. (A fresh GoalGate is built by _load_stage, so the
-## goal flag resets automatically — is_stage_over reads the live gate, not a latched mode flag.)
+## The next course in authored order, played once. Caches the objective block ({} => REACH_GOAL) and
+## resets all per-type live state so a fresh course never inherits the previous course's state. (A fresh
+## GoalGate is built by _load_stage, so per-player `home` sets reset automatically.)
 func next_level_path(_runner) -> String:
 	if _course_set.is_empty():
 		return ""
 	_cur_path = str(_course_set[_course_idx % _course_set.size()])
 	_course_idx += 1
-	run_penalty = 0.0
-	attempts = 0
-	_cur_medal_times = _read_medal_times(_cur_path)
-	# NEW (v7): cache the objective block ({} => REACH_GOAL) + reset all per-type live state so a fresh
-	# course never inherits the previous course's survive clock / attempts / block count.
 	_cur_objective = _read_objective(_cur_path)
-	_survive_base = 0.0
-	_resets = 0
+	_survive_base = []
+	_survived = []
 	_blocks_total = 0
-	_puzzle_attempts = 1
 	_ball = null
 	_ball_spawn = _read_ball_spawn(_cur_path)
 	_ball_launched = false
@@ -155,14 +123,15 @@ func next_level_path(_runner) -> String:
 	_targets_total = 0
 	return _cur_path
 
-## The stage-over test, DISPATCHED on the course's objective type (v7 §1.2). Each branch reads LIVE
-## scene state via a group scan / timer check — the SAME per-frame poll REACH_GOAL always used (the
-## runner polls this every combat frame because polls_goal() is true). ABSENT objective => REACH_GOAL,
-## verbatim, so the 5 shipped courses are byte-identical.
+## The stage-over test, DISPATCHED on the course's objective type (v10 §1.2). Binary completion: the
+## course is over when EVERY living participant has satisfied the objective (all-must-finish). REACH_GOAL
+## and SURVIVE aggregate per-player; the four object-mutation types keep v7's global clear (solo, §1.3).
 func is_stage_over(runner) -> bool:
 	match _objective_type():
 		OBJ_SURVIVE:
 			return _survive_cleared(runner)
+		OBJ_REACH:
+			return _reach_cleared(runner)
 		OBJ_DESTROY:
 			# all destructibles broken: the umbrella group "destructible" empties (guard the 0-block case).
 			return _blocks_total > 0 and runner.get_tree().get_nodes_in_group("destructible").is_empty()
@@ -173,32 +142,19 @@ func is_stage_over(runner) -> bool:
 		OBJ_PRECISION:
 			return _all_flagged(runner, "trials_target", "landed", _targets_total)
 		_:
-			# REACH_GOAL (default + every shipped course): any goal_gate latched `reached`. (verbatim)
-			for g in runner.get_tree().get_nodes_in_group("goal_gate"):
-				if g.reached:
-					return true
-			return false
+			return _reach_cleared(runner)
 
-## No kill-race scoring. A "death" here = a fall out of bounds (killer is always self / -1). DISPATCHED
-## on objective type (v7 §1.2): REACH_GOAL / DESTROY_ALL / COLLECT / PRECISION add a +2s time penalty
-## and tick the fall counter (today's behavior). SURVIVE resets the survival clock (progress -> 0) and
-## ticks the death metric — the death IS the cost, no +2s. PHYSICS_PUZZLE: a player fall is a pure
-## respawn (the BALL, not the player, is the scorer). Never mutates runner.scores.
-func on_kill(runner, _killer_idx: int, _victim_idx: int, _cause) -> void:
-	match _objective_type():
-		OBJ_SURVIVE:
-			_survive_base = float(runner.round_clock)   # a death restarts the survival clock at 0
-			_resets += 1
-		OBJ_PUZZLE:
-			pass   # a fall just respawns the player; scoring is the ball reaching the goal
-		_:
-			run_penalty += FALL_PENALTY
-			attempts += 1
+## v10: a fall is a pure RESPAWN with ZERO penalty for every type. SURVIVE additionally resets only the
+## VICTIM's own survival clock (a weightless retry) — using _victim_idx, never assuming player 0. No time,
+## score, or medal is ever mutated. (A player already `_survived` is sticky and is NOT reset.)
+func on_kill(runner, _killer_idx: int, victim_idx: int, _cause) -> void:
+	if _objective_type() == OBJ_SURVIVE:
+		if victim_idx >= 0 and victim_idx < _survive_base.size() and not bool(_survived[victim_idx]):
+			_survive_base[victim_idx] = float(runner.round_clock)
 
 ## Newly overridden seam (already exists on GameMode; SPORTS uses it). Per-type stage-start setup:
-## PHYSICS_PUZZLE spawns the Ball at its spawn point (reuse of the SPORTS ball-spawn pattern);
-## DESTROY_ALL / COLLECT_ALL / PRECISION_LAND capture their group totals (so a clear needs at least one
-## member broken/collected/landed). REACH_GOAL + SURVIVE fall through to a no-op => parity.
+## PHYSICS_PUZZLE spawns the Ball; DESTROY_ALL/COLLECT_ALL/PRECISION_LAND capture group totals; SURVIVE
+## sizes its per-player arrays to the spawned participants. REACH_GOAL falls through to a no-op.
 func on_stage_ready(runner) -> void:
 	match _objective_type():
 		OBJ_PUZZLE:
@@ -209,88 +165,40 @@ func on_stage_ready(runner) -> void:
 			_pickups_total = runner.get_tree().get_nodes_in_group("trials_pickup").size()
 		OBJ_PRECISION:
 			_targets_total = runner.get_tree().get_nodes_in_group("trials_target").size()
+		OBJ_SURVIVE:
+			_init_survive(runner)
 		_:
 			pass
 
-## Player 0 once the LAST course's goal has been cleared (the whole set is complete). -1 while courses
-## remain OR the current course's goal is not yet reached (so a fall never trips a false match end).
+## Player 0 once the LAST course's objective is complete (the whole set is done). -1 while courses remain
+## OR the current course is not yet complete (so a fall never trips a false match end). With the all-home
+## gate this fires only when EVERY participant is done.
 func match_winner(runner) -> int:
 	if _course_idx >= _course_set.size() and is_stage_over(runner):
 		return 0
 	return -1
 
-## Per-course result banner: the per-type result + medal earned (v7 §1.2). (Also records the result for
-## BEST + the match-end summary.) The medal is computed by _result_medal() — time-scored types compare
-## seconds vs medal_times (<=, today's logic), SURVIVE compares deaths vs medal_survive (<=), DESTROY_ALL
-## falls-mode compares falls vs medal_falls, PHYSICS_PUZZLE compares attempts vs medal_attempts.
-func stage_end_banner(runner) -> Dictionary:
-	var t := current_time(runner)
-	var medal := _result_medal(runner)
-	var prev: float = float(_best_times.get(_cur_path, INF))
-	if t < prev:
-		_best_times[_cur_path] = t
-	_course_results.append({"path": _cur_path, "time": t, "medal": medal})
-	var label := medal.to_upper() if medal != "none" else "CLEAR"
-	var text := "COURSE CLEAR!  %.1fs  —  %s" % [t, label]
+## Per-course clear banner — BINARY, no number/medal (v10 §5). One line per type.
+func stage_end_banner(_runner) -> Dictionary:
+	var text := "COURSE CLEAR!"
 	match _objective_type():
 		OBJ_SURVIVE:
-			var secs := float(_cur_objective.get("survive_seconds", 20.0))
-			text = "SURVIVED %.0fs!  —  %s  (%d death%s)" % [secs, label, _resets, _plural(_resets)]
+			text = "EVERYONE SURVIVED!"
 		OBJ_DESTROY:
-			if str(_cur_objective.get("score_by", "time")) == "falls":
-				text = "CLEARED!  %d fall%s  —  %s" % [attempts, _plural(attempts), label]
-			else:
-				text = "CLEARED!  %.1fs  —  %s" % [t, label]
+			text = "ALL CLEAR!"
 		OBJ_PUZZLE:
-			text = "SOLVED!  %d attempt%s  —  %s" % [_puzzle_attempts, _plural(_puzzle_attempts), label]
-	return {"text": text, "color": MEDAL_COLORS.get(medal, Color.WHITE)}
+			text = "SOLVED!"
+		OBJ_COLLECT:
+			text = "ALL COLLECTED!"
+		OBJ_PRECISION:
+			text = "ALL LANDED!"
+	return {"text": text, "color": Color("#ffd23f")}
 
-static func _plural(n: int) -> String:
-	return "" if n == 1 else "s"
-
-## The set summary (spec B.2): total time across courses + medal tallies.
+## The set summary — BINARY (v10 §5): no total time, no medal tallies.
 func match_end_banner(_runner) -> Dictionary:
-	var total := 0.0
-	var golds := 0
-	var silvers := 0
-	var bronzes := 0
-	for r in _course_results:
-		total += float(r["time"])
-		match str(r["medal"]):
-			"gold": golds += 1
-			"silver": silvers += 1
-			"bronze": bronzes += 1
-	return {"text": "TRIALS COMPLETE!", "color": MEDAL_COLORS["gold"],
-		"subline": "Total %.1fs    %dx GOLD   %dx SILVER   %dx BRONZE" % [total, golds, silvers, bronzes]}
+	return {"text": "TRIALS COMPLETE!", "color": Color("#ffd23f"), "subline": "All courses cleared."}
 
-# --- HUD read helpers (TrialsHUD polls these via runner._mode) ---
-
-## Current run time = combat clock (runner.round_clock ticks only during COMBAT, resets per course)
-## + accumulated fall penalties. Frozen automatically at goal-touch (round_clock stops in STAGE_END).
-func current_time(runner) -> float:
-	return maxf(0.0, float(runner.round_clock)) + run_penalty
-
-func medal_for(t: float) -> String:
-	if _cur_medal_times.is_empty():
-		return "none"
-	if t <= float(_cur_medal_times.get("gold", 0.0)):
-		return "gold"
-	if t <= float(_cur_medal_times.get("silver", 0.0)):
-		return "silver"
-	if t <= float(_cur_medal_times.get("bronze", 0.0)):
-		return "bronze"
-	return "none"
-
-func medal_times() -> Dictionary:
-	return _cur_medal_times
-
-func medal_color(medal: String) -> Color:
-	return MEDAL_COLORS.get(medal, Color.WHITE)
-
-func best_time() -> float:
-	return float(_best_times.get(_cur_path, 0.0))
-
-# --- v7 objective-type surface (read by TrialsHUD to swap its center readout per type) ---
+# --- HUD read surface (TrialsHUD polls these via runner._mode) ---
 
 ## The current course's objective type; ABSENT/unknown => REACH_GOAL (the back-compat resolution).
 func objective_type() -> String:
@@ -300,69 +208,134 @@ func _objective_type() -> String:
 	var t := str(_cur_objective.get("type", OBJ_REACH)).to_upper()
 	return t if t in OBJ_TYPES else OBJ_REACH
 
-## The provisional medal for the CURRENT run state, by type (fewer deaths/attempts = better; <= compare).
-func result_medal(runner) -> String:
-	return _result_medal(runner)
+## Every currently-valid player slot the course spawned (v10 "participant"). TRIALS never eliminates, so
+## this stays the full spawned set for the whole course (a mid-respawn player is still a participant).
+func _participants(runner) -> Array:
+	var out: Array = []
+	for p in runner.players:
+		if is_instance_valid(p):
+			out.append(p)
+	return out
 
-func _result_medal(runner) -> String:
+func participant_count(runner) -> int:
+	return _participants(runner).size()
+
+## Whether participant i is `done` for the current objective (drives the per-player HOME pip). REACH =
+## a goal_gate has_player(i); SURVIVE = _survived[i]; the solo object-mutation types = the global clear
+## (the whole world condition, applied to the one player).
+func player_done(runner, i: int) -> bool:
+	if i < 0 or i >= runner.players.size():
+		return false
+	var p = runner.players[i]
+	if not is_instance_valid(p):
+		return false
 	match _objective_type():
 		OBJ_SURVIVE:
-			return _medal_le_int(_resets, _cur_objective.get("medal_survive", {}))
-		OBJ_PUZZLE:
-			if str(_cur_objective.get("score_by", "attempts")) == "time":
-				return medal_for(current_time(runner))
-			return _medal_le_int(_puzzle_attempts, _cur_objective.get("medal_attempts", {}))
-		OBJ_DESTROY:
-			if str(_cur_objective.get("score_by", "time")) == "falls":
-				return _medal_le_int(attempts, _cur_objective.get("medal_falls", {}))
-			return medal_for(current_time(runner))
+			return i < _survived.size() and bool(_survived[i])
+		OBJ_REACH:
+			return _player_home(runner, p)
 		_:
-			return medal_for(current_time(runner))
+			return is_stage_over(runner)   # solo types: the shared world condition is the done state
 
-## Lower-is-better integer medal (deaths / falls / attempts), <= compare — mirrors medal_for's shape.
-func _medal_le_int(v: int, m: Dictionary) -> String:
-	if typeof(m) != TYPE_DICTIONARY or m.is_empty():
-		return "none"
-	if v <= int(m.get("gold", -1)):
-		return "gold"
-	if v <= int(m.get("silver", -1)):
-		return "silver"
-	if v <= int(m.get("bronze", -1)):
-		return "bronze"
-	return "none"
+## Count of participants currently `done` (for the "n of N HOME" tracker).
+func home_count(runner) -> int:
+	var c := 0
+	for i in range(runner.players.size()):
+		if is_instance_valid(runner.players[i]) and player_done(runner, i):
+			c += 1
+	return c
 
-# HUD readouts (SURVIVE clock, DESTROY_ALL blocks-left, PHYSICS_PUZZLE attempts).
+# SURVIVE per-player progress (0..1) toward the survive target — drives the HUD progress ring.
 func survive_target() -> float:
 	return float(_cur_objective.get("survive_seconds", 20.0))
 
-func survive_elapsed(runner) -> float:
-	return maxf(0.0, float(runner.round_clock) - _survive_base)
+func survive_ratio(runner, i: int) -> float:
+	if i < 0 or i >= _survive_base.size():
+		return 0.0
+	if i < _survived.size() and bool(_survived[i]):
+		return 1.0
+	var tgt := survive_target()
+	if tgt <= 0.0:
+		return 1.0
+	return clampf((float(runner.round_clock) - float(_survive_base[i])) / tgt, 0.0, 1.0)
 
-func survive_deaths() -> int:
-	return _resets
-
+# Neutral live readouts (no clock, no score).
 func blocks_remaining(runner) -> int:
 	return runner.get_tree().get_nodes_in_group("destructible").size()
 
-func puzzle_attempts() -> int:
-	return _puzzle_attempts
+func tokens_total() -> int:
+	return _pickups_total
+
+func tokens_collected(runner) -> int:
+	return _flagged_count(runner, "trials_pickup", "collected")
+
+func pads_total() -> int:
+	return _targets_total
+
+func pads_landed(runner) -> int:
+	return _flagged_count(runner, "trials_target", "landed")
 
 # --- per-type clear tests ---
 
-## SURVIVE: cleared once the survival clock reaches the target with no death since the last reset. While
-## the lone human is dead (respawn delay) the base is PINNED to round_clock so elapsed stays 0 — a death
-## returns progress to 0 and it re-counts from the respawn, never a partial-credit clear (v7 §2.2).
-func _survive_cleared(runner) -> bool:
-	var p = runner.players[0] if runner.players.size() > 0 else null
-	if p == null or not is_instance_valid(p) or (p.has_method("is_dead") and p.is_dead()):
-		_survive_base = float(runner.round_clock)
-		return false
-	return (float(runner.round_clock) - _survive_base) >= survive_target()
+## True once player p has entered ANY goal_gate (sticky, per-player).
+func _player_home(runner, p) -> bool:
+	for g in runner.get_tree().get_nodes_in_group("goal_gate"):
+		if g.has_method("has_player") and g.has_player(p):
+			return true
+	return false
 
-## PHYSICS_PUZZLE: cleared when any goal_zone latched `scored` (the Ball crossed it — the SPORTS latch,
-## verbatim). Otherwise runs the auto-reset bookkeeping: once a blast LAUNCHES the ball, if it then comes
-## to rest or leaves bounds WITHOUT scoring for reset_settle_s, respawn it + tick _attempts (v7 §2.4), so
-## the ball can never be permanently lost and "attempts" is a clean countable metric.
+## REACH_GOAL: complete when EVERY living participant has entered some goal_gate (all-must-finish, v10
+## §2.1). Guards participants > 0 (no players => never complete).
+func _reach_cleared(runner) -> bool:
+	var parts := _participants(runner)
+	if parts.is_empty():
+		return false
+	for p in parts:
+		if not _player_home(runner, p):
+			return false
+	return true
+
+## Size + zero the per-player SURVIVE arrays to the current participant count.
+func _init_survive(runner) -> void:
+	var n: int = runner.players.size()
+	_survive_base = []
+	_survived = []
+	for _i in range(n):
+		_survive_base.append(float(runner.round_clock))
+		_survived.append(false)
+
+## SURVIVE: per-player sticky survival (v10 §2.2). Each frame, for each participant i not yet survived:
+## while dead (respawning) pin the base to round_clock so elapsed holds at 0 (a weightless retry); once
+## elapsed >= target, latch _survived[i] STICKY. Complete when EVERY participant has survived.
+func _survive_cleared(runner) -> bool:
+	if _survive_base.is_empty():
+		_init_survive(runner)
+	var tgt := survive_target()
+	var any := false
+	var all := true
+	for i in range(runner.players.size()):
+		var p = runner.players[i] if i < runner.players.size() else null
+		if not is_instance_valid(p):
+			continue
+		any = true
+		if i >= _survived.size():
+			all = false
+			continue
+		if bool(_survived[i]):
+			continue
+		if p.has_method("is_dead") and p.is_dead():
+			_survive_base[i] = float(runner.round_clock)   # pin: progress holds at 0 while dead
+			all = false
+		elif (float(runner.round_clock) - float(_survive_base[i])) >= tgt:
+			_survived[i] = true                            # sticky latch
+		else:
+			all = false
+	return any and all
+
+## PHYSICS_PUZZLE: cleared when any goal_zone latched `scored` (the SPORTS latch, verbatim). Otherwise
+## runs the auto-reset bookkeeping so the ball can never be permanently lost — after a blast LAUNCHES it,
+## if it then rests / leaves bounds without scoring for reset_settle_s, respawn it (unlimited attempts,
+## no score). (v10 §2.4 — even more valuable without a clock: there is literally unlimited solve time.)
 func _puzzle_cleared(runner) -> bool:
 	for z in runner.get_tree().get_nodes_in_group("goal_zone"):
 		if z.scored:
@@ -372,23 +345,20 @@ func _puzzle_cleared(runner) -> bool:
 	if is_instance_valid(_ball):
 		var spd: float = (_ball.linear_velocity as Vector2).length()
 		var settle_target: float = float(_cur_objective.get("reset_settle_s", 2.5))
-		# OOB is checked FIRST, independent of speed: a ball that flies off the map keeps moving fast
-		# forever (never "rests"), so a speed-gated reset would never fire for a lost shot — the auto-reset
-		# has to catch the out-of-bounds case on its own.
 		var oob: bool = not runner.bounds.grow(200.0).has_point(_ball.global_position)
 		if oob:
 			_settle_t += dt
 			if _settle_t >= settle_target:
 				_reset_puzzle(runner)
 		elif spd >= BALL_LAUNCH_SPEED:
-			_ball_launched = true       # a blast punted it: arm the "settle -> reset" watch
+			_ball_launched = true
 			_settle_t = 0.0
 		elif _ball_launched and spd < BALL_REST_SPEED:
-			_settle_t += dt             # launched then came to rest in bounds without scoring: a miss
+			_settle_t += dt
 			if _settle_t >= settle_target:
 				_reset_puzzle(runner)
 		else:
-			_settle_t = 0.0             # resting pre-launch (at spawn) — do not reset before the blast
+			_settle_t = 0.0
 	return false
 
 ## COLLECT_ALL / PRECISION_LAND: cleared when EVERY member of the group has its latch flag set (and the
@@ -400,6 +370,13 @@ func _all_flagged(runner, group: String, flag: String, total: int) -> bool:
 		if not bool(n.get(flag)):
 			return false
 	return true
+
+func _flagged_count(runner, group: String, flag: String) -> int:
+	var c := 0
+	for n in runner.get_tree().get_nodes_in_group(group):
+		if bool(n.get(flag)):
+			c += 1
+	return c
 
 # --- PHYSICS_PUZZLE ball plumbing (reuse of the SPORTS Ball + spawn pattern) ---
 func _spawn_puzzle_ball(runner) -> void:
@@ -420,7 +397,6 @@ func _reset_puzzle(runner) -> void:
 		_spawn_puzzle_ball(runner)
 	_ball_launched = false
 	_settle_t = 0.0
-	_puzzle_attempts += 1
 
 # --- internals ---
 
@@ -468,13 +444,3 @@ func _load_course_set(set_id: String) -> Array:
 						return out
 	push_warning("TrialsMode: course_sets.json unusable for set '" + set_id + "' — using proof course")
 	return PROOF_SET.duplicate()
-
-## Read {gold,silver,bronze} from a course JSON. Returns {} on any failure (HUD shows no medal, never crashes).
-func _read_medal_times(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		return {}
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
-	if typeof(parsed) != TYPE_DICTIONARY:
-		return {}
-	var mt: Variant = (parsed as Dictionary).get("medal_times", {})
-	return mt if typeof(mt) == TYPE_DICTIONARY else {}

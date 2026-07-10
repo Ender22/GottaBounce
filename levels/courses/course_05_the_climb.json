@@ -4,24 +4,93 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TRIALS course 5 of 5 (v3_content_plan PART B; the capstone). MOVEMENT LESSON: VERTICAL MASTERY ASCENT -- climb a zigzag of tiny pads ~2660px UP a shaft, every step a committed DIAGONAL BOOST up-and-across, landing precisely on a small pad before the next. Hardest course: it stacks course_03's precision landings onto a sustained vertical climb that is too tall to reach in one flight.\n\nDERIVED vs CURRENT Tuning.gd: trampoline apex 270px (a bounce off any pad here gains ONLY 270px of height), air_drift_max 340px/s, max spring drift ~527px, normal_boost_max 760px/s, super_boost_impulse_full 2800 => straight-up super rise = 2800^2/(2*1600) = 2450px.\n\nLAYOUT: a start pad at the bottom + six tiny trampoline pads (w120) zigzagging between two columns (pad centers x660 <-> x1220, horizontal offset 560px) each ~380px HIGHER than the last + a wide goal pad at the top. Start y2400, goal y-260 => total climb 2660px.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight-required proof, GAME_ESSENCE Rule A -- vertical is DOUBLY gated):\n- EVERY step rises 380px, but a trampoline bounce only gains 270px of height (apex 270 < 380). You physically cannot bounce UP to the next pad -- you top out 110px BELOW it, still moving. VERTICAL RISE ALONE forbids a bounce ascent. JETPACK CLIMB REQUIRED each step. Verb: FLY. (Rule A, vertical gate.)\n- Each step is ALSO offset 560px horizontally (> 527 max spring drift), so even ignoring height a bounce cannot cover the lateral gap. Doubly flight-required. Verb: FLY (diagonal boost) + precision landing on the 120px pad.\n- TOTAL HEIGHT 2660px > 2450px (a full straight-up super's rise), so you CANNOT super from the bottom to the top -- the ascent MUST be taken in staged boosted hops, landing and re-launching. The verticality is the whole challenge, not scenery. Verb: FLY (sustained, staged).\n- RECOVER: a missed landing drops you back down the shaft toward the bottom void; a fuelled flier can boost back onto a lower pad (recovery gamble), a starved one rings out at the bottom. Verb: FLY. (Rule D.)\n\nKILL: display void at the shaft floor; a fall rings out below the bottom blast line -> respawn at start_gate + 2.0s. Explicit bounds: bottom 3200 leaves ~670px recovery sky under the start pad; top -2950 clears a straight-up super from the top pad (y-260 - 2450 = -2710 > -2950), so no accidental top ring-out; sides give the narrow shaft runway.\n\nMEDAL TIMES (ROUGH, drive-checked): a clean staged climb of 7 boosted hops (~1.4-1.8s each incl. a precise landing + re-launch) => ~13-17s skilled. gold 14.0 / silver 21.0 / bronze 32.0 (looser -- a mistimed hop drops you far down the shaft).",
+  "design_intent": "TRIALS course 5 of 5 (v3_content_plan PART B; the capstone). MOVEMENT LESSON: VERTICAL MASTERY ASCENT -- climb a zigzag of tiny pads ~2660px UP a shaft, every step a committed DIAGONAL BOOST up-and-across, landing precisely on a small pad before the next. Hardest course: it stacks course_03's precision landings onto a sustained vertical climb that is too tall to reach in one flight.\n\nDERIVED vs CURRENT Tuning.gd: trampoline apex 270px (a bounce off any pad here gains ONLY 270px of height), air_drift_max 340px/s, max spring drift ~527px, normal_boost_max 760px/s, super_boost_impulse_full 2800 => straight-up super rise = 2800^2/(2*1600) = 2450px.\n\nLAYOUT: a start pad at the bottom + six tiny trampoline pads (w120) zigzagging between two columns (pad centers x660 <-> x1220, horizontal offset 560px) each ~380px HIGHER than the last + a wide goal pad at the top. Start y2400, goal y-260 => total climb 2660px.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight-required proof, GAME_ESSENCE Rule A -- vertical is DOUBLY gated):\n- EVERY step rises 380px, but a trampoline bounce only gains 270px of height (apex 270 < 380). You physically cannot bounce UP to the next pad -- you top out 110px BELOW it, still moving. VERTICAL RISE ALONE forbids a bounce ascent. JETPACK CLIMB REQUIRED each step. Verb: FLY. (Rule A, vertical gate.)\n- Each step is ALSO offset 560px horizontally (> 527 max spring drift), so even ignoring height a bounce cannot cover the lateral gap. Doubly flight-required. Verb: FLY (diagonal boost) + precision landing on the 120px pad.\n- TOTAL HEIGHT 2660px > 2450px (a full straight-up super's rise), so you CANNOT super from the bottom to the top -- the ascent MUST be taken in staged boosted hops, landing and re-launching. The verticality is the whole challenge, not scenery. Verb: FLY (sustained, staged).\n- RECOVER: a missed landing drops you back down the shaft toward the bottom void; a fuelled flier can boost back onto a lower pad (recovery gamble), a starved one rings out at the bottom. Verb: FLY. (Rule D.)\n\nKILL: display void at the shaft floor; a fall rings out below the bottom blast line -> respawn at start_gate + 2.0s. Explicit bounds: bottom 3200 leaves ~670px recovery sky under the start pad; top -2950 clears a straight-up super from the top pad (y-260 - 2450 = -2710 > -2950), so no accidental top ring-out; sides give the narrow shaft runway.\n\nMEDAL TIMES [HISTORICAL - v10 removed medals/par; binary completion] (ROUGH, drive-checked): a clean staged climb of 7 boosted hops (~1.4-1.8s each incl. a precise landing + re-launch) => ~13-17s skilled. gold 14.0 / silver 21.0 / bronze 32.0 (looser -- a mistimed hop drops you far down the shaft).",
   "sky_top": "#243a6b",
   "sky_bottom": "#9fb6e6",
-  "bounds": { "left": -200, "right": 1760, "top": -2950, "bottom": 3200 },
+  "bounds": {
+    "left": -200,
+    "right": 1760,
+    "top": -2950,
+    "bottom": 3200
+  },
   "platforms": [
-    { "x": 480,  "y": 2400, "w": 360, "h": 128, "tier": "trampoline" },
-    { "x": 1160, "y": 2020, "w": 120, "h": 128, "tier": "trampoline" },
-    { "x": 600,  "y": 1640, "w": 120, "h": 128, "tier": "trampoline" },
-    { "x": 1160, "y": 1260, "w": 120, "h": 128, "tier": "trampoline" },
-    { "x": 600,  "y": 880,  "w": 120, "h": 128, "tier": "trampoline" },
-    { "x": 1160, "y": 500,  "w": 120, "h": 128, "tier": "trampoline" },
-    { "x": 600,  "y": 120,  "w": 120, "h": 128, "tier": "trampoline" },
-    { "x": 1100, "y": -260, "w": 300, "h": 128, "tier": "trampoline" }
+    {
+      "x": 480,
+      "y": 2400,
+      "w": 360,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1160,
+      "y": 2020,
+      "w": 120,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 600,
+      "y": 1640,
+      "w": 120,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1160,
+      "y": 1260,
+      "w": 120,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 600,
+      "y": 880,
+      "w": 120,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1160,
+      "y": 500,
+      "w": 120,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 600,
+      "y": 120,
+      "w": 120,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1100,
+      "y": -260,
+      "w": 300,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -200, "y": 2620, "w": 1960, "h": 640, "wall_px": 120 },
-    { "type": "start_gate", "x": 660, "y": 2300 },
-    { "type": "goal_gate", "x": 1250, "y": -430, "w": 240, "h": 320 }
-  ],
-  "medal_times": { "gold": 14.0, "silver": 21.0, "bronze": 32.0 }
+    {
+      "type": "void",
+      "x": -200,
+      "y": 2620,
+      "w": 1960,
+      "h": 640,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 660,
+      "y": 2300
+    },
+    {
+      "type": "goal_gate",
+      "x": 1250,
+      "y": -430,
+      "w": 240,
+      "h": 320
+    }
+  ]
 }

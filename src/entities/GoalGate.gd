@@ -1,8 +1,11 @@
 class_name GoalGate
 extends Area2D
-## TRIALS goal trigger (docs/specs/v3_content_plan.md PART B.3). An Area2D on the players mask that
-## senses the human reaching the course goal; the FIRST overlap latches `reached` and (via group
-## "goal_gate") lets TrialsMode.is_stage_over() end the stage on goal-touch — NOT last-one-standing.
+## TRIALS goal trigger (docs/specs/v3_content_plan.md PART B.3; v10 completion model). An Area2D on the
+## players mask that senses each player reaching the course goal. v10: instead of a single shared
+## `reached` latch (which ended the stage on the FIRST player), the gate records the STICKY SET of the
+## distinct Player bodies that have entered — `home` keyed by instance id, never cleared. TrialsMode's
+## REACH_GOAL gate is now "EVERY living participant has entered SOME goal_gate" (all-must-finish), read
+## via has_player(); the derived `reached` (= ≥1 player home) is kept ONLY for the green "reached" visual.
 ##
 ## Display-only ring (Pillar 5 readability): one high-contrast pulsing gold/green ring at course zoom.
 ## No collider on the world (it never blocks the player); it only detects. No Tuning constant is read.
@@ -11,9 +14,14 @@ const MASK_PLAYERS := 1 << 0   # senses Player bodies (Player collision_layer in
 
 var w: float = 240.0
 var h: float = 320.0
-var reached: bool = false
+var home: Dictionary = {}       # instance_id -> Player, STICKY (never cleared): the set that has entered
+var reached: bool = false       # DERIVED: not home.is_empty() — drives the green glow only, gates nothing
 var _t: float = 0.0
 var _flash: float = 0.0
+
+## True once player p has entered this gate (sticky). The mode ANDs this across all participants.
+func has_player(p) -> bool:
+	return p != null and home.has(p.get_instance_id())
 
 func setup_from_json(o: Dictionary) -> void:
 	# x,y = CENTER of the gate (spec B.3 goal_gate {x,y,w,h}); w,h = the rectangular trigger size.
@@ -33,19 +41,38 @@ func _ready() -> void:
 	cs.shape = rect
 	add_child(cs)
 	z_index = 45   # over platforms/void, under HUD
-	body_entered.connect(_on_body_entered)
 
-func _on_body_entered(body: Node) -> void:
-	if reached:
+## Latch by OVERLAP POLL, only while the match is in COMBAT — never via body_entered. A body_entered
+## latch recorded STALE pre-combat positions: during the runner's stage-load -> respawn window the
+## previous course's finishers still sit at their OLD world coords, which can overlap THIS course's
+## fresh gate (observed live: campaign course_03's goal lies inside course_04's gate rect, so
+## course_04 auto-cleared the instant combat began). Polling during COMBAT also latches a player who
+## is already inside the gate when combat starts (body_entered would never re-fire for them).
+func _poll_home() -> void:
+	var runner := get_tree().current_scene
+	if runner == null or str(runner.get("state")) != "COMBAT":
 		return
-	if body is Player:
-		reached = true
-		_flash = 1.0
+	for body in get_overlapping_bodies():
+		# The physics server's overlap list is ONE STEP STALE after a teleport (observed live: a dead
+		# body inside the gate latched on its respawn frame — is_dead() already false, overlap list
+		# still showing the corpse's old position). Require the CURRENT position to be inside the gate
+		# rect too: "entered the gate" = your center is in the ring, alive, during combat.
+		if body is Player and not body.is_dead() and _inside(body.global_position):
+			var id := body.get_instance_id()
+			if not home.has(id):
+				home[id] = body   # sticky: a player that later falls & respawns STAYS home (v10 §1.2)
+				_flash = 1.0
+			reached = true        # derived ≥1-home flag for the green glow (never gates the stage now)
+
+func _inside(p: Vector2) -> bool:
+	var d := p - global_position
+	return absf(d.x) <= w * 0.5 and absf(d.y) <= h * 0.5
 
 func _physics_process(delta: float) -> void:
 	_t += delta
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 1.5)
+	_poll_home()
 	queue_redraw()
 
 # ------------------------------------------------------------------ telegraphy (display only)

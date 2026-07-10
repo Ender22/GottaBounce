@@ -4,26 +4,56 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TRIALS SURVIVE proof course (v7_trials_challenge_types.md §2.2, owner example t_hammer_vigil). Parked on ONE wide trampoline pad under a LETHAL spinning_hammer that sweeps the pad on a readable rhythm; survive the timer by riding the CLEAR BEAT -- the blade dwells off each side of the pad (a full-pad safe window ~1.5s) and sweeps across it (~1s each way) where only the trailing side is safe. A death (blade contact OR a void fall) RESETS the survival clock to 0 and ticks the death counter -- a RETRY, not a +2s penalty (that is the novel SURVIVE scoring). Clean (0 deaths) = gold.\n\nPILLAR-2 / S-CAMP: the blade's head passes over EVERY x on the pad each half-sweep, so there is NO static tile you can idle out the whole timer on -- the safe spot moves each beat, forcing constant motion (dodge to the trailing side, or boost-hop the pass).\n\nMOTION vs current Tuning: pivot (940,340) + arm_len 640 => head at bottom-of-arc y~980 (40px over the pad top 1020) so a center-standing player is struck as the blade crosses center; at the pad edges the blade rides ~150px higher, opening the trailing-side refuge. period 5.0s, dwell_frac 0.32 => two ~1.5s full-clear dwells + two ~1.0s sweeps per revolution. arc_deg 140 keeps the apexes (x ~= 940 +/- 601) well off the 840px-wide pad (edges 520 / 1360). A void below rings out a flung/fallen player. NO Tuning constant is touched -- the hammer kills via the existing kill(&\"ring_out\") pipeline.\n\nSURVIVE (proof value 12s; owner headline ~20 is a level-design knob -- the medal is by DEATHS, not time, so the target length does not change the system). medal_survive (max deaths): gold 0 (clean), silver 1, bronze 5.",
+  "design_intent": "TRIALS SURVIVE proof course (v7_trials_challenge_types.md §2.2, owner example t_hammer_vigil). Parked on ONE wide trampoline pad under a LETHAL spinning_hammer that sweeps the pad on a readable rhythm; survive the timer by riding the CLEAR BEAT -- the blade dwells off each side of the pad (a full-pad safe window ~1.5s) and sweeps across it (~1s each way) where only the trailing side is safe. A death (blade contact OR a void fall) RESETS that player's survival clock to 0 -- a weightless RETRY (v10: no penalty, no death score). Clean (0 deaths) = gold.\n\nPILLAR-2 / S-CAMP: the blade's head passes over EVERY x on the pad each half-sweep, so there is NO static tile you can idle out the whole timer on -- the safe spot moves each beat, forcing constant motion (dodge to the trailing side, or boost-hop the pass).\n\nMOTION vs current Tuning: pivot (940,340) + arm_len 640 => head at bottom-of-arc y~980 (40px over the pad top 1020) so a center-standing player is struck as the blade crosses center; at the pad edges the blade rides ~150px higher, opening the trailing-side refuge. period 5.0s, dwell_frac 0.32 => two ~1.5s full-clear dwells + two ~1.0s sweeps per revolution. arc_deg 140 keeps the apexes (x ~= 940 +/- 601) well off the 840px-wide pad (edges 520 / 1360). A void below rings out a flung/fallen player. NO Tuning constant is touched -- the hammer kills via the existing kill(&\"ring_out\") pipeline.\n\nSURVIVE (proof value 12s; owner headline ~20 is a level-design knob -- v10: no medal; the target length is a pure level-design knob). [HISTORICAL - v10 removed medals/par; binary completion] medal_survive (max deaths): gold 0 (clean), silver 1, bronze 5.",
   "backdrop": "open_sky",
   "clouds": false,
   "sky_top": "#6E6A63",
   "sky_bottom": "#B8AE9E",
-  "bounds": { "left": -260, "top": -900, "right": 2140, "bottom": 1720 },
+  "bounds": {
+    "left": -260,
+    "top": -900,
+    "right": 2140,
+    "bottom": 1720
+  },
   "objective": {
     "type": "SURVIVE",
-    "survive_seconds": 12.0,
-    "medal_survive": { "gold": 0, "silver": 1, "bronze": 5 }
+    "survive_seconds": 12.0
   },
   "platforms": [
-    { "x": 520, "y": 1020, "w": 840, "h": 120, "tier": "trampoline" }
+    {
+      "x": 520,
+      "y": 1020,
+      "w": 840,
+      "h": 120,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -260, "y": 1300, "w": 2400, "h": 420, "wall_px": 120 },
-    { "type": "start_gate", "x": 940, "y": 400 },
-    { "type": "spinning_hammer",
-      "pivot": { "x": 940, "y": 340 },
-      "arm_len": 640, "arc_deg": 140, "period_s": 5.0, "phase": 0.0,
-      "radius": 80, "dwell_frac": 0.32 }
+    {
+      "type": "void",
+      "x": -260,
+      "y": 1300,
+      "w": 2400,
+      "h": 420,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 940,
+      "y": 400
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 940,
+        "y": 340
+      },
+      "arm_len": 640,
+      "arc_deg": 140,
+      "period_s": 5.0,
+      "phase": 0.0,
+      "radius": 80,
+      "dwell_frac": 0.32
+    }
   ]
 }

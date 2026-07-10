@@ -2,6 +2,23 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-10** TRIALS COMPLETION MODEL = PICO-PARK BINARY (owner ruling 2026-07-06, spec
+  `docs/specs/v10_trials_completion_model.md`, built + QA'd + committed today). SUPERSEDES v7's TIME/MEDAL/PAR
+  layer entirely (medals, par, best-time, fall penalty: REMOVED from code, HUD, and course JSON — the
+  "movement-bot medal tuning" backlog task is DELETED, not deferred). A course is COMPLETE or not; a fall is a
+  weightless respawn; the course completes when EVERY living participant is done (sticky per-player latch).
+  REACH_GOAL + SURVIVE ship full multi-player-parallel; the 4 object-mutation types ship SOLO (per-player
+  instanced objects = named future pass). v7's objective-type framework STANDS. QA vs v10 §7: R-PARITY/R-NOCLOCK/
+  R-FALL/M-ALLHOME(N=2,3)/M-STICKY/M-WAITFORDEAD/M-SURVIVE all PASS. Two REAL bugs found+fixed in GoalGate during
+  QA: (1) stale pre-combat positions latched the fresh gate during the stage-load→respawn window (campaign
+  course_04 auto-cleared because course_03's goal lies inside course_04's gate rect) — latch is now an overlap
+  POLL gated on state==COMBAT; (2) the physics overlap list is one step stale after a teleport (a respawning
+  player's corpse-at-gate latched on the respawn frame) — latch now also requires current-position-inside-rect.
+  Reopen (timers/medals) ONLY on explicit owner reversal; if courses feel too easy/hard the knob is course
+  geometry/hazard rhythm, never a clock. Watch item C-CAM: >1-screen player spread renders far players as edge
+  arrows (camera max-zoom contract) — author parallel courses screen-scale-aware. Polish follow-up: pause menu
+  has RESTART (whole set) + QUIT; a per-COURSE restart would be kinder.
+
 - **2026-07-06** CREATIVE-DIRECTOR FULL-GAME VERDICT (`docs/feedback/cd_2026-07-06_fullgame.md`): **SHIP-class, short FIX
   punch-list, NOT rethink** — a cohesive, purchasable party brawler, no regressions from the UI/art/content waves. BRAWL
   delivers the full fantasy (bounce→fly→aimed super-smash→off-screen ring-out→SD); front-end is Mario-Kart-tier; motion health

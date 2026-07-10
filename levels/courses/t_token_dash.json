@@ -4,27 +4,91 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TRIALS COLLECT_ALL proof course (v7_trials_challenge_types.md §2.5, example t_token_dash). Grab every floating token across a void gauntlet on the fastest flight line; the clear-test is every group 'trials_pickup' member latched `collected`. Tokens sit mid-air between pads so the optimal line requires FLYING through them (Rule A) -- a passive bounce cannot thread them. A fall respawns at start_gate (+2s).\n\nMEDAL (time): a clean routed run grabs 6 tokens in ~8-14s. gold 9.0 / silver 15.0 / bronze 26.0.",
+  "design_intent": "TRIALS COLLECT_ALL proof course (v7_trials_challenge_types.md §2.5, example t_token_dash). Grab every floating token across a void gauntlet on the fastest flight line; the clear-test is every group 'trials_pickup' member latched `collected`. Tokens sit mid-air between pads so the optimal line requires FLYING through them (Rule A) -- a passive bounce cannot thread them. A fall respawns at start_gate (+2s).\n\n[HISTORICAL - v10 removed medals/par; binary completion] MEDAL (time): a clean routed run grabs 6 tokens in ~8-14s. gold 9.0 / silver 15.0 / bronze 26.0.",
   "sky_top": "#3a7d44",
   "sky_bottom": "#cfeecf",
   "platforms": [
-    { "x": 0,    "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
-    { "x": 1000, "y": 900,  "w": 200, "h": 128, "tier": "trampoline" },
-    { "x": 2000, "y": 1000, "w": 200, "h": 128, "tier": "trampoline" },
-    { "x": 2860, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1000,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1000,
+      "y": 900,
+      "w": 200,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2000,
+      "y": 1000,
+      "w": 200,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2860,
+      "y": 1000,
+      "w": 360,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objective": {
     "type": "COLLECT_ALL"
   },
   "objects": [
-    { "type": "void", "x": -651, "y": 1300, "w": 4522, "h": 618, "wall_px": 120 },
-    { "type": "start_gate", "x": 160, "y": 900 },
-    { "type": "pickup", "x": 600,  "y": 800, "r": 52 },
-    { "type": "pickup", "x": 900,  "y": 700, "r": 52 },
-    { "type": "pickup", "x": 1450, "y": 760, "r": 52 },
-    { "type": "pickup", "x": 1750, "y": 700, "r": 52 },
-    { "type": "pickup", "x": 2350, "y": 780, "r": 52 },
-    { "type": "pickup", "x": 2700, "y": 840, "r": 52 }
-  ],
-  "medal_times": { "gold": 9.0, "silver": 15.0, "bronze": 26.0 }
+    {
+      "type": "void",
+      "x": -651,
+      "y": 1300,
+      "w": 4522,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 160,
+      "y": 900
+    },
+    {
+      "type": "pickup",
+      "x": 600,
+      "y": 800,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 900,
+      "y": 700,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 1450,
+      "y": 760,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 1750,
+      "y": 700,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 2350,
+      "y": 780,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 2700,
+      "y": 840,
+      "r": 52
+    }
+  ]
 }

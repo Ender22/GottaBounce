@@ -4,15 +4,45 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TRIALS PRECISION_LAND proof course (v7_trials_challenge_types.md §2.6, example t_pinpoint). Kill your velocity and touch down SOFTLY on each tiny pad; a land_target latches `landed` only if the overlapping player arrives under land_speed_max -- a too-fast slam flashes red and does NOT latch (re-approach slower; that is the skill, not a death). Each target sits on a small marshmallow perch (lowest bounce) so a controlled descent settles. Clear-test = every group 'trials_target' member landed. A void fall respawns (+2s).\n\nMEDAL (time): a controlled run soft-lands 3 pads in ~10-18s. gold 12.0 / silver 20.0 / bronze 34.0. land_speed_max 400 (forgiving proof value).",
+  "design_intent": "TRIALS PRECISION_LAND proof course (v7_trials_challenge_types.md §2.6, example t_pinpoint). Kill your velocity and touch down SOFTLY on each tiny pad; a land_target latches `landed` only if the overlapping player arrives under land_speed_max -- a too-fast slam flashes red and does NOT latch (re-approach slower; that is the skill, not a death). Each target sits on a small marshmallow perch (lowest bounce) so a controlled descent settles. Clear-test = every group 'trials_target' member landed. A void fall respawns (+2s).\n\n[HISTORICAL - v10 removed medals/par; binary completion] MEDAL (time): a controlled run soft-lands 3 pads in ~10-18s. gold 12.0 / silver 20.0 / bronze 34.0. land_speed_max 400 (forgiving proof value).",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
   "platforms": [
-    { "x": 0,    "y": 1050, "w": 320, "h": 128, "tier": "trampoline" },
-    { "x": 900,  "y": 900,  "w": 150, "h": 40, "tier": "marshmallow" },
-    { "x": 1560, "y": 1020, "w": 150, "h": 40, "tier": "marshmallow" },
-    { "x": 2220, "y": 860,  "w": 150, "h": 40, "tier": "marshmallow" },
-    { "x": 2880, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1050,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 900,
+      "y": 900,
+      "w": 150,
+      "h": 40,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 1560,
+      "y": 1020,
+      "w": 150,
+      "h": 40,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 2220,
+      "y": 860,
+      "w": 150,
+      "h": 40,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 2880,
+      "y": 1000,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objective": {
     "type": "PRECISION_LAND",
@@ -20,11 +50,42 @@
     "sequence": false
   },
   "objects": [
-    { "type": "void", "x": -651, "y": 1360, "w": 4522, "h": 618, "wall_px": 120 },
-    { "type": "start_gate", "x": 160, "y": 950 },
-    { "type": "land_target", "x": 975,  "y": 858, "w": 150, "h": 44, "land_speed_max": 400 },
-    { "type": "land_target", "x": 1635, "y": 978, "w": 150, "h": 44, "land_speed_max": 400 },
-    { "type": "land_target", "x": 2295, "y": 818, "w": 150, "h": 44, "land_speed_max": 400 }
-  ],
-  "medal_times": { "gold": 12.0, "silver": 20.0, "bronze": 34.0 }
+    {
+      "type": "void",
+      "x": -651,
+      "y": 1360,
+      "w": 4522,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 160,
+      "y": 950
+    },
+    {
+      "type": "land_target",
+      "x": 975,
+      "y": 858,
+      "w": 150,
+      "h": 44,
+      "land_speed_max": 400
+    },
+    {
+      "type": "land_target",
+      "x": 1635,
+      "y": 978,
+      "w": 150,
+      "h": 44,
+      "land_speed_max": 400
+    },
+    {
+      "type": "land_target",
+      "x": 2295,
+      "y": 818,
+      "w": 150,
+      "h": 44,
+      "land_speed_max": 400
+    }
+  ]
 }

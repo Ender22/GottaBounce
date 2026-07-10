@@ -4,19 +4,24 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-06 — **SHIP-class four-mode party brawler** (creative-director full-game verdict:
+**Last updated:** 2026-07-10 — **SHIP-class four-mode party brawler** (creative-director full-game verdict:
 purchasable, cohesive, core fantasy lands, no regressions — `docs/feedback/cd_2026-07-06_fullgame.md`).
-This session: art-debt fully paid (all code-drawn bodies → real Glossy-Toybox sprites), full Mario-Kart-bar
-front-end polish (title/ModeSelect/ArenaSelect), content waves (8 Sports pitches + 8 Trials courses), and the
-CD punch-list applied. Remaining work is OWNER-GATED (Brawl kill count, audio mix listen) or minor polish —
-see the "NEEDS OWNER" + "NEXT-UP BACKLOG" sections below. Everything committed + validated.
+**2026-07-10 session:** the v10 TRIALS BINARY-COMPLETION rewrite (Pico-Park model, owner-directed) is BUILT + QA'd +
+COMMITTED — no clock/medal/par anywhere; all-must-finish multi-player-parallel for REACH_GOAL+SURVIVE; solo for the 4
+object-mutation types; 13 course JSONs migrated. Full v10 §7 QA battery PASSED (solo campaign parity, N=2/N=3
+all-home, sticky latch, wait-for-dead, per-player SURVIVE). TWO real GoalGate bugs found+fixed during QA (stale
+pre-combat latch that auto-cleared course_04; one-step-stale overlap latch on respawn) — see DECISIONS 2026-07-10.
+The "movement-bot medal tuning" backlog task is DELETED (no medals to tune). CharacterSelect beauty-pose brief written
+(`docs/briefs/character_select_busts.md`, Pogo+Butch first) — generation pass pending. THE FOUNDRY Brawl circuit
+(4 arenas, level-designer) is IN FLIGHT — validation next. Only remaining owner-gate = audio mix listen.
 
 ## Where we are (the game today)
 A goat/ram party brawler — "Duck Game × Smash Bros, no guns" — with a full front-end and four modes,
 all on a pluggable `GameMode` seam:
 - **BRAWL** — the core versus kill-race (bounce→fly→smash→recover, un-charged super, off-screen kills,
   lives, cumulative-kills-to-N, level rotation, SD-on-double-KO). The proven fantasy.
-- **TRIALS** — solo time-attack, 5-course campaign, reach-goal/beat-par, fall=respawn+penalty, medals.
+- **TRIALS** — Pico-Park BINARY completion (v10): no clock/medal/par; 5-course campaign + 8-course varied battery;
+  fall = free respawn; multi-player-parallel (all-must-finish) on REACH_GOAL/SURVIVE, solo object-mutation types.
 - **GAUNTLET** — solo/co-op survival vs escalating bot waves, shared defender-life pool, score=highest wave.
 - **SPORTS** — 2-team bounce-ball into goals (Ball entity, GoalZone, team scoring).
 Cast = **the Herd**: 6 goat/ram heroes (Pogo/Butch/Ziggy/Puff/Vex/Billy) that PLAY differently (feel
@@ -66,11 +71,12 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   `v9` (level-designer's creative idea bank — ice/low-friction, jump-in cannons, + original inventions;
   landing shortly). Hazard doctrine = LETHAL w/ telegraphy+fairness+credit (DECISIONS 2026-07-05).
 - **BUILD SEQUENCE (do in this order):**
-  1. **v6 mechanics — DONE (5 lethal hazards, all validated + committed):** spinning_hammer, destructible_block
-     (+ COLLAPSING ARENA meltdown_box), crusher, falling_debris, bomb/landmine (+ `Ball.receive_hazard_impulse`).
-     Reusable plumbing: contact->kill Area2D, phase-clock+dwell oscillator, self-render telegraphy, LevelLoader
-     wiring, destructible `group`-count contract. STILL TODO: **moving_platform** (the one hard mechanic —
-     solid moving collider; deferred so it doesn't gate the fun).
+  1. **v6 mechanics — DONE (ALL 6, validated + committed):** spinning_hammer, destructible_block
+     (+ COLLAPSING ARENA meltdown_box), crusher, falling_debris, bomb/landmine (+ `Ball.receive_hazard_impulse`),
+     **moving_platform** (commit dfb8dd3 — `MovingPlatform.gd` AnimatableBody2D solid deck, sticky rider-carry since
+     Player is MOTION_MODE_FLOATING; re-validated 2026-07-06: sub-pixel carry stability, no jitter/tunnel; test bed
+     `levels/platform_test.json`). Reusable plumbing: contact->kill Area2D, phase-clock+dwell oscillator, self-render
+     telegraphy, LevelLoader wiring, destructible `group`-count contract. No hard mechanic remains.
   2. **BRAWL circuit — DONE:** MAYHEM MILE (`mayhem_mile`, 12-pool draw-6 tier-sorted). Random-draw rotation
      + UNLOCK PROGRESSION DONE (Settings [progression], mastery+pity, ArenaSelect locked cards + celebration).
   3. **Fan-out DONE across all 3 modes:** TRIALS challenge types (6 types + proof courses, `varied` set) +
@@ -108,8 +114,8 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   wired into sports_courts.json (unlock gates use REAL circuits). WATCH: minefield leaned BLUE 5/5 but all margins 1-2 goals
   (~58%, under the 65% bar) — reads as first-touch variance; re-sample if it recurs.
 - **Trials battery — DONE (8 courses).** `varied` grown 5→8: +t_cart_convoy (COLLECT, void+cart+refuel), +t_twin_hammers
-  (SURVIVE hard), +t_bank_shot (PHYSICS bank-shot capstone). Difficulty-ramped, each validated completable in-engine. Medal
-  times PROVISIONAL — need a movement-bot tuning pass.
+  (SURVIVE hard), +t_bank_shot (PHYSICS bank-shot capstone). Difficulty-ramped, each validated completable in-engine.
+  **v10 (2026-07-10): medals/par REMOVED from all courses — binary completion; the medal-tuning task no longer exists.**
 - **CREATIVE-DIRECTOR full-game verdict — DONE (`docs/feedback/cd_2026-07-06_fullgame.md`): SHIP-class, no rethink, no
   regressions.** Purchasable-looking cohesive party brawler; BRAWL delivers the full fantasy; motion health clean. Punch-list
   applied (see below).
@@ -119,19 +125,23 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   (`Tuning.sports_goal_target`, split from Brawl's knob); (4) audio verified FIRING (music + SFX). 
 
 ## ⚠ NEEDS OWNER (flagged, NOT auto-changed)
-- **BRAWL kill target** = owner-set **10**; CD AND QA independently recommend **~7** for the one-more-round feel. Owner's call —
-  knob is `Tuning.match_target_kills` (now cleanly separate from Sports).
+- **BRAWL kill target — RESOLVED 2026-07-06: owner locked 10.** CD/QA had recommended ~7, but owner's ruling: Brawl is the
+  4-player party mode (Duck Game/TowerFall lineage); with 4 players kills bank fast across last-one-standing rounds, so 10 keeps
+  matches from ending too soon. Do NOT re-litigate. Knob `Tuning.match_target_kills` (separate from Sports).
 - **Audio MIX quality** — a HUMAN must LISTEN. Audio is wired + firing (verified), but no one has judged levels/loop/punch (our
   playtests were accidentally muted until tonight's save repair). AI can't hear this.
 
 ## NEXT-UP BACKLOG (autonomous-safe; fresh-session ready)
 - CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);
   Gauntlet solo lives was a non-issue (already 4 via CharacterSelect — CD saw a dev-launch default).
-- **Trials medal-time tuning** — needs building/using a MOVEMENT BOT (all 8 varied medals are provisional). Bigger task.
+- ~~Trials medal-time tuning~~ **DELETED by v10** (binary completion — no medals exist to tune).
+- **THE FOUNDRY circuit validation** (4 arenas in working tree + circuits.json/ArenaSelect wiring — bot-match validate then commit).
+- Trials polish follow-ups (from v10 QA): per-COURSE pause restart (today RESTART = whole set); C-CAM watch — author
+  multi-player parallel courses screen-scale-aware (>1-screen spread renders far players as edge arrows).
 - CharacterSelect beauty-pose busts (§2c, Pogo+Butch first — nice-to-have, screen ships on idles).
 - More Brawl circuits + the 3 seed arenas; always-on-hazard pre-combat lethality guard; goat-on-logo (deferred, text-gen flaky).
-- **CONTENT INITIATIVE = LARGELY COMPLETE.** Remaining BACKLOG (clearly scoped, none blocking): moving_platform
-  (the one hard solid-collider mechanic); fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
+- **CONTENT INITIATIVE = LARGELY COMPLETE** (all 6 gimmick mechanics incl. moving_platform now done). Remaining BACKLOG
+  (clearly scoped, none blocking): fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
   v7's full 8 Trials courses, more Brawl circuits + the 3 seed arenas); always-on-hazard pre-combat lethality
   fix (gate on combat_started / raise spawns under blades); Sports court-select UI (plumbing selects by
   court_id today); cumulative-kill cosmetic unlock track (counter exists); CD#7 polish (menu arena-thumbnails

@@ -4,22 +4,80 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TRIALS course 3 of 5 (v3_content_plan PART B). MOVEMENT LESSON: BOUNCE-APEX PRECISION LANDINGS. Tiny pads (w90-100) at ALTERNATING heights (up-down-up-down zigzag) over a void; you must shape each boosted arc so its apex drops you cleanly onto the next small pad. Distinct from course_02's fuel-economy lesson: fuel is plentiful, the challenge is CONTROL/ACCURACY of your landing, not tank management.\n\nDERIVED vs CURRENT Tuning.gd: trampoline apex 270px, air_drift_max 340px/s, gravity 1600 => zero-boost SAME-HEIGHT trampoline drift ~395px, MAX spring drift ~527px. normal_boost_max 760px/s. bounce_di 260 (holding a direction nudges launch).\n\nLAYOUT: start pad + five tiny zigzag pads over one full-width void + a wide goal pad. Gaps (edge-to-edge) ~580-600px; heights alternate 820/1080/780/1100/820 around a ~1050 baseline (deltas 200-320px).\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight-required proof, GAME_ESSENCE Rule A):\n- Every horizontal gap is 580-600px > 527 (max spring drift) and >> 395 (trampoline drift). Even the WORST case (a drop-leg where the target sits 320px lower, giving the longest air-time): from a trampoline pad the arc drifts at most ~490px before falling past the target height (t_up 0.58s + t_down from apex ~0.86s = 1.44s * 340 = 490px) < 600px gap. So NO gap is bounce-reachable; NORMAL BOOST REQUIRED every leg. Verb: FLY. (Rule A.)\n- UP-legs (target 230-300px ABOVE): a trampoline bounce gains only 270px of height and cannot also cover the 580px offset -- doubly impossible by bounce. Verb: FLY.\n- THE LESSON: pads are only 90-100px wide, so the skill is APEX PLACEMENT -- boost to arrive over the pad at the top of your arc so you settle onto it instead of overshooting into the void. Miss the small target = ring out. Verb: FLY (precision).\n- No bounce path exists across any gap; horizontal AND vertical distance are load-bearing.\n\nKILL: full-width display void; a fall rings out below the derived bottom line -> respawn at start_gate + 2.0s. Bounds DERIVED (no override).\n\nMEDAL TIMES (ROUGH, drive-checked): a clean precise run threads 6 pads at ~1.0-1.2s/leg (landings cost hesitation) => ~11-14s skilled. gold 12.0 / silver 18.0 / bronze 26.0.",
+  "design_intent": "TRIALS course 3 of 5 (v3_content_plan PART B). MOVEMENT LESSON: BOUNCE-APEX PRECISION LANDINGS. Tiny pads (w90-100) at ALTERNATING heights (up-down-up-down zigzag) over a void; you must shape each boosted arc so its apex drops you cleanly onto the next small pad. Distinct from course_02's fuel-economy lesson: fuel is plentiful, the challenge is CONTROL/ACCURACY of your landing, not tank management.\n\nDERIVED vs CURRENT Tuning.gd: trampoline apex 270px, air_drift_max 340px/s, gravity 1600 => zero-boost SAME-HEIGHT trampoline drift ~395px, MAX spring drift ~527px. normal_boost_max 760px/s. bounce_di 260 (holding a direction nudges launch).\n\nLAYOUT: start pad + five tiny zigzag pads over one full-width void + a wide goal pad. Gaps (edge-to-edge) ~580-600px; heights alternate 820/1080/780/1100/820 around a ~1050 baseline (deltas 200-320px).\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight-required proof, GAME_ESSENCE Rule A):\n- Every horizontal gap is 580-600px > 527 (max spring drift) and >> 395 (trampoline drift). Even the WORST case (a drop-leg where the target sits 320px lower, giving the longest air-time): from a trampoline pad the arc drifts at most ~490px before falling past the target height (t_up 0.58s + t_down from apex ~0.86s = 1.44s * 340 = 490px) < 600px gap. So NO gap is bounce-reachable; NORMAL BOOST REQUIRED every leg. Verb: FLY. (Rule A.)\n- UP-legs (target 230-300px ABOVE): a trampoline bounce gains only 270px of height and cannot also cover the 580px offset -- doubly impossible by bounce. Verb: FLY.\n- THE LESSON: pads are only 90-100px wide, so the skill is APEX PLACEMENT -- boost to arrive over the pad at the top of your arc so you settle onto it instead of overshooting into the void. Miss the small target = ring out. Verb: FLY (precision).\n- No bounce path exists across any gap; horizontal AND vertical distance are load-bearing.\n\nKILL: full-width display void; a fall rings out below the derived bottom line -> respawn at start_gate + 2.0s. Bounds DERIVED (no override).\n\nMEDAL TIMES [HISTORICAL - v10 removed medals/par; binary completion] (ROUGH, drive-checked): a clean precise run threads 6 pads at ~1.0-1.2s/leg (landings cost hesitation) => ~11-14s skilled. gold 12.0 / silver 18.0 / bronze 26.0.",
   "sky_top": "#3a7d44",
   "sky_bottom": "#cfeecf",
   "platforms": [
-    { "x": 0,    "y": 1050, "w": 320, "h": 128, "tier": "trampoline" },
-    { "x": 920,  "y": 820,  "w": 100, "h": 128, "tier": "trampoline" },
-    { "x": 1600, "y": 1080, "w": 100, "h": 128, "tier": "trampoline" },
-    { "x": 2300, "y": 780,  "w": 90,  "h": 128, "tier": "trampoline" },
-    { "x": 2990, "y": 1100, "w": 90,  "h": 128, "tier": "trampoline" },
-    { "x": 3660, "y": 820,  "w": 90,  "h": 128, "tier": "trampoline" },
-    { "x": 4350, "y": 1050, "w": 300, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1050,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 920,
+      "y": 820,
+      "w": 100,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1600,
+      "y": 1080,
+      "w": 100,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2300,
+      "y": 780,
+      "w": 90,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2990,
+      "y": 1100,
+      "w": 90,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3660,
+      "y": 820,
+      "w": 90,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 4350,
+      "y": 1050,
+      "w": 300,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -720, "y": 1360, "w": 6100, "h": 640, "wall_px": 120 },
-    { "type": "start_gate", "x": 160, "y": 950 },
-    { "type": "goal_gate", "x": 4500, "y": 880, "w": 240, "h": 320 }
-  ],
-  "medal_times": { "gold": 12.0, "silver": 18.0, "bronze": 26.0 }
+    {
+      "type": "void",
+      "x": -720,
+      "y": 1360,
+      "w": 6100,
+      "h": 640,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 160,
+      "y": 950
+    },
+    {
+      "type": "goal_gate",
+      "x": 4500,
+      "y": 880,
+      "w": 240,
+      "h": 320
+    }
+  ]
 }

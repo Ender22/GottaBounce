@@ -36,7 +36,7 @@ grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("2_theme")
 
-[node name="TimerPanel" type="PanelContainer" parent="Root"]
+[node name="HomePanel" type="PanelContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -46,45 +46,63 @@ grow_horizontal = 2
 theme_type_variation = &"MatchEndPanel"
 mouse_filter = 2
 
-[node name="TimerBox" type="VBoxContainer" parent="Root/TimerPanel"]
+[node name="HomeBox" type="VBoxContainer" parent="Root/HomePanel"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
-[node name="TimeLabel" type="Label" parent="Root/TimerPanel/TimerBox"]
+[node name="HomeLabel" type="Label" parent="Root/HomePanel/HomeBox"]
 layout_mode = 2
 theme_type_variation = &"BannerTop"
-theme_override_font_sizes/font_size = 104
-text = "0.00"
+theme_override_font_sizes/font_size = 72
+text = "GO"
 horizontal_alignment = 1
 
-[node name="StatsRow" type="HBoxContainer" parent="Root/TimerPanel/TimerBox"]
+[node name="PipsRow" type="HBoxContainer" parent="Root/HomePanel/HomeBox"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 30
+theme_override_constants/separation = 20
 
-[node name="MedalLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
+[node name="Pip0" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
+custom_minimum_size = Vector2(58, 58)
 layout_mode = 2
-theme_type_variation = &"StepValue"
-text = "—"
-horizontal_alignment = 1
+mouse_filter = 2
 
-[node name="ThreshLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
+[node name="Fill" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow/Pip0"]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Pip1" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Fill" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow/Pip1"]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Pip2" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Fill" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow/Pip2"]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Pip3" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Fill" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow/Pip3"]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="SubLabel" type="Label" parent="Root/HomePanel/HomeBox"]
 layout_mode = 2
 theme_type_variation = &"Hint"
 text = ""
-horizontal_alignment = 1
-
-[node name="BestLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "BEST --"
-horizontal_alignment = 1
-
-[node name="FallsLabel" type="Label" parent="Root/TimerPanel/TimerBox/StatsRow"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "FALLS 0"
 horizontal_alignment = 1
 
 [node name="FuelWrap" type="Control" parent="Root"]

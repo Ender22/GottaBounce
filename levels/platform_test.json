@@ -1,0 +1,23 @@
+{
+  "name": "Moving Platform Test",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "central_pit",
+  "design_intent": "VALIDATION SANDBOX for the moving_platform mechanic (v6_party_gimmicks_circuits.md §2.6). NOT a shipping arena — a driveable smoke-test bed. A wide static trampoline FLOOR catches anyone who falls (no deaths mid-test), and a single horizontal VEHICLE deck (MovingPlatform, an AnimatableBody2D that CARRIES riders via a top-sensor sticky delta) oscillates ~1000px side-to-side well ABOVE the floor. All four player_spawns sit ON the deck so at COMBAT the players rest on it and ride along — proving solid collision (rest, no tunnel) + velocity-transfer carry (no jitter). A rider knocked off simply drops to the safety floor. Symmetric spawns; the deck is pure footing (never kills).",
+  "backdrop": "meadow",
+  "bounds": { "left": -400, "right": 3200, "top": -1800, "bottom": 1700 },
+  "platforms": [
+    { "x": 0, "y": 1200, "w": 2800, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "moving_platform", "vehicle": true,
+      "center": { "x": 1400, "y": 760 },
+      "axis_deg": 0, "amplitude": 520, "w": 460, "h": 48,
+      "period_s": 5.0, "phase": 0.0, "dwell_frac": 0.12 },
+
+    { "type": "player_spawn", "x": 1250, "y": 690 },
+    { "type": "player_spawn", "x": 1400, "y": 690 },
+    { "type": "player_spawn", "x": 1550, "y": 690 },
+    { "type": "player_spawn", "x": 1700, "y": 690 }
+  ]
+}

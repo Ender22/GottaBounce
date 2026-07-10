@@ -13,7 +13,7 @@
     },
     "varied": {
       "display_name": "TRIALS: CHALLENGES",
-      "_comment": "v7 objective-type battery, 8 courses, ordered mild->wild: control (PRECISION/COLLECT) -> route-under-motion (COLLECT+cart) -> rhythm (SURVIVE hammer -> SURVIVE dual-crusher) -> management (DESTROY) -> brain-teaser (PHYSICS direct -> PHYSICS bank capstone). t_cart_convoy / t_crush_corridor / t_bank_shot are the wave-2 additions. PROVISIONAL medal thresholds -- flagged for a movement-bot tuning pass.",
+      "_comment": "v7 objective-type battery, 8 courses, ordered mild->wild: control (PRECISION/COLLECT) -> route-under-motion (COLLECT+cart) -> rhythm (SURVIVE hammer -> SURVIVE dual-crusher) -> management (DESTROY) -> brain-teaser (PHYSICS direct -> PHYSICS bank capstone). t_cart_convoy / t_crush_corridor / t_bank_shot are the wave-2 additions. v10 completion model: BINARY completion, no clock/medal/par -- REACH_GOAL + SURVIVE run multi-player-parallel (all-must-finish); the four object-mutation types (DESTROY/PHYSICS/COLLECT/PRECISION) ship SOLO but still work single-player.",
       "courses": [
         "res://levels/courses/t_pinpoint.json",
         "res://levels/courses/t_token_dash.json",

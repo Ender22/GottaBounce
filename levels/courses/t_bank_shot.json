@@ -4,29 +4,82 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TRIALS PHYSICS_PUZZLE proof course #2 -- the BANK SHOT capstone (v7_trials_challenge_types.md §2.6, example t_bank_shot; escalates past t_ball_cannon's direct line). The goal is NOT on a straight line from the ball: a fuse bomb PUNTS the resting Ball up-and-right, it arcs over and CAROMS off a tall vertical wall on the right, then banks DOWN-LEFT into a goal pocket set back on the left. Aim-by-explosion + read the ricochet. Clear-test = the SPORTS GoalZone latch (any goal_zone.scored). The Ball auto-resets to spawn on a miss (settles/leaves bounds) and each reset ticks the attempt counter; gold = solve first blast.\n\nWHY IT BANKS (vs current Tuning: explosion_impulse_center override 1500, Ball mass 0.6 / restitution 0.85, gravity 1600): the Ball rests at (500,1000) on a marshmallow launch pad. The bomb at (400,1150) punts along (ball-bomb).normalized()=(0.555,-0.832), dist 180 => blast_radius 560 falloff 0.679 => 1500*0.679=1019, /0.6 => launch ~1697px/s = (vx 942, vy -1412). The Ball arcs to apex ~(1330, 377) then descends RIGHT into the vertical wall at x1600 (contacts its left face ~x1540, y~416), reflecting vx +942 -> ~-800 (Ball restitution 0.85) while keeping its downward vy. It then travels DOWN-LEFT and passes through the goal pocket (center 1180,820; a GENEROUS 300x520 mouth spanning x1030-1330, y560-1080) on the way down -- the intended one-blast solve. On the way UP the Ball crosses the goal's x-range ABOVE the mouth (y~377-459 < top y560), so it never scores prematurely; it only enters the mouth from above after the carom.\n\nThe player spawns on a LOW centre watch-pad (1000,1210), out of the bomb's kill_radius (dist ~600 > blast_radius 560, so no knock) and BELOW the ball path + goal mouth (pad top y1280 sits under the score band y560-1080) so it never blocks the shot -- no traversal task; the low-centre spawn frames the whole puzzle in the follow-camera (the ball's launch at x500 through the wall at x1600 all on-screen). The fuse recurs (~4s) so a missed shot re-fires after the auto-reset returns the Ball to spawn. The intended one-blast bank is the reasonable path; a player could in theory fly up and body-nudge the Ball, but the momentum-based ball-drive makes that no easier than letting the recurring blast solve it.\n\nMEDAL (attempts, fewer better): gold 1 (first blast), silver 2, bronze 6. FLAG: the bank geometry + medal thresholds were tuned in-engine but still want a movement-bot confirmation pass.",
+  "design_intent": "TRIALS PHYSICS_PUZZLE proof course #2 -- the BANK SHOT capstone (v7_trials_challenge_types.md §2.6, example t_bank_shot; escalates past t_ball_cannon's direct line). The goal is NOT on a straight line from the ball: a fuse bomb PUNTS the resting Ball up-and-right, it arcs over and CAROMS off a tall vertical wall on the right, then banks DOWN-LEFT into a goal pocket set back on the left. Aim-by-explosion + read the ricochet. Clear-test = the SPORTS GoalZone latch (any goal_zone.scored). The Ball auto-resets to spawn on a miss (settles/leaves bounds) and each reset ticks the attempt counter; gold = solve first blast.\n\nWHY IT BANKS (vs current Tuning: explosion_impulse_center override 1500, Ball mass 0.6 / restitution 0.85, gravity 1600): the Ball rests at (500,1000) on a marshmallow launch pad. The bomb at (400,1150) punts along (ball-bomb).normalized()=(0.555,-0.832), dist 180 => blast_radius 560 falloff 0.679 => 1500*0.679=1019, /0.6 => launch ~1697px/s = (vx 942, vy -1412). The Ball arcs to apex ~(1330, 377) then descends RIGHT into the vertical wall at x1600 (contacts its left face ~x1540, y~416), reflecting vx +942 -> ~-800 (Ball restitution 0.85) while keeping its downward vy. It then travels DOWN-LEFT and passes through the goal pocket (center 1180,820; a GENEROUS 300x520 mouth spanning x1030-1330, y560-1080) on the way down -- the intended one-blast solve. On the way UP the Ball crosses the goal's x-range ABOVE the mouth (y~377-459 < top y560), so it never scores prematurely; it only enters the mouth from above after the carom.\n\nThe player spawns on a LOW centre watch-pad (1000,1210), out of the bomb's kill_radius (dist ~600 > blast_radius 560, so no knock) and BELOW the ball path + goal mouth (pad top y1280 sits under the score band y560-1080) so it never blocks the shot -- no traversal task; the low-centre spawn frames the whole puzzle in the follow-camera (the ball's launch at x500 through the wall at x1600 all on-screen). The fuse recurs (~4s) so a missed shot re-fires after the auto-reset returns the Ball to spawn. The intended one-blast bank is the reasonable path; a player could in theory fly up and body-nudge the Ball, but the momentum-based ball-drive makes that no easier than letting the recurring blast solve it.\n\n[HISTORICAL - v10 removed medals/par; binary completion] MEDAL (attempts, fewer better): gold 1 (first blast), silver 2, bronze 6. NOTE: medal thresholds OBSOLETE (v10 binary completion); bank geometry validated in-engine.",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
-  "bounds": { "left": -500, "top": -700, "right": 2900, "bottom": 1640 },
+  "bounds": {
+    "left": -500,
+    "top": -700,
+    "right": 2900,
+    "bottom": 1640
+  },
   "platforms": [
-    { "x": 380,  "y": 1060, "w": 260, "h": 60,  "tier": "marshmallow" },
-    { "x": 880,  "y": 1280, "w": 240, "h": 100, "tier": "trampoline" },
-    { "x": 1600, "y": 300,  "w": 120, "h": 660, "tier": "bumper" }
+    {
+      "x": 380,
+      "y": 1060,
+      "w": 260,
+      "h": 60,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 880,
+      "y": 1280,
+      "w": 240,
+      "h": 100,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1600,
+      "y": 300,
+      "w": 120,
+      "h": 660,
+      "tier": "bumper"
+    }
   ],
   "objective": {
     "type": "PHYSICS_PUZZLE",
     "win": "ball_in_goal",
-    "score_by": "attempts",
-    "medal_attempts": { "gold": 1, "silver": 2, "bronze": 6 },
     "reset_settle_s": 2.8
   },
   "objects": [
-    { "type": "void", "x": -400, "y": 1320, "w": 3100, "h": 300, "wall_px": 120 },
-    { "type": "start_gate", "x": 1000, "y": 1210 },
-    { "type": "ball", "x": 500, "y": 1000 },
-    { "type": "bomb", "x": 400, "y": 1150, "blast_radius": 560, "kill_radius": 200,
-      "trigger": "fuse", "fuse_s": 2.0, "telegraph_lead": 1.0, "recur": 4.0, "arm_delay": 0.4,
-      "impulse_center": 1500 },
-    { "type": "goal_zone", "x": 1180, "y": 820, "w": 300, "h": 520, "team": 0 }
+    {
+      "type": "void",
+      "x": -400,
+      "y": 1320,
+      "w": 3100,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 1000,
+      "y": 1210
+    },
+    {
+      "type": "ball",
+      "x": 500,
+      "y": 1000
+    },
+    {
+      "type": "bomb",
+      "x": 400,
+      "y": 1150,
+      "blast_radius": 560,
+      "kill_radius": 200,
+      "trigger": "fuse",
+      "fuse_s": 2.0,
+      "telegraph_lead": 1.0,
+      "recur": 4.0,
+      "arm_delay": 0.4,
+      "impulse_center": 1500
+    },
+    {
+      "type": "goal_zone",
+      "x": 1180,
+      "y": 820,
+      "w": 300,
+      "h": 520,
+      "team": 0
+    }
   ]
 }

@@ -4,30 +4,69 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TRIALS SURVIVE proof course #2 -- the HARDER rhythm (v7_trials_challenge_types.md §2.2, owner example 'two swinging hammers'; escalates past t_hammer_vigil). Parked on ONE WIDE trampoline pad under TWO lethal spinning_hammers (the proven hammer hazard) whose bottom-of-arc blades sweep the pad in a SYNCOPATED cross-rhythm (phase 0.0 / 0.5). Where t_hammer_vigil is one blade / one clear beat, this is two blades whose threat columns OVERLAP so there is no static safe tile -- you must read BOTH clocks and boost-hop into the rotating pocket the two sweeps leave. A death (a blade OR a void fall) RESETS the survival clock to 0 and ticks the death counter -- a RETRY, not a +2s penalty (SURVIVE scoring). Clean (0 deaths) = gold.\n\nPILLAR-2 / S-CAMP: pivots at x640 and x1240 with arm_len 640 => each blade threatens pad-standers across x~(pivot +/- 290) at bottom-of-arc; blade radius 80 widens each threat column so the two UNION to cover the whole pad interior (x300-1580) with no permanent gap. Every x is swept by some blade each ~4.4s period, so there is NO static tile to idle the timer out on -- the safe pocket ROTATES with the offset phases, forcing a constant left<->right shuttle. (Comparable-or-tighter than the shipped t_hammer_vigil; exact camp-freeness wants a movement-bot confirm.)\n\nMOVEMENT-TOOL / FLIGHT-REQUIRED (Rule A): the safe pocket moves ~450-600px each beat; air_drift_max 340px/s cannot re-cross the pad inside a blade's dwell window, so BOOST (760px/s) is required each beat to reach the next open pocket -- passive bouncing/drifting is swept. The dodge itself is the flight requirement (SURVIVE fantasy §2.2).\n\nMOTION vs current Tuning (mirrors the validated t_hammer_vigil): pivot y340 + arm_len 640 => blade bottom-of-arc y~980 (40px over pad top 1020) so a center-standing player is struck as a blade crosses; arc_deg 140 (+/-70deg) sweeps each blade's apexes well off its own threat column; period 4.4s (a touch faster than vigil's 5.0), dwell_frac 0.30 => two clear dwells + two sweeps per revolution, offset 0.5 between the pair. The SPAWN (640,400) sits just below hammer-1's pivot in thin-arm/clear air (the vigil spawn pattern), out of both blades' reach at all phases -> a phase-safe drop onto the pad. NO Tuning constant is touched -- the blades kill via the existing kill(&\"ring_out\") pipeline.\n\nSURVIVE (provisional 14s; medal by DEATHS not time). medal_survive (max deaths): gold 0 (clean), silver 1, bronze 5. FLAG: survive length + medal thresholds + strict S-CAMP camp-freeness need a movement-bot tuning/confirm pass.",
+  "design_intent": "TRIALS SURVIVE proof course #2 -- the HARDER rhythm (v7_trials_challenge_types.md §2.2, owner example 'two swinging hammers'; escalates past t_hammer_vigil). Parked on ONE WIDE trampoline pad under TWO lethal spinning_hammers (the proven hammer hazard) whose bottom-of-arc blades sweep the pad in a SYNCOPATED cross-rhythm (phase 0.0 / 0.5). Where t_hammer_vigil is one blade / one clear beat, this is two blades whose threat columns OVERLAP so there is no static safe tile -- you must read BOTH clocks and boost-hop into the rotating pocket the two sweeps leave. A death (a blade OR a void fall) RESETS that player's survival clock to 0 -- a weightless RETRY (v10: no penalty, no death score). Clean (0 deaths) = gold.\n\nPILLAR-2 / S-CAMP: pivots at x640 and x1240 with arm_len 640 => each blade threatens pad-standers across x~(pivot +/- 290) at bottom-of-arc; blade radius 80 widens each threat column so the two UNION to cover the whole pad interior (x300-1580) with no permanent gap. Every x is swept by some blade each ~4.4s period, so there is NO static tile to idle the timer out on -- the safe pocket ROTATES with the offset phases, forcing a constant left<->right shuttle. (Comparable-or-tighter than the shipped t_hammer_vigil; exact camp-freeness wants a movement-bot confirm.)\n\nMOVEMENT-TOOL / FLIGHT-REQUIRED (Rule A): the safe pocket moves ~450-600px each beat; air_drift_max 340px/s cannot re-cross the pad inside a blade's dwell window, so BOOST (760px/s) is required each beat to reach the next open pocket -- passive bouncing/drifting is swept. The dodge itself is the flight requirement (SURVIVE fantasy §2.2).\n\nMOTION vs current Tuning (mirrors the validated t_hammer_vigil): pivot y340 + arm_len 640 => blade bottom-of-arc y~980 (40px over pad top 1020) so a center-standing player is struck as a blade crosses; arc_deg 140 (+/-70deg) sweeps each blade's apexes well off its own threat column; period 4.4s (a touch faster than vigil's 5.0), dwell_frac 0.30 => two clear dwells + two sweeps per revolution, offset 0.5 between the pair. The SPAWN (640,400) sits just below hammer-1's pivot in thin-arm/clear air (the vigil spawn pattern), out of both blades' reach at all phases -> a phase-safe drop onto the pad. NO Tuning constant is touched -- the blades kill via the existing kill(&\"ring_out\") pipeline.\n\nSURVIVE (provisional 14s; v10: binary, no medal). [HISTORICAL - v10 removed medals/par; binary completion] medal_survive (max deaths): gold 0 (clean), silver 1, bronze 5. FLAG: strict S-CAMP camp-freeness wants a confirm pass; medal thresholds OBSOLETE (v10 binary completion).",
   "backdrop": "open_sky",
   "clouds": false,
   "sky_top": "#6E6A63",
   "sky_bottom": "#B8AE9E",
-  "bounds": { "left": 40, "top": -900, "right": 1840, "bottom": 1720 },
+  "bounds": {
+    "left": 40,
+    "top": -900,
+    "right": 1840,
+    "bottom": 1720
+  },
   "objective": {
     "type": "SURVIVE",
-    "survive_seconds": 14.0,
-    "medal_survive": { "gold": 0, "silver": 1, "bronze": 5 }
+    "survive_seconds": 14.0
   },
   "platforms": [
-    { "x": 300, "y": 1020, "w": 1280, "h": 120, "tier": "trampoline" }
+    {
+      "x": 300,
+      "y": 1020,
+      "w": 1280,
+      "h": 120,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": 100, "y": 1320, "w": 1680, "h": 420, "wall_px": 120 },
-    { "type": "start_gate", "x": 640, "y": 400 },
-    { "type": "spinning_hammer",
-      "pivot": { "x": 640, "y": 340 },
-      "arm_len": 640, "arc_deg": 140, "period_s": 4.4, "phase": 0.0,
-      "radius": 80, "dwell_frac": 0.30 },
-    { "type": "spinning_hammer",
-      "pivot": { "x": 1240, "y": 340 },
-      "arm_len": 640, "arc_deg": 140, "period_s": 4.4, "phase": 0.5,
-      "radius": 80, "dwell_frac": 0.30 }
+    {
+      "type": "void",
+      "x": 100,
+      "y": 1320,
+      "w": 1680,
+      "h": 420,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 640,
+      "y": 400
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 640,
+        "y": 340
+      },
+      "arm_len": 640,
+      "arc_deg": 140,
+      "period_s": 4.4,
+      "phase": 0.0,
+      "radius": 80,
+      "dwell_frac": 0.3
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 1240,
+        "y": 340
+      },
+      "arm_len": 640,
+      "arc_deg": 140,
+      "period_s": 4.4,
+      "phase": 0.5,
+      "radius": 80,
+      "dwell_frac": 0.3
+    }
   ]
 }

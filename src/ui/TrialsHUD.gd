@@ -1,26 +1,28 @@
 extends CanvasLayer
-## TRIALS HUD (docs/specs/v3_content_plan.md B.3). Built from TrialsHUD.tscn + assets/ui/theme.tres
-## (Glossy Toybox — chunky rounded panels, chocolate outlines, oversized type; no OS-default widgets).
-## Replaces MatchHUD for the TRIALS mode: a big ticking RUN TIMER, the medal thresholds + provisional
-## medal, best time, fall/attempt counter, and a fuel gauge. NO player cards, NO score pips, NO bots.
+## TRIALS HUD (docs/specs/v10_trials_completion_model.md §4). Built from TrialsHUD.tscn + theme.tres.
+## v10 (binary completion, no clock): the hero readout is the HOME/COMPLETION tracker — a "n of N HOME"
+## count plus ONE skin-colored pip per participant that fills/locks when that player is `done`. There is
+## NO timer, medal, par, best-time, or fall/penalty readout anywhere (all stripped). A per-type neutral
+## secondary readout (SURVIVE progress via the pip fill, DESTROY "BLOCKS n", PUZZLE "BALL -> GOAL",
+## COLLECT "TOKENS n/m", PRECISION "PADS n/m") gives the win rule at a glance. The fuel gauge is kept.
 ##
-## It fills the SAME method surface PartyMatch calls on a HUD (setup / reset_scores / hide_center /
-## set_dead / show_center / animate_scores / show_top / show_match_end / show_match_prompt) so the
-## runner drives it unchanged; the score-oriented ones are no-ops. Live readouts poll the runner + the
-## active TrialsMode via get_parent() (the runner) each frame.
+## Fills the SAME method surface PartyMatch calls on a HUD (setup / reset_scores / hide_center / set_dead
+## / show_center / animate_scores / show_top / show_match_end / show_match_prompt) so the runner drives it
+## unchanged; the score-oriented ones are no-ops. Live readouts poll the runner + active TrialsMode.
 
 const POP_IN := 0.15
 const POP_OUT := 0.2
+const MAX_PIPS := 4
+const PIP_DONE := Color(1.0, 0.86, 0.3, 1.0)   # gold lock when a pip is complete (over the skin fill)
 
 var _runner   # PartyMatch (untyped so mode/state member access is dynamic — no runner class edit)
 var _center_tw: Tween
 var _top_tw: Tween
+var _skin_colors: Array = []   # per-participant skin color (from setup), drives the pip fill
 
-@onready var _time_label: Label = $Root/TimerPanel/TimerBox/TimeLabel
-@onready var _medal_label: Label = $Root/TimerPanel/TimerBox/StatsRow/MedalLabel
-@onready var _thresholds_label: Label = $Root/TimerPanel/TimerBox/StatsRow/ThreshLabel
-@onready var _best_label: Label = $Root/TimerPanel/TimerBox/StatsRow/BestLabel
-@onready var _falls_label: Label = $Root/TimerPanel/TimerBox/StatsRow/FallsLabel
+@onready var _home_label: Label = $Root/HomePanel/HomeBox/HomeLabel
+@onready var _sub_label: Label = $Root/HomePanel/HomeBox/SubLabel
+@onready var _pips_row: HBoxContainer = $Root/HomePanel/HomeBox/PipsRow
 @onready var _fuel_fill: Panel = $Root/FuelWrap/FuelBg/FuelFill
 @onready var _fuel_bg: Panel = $Root/FuelWrap/FuelBg
 
@@ -34,18 +36,41 @@ var _top_tw: Tween
 @onready var _match_sub: Label = $Root/CenterC/MatchPanel/MatchBox/MatchSub
 @onready var _match_prompt: Label = $Root/CenterC/MatchPanel/MatchBox/MatchPrompt
 
+var _pips: Array = []   # [{root: Panel, fill: Panel}]
+
 func _ready() -> void:
 	_runner = get_parent()
+	for i in range(MAX_PIPS):
+		var root: Panel = _pips_row.get_node("Pip%d" % i)
+		var fill: Panel = root.get_node("Fill")
+		root.add_theme_stylebox_override("panel", _pip_bg_style())
+		fill.add_theme_stylebox_override("panel", _pip_fill_style(Color.WHITE))
+		root.visible = false
+		_pips.append({"root": root, "fill": fill})
+
+func _pip_bg_style() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.12, 0.09, 0.07, 0.85)
+	sb.set_border_width_all(4)
+	sb.border_color = Color(0.231373, 0.141176, 0.105882, 1.0)
+	sb.set_corner_radius_all(29)
+	return sb
+
+func _pip_fill_style(c: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = c
+	sb.set_corner_radius_all(25)
+	return sb
 
 # ------------------------------------------------------------------ runner-called HUD surface
-func setup(_players: Array, _colors: Array, _skins: Array) -> void:
-	pass   # TRIALS has no per-player cards; live readouts poll the runner in _process
+func setup(_players: Array, colors: Array, _skins: Array) -> void:
+	_skin_colors = colors.duplicate()
 
 func reset_scores() -> void:
 	pass   # no score pips in TRIALS
 
 func set_dead(_i: int, _dead: bool) -> void:
-	pass   # a fall is a respawn, not a death card
+	pass   # a fall is a weightless respawn, not a death card
 
 func animate_scores(_new_scores: Array) -> void:
 	pass   # no score pips in TRIALS
@@ -57,22 +82,89 @@ func _process(_delta: float) -> void:
 	var mode = _runner._mode
 	if mode == null:
 		return
-	# v7: the center readout swaps per the course's objective type (timer / survive-clock / blocks-left /
-	# attempts). REACH_GOAL (and the time-scored COLLECT/PRECISION) keep the original timer readout so the
-	# shipped courses are byte-identical.
 	var otype := "REACH_GOAL"
 	if mode.has_method("objective_type"):
 		otype = str(mode.objective_type())
+	_update_home(mode, otype)
+	_update_sub(mode, otype)
+	_update_fuel()
+
+## The HOME tracker: "n of N HOME" (or "GO"/"HOME!" for a single player) + one skin-colored pip per
+## participant, filled by player_done (or SURVIVE progress). This is the primary readout for every type.
+func _update_home(mode, otype: String) -> void:
+	var n := 0
+	if mode.has_method("participant_count"):
+		n = int(mode.participant_count(_runner))
+	var home := 0
+	if mode.has_method("home_count"):
+		home = int(mode.home_count(_runner))
+	if n <= 1:
+		_home_label.text = "HOME!" if home >= 1 else "GO"
+	else:
+		_home_label.text = "%d of %d  HOME" % [home, n]
+	for i in range(MAX_PIPS):
+		var pip: Dictionary = _pips[i]
+		var root: Panel = pip["root"]
+		if i >= n:
+			root.visible = false
+			continue
+		root.visible = true
+		var ratio := 0.0
+		var done := false
+		if mode.has_method("player_done"):
+			done = bool(mode.player_done(_runner, i))
+		if otype == "SURVIVE" and mode.has_method("survive_ratio"):
+			ratio = float(mode.survive_ratio(_runner, i))
+		else:
+			ratio = 1.0 if done else 0.0
+		_paint_pip(pip, i, ratio, done)
+
+## Paint one pip: a skin-colored fill rising from the bottom by `ratio`; a full/done pip locks to gold.
+func _paint_pip(pip: Dictionary, idx: int, ratio: float, done: bool) -> void:
+	var root: Panel = pip["root"]
+	var fill: Panel = pip["fill"]
+	var pad := 6.0
+	var sz: Vector2 = root.size
+	var iw: float = maxf(0.0, sz.x - pad * 2.0)
+	var ih: float = maxf(0.0, sz.y - pad * 2.0)
+	var fh: float = ih * clampf(ratio, 0.0, 1.0)
+	fill.position = Vector2(pad, pad + (ih - fh))
+	fill.size = Vector2(iw, fh)
+	var col: Color = _skin_color(idx)
+	var sb := fill.get_theme_stylebox("panel")
+	if sb is StyleBoxFlat:
+		(sb as StyleBoxFlat).bg_color = PIP_DONE if done else col
+
+func _skin_color(idx: int) -> Color:
+	if idx >= 0 and idx < _skin_colors.size():
+		var c = _skin_colors[idx]
+		if c is Color:
+			return c
+	return Color(0.29, 0.83, 0.95, 1.0)
+
+## Per-type neutral secondary readout — never a clock, never a score.
+func _update_sub(mode, otype: String) -> void:
 	match otype:
 		"SURVIVE":
-			_show_survive(mode)
+			_sub_label.text = "SURVIVE %.0fs" % float(mode.survive_target()) if mode.has_method("survive_target") else "SURVIVE"
 		"DESTROY_ALL":
-			_show_destroy(mode)
+			_sub_label.text = "BLOCKS %d" % int(mode.blocks_remaining(_runner)) if mode.has_method("blocks_remaining") else "SMASH ALL"
 		"PHYSICS_PUZZLE":
-			_show_puzzle(mode)
+			_sub_label.text = "BALL -> GOAL"
+		"COLLECT_ALL":
+			if mode.has_method("tokens_total"):
+				_sub_label.text = "TOKENS %d / %d" % [int(mode.tokens_collected(_runner)), int(mode.tokens_total())]
+			else:
+				_sub_label.text = "COLLECT ALL"
+		"PRECISION_LAND":
+			if mode.has_method("pads_total"):
+				_sub_label.text = "PADS %d / %d" % [int(mode.pads_landed(_runner)), int(mode.pads_total())]
+			else:
+				_sub_label.text = "SOFT-LAND ALL"
 		_:
-			_show_timer(mode)
-	# fuel gauge from the lone human
+			_sub_label.text = ""   # REACH_GOAL: the home tracker alone
+
+func _update_fuel() -> void:
 	var ratio := 0.0
 	var players: Array = _runner.players
 	if players.size() > 0 and is_instance_valid(players[0]):
@@ -82,54 +174,6 @@ func _process(_delta: float) -> void:
 	var fh: float = maxf(0.0, _fuel_bg.size.y - pad * 2.0)
 	_fuel_fill.position = Vector2(pad, pad)
 	_fuel_fill.size = Vector2(fw * clampf(ratio, 0.0, 1.0), fh)
-
-# ------------------------------------------------------------------ per-type center readouts (v7)
-## REACH_GOAL + time-scored types: the original big RUN TIMER + medal-by-time thresholds + best + falls.
-func _show_timer(mode) -> void:
-	var t: float = float(mode.current_time(_runner))
-	_time_label.text = "%.2f" % t
-	var medal: String = str(mode.medal_for(t))
-	_set_medal(mode, medal)
-	var mt: Dictionary = mode.medal_times()
-	if mt.is_empty():
-		_thresholds_label.text = ""
-	else:
-		_thresholds_label.text = "G %.1f   S %.1f   B %.1f" % [
-			float(mt.get("gold", 0.0)), float(mt.get("silver", 0.0)), float(mt.get("bronze", 0.0))]
-	var best: float = float(mode.best_time())
-	_best_label.text = "BEST %.2f" % best if best > 0.0 else "BEST --"
-	_falls_label.text = "FALLS %d" % int(mode.attempts)
-
-## SURVIVE: the survival clock counts UP toward the target; medal is by deaths (fewer = better).
-func _show_survive(mode) -> void:
-	var elapsed: float = float(mode.survive_elapsed(_runner))
-	var target: float = float(mode.survive_target())
-	_time_label.text = "%.1f" % elapsed
-	_thresholds_label.text = "SURVIVE %.0fs" % target
-	_set_medal(mode, str(mode.result_medal(_runner)))
-	_best_label.text = ""
-	_falls_label.text = "DEATHS %d" % int(mode.survive_deaths())
-
-## DESTROY_ALL: the run timer + the live count of blocks still to break; medal per score_by.
-func _show_destroy(mode) -> void:
-	var t: float = float(mode.current_time(_runner))
-	_time_label.text = "%.2f" % t
-	_thresholds_label.text = "SMASH ALL"
-	_set_medal(mode, str(mode.result_medal(_runner)))
-	_best_label.text = ""
-	_falls_label.text = "BLOCKS %d" % int(mode.blocks_remaining(_runner))
-
-## PHYSICS_PUZZLE: the attempt count is the hero readout; medal by fewest attempts.
-func _show_puzzle(mode) -> void:
-	_time_label.text = "%d" % int(mode.puzzle_attempts())
-	_thresholds_label.text = "ATTEMPTS"
-	_set_medal(mode, str(mode.result_medal(_runner)))
-	_best_label.text = ""
-	_falls_label.text = "BALL -> GOAL"
-
-func _set_medal(mode, medal: String) -> void:
-	_medal_label.text = "—" if medal == "none" else medal.to_upper()
-	_medal_label.add_theme_color_override("font_color", mode.medal_color(medal))
 
 # ------------------------------------------------------------------ CENTER banner (frozen / pre-round)
 func show_center(text: String, color: Color, hold: float, sub := "") -> void:
@@ -186,7 +230,7 @@ func show_match_prompt(text: String) -> void:
 	_match_prompt.text = text
 	_match_prompt.visible = true
 
-# ------------------------------------------------------------------ TOP banner (transient — unused by TRIALS but part of the surface)
+# ------------------------------------------------------------------ TOP banner (transient — part of the surface)
 func show_top(text: String, color: Color, hold: float) -> void:
 	_top_label.text = text
 	_top_label.add_theme_color_override("font_color", color)
