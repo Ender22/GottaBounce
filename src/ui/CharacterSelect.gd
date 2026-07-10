@@ -37,9 +37,13 @@ const P1_COLOR := Color("#ff5fa8")
 @onready var _back: Button = $Header/BackBtn
 @onready var _ready_prompt: Label = $ReadyPrompt
 @onready var _p1flag: Control = $P1Flag
+@onready var _flair_stepper: Control = $Stage/FlairStepper
+@onready var _ko_chip: Label = $Stage/KOChip/ChipLabel
 
 var _cards: Array[Button] = []
 var _steppers: Array = []
+var _flair_vals: Array = []        # stepper vals: "" (NONE), unlocked ids, "__locked" tease sentinel
+var _pending_flair := ""           # consume-once celebration id (taken in _ready, fired in enter())
 var _trials := false      # TRIALS is solo (no bot/kills/lives strip; lock-in launches the run directly)
 var _gauntlet := false    # GAUNTLET is solo too (waves spawn dynamically; lock-in launches directly)
 var _sports := false      # SPORTS is a team preset (1v1: 1 human + 1 bot; single mode-owned arena)
@@ -89,6 +93,12 @@ func _ready() -> void:
 		for i in range(3, _cards.size()):
 			_cards[i].focus_neighbor_bottom = _cards[i].get_path_to(_steppers[0])
 		_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
+
+	# v11 FLAIR track (§5.4): stepper + KO-tally chip live on the STAGE, so they exist in ALL modes
+	# (the SettingsTray hides for Trials/Gauntlet/Sports; the stage never does). Consume the pending
+	# unlock NOW; enter() fires the one-shot celebration after the stagger (ArenaSelect pattern §5.5).
+	_setup_flair()
+	_pending_flair = Settings.take_pending_flair_unlock()
 
 	# P1 pick-cursor flag colour
 	var fsb := StyleBoxFlat.new()
@@ -165,7 +175,7 @@ func _apply_hero(i: int, animate: bool) -> void:
 	_current = i
 	var h: Dictionary = HEROES[i]
 	var col: Color = h["color"]
-	_name.text = str(h["name"])
+	_set_banner_name(str(h["name"]))
 	_blurb.text = str(h["blurb"])
 	_recolor_stage(col)
 	var tex: Texture2D = _tex(h["skin"])
@@ -356,6 +366,106 @@ func _enforce_counts(humans_changed: bool) -> void:
 	cfg.bot_count = clampi(cfg.bot_count, 0, 7)
 	if humans_changed:
 		_steppers[1].set_index(cfg.bot_count)   # BOTS stepper vals == index
+
+# ------------------------------------------------------------------ v11 flair (spec §5.4/§5.5)
+
+## Build the FLAIR stepper entries from the DERIVED unlocked set: NONE, every unlocked item by name,
+## plus ONE locked tease ("<NAME> — <N> MORE KOs", non-equippable). Also fills the KO-tally chip and
+## wires focus (Down from the grid's left column / Down from BACK; Right back into the grid).
+func _setup_flair() -> void:
+	var labels: Array = ["NONE"]
+	_flair_vals = [""]
+	for it in Settings.flair_items():
+		var fid := str((it as Dictionary).get("id", ""))
+		if Settings.is_flair_unlocked(fid):
+			labels.append(str((it as Dictionary).get("name", fid)))
+			_flair_vals.append(fid)
+	var nxt: Dictionary = Settings.next_locked_flair()
+	if not nxt.is_empty():
+		labels.append("%s — %d MORE KOs" % [str(nxt.get("name", "")), int(nxt.get("threshold", 0)) - Settings.total_kills])
+		_flair_vals.append("__locked")
+	var idx: int = maxi(0, _flair_vals.find(Settings.equipped_flair))
+	(_flair_stepper as Object).call("configure", "FLAIR", labels, _flair_vals, idx)
+	(_flair_stepper as Object).connect("changed", _on_flair)
+	register(_flair_stepper, 1.06)
+	# long item names: compact the value label so the stepper stays inside the stage column
+	var v := _flair_stepper.get_node_or_null("VBox/Row/Value")
+	if v is Label:
+		(v as Label).add_theme_font_size_override("font_size", 24)
+		(v as Label).custom_minimum_size = Vector2(330, 0)
+		(v as Label).clip_text = true
+	_refresh_ko_chip()
+	# focus wiring: the stage stepper hangs off BACK and the grid's left column
+	_flair_stepper.focus_neighbor_top = _flair_stepper.get_path_to(_back)
+	_back.focus_neighbor_bottom = _back.get_path_to(_flair_stepper)
+	if _cards.size() > 0:
+		_flair_stepper.focus_neighbor_right = _flair_stepper.get_path_to(_cards[0])
+		_cards[0].focus_neighbor_left = _cards[0].get_path_to(_flair_stepper)
+	if _cards.size() > 3:
+		_cards[3].focus_neighbor_left = _cards[3].get_path_to(_flair_stepper)
+
+func _on_flair(_i: int, v: Variant) -> void:
+	if str(v) == "__locked":
+		return   # tease entry is non-equippable — the previous equipped value stays (C9)
+	Settings.set_equipped_flair(str(v))
+	# live minimum preview (§5.4): TITLE items render on the name banner immediately
+	_set_banner_name(str(HEROES[_current]["name"]))
+
+## KO-tally chip (§5.4): "★ N KOs — NEXT FLAIR AT M", or the completed state past the ladder cap.
+func _refresh_ko_chip() -> void:
+	var nxt: Dictionary = Settings.next_locked_flair()
+	if nxt.is_empty():
+		_ko_chip.text = "%d KOs — ALL FLAIR EARNED" % Settings.total_kills
+	else:
+		_ko_chip.text = "%d KOs — NEXT FLAIR AT %d" % [Settings.total_kills, int(nxt.get("threshold", 0))]
+
+## Name banner text = hero name (+ " — <TITLE>" when a TITLE flair is equipped; smaller face so the
+## long suffix fits the banner). This is the slice's live-preview minimum bar (§5.4).
+func _set_banner_name(hero_name: String) -> void:
+	var fl: Dictionary = Settings.equipped_flair_item()
+	if str(fl.get("channel", "")) == "title":
+		var fp: Dictionary = fl.get("params", {})
+		_name.text = "%s — %s" % [hero_name, str(fp.get("suffix", ""))]
+		_name.add_theme_font_size_override("font_size", 40)
+	else:
+		_name.text = hero_name
+		_name.add_theme_font_size_override("font_size", 76)
+
+## One-shot flair-unlock celebration on entry (§5.5 — the exact ArenaSelect grammar): banner flash +
+## focus-snap/pop on the FLAIR stepper + the win-fanfare sting. The pending flag was consumed in
+## _ready (take_pending_flair_unlock), so re-entering is silent.
+func enter() -> void:
+	super.enter()
+	if _pending_flair != "":
+		_play_flair_celebration(_pending_flair)
+		_pending_flair = ""
+
+func _play_flair_celebration(fid: String) -> void:
+	var banner := get_node_or_null("UnlockBanner")
+	var display := str(Settings.flair_item(fid).get("name", fid)).to_upper()
+	# delay until the entry stagger has mostly landed, then celebrate
+	get_tree().create_timer(0.5).timeout.connect(func() -> void:
+		AudioManager.play_sfx("ui_click", {"pitch": 1.5, "pitch_var": 0.0, "volume_db": 0.0})
+		EventBus.match_won.emit(0)   # reuse the win fanfare sting (presentation only)
+		if banner is Label:
+			(banner as Label).text = "FLAIR UNLOCKED\n%s" % display
+			banner.visible = true
+			banner.modulate.a = 0.0
+			banner.pivot_offset = banner.size * 0.5
+			banner.scale = Vector2(0.7, 0.7)
+			var tb := banner.create_tween()
+			tb.set_parallel(true)
+			tb.tween_property(banner, "modulate:a", 1.0, 0.25)
+			tb.tween_property(banner, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tb.chain().tween_interval(1.4)
+			tb.chain().tween_property(banner, "modulate:a", 0.0, 0.4)
+			tb.chain().tween_callback(func() -> void: banner.visible = false)
+		if is_instance_valid(_flair_stepper):
+			_flair_stepper.grab_focus()
+			_flair_stepper.pivot_offset = _flair_stepper.size * 0.5
+			var tc := _flair_stepper.create_tween()
+			tc.tween_property(_flair_stepper, "scale", Vector2(1.14, 1.14), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tc.tween_property(_flair_stepper, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT))
 
 # ------------------------------------------------------------------ helpers
 func _tex(skin: Variant) -> Texture2D:

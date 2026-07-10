@@ -91,6 +91,8 @@ var stage_index := 0
 var round_index := 0             # alias of stage_index (QA/tools may read either)
 var round_clock := 0.0           # stat-only combat clock; gates NOTHING (no timer SD anymore)
 var scores: Array = []           # CUMULATIVE kills per player, never reset between stages
+var raw_kills: Array = []        # v11 §5.1(2): RAW credited kills per player this match — never decremented
+                                 # (self-falls adjust `scores` only). The cosmetic-ladder bank source.
 var lives_left: Array = []       # per-player remaining lives this stage (0 = eliminated)
 var level_index := -1            # index into LEVEL_POOL of the current stage's level
 var level_name := ""             # display name of the current stage's level (rotation QA readout)
@@ -216,10 +218,16 @@ func _spawn_player(i: int, desc: Dictionary) -> void:
 	# v2 feel deltas: resolve this slot's character profile BEFORE add_child so Player._ready() can
 	# size the collider from it. Unknown/"bouncer" -> Standard (all identity) = today's feel.
 	p.profile = CharacterProfiles.for_id(str(desc.get("character", "bouncer")))
+	# v11 cosmetic flair (§2.3): the equipped item rides the human P1 entity ONLY, and is suppressed
+	# whole-mode in SPORTS (team-read is sacred). Set before add_child so Player._ready can apply it.
+	# Pure presentation — Player re-parameterizes existing VFX channels, never physics/Tuning.
+	if i == 0 and bool(desc.get("human", false)) and _config != null and _config.mode_id != &"sports":
+		p.flair = Settings.equipped_flair_item()
 	add_child(p)
 	p.global_position = _spawn_at(i)
 	players.append(p)
 	scores.append(0)
+	raw_kills.append(0)
 	lives_left.append(lives_per_player)
 	var sd: int = int(desc.get("seed_damage", 0))
 	if sd > 0 and p.has_method("seed_damage"):
@@ -244,6 +252,7 @@ func _despawn_bots() -> void:
 				p.queue_free()
 			players.remove_at(i)
 			scores.remove_at(i)
+			raw_kills.remove_at(i)
 			lives_left.remove_at(i)
 			if i < _combat_active_t.size():
 				_combat_active_t.remove_at(i)
@@ -302,6 +311,8 @@ func _start_match() -> void:
 	state = "MATCH_START"
 	for i in range(scores.size()):
 		scores[i] = 0
+	for i in range(raw_kills.size()):
+		raw_kills[i] = 0   # v11: the raw bank tally is per-MATCH (a rematch starts a fresh tally)
 	stage_index = 0
 	round_index = 0
 	round_stats.clear()
@@ -739,6 +750,7 @@ func _enter_match_end(widx: int) -> void:
 	_prompt_shown = false
 	_record_progression(widx)   # v6 §4: unlock-progression trigger (BRAWL circuit matches only)
 	_record_sports_progression(widx)   # v8 §4.3: Sports court unlock trigger (SPORTS matches only)
+	_record_kill_bank()   # v11 §5.1: bank raw credited human KOs (ALL finished BRAWL matches)
 	# finalize any in-flight stage record so QA can read the winning stage
 	if not _cur_stats.is_empty():
 		_cur_stats["length_s"] = round_clock
@@ -766,11 +778,23 @@ func _record_progression(widx: int) -> void:
 	if _config.arena_mode != MatchConfig.ArenaMode.CIRCUIT or str(_config.circuit_id) == "":
 		return
 	# a HUMAN win = the winner slot is one of the humans-first slots (players[0..human_count-1])
+	# v11 §5.1(1): kill-banking moved OUT of here (see _record_kill_bank) — this records circuit
+	# mastery/pity only, exactly as before, so the CD progression guard is untouched.
 	var human_won: bool = widx >= 0 and widx < _config.human_count
-	var human_kills := 0
-	for i in range(mini(_config.human_count, scores.size())):
-		human_kills += int(scores[i])
-	Settings.record_match_result(str(_config.circuit_id), human_won, human_kills)
+	Settings.record_match_result(str(_config.circuit_id), human_won)
+
+## v11 §5.1 kill bank: at MATCH_END of EVERY finished BRAWL match (RANDOM / SINGLE / CIRCUIT alike),
+## bank the human slots' RAW credited-kill tallies into Settings.total_kills (the cosmetic-flair
+## currency). Raw tally, not `scores` — a self-fall can never erase a banked notch (§5.1(2)). No-op
+## for every non-BRAWL mode (Sports/Gauntlet/Trials never feed the ladder, §2.1); quit/abandoned
+## matches never reach MATCH_END so they bank nothing.
+func _record_kill_bank() -> void:
+	if _config == null or _config.mode_id != &"brawl":
+		return
+	var k := 0
+	for i in range(mini(_config.human_count, raw_kills.size())):
+		k += int(raw_kills[i])
+	Settings.record_brawl_kills(k)
 
 ## v8_sports_courts.md §4.3 unlock trigger: record a finished SPORTS match into Settings progression
 ## (bumps sports_matches; a HUMAN win bumps sports_wins -> the chaos-finale gate). No-op for every

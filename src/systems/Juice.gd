@@ -203,10 +203,15 @@ func _on_killed(victim, _cause, _attacker) -> void:
 	_rumble(1.0, 0.9, 0.18)
 	_hitstop(1.0)
 	if victim != null and is_instance_valid(victim):
-		_death_burst(victim.global_position)
+		# v11 KO-POP flair: your own death burst in your equipped palette (P1-only; {} = stock)
+		var fl: Dictionary = {}
+		if victim.has_method("flair_ko_pop"):
+			fl = victim.flair_ko_pop()
+		_death_burst(victim.global_position, fl)
 
-## Smash-Bros-style blast at the spot a fighter died.
-func _death_burst(pos: Vector2) -> void:
+## Smash-Bros-style blast at the spot a fighter died. `flair` (v11 §3) may swap the spark PALETTE
+## (gradient stops + optional hue spread) — count/velocity/gravity/ring stay stock (cosmetic-only).
+func _death_burst(pos: Vector2, flair: Dictionary = {}) -> void:
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
@@ -233,6 +238,18 @@ func _death_burst(pos: Vector2) -> void:
 	grad.set_color(0, Color(1.0, 1.0, 0.7, 1.0))
 	grad.add_point(0.4, Color(1.0, 0.6, 0.15, 1.0))
 	grad.set_color(1, Color(1.0, 0.3, 0.1, 0.0))
+	# v11 flair palette override (gradient stops + hue spread are the ONLY deltas)
+	var fparams: Dictionary = flair.get("params", {}) if not flair.is_empty() else {}
+	var fstops: Array = fparams.get("stops", [])
+	if fstops.size() >= 3:
+		grad = Gradient.new()
+		grad.set_color(0, _flair_stop(fstops[0]))
+		grad.set_color(1, _flair_stop(fstops[2]))
+		grad.add_point(0.4, _flair_stop(fstops[1]))
+		var hv := absf(float(fparams.get("hue_variation", 0.0)))
+		if hv > 0.0:
+			p.hue_variation_min = -hv
+			p.hue_variation_max = hv
 	p.color_ramp = grad
 	var m := CanvasItemMaterial.new()
 	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
@@ -256,6 +273,13 @@ func _death_burst(pos: Vector2) -> void:
 	# clean up the particles after they finish
 	var t := scene.get_tree().create_timer(1.2)
 	t.timeout.connect(p.queue_free)
+
+## Parse a flair.json RGBA stop ([r,g,b,a]) into a Color; malformed -> white (never crash on data).
+func _flair_stop(v: Variant) -> Color:
+	var arr: Array = v if v is Array else []
+	if arr.size() < 4:
+		return Color.WHITE
+	return Color(float(arr[0]), float(arr[1]), float(arr[2]), float(arr[3]))
 
 func _shake(amt: float) -> void:
 	# v0: SaveSystem/settings not ported yet — shake always on.

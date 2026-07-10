@@ -143,6 +143,13 @@ var _fire_grad_cyan: Gradient          # Unlimited Boost: cyan afterburner (spec
 var _fire_cyan_now := false            # transition latch (lifetime writes restart the emitter)
 var _streak: Line2D                # §2: knockback jetstream ribbon (top_level, world-space points)
 var _streak_pts := PackedVector2Array()
+# v11 cosmetic flair (v11_cosmetic_unlock_track.md §2.3): the equipped catalog entry for THIS entity
+# ({} = stock). Set by the runner BEFORE add_child, for the human P1 only and never in SPORTS. Pure
+# presentation — re-parameterizes existing VFX channels; reads/writes no physics or Tuning value.
+var flair: Dictionary = {}
+var _fire_grad_flair: Gradient = null   # neutral-state exhaust flair ramp (null = stock orange)
+var _flair_rainbow := false             # streak marquee: hue-cycle the gradient COLORS only
+var _flair_cycle_hz := 0.9
 var _charge_glow: Sprite2D         # §3: super-charge gather halo (additive; null if GLOW_TEX absent)
 var _arrow: Polygon2D
 var _charge_ring: Line2D
@@ -284,6 +291,58 @@ func _ready() -> void:
 	hcs.shape = hc
 	_hit_area.add_child(hcs)
 	add_child(_hit_area)
+
+	_apply_flair()   # v11: parameter-cosmetics on the VFX built above (no-op when flair == {})
+
+## v11 cosmetic flair (§2.3 contract): STREAK keeps its exact width curve, alpha stops (0.0 tail /
+## 0.95 mid / 1.0 head) and trigger conditions — gradient COLORS are the only delta. FLAME builds an
+## alternate neutral-state ramp only (the super-charge fuse tint and Unlimited-Boost cyan keep absolute
+## precedence in _update_visual). "kopop" is consumed by Juice via flair_ko_pop(); "title" renders only
+## on the CharacterSelect banner. Zero gameplay delta by construction.
+func _apply_flair() -> void:
+	if flair.is_empty():
+		return
+	var params: Dictionary = flair.get("params", {})
+	match str(flair.get("channel", "")):
+		"streak":
+			if bool(params.get("rainbow", false)):
+				_flair_rainbow = true
+				_flair_cycle_hz = float(params.get("cycle_hz", 0.9))
+			elif _streak != null:
+				var g := Gradient.new()
+				g.set_color(0, _flair_col3(params.get("tail", []), 0.0))
+				g.set_color(1, _flair_col3(params.get("head", []), 1.0))
+				g.add_point(0.55, _flair_col3(params.get("mid", []), 0.95))
+				_streak.gradient = g
+		"flame":
+			var stops: Array = params.get("stops", [])
+			if stops.size() >= 3:
+				_fire_grad_flair = Gradient.new()
+				_fire_grad_flair.set_color(0, _flair_col4(stops[0]))
+				_fire_grad_flair.set_color(1, _flair_col4(stops[2]))
+				_fire_grad_flair.add_point(0.35, _flair_col4(stops[1]))
+		_:
+			pass
+
+## The exhaust ramp for the NEUTRAL state (no charge fuse, no Unlimited Boost): flair or stock.
+func _neutral_fire_grad() -> Gradient:
+	return _fire_grad_flair if _fire_grad_flair != null else _fire_grad_normal
+
+## KO-burst palette hook for Juice (v11): this entity's kopop flair entry, or {} for the stock blast.
+func flair_ko_pop() -> Dictionary:
+	return flair if str(flair.get("channel", "")) == "kopop" else {}
+
+func _flair_col3(rgb: Variant, a: float) -> Color:
+	var arr: Array = rgb if rgb is Array else []
+	if arr.size() < 3:
+		return Color(1.0, 1.0, 1.0, a)
+	return Color(float(arr[0]), float(arr[1]), float(arr[2]), a)
+
+func _flair_col4(v: Variant) -> Color:
+	var arr: Array = v if v is Array else []
+	if arr.size() < 4:
+		return Color.WHITE
+	return Color(float(arr[0]), float(arr[1]), float(arr[2]), float(arr[3]))
 
 func _apply_idle_sprite() -> void:
 	_sprite.texture = _idle_tex
@@ -1201,6 +1260,12 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_fire.initial_velocity_max = 340.0 * rev
 			_fire.scale = Vector2(rev, rev)
 			_fire.modulate = Color(1.0, 0.95, 0.35).lerp(Color(1.0, 0.32, 0.12), fuse)
+			# v11 telegraph precedence (§2.3): while charging, the fuse tint reads over the STOCK ramp
+			# (cyan if Unlimited Boost) — cosmetic flame flair never colors the charge telegraph.
+			# Change-guarded write: with no flair equipped the ramp is already stock -> zero delta.
+			var aim_ramp: Gradient = _fire_grad_cyan if fuel_locked else _fire_grad_normal
+			if _fire.color_ramp != aim_ramp:
+				_fire.color_ramp = aim_ramp
 			_smoke.scale = Vector2(1.0 + fuse, 1.0 + fuse)
 			if _charge_glow:
 				# grows + brightens + pulses faster as fire nears (§3-P2 the imminent-blast beat)
@@ -1223,8 +1288,13 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			# setting CPUParticles2D.lifetime restarts emission, so a per-frame write kills the flame.
 			if fuel_locked != _fire_cyan_now:
 				_fire_cyan_now = fuel_locked
-				_fire.color_ramp = _fire_grad_cyan if fuel_locked else _fire_grad_normal
 				_fire.lifetime = 0.55 if fuel_locked else 0.34
+			# v11 §2.3: cosmetic flame flair applies ONLY here, in the neutral state — the Unlimited
+			# Boost cyan telegraph keeps absolute precedence. Change-guarded (ramp writes are cheap but
+			# pointless per-frame); with no flair this reproduces the old cyan/normal swap exactly.
+			var want_ramp: Gradient = _fire_grad_cyan if fuel_locked else _neutral_fire_grad()
+			if _fire.color_ramp != want_ramp:
+				_fire.color_ramp = want_ramp
 			if fuel_locked:
 				boost_amt *= 2.0
 			# §1 magnitude read: the flame's length/size scales with the live THRUST FRACTION toward
@@ -1294,6 +1364,15 @@ func _update_streak() -> void:
 			while _streak_pts.size() > STREAK_MAX_POINTS:
 				_streak_pts.remove_at(0)
 		var frac: float = clampf(speed / Tuning.max_speed, 0.0, 1.0)
+		# v11 RAINBOW JETSTREAM (§3 marquee): hue-cycle the gradient COLORS only — same points/alphas/
+		# width/trigger as stock. Luminance floor (§2.3): sat 0.6 / value 1.0 at every stop, so the
+		# launch telegraph stays hot-bright at the ribbon head.
+		if _flair_rainbow and _streak.gradient != null and _streak.gradient.get_point_count() >= 3:
+			var g := _streak.gradient
+			var h := _anim_t * _flair_cycle_hz
+			g.set_color(0, Color(Color.from_hsv(fmod(h + 0.30, 1.0), 0.6, 1.0), 0.0))
+			g.set_color(1, Color(Color.from_hsv(fmod(h + 0.15, 1.0), 0.6, 1.0), 0.95))
+			g.set_color(2, Color(Color.from_hsv(fmod(h, 1.0), 0.6, 1.0), 1.0))
 		_streak.points = _streak_pts
 		_streak.width = lerpf(10.0, 48.0, frac)
 		_streak.modulate.a = 1.0

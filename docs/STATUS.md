@@ -154,6 +154,15 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   0 fast pan reversals; clustered zoom cap exact. **AWAITING OWNER EYES — do not call this fixed until he says so.**
   Knobs if he wants adjustment: Tuning.cam_bounds_pad (200), Tuning.cam_close_fraction (0.75), CAM_MARGIN.
 
+- **v11 COSMETIC UNLOCK TRACK (Horn Notches) — BUILT + committed 2026-07-10** (`docs/specs/v11_cosmetic_unlock_track.md`).
+  10-tier credited-KO flair ladder (10→1000), all parameter cosmetics (jetstream/flame/KO-pop/title), zero new art.
+  FIXED the total_kills defect (only circuit matches banked; self-falls erased kills → now raw credited kills bank
+  from every finished Brawl match via PartyMatch.raw_kills). FLAIR stepper + KO chip on CharacterSelect; consume-once
+  celebration; sanitized save fields; Sports suppression + telegraph precedence guards. QA C1-C9/C11-C15 verified
+  (evidence tools/out/v11_*.png). OPEN: C10 zero-gameplay-delta needs a seeded-identity QA harness (by construction
+  only visual channels are touched; Tuning byte-identical); ui-ux spot-grade (title font shrink at 40px, flair
+  stepper 24px density); art-gated appendix (crown/palettes) unbuilt.
+
 ## NEXT-UP BACKLOG (autonomous-safe; fresh-session ready)
 - CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);
   Gauntlet solo lives was a non-issue (already 4 via CharacterSelect — CD saw a dev-launch default).

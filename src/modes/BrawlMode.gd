@@ -182,6 +182,10 @@ func on_kill(runner, killer_idx: int, victim_idx: int, _cause) -> void:
 	if killer_idx >= 0 and killer_idx != victim_idx:
 		runner.scores[killer_idx] = int(runner.scores[killer_idx]) + 1
 		runner._stage_deltas[killer_idx] = int(runner._stage_deltas[killer_idx]) + 1
+		# v11 §5.1(2): RAW credited-kill tally for the cosmetic-flair bank. Incremented exactly where
+		# credit fires, NEVER decremented — the suicide branch below adjusts score only.
+		if killer_idx < runner.raw_kills.size():
+			runner.raw_kills[killer_idx] = int(runner.raw_kills[killer_idx]) + 1
 	elif int(runner.scores[victim_idx]) > 0:   # suicide: -1 to your own total, floored at 0
 		runner.scores[victim_idx] = int(runner.scores[victim_idx]) - 1
 		runner._stage_deltas[victim_idx] = int(runner._stage_deltas[victim_idx]) - 1

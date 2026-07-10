@@ -36,6 +36,13 @@ const UNLOCK_PITY_MATCHES := 3
 const SPORTS_COURTS_PATH := "res://levels/sports_courts.json"
 var _sports_court_rules: Dictionary = {}   # cached court_id -> unlock rule string
 
+# --- v11 COSMETIC FLAIR (v11_cosmetic_unlock_track.md) --- One cumulative-KO ladder of pure-cosmetic
+# items (levels/flair.json — DATA, tune there). Currency = total_kills, fed RAW CREDITED Brawl KOs at
+# MATCH_END (PartyMatch._record_kill_bank -> record_brawl_kills; §5.1 corrections). The unlocked set
+# is DERIVED (threshold <= total_kills), never stored. One device-wide equip slot for human P1.
+const FLAIR_PATH := "res://levels/flair.json"
+var _flair_cache: Array = []               # cached ordered item dicts from flair.json
+
 var master: float = 1.0
 var music: float = 1.0
 var sfx: float = 1.0
@@ -49,6 +56,8 @@ var sports_matches: int = 0     # Sports matches finished (any result) — "spor
 var sports_wins: int = 0        # Sports matches WON by a human — "sports_wins:N" unlock gate
 var circuits_cleared: PackedStringArray = PackedStringArray()   # ids of circuits WON (mastery set)
 var pending_unlock: String = ""                                 # one id to celebrate next ArenaSelect (consume-once)
+var equipped_flair: String = ""                                 # v11: equipped flair item id ("" = stock look)
+var pending_flair_unlock: String = ""                           # v11: one id to celebrate next CharacterSelect (consume-once)
 var _circuit_plays: Dictionary = {}                             # circuit_id -> matches played on it (pity path)
 var _circuit_order: Array = []                                  # cached unlock chain from circuits.json
 
@@ -130,7 +139,10 @@ func _load() -> void:
 	circuits_cleared = _split_csv(str(cfg.get_value("progression", "circuits_cleared", "")))
 	_circuit_plays = _parse_plays(str(cfg.get_value("progression", "circuit_plays", "")))
 	pending_unlock = str(cfg.get_value("progression", "pending_unlock", ""))
+	equipped_flair = str(cfg.get_value("progression", "equipped_flair", ""))
+	pending_flair_unlock = str(cfg.get_value("progression", "pending_flair_unlock", ""))
 	_sanitize_progression()
+	_sanitize_flair()
 
 ## Self-heal a corrupt/partial save so the cleared set is always a CONSISTENT PREFIX of the order chain
 ## (CD 2026-07-06 #3). A circuit can only legitimately be "cleared" if it was UNLOCKABLE when won: its
@@ -160,6 +172,26 @@ func _sanitize_progression() -> void:
 		circuits_cleared = clean
 		_save()
 
+## v11 §5.3 flair self-heal (same discipline as _sanitize_progression; NEVER touches circuit fields):
+## total_kills coerced >= 0; equipped_flair / pending_flair_unlock must each be a KNOWN id in flair.json
+## whose threshold is already met, else reset to "" — log a warning + rewrite the save once.
+func _sanitize_flair() -> void:
+	var changed := false
+	if total_kills < 0:
+		push_warning("Settings: sanitized negative total_kills %d -> 0" % total_kills)
+		total_kills = 0
+		changed = true
+	if equipped_flair != "" and not is_flair_unlocked(equipped_flair):
+		push_warning("Settings: sanitized invalid equipped_flair '%s' -> ''" % equipped_flair)
+		equipped_flair = ""
+		changed = true
+	if pending_flair_unlock != "" and not is_flair_unlocked(pending_flair_unlock):
+		push_warning("Settings: sanitized invalid pending_flair_unlock '%s' -> ''" % pending_flair_unlock)
+		pending_flair_unlock = ""
+		changed = true
+	if changed:
+		_save()
+
 func _save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("audio", "master", master)
@@ -174,6 +206,8 @@ func _save() -> void:
 	cfg.set_value("progression", "circuits_cleared", ",".join(circuits_cleared))
 	cfg.set_value("progression", "circuit_plays", _plays_to_str())
 	cfg.set_value("progression", "pending_unlock", pending_unlock)
+	cfg.set_value("progression", "equipped_flair", equipped_flair)
+	cfg.set_value("progression", "pending_flair_unlock", pending_flair_unlock)
 	cfg.save(PATH)
 
 # ------------------------------------------------------------------- progression API (v6 §4)
@@ -181,10 +215,11 @@ func _save() -> void:
 ## Record a finished CIRCUIT match (call at MATCH_END, BRAWL circuit matches only -- v6 §4.2).
 ## Bumps counters + per-circuit play count; a WIN adds the circuit to the mastery set. If the result
 ## newly unlocks a circuit, sets `pending_unlock` (the one-shot ArenaSelect celebration). Write-through.
-func record_match_result(circuit_id: String, won: bool, kills_this_match: int) -> void:
+## v11 §5.1(1): kill-banking is SPLIT out of this — total_kills is fed by record_brawl_kills for EVERY
+## finished Brawl match (RANDOM/SINGLE/CIRCUIT); this keeps only the circuit mastery/pity recording.
+func record_match_result(circuit_id: String, won: bool) -> void:
 	var before := _unlocked_set()
 	matches_played += 1
-	total_kills += maxi(0, kills_this_match)
 	if circuit_id != "":
 		_circuit_plays[circuit_id] = int(_circuit_plays.get(circuit_id, 0)) + 1
 	if won:
@@ -242,6 +277,86 @@ func pity_matches_remaining(circuit_id: String) -> int:
 	if pred == "":
 		return 0
 	return maxi(0, UNLOCK_PITY_MATCHES - int(_circuit_plays.get(pred, 0)))
+
+# ------------------------------------------------------------------- v11 FLAIR progression
+
+## Bank RAW CREDITED Brawl KOs at MATCH_END (v11 §2.1/§5.1(2)). `k` = the sum of the runner's raw
+## per-human-slot credited-kill tallies (self-falls never decrement it). If banking crosses >= 1
+## threshold, pending_flair_unlock is set to the HIGHEST newly-crossed item (celebration fires once,
+## §2.4). Write-through. Only PartyMatch._record_kill_bank (finished BRAWL matches) calls this.
+func record_brawl_kills(k: int) -> void:
+	if k <= 0:
+		return
+	var before := total_kills
+	total_kills += k
+	var best_id := ""
+	var best_thr := -1
+	for it in flair_items():
+		var thr := int((it as Dictionary).get("threshold", 0))
+		if thr > before and thr <= total_kills and thr > best_thr:
+			best_thr = thr
+			best_id = str((it as Dictionary).get("id", ""))
+	if best_id != "":
+		pending_flair_unlock = best_id
+	_save()
+
+## Cached ordered item list from flair.json (each entry {id, name, channel, threshold, params}).
+func flair_items() -> Array:
+	if not _flair_cache.is_empty():
+		return _flair_cache
+	if FileAccess.file_exists(FLAIR_PATH):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(FLAIR_PATH))
+		if typeof(parsed) == TYPE_DICTIONARY:
+			var items: Variant = (parsed as Dictionary).get("items", [])
+			if typeof(items) == TYPE_ARRAY:
+				for it in (items as Array):
+					if typeof(it) == TYPE_DICTIONARY and str((it as Dictionary).get("id", "")) != "":
+						_flair_cache.append(it as Dictionary)
+	return _flair_cache
+
+## The catalog entry for `id`, or {} if unknown.
+func flair_item(id: String) -> Dictionary:
+	for it in flair_items():
+		if str((it as Dictionary).get("id", "")) == id:
+			return it as Dictionary
+	return {}
+
+## Unlocked = DERIVED, never stored (v11 §2.1): known id AND threshold <= total_kills.
+func is_flair_unlocked(id: String) -> bool:
+	var it := flair_item(id)
+	return not it.is_empty() and total_kills >= int(it.get("threshold", 0))
+
+## The equipped item's full catalog entry, or {} (none equipped / no longer valid). The runner hands
+## this to the human P1 Player at spawn (never in SPORTS — v11 §2.3).
+func equipped_flair_item() -> Dictionary:
+	if equipped_flair == "" or not is_flair_unlocked(equipped_flair):
+		return {}
+	return flair_item(equipped_flair)
+
+## The next item still locked (lowest threshold > total_kills), or {} when the ladder is complete.
+func next_locked_flair() -> Dictionary:
+	var best: Dictionary = {}
+	for it in flair_items():
+		var thr := int((it as Dictionary).get("threshold", 0))
+		if thr > total_kills and (best.is_empty() or thr < int(best.get("threshold", 0))):
+			best = it as Dictionary
+	return best
+
+## Equip a flair item ("" = NONE / stock). Locked or unknown ids are refused (C9). Write-through.
+func set_equipped_flair(id: String) -> void:
+	if id != "" and not is_flair_unlocked(id):
+		return
+	equipped_flair = id
+	_save()
+
+## Return + clear the one-shot pending flair unlock (drives the CharacterSelect celebration —
+## twin of take_pending_unlock). Empty if none.
+func take_pending_flair_unlock() -> String:
+	var p := pending_flair_unlock
+	if p != "":
+		pending_flair_unlock = ""
+		_save()
+	return p
 
 # ------------------------------------------------------------------- SPORTS progression (v8 §4.3)
 

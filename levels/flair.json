@@ -1,0 +1,25 @@
+{
+  "comment": "v11 cosmetic unlock track (docs/specs/v11_cosmetic_unlock_track.md §3/§5.2). Ordered ladder of parameter-cosmetics on existing VFX/text channels. Thresholds + looks tune HERE, never in code. Channels: streak (jetstream Line2D gradient colors; alphas/width/trigger fixed in code), flame (neutral-state exhaust ramp: 3 RGBA stops at offsets 0/0.35/1), kopop (own-death burst: 3 RGBA stops + optional hue_variation), title (CharacterSelect name-banner suffix). Streak head colors must keep value >= 0.8 and saturation <= 0.9 (launch-telegraph luminance floor, §2.3).",
+  "items": [
+    {"id": "streak_gold", "name": "GOLDEN JETSTREAM", "channel": "streak", "threshold": 10,
+      "params": {"tail": [1.0, 1.0, 1.0], "mid": [1.0, 0.88, 0.35], "head": [1.0, 0.82, 0.25]}},
+    {"id": "flame_blue", "name": "BLUE-HOT BURNERS", "channel": "flame", "threshold": 25,
+      "params": {"stops": [[0.8, 1.0, 1.0, 1.0], [0.15, 0.6, 1.0, 1.0], [0.02, 0.15, 0.9, 0.0]]}},
+    {"id": "kopop_confetti", "name": "PARTY-POPPER KO", "channel": "kopop", "threshold": 50,
+      "params": {"stops": [[1.0, 0.5, 0.75, 1.0], [0.35, 0.8, 1.0, 1.0], [1.0, 0.9, 0.3, 0.0]], "hue_variation": 0.5}},
+    {"id": "title_menace", "name": "TITLE: PEAK MENACE", "channel": "title", "threshold": 100,
+      "params": {"suffix": "PEAK MENACE"}},
+    {"id": "streak_candy", "name": "BUBBLEGUM JETSTREAM", "channel": "streak", "threshold": 175,
+      "params": {"tail": [1.0, 1.0, 1.0], "mid": [1.0, 0.72, 0.9], "head": [1.0, 0.55, 0.8]}},
+    {"id": "flame_ember", "name": "EMBER BURNERS", "channel": "flame", "threshold": 275,
+      "params": {"stops": [[1.0, 1.0, 1.0, 1.0], [1.0, 0.45, 0.05, 1.0], [0.75, 0.1, 0.02, 0.0]]}},
+    {"id": "kopop_starburst", "name": "STARBURST KO", "channel": "kopop", "threshold": 400,
+      "params": {"stops": [[1.0, 1.0, 1.0, 1.0], [1.0, 0.9, 0.45, 1.0], [1.0, 0.75, 0.2, 0.0]], "hue_variation": 0.0}},
+    {"id": "title_king", "name": "TITLE: KING OF THE MOUNTAIN", "channel": "title", "threshold": 550,
+      "params": {"suffix": "KING OF THE MOUNTAIN"}},
+    {"id": "streak_rainbow", "name": "RAINBOW JETSTREAM", "channel": "streak", "threshold": 750,
+      "params": {"rainbow": true, "cycle_hz": 0.9}},
+    {"id": "flame_midnight", "name": "MIDNIGHT BURNERS", "channel": "flame", "threshold": 1000,
+      "params": {"stops": [[1.0, 1.0, 1.0, 1.0], [0.72, 0.35, 1.0, 1.0], [0.3, 0.06, 0.6, 0.0]]}}
+  ]
+}
