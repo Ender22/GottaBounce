@@ -12,6 +12,7 @@ extends MenuScreen
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
 const CIRCUITS_PATH := "res://levels/circuits.json"
+const COURTS_PATH := "res://levels/sports_courts.json"
 # Baked wide arena thumbnails (frontend_visual_polish.md §3b), produced offline by
 # tools/ThumbBaker.tscn. Loaded (not preloaded) + existence-guarded so a missing bake just falls
 # back to the themed gradient tile. "_random" is the RANDOM card's shuffle collage.
@@ -34,9 +35,20 @@ const CIRCUIT_COLORS := {
 	"the_foundry": Color("#ff8a2a"),   # molten orange (foundry gimmick circuit)
 	"mayhem_mile": Color("#ff5a4a"),   # danger red (wild gimmick circuit)
 }
+# SPORTS court select (frontend_ui_audit §3.8): same scene, ONE shelf. Tier badge accents,
+# calm (1) -> chaos (5); a new tier just needs an entry here (else falls back to the RANDOM pink).
+const TIER_COLORS := {
+	1: Color("#54c94a"),   # calm green
+	2: Color("#4ad0a8"),   # teal
+	3: Color("#ff8a2a"),   # hazard orange
+	4: Color("#a15fff"),   # violet
+	5: Color("#ff5a4a"),   # chaos red
+}
+
 # circuit id -> display name, filled while loading cards (used to phrase locked-card unlock hints).
 var _circuit_display: Dictionary = {}
 var _pending_celebrate := ""
+var _sports := false   # SPORTS flow: one COURTS shelf instead of circuits/arenas (§3.8)
 
 const RANDOM := {"path": "", "name": "RANDOM ROTATION", "tag": "A new peak every round.",
 	"color": Color("#ff5fa8"), "glyph": "?", "random": true}
@@ -118,7 +130,13 @@ func _lock_hint(cid: String) -> String:
 ## collage; an arena gets its bake; a circuit gets its crest emblem (when the asset lands).
 func _thumb_for(a: Dictionary) -> Texture2D:
 	var path := ""
-	if bool(a.get("circuit", false)):
+	if bool(a.get("court", false)):
+		# court: try the court id, then the level basename (existence-guarded; missing -> gradient plate)
+		var cid_path := "%s/%s.png" % [THUMB_DIR, str(a.get("court_id", ""))]
+		if ResourceLoader.exists(cid_path):
+			return load(cid_path) as Texture2D
+		path = "%s/%s.png" % [THUMB_DIR, str(a.get("path", "")).get_file().get_basename()]
+	elif bool(a.get("circuit", false)):
 		path = "%s/crest_%s.png" % [CREST_DIR, str(a.get("circuit_id", ""))]
 	else:
 		var id := "_random" if bool(a.get("random", false)) else str(a.get("path", "")).get_file().get_basename()
@@ -131,6 +149,19 @@ func _thumb_for(a: Dictionary) -> Texture2D:
 
 # ------------------------------------------------------------------ build
 func _ready() -> void:
+	_sports = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"sports"
+	if _sports:
+		_build_sports()
+	else:
+		_build_brawl()
+	register(_back, 1.05)
+	_rewire_cross()
+	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger).
+	# BRAWL only: the celebration is a circuit moment and consuming the flag here would eat it.
+	if not _sports:
+		_pending_celebrate = Settings.take_pending_unlock()
+
+func _build_brawl() -> void:
 	# SHELF A — ways to play: RANDOM ROTATION first (default focus, the fun default), then the
 	# circuits in circuits.json order (§3.3).
 	var shelf_a_data: Array = [RANDOM]
@@ -153,11 +184,101 @@ func _ready() -> void:
 	# auto-picks a spatial neighbour; the edge press becomes a rail nudge, see _on_card_gui).
 	_wire_rail(_a_cards)
 	_wire_rail(_b_cards)
-	register(_back, 1.05)
-	_rewire_cross()
 
-	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger)
-	_pending_celebrate = Settings.take_pending_unlock()
+## SPORTS court select (§3.8): the SAME scene, retitled "PICK YOUR COURT", with ONE shelf
+## ("COURTS", Shelf-A-size cards, centered vertically in the content band). Everything comes
+## from levels/sports_courts.json — a 9th court appears with zero code change.
+func _build_sports() -> void:
+	var title := get_node_or_null("Header/Title")
+	if title is Label:
+		(title as Label).text = "PICK YOUR COURT"
+	_shelf_b.visible = false
+	# center the lone shelf in the content band (150..938, shelf band is 435 tall — §3.8)
+	_shelf_a.offset_top = 326.0
+	_shelf_a.offset_bottom = 761.0
+	var courts := _load_court_cards()
+	(_shelf_a as Object).call("set_label", "COURTS  %d" % courts.size())
+	(_shelf_a as Object).call("set_separation", 36)
+	for a in courts:
+		_a_cards.append(_make_card(a, _shelf_a, 0))
+	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
+	_shelf_a.connect("wheel_moved", _on_wheel.bind(0))
+	_wire_rail(_a_cards)
+
+## Load levels/sports_courts.json into an ordered Array of card-data dicts (marked "court": true),
+## tier order calm->chaos (stable within a tier). Returns [] on any failure (screen shows BACK only,
+## never crashes; SportsMode's own default_court guard still protects the launch path).
+func _load_court_cards() -> Array:
+	var out: Array = []
+	if not FileAccess.file_exists(COURTS_PATH):
+		return out
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(COURTS_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return out
+	var courts: Variant = (parsed as Dictionary).get("courts", [])
+	if typeof(courts) != TYPE_ARRAY:
+		return out
+	for c in (courts as Array):
+		if typeof(c) != TYPE_DICTIONARY:
+			continue
+		var cd: Dictionary = c as Dictionary
+		var cid := str(cd.get("id", ""))
+		if cid == "":
+			continue
+		var tier: int = int(cd.get("tier", 1))
+		var unlocked: bool = Settings.is_court_unlocked(cid)
+		out.append({
+			"court_id": cid,
+			"path": str(cd.get("path", "")),
+			"name": str(cd.get("display_name", cid)),
+			"tag": "" if unlocked else _court_lock_hint(str(cd.get("unlock", "always"))),
+			"tier": tier,
+			"color": TIER_COLORS.get(tier, MenuFX.ACCENT_PINK),
+			"court": true,
+			"locked": not unlocked,
+		})
+	# tier order (JSON is authored calm->chaos already; sort keeps a future out-of-order entry honest)
+	var indexed: Array = []
+	for i in range(out.size()):
+		indexed.append([int((out[i] as Dictionary)["tier"]), i, out[i]])
+	indexed.sort_custom(func(a: Array, b: Array) -> bool:
+		return a[0] < b[0] if a[0] != b[0] else a[1] < b[1])
+	var sorted_out: Array = []
+	for e in indexed:
+		sorted_out.append(e[2])
+	return sorted_out
+
+## Phrase a court's unlock rule for the locked-card hint band (v8 §4.3 gates, human words):
+## "circuit:<id>" -> WIN <NAME> CIRCUIT · "sports_matches:N" -> PLAY N SPORTS MATCHES ·
+## "sports_wins:N" -> WIN N SPORTS MATCHES. Unknown rule -> generic (Settings treats it as open anyway).
+func _court_lock_hint(rule: String) -> String:
+	var kind := rule.get_slice(":", 0)
+	var arg := rule.get_slice(":", 1) if rule.contains(":") else ""
+	match kind:
+		"circuit":
+			return "WIN %s CIRCUIT" % _circuit_name(arg).to_upper()
+		"sports_matches":
+			var n := maxi(1, int(arg))
+			return "PLAY %d SPORTS MATCH%s" % [n, "" if n == 1 else "ES"]
+		"sports_wins":
+			var nw := maxi(1, int(arg))
+			return "WIN %d SPORTS MATCH%s" % [nw, "" if nw == 1 else "ES"]
+		_:
+			return "LOCKED"
+
+## Circuit display name for hint phrasing (lazy-loads circuits.json once; sports flow never runs
+## _load_circuit_cards which normally fills _circuit_display).
+func _circuit_name(cid: String) -> String:
+	if _circuit_display.is_empty() and FileAccess.file_exists(CIRCUITS_PATH):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(CIRCUITS_PATH))
+		if typeof(parsed) == TYPE_DICTIONARY:
+			var circuits: Variant = (parsed as Dictionary).get("circuits", {})
+			if typeof(circuits) == TYPE_DICTIONARY:
+				for k in (circuits as Dictionary).keys():
+					var e: Variant = (circuits as Dictionary)[k]
+					if typeof(e) == TYPE_DICTIONARY:
+						_circuit_display[str(k)] = str((e as Dictionary).get("display_name", k))
+	return str(_circuit_display.get(cid, cid))
 
 ## Instance + dress one MenuCard for a shelf (sizes per §3.3; internals of MenuCard unchanged).
 func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
@@ -191,6 +312,10 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 	if bool(a.get("circuit", false)) and not bool(a.get("locked", false)):
 		(card as Object).call("set_star_row", int(a.get("difficulty", 1)), 3,
 			"%d ARENAS" % int(a.get("arena_count", 0)))
+	# SPORTS court: tier badge chip, top-left of the art plate (§3.8; hidden slot on non-court cards)
+	if bool(a.get("court", false)) and card.has_method("set_badge"):
+		card.set_badge("TIER %d" % int(a.get("tier", 1)),
+			TIER_COLORS.get(int(a.get("tier", 1)), MenuFX.ACCENT_PINK))
 	card.set_meta("arena", a)
 	card.set_meta("shelf", shelf_id)
 	card.set_meta("idx", _a_cards.size() if shelf_id == 0 else _b_cards.size())
@@ -222,6 +347,17 @@ func _wire_rail(cards: Array[Button]) -> void:
 ## Up/down across shelves lands on each shelf's REMEMBERED card; Back is reachable above Shelf A
 ## and below Shelf B. Re-run whenever a remembered index changes (cheap, <20 cards).
 func _rewire_cross() -> void:
+	if _a_cards.is_empty():
+		return   # data failed to load; BACK is the only focusable (never crash)
+	if _b_cards.is_empty():
+		# single-shelf (SPORTS §3.8): up AND down from the shelf reach BACK
+		var mem: Control = _a_cards[_a_idx]
+		for c in _a_cards:
+			c.focus_neighbor_top = c.get_path_to(_back)
+			c.focus_neighbor_bottom = c.get_path_to(_back)
+		_back.focus_neighbor_bottom = _back.get_path_to(mem)
+		_back.focus_neighbor_top = _back.get_path_to(mem)
+		return
 	var a_mem: Control = _a_cards[_a_idx]
 	var b_mem: Control = _b_cards[_b_idx]
 	for c in _a_cards:
@@ -306,7 +442,9 @@ func _page_jump(delta: int) -> void:
 
 # ------------------------------------------------------------------ MenuScreen hooks
 func first_focus() -> Control:
-	return _a_cards[0]   # RANDOM ROTATION, the fun default (§3.3)
+	if _a_cards.is_empty():
+		return _back
+	return _a_cards[0]   # RANDOM ROTATION (brawl) / first tier-1 court (sports)
 
 func stagger_items() -> Array:
 	# entry stagger per shelf left-to-right, Shelf A first (§3.6)
@@ -331,7 +469,13 @@ func activate(c: Control) -> void:
 		_deny_shake(c)
 		return
 	var cfg: MatchConfig = GameConfig.match_config
-	if bool(a.get("circuit", false)):
+	if bool(a.get("court", false)):
+		# SPORTS: pass the court ID (not the path) — SportsMode._resolve_court stays the single
+		# source of truth for unlock/missing-file fallback (the CD #7 ball-through-world guard).
+		cfg.arena_mode = MatchConfig.ArenaMode.SINGLE
+		cfg.single_arena_path = str(a["court_id"])
+		cfg.circuit_id = &""
+	elif bool(a.get("circuit", false)):
 		cfg.arena_mode = MatchConfig.ArenaMode.CIRCUIT
 		cfg.circuit_id = StringName(str(a["circuit_id"]))
 		cfg.single_arena_path = ""

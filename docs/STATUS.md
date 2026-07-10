@@ -152,6 +152,13 @@ Brawl circuits + Trials challenge-types + Sports pitches.
 - CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);
   Gauntlet solo lives was a non-issue (already 4 via CharacterSelect — CD saw a dev-launch default).
 - ~~Trials medal-time tuning~~ **DELETED by v10** (binary completion — no medals exist to tune).
+- ~~Sports court-select UI~~ **DONE + committed 2026-07-10.** ArenaSelect is mode-aware: SPORTS shows "PICK YOUR
+  COURT" — one ShelfRail of all 8 courts (tier-sorted, TIER badges, locked ribbons w/ readable unlock hints:
+  circuit/matches/wins), launch passes the court ID so SportsMode._resolve_court stays the unlock authority.
+  CharacterSelect SPORTS flow now routes through it (1v1 preset kept). Real-input flow verified end-to-end
+  (ModeSelect→hero lock-in→court→live 1v1 on Center Pitch); brawl two-shelf regression clean. FOLLOW-UPS:
+  bake court thumbnails (7 courts on gradient fallback — extend ThumbBaker to sports courts); ui-ux spot-grade
+  of the court screen (built to the approved audit §3.8 grammar).
 - ~~THE FOUNDRY circuit validation~~ **DONE + committed 2026-07-10.** 4 arenas bot-match validated (press_row/
   smelter/crucible/meltdown), wired into circuits.json (unlock: win High Wire; Mayhem Mile now gates on Foundry) +
   ArenaSelect color + baked thumbs. TWO spawn-layout bugs fixed during QA: press_row's middle-island spawns sat in

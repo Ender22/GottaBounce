@@ -286,16 +286,16 @@ func _go_arena() -> void:
 		cfg.lives_per_player = 4
 		shell.launch_match()
 	elif _sports:
-		# SPORTS skips ArenaSelect (single mode-owned pitch) and launches straight in: a 1v1 preset
-		# (1 human + 1 bot = even total 2). SportsMode overrides skins by team colorway + forces the
-		# runner economy inert; the goal cap comes from Tuning.sports_goal_target (split from kills_to_win).
+		# SPORTS: set the team preset here (1v1: 1 human + 1 bot = even total 2), then go to the
+		# court select (ArenaSelect in sports guise, one COURTS shelf) which assigns arena_mode +
+		# single_arena_path (a court ID; SportsMode resolves it) and launches. SportsMode overrides
+		# skins by team colorway + forces the runner economy inert; the goal cap comes from
+		# Tuning.sports_goal_target (split from kills_to_win).
 		var cfg: MatchConfig = GameConfig.match_config
 		cfg.mode_id = &"sports"
 		cfg.human_count = 1
 		cfg.bot_count = 1
-		cfg.arena_mode = MatchConfig.ArenaMode.SINGLE
-		cfg.single_arena_path = "res://levels/sports_court.json"
-		shell.launch_match()
+		shell.go_forward("arena")
 	else:
 		shell.go_forward("arena")
 
