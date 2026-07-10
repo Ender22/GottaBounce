@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://arenaselect001"]
+[gd_scene load_steps=6 format=3 uid="uid://arenaselect001"]
 
 [ext_resource type="Script" path="res://src/ui/ArenaSelect.gd" id="1_arena"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ShelfRail.tscn" id="4_shelf"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ModeContextChip.tscn" id="5_chip"]
 
 [node name="ArenaSelect" type="Control"]
 layout_mode = 3
@@ -27,7 +29,7 @@ color = Color(0.0784314, 0.0784314, 0.156863, 0.55)
 [node name="Header" type="Control" parent="."]
 layout_mode = 1
 anchor_right = 1.0
-anchor_bottom = 0.12
+offset_bottom = 130.0
 grow_horizontal = 2
 mouse_filter = 2
 
@@ -48,26 +50,45 @@ text = "< BACK"
 layout_mode = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 260.0
-offset_right = -260.0
-offset_bottom = -30.0
+offset_left = 300.0
+offset_right = -300.0
 mouse_filter = 2
 theme_type_variation = &"BannerTop"
 text = "PICK YOUR PEAK"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Grid" type="GridContainer" parent="."]
+[node name="ModeChip" parent="Header" instance=ExtResource("5_chip")]
 layout_mode = 1
-anchor_left = 0.04
-anchor_top = 0.18
-anchor_right = 0.96
-anchor_bottom = 0.9
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -364.0
+offset_top = -36.0
+offset_right = -64.0
+offset_bottom = 36.0
+grow_horizontal = 0
+
+[node name="ShelfA" parent="." instance=ExtResource("4_shelf")]
+layout_mode = 1
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_top = 150.0
+offset_bottom = 585.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/h_separation = 40
-theme_override_constants/v_separation = 12
-columns = 4
+grow_vertical = 1
+
+[node name="ShelfB" parent="." instance=ExtResource("4_shelf")]
+layout_mode = 1
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_top = 592.0
+offset_bottom = 938.0
+grow_horizontal = 2
+grow_vertical = 1
 
 [node name="UnlockBanner" type="Label" parent="."]
 visible = false
@@ -88,10 +109,12 @@ autowrap_mode = 2
 
 [node name="Footer" type="Control" parent="."]
 layout_mode = 1
-anchor_top = 0.9
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -130.0
 grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
 
 [node name="HintBox" type="HBoxContainer" parent="Footer"]

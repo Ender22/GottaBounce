@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://charselect0001"]
+[gd_scene load_steps=5 format=3 uid="uid://charselect0001"]
 
 [ext_resource type="Script" path="res://src/ui/CharacterSelect.gd" id="1_char"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ModeContextChip.tscn" id="4_chip"]
 
 [node name="CharacterSelect" type="Control"]
 layout_mode = 3
@@ -55,6 +56,18 @@ theme_type_variation = &"BannerTop"
 text = "CHOOSE YOUR BOUNCER"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="ModeChip" parent="Header" instance=ExtResource("4_chip")]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -364.0
+offset_top = -36.0
+offset_right = -64.0
+offset_bottom = 36.0
+grow_horizontal = 0
 
 [node name="Stage" type="Control" parent="."]
 layout_mode = 1

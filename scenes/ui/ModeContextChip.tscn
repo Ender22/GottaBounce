@@ -1,0 +1,51 @@
+[gd_scene load_steps=3 format=3 uid="uid://modechip00001"]
+
+[ext_resource type="Script" path="res://src/ui/ModeContextChip.gd" id="1_chip"]
+
+[sub_resource type="StyleBoxFlat" id="chip_cream"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 22.0
+content_margin_bottom = 8.0
+bg_color = Color(1, 0.980392, 0.921569, 0.96)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+shadow_color = Color(0.117647, 0.066667, 0.035294, 0.25)
+shadow_size = 4
+shadow_offset = Vector2(0, 2)
+
+[node name="ModeContextChip" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 72)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("chip_cream")
+script = ExtResource("1_chip")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Icon" type="TextureRect" parent="HBox"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ModeName" type="Label" parent="HBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.372549, 0.658824, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 40
+text = "BRAWL"
+vertical_alignment = 1

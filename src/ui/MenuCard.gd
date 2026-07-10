@@ -15,9 +15,16 @@ extends Button
 @onready var _tag: Label = $Content/VBox/NameStrip/Labels/TagLabel
 @onready var _ribbon: Control = $Ribbon
 @onready var _check: Label = $Check
+@onready var _badge: PanelContainer = $Content/VBox/Plate/Badge
+
+# Difficulty-star icons (frontend_ui_audit_2026-07-10 §3.7 — kills the ASCII "*.." row).
+# Existence-guarded: missing icons degrade to the plain text suffix, never to ASCII glyphs.
+const STAR_FULL := "res://assets/ui/icons/star_full.png"
+const STAR_EMPTY := "res://assets/ui/icons/star_empty.png"
 
 var accent := Color("#ff5fa8")
 var is_soon := false
+var _star_row: HBoxContainer = null
 
 func set_card(data: Dictionary) -> void:
 	accent = data.get("color", accent)
@@ -48,6 +55,52 @@ func set_art(tex: Texture2D) -> void:
 	_art.texture = tex
 	_art.visible = tex != null
 	_glyph.visible = false
+
+## Difficulty/meta row (§3.3 Shelf-A card line 2): real star icons (filled/hollow out of `total`)
+## + a small suffix label ("4 ARENAS"). Replaces the TagLabel line for unlocked circuit cards.
+## Rebuilt on each call (cards set it once at build time).
+func set_star_row(filled: int, total: int, suffix: String, icon_px := 26) -> void:
+	if _star_row != null:
+		_star_row.queue_free()
+	_star_row = HBoxContainer.new()
+	_star_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_star_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_star_row.add_theme_constant_override("separation", 6)
+	$Content/VBox/NameStrip/Labels.add_child(_star_row)
+	if ResourceLoader.exists(STAR_FULL) and ResourceLoader.exists(STAR_EMPTY):
+		for i in range(total):
+			var star := TextureRect.new()
+			star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			star.custom_minimum_size = Vector2(icon_px, icon_px)
+			star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			star.texture = load(STAR_FULL if i < filled else STAR_EMPTY) as Texture2D
+			_star_row.add_child(star)
+	var lbl := Label.new()
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.theme_type_variation = &"CardTag"
+	lbl.add_theme_font_size_override("font_size", icon_px)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.text = ("  " if total > 0 else "") + suffix
+	_star_row.add_child(lbl)
+
+## Optional tier badge chip, top-left of the art plate (§3.8 — SPORTS court select tiers).
+## Hidden when unset so existing Brawl/Mode cards are untouched.
+func set_badge(text: String, color: Color) -> void:
+	_badge.visible = text != ""
+	if text == "":
+		return
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = color
+	sb.border_color = MenuFX.CHOCO
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(12)
+	sb.content_margin_left = 12.0
+	sb.content_margin_right = 12.0
+	sb.content_margin_top = 6.0
+	sb.content_margin_bottom = 6.0
+	_badge.add_theme_stylebox_override("panel", sb)
+	($Content/VBox/Plate/Badge/BadgeLabel as Label).text = text
 
 ## Colored key-art plate — a top-bright -> bottom-dark vertical gradient (never a flat block, §2.2).
 func set_plate_color(c: Color) -> void:

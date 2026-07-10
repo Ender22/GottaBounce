@@ -1,21 +1,32 @@
 extends MenuScreen
-## ArenaSelect — "PICK YOUR PEAK" (frontend_ux_spec §2.4). A 4x3 grid: RANDOM ROTATION first (default,
-## the fun default) + the 11 pool arenas. A directly confirms+launches (footer "(A) FIGHT!"). Arena
-## thumbnails are intentional colored gradient tiles (real thumbnails are a Phase-2 slot swap).
+## ArenaSelect — "PICK YOUR PEAK", the Shelf model (frontend_ui_audit_2026-07-10 §3; owner-mandated
+## rebuild). Two horizontally-scrolling shelves: SHELF A "WAYS TO PLAY" (RANDOM ROTATION first —
+## the fun default — then the circuits, big 460x340 cards) and SHELF B "ARENAS" (the single-arena
+## pool, 380x280 cards). Each shelf is a clipping ShelfRail whose rail the code translates on X so
+## the focused card is ALWAYS fully on-screen (scroll-to-focused §3.6) and can structurally never
+## occlude the header or footer. Scales to any circuit/arena count — the layout doesn't care.
 ##
-## NOTE (deviation, flagged): every pool level's JSON `theme` is "grass", so tinting cards to the theme
-## colour would make 11 identical green tiles. To keep the grid readable/varied I assign a per-arena
-## accent from a spread palette. When per-arena thumbnails/theme colours land they drop into the slot.
+## NOTE (deviation, flagged): every pool level's JSON `theme` is "grass", so tinting cards to the
+## theme colour would make identical green tiles. Per-arena accents come from a spread palette;
+## baked thumbs/crests drop into the art slot when they exist (existence-guarded).
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
 const CIRCUITS_PATH := "res://levels/circuits.json"
-# Baked wide arena thumbnails (frontend_visual_polish.md §3b), one per arena id, produced offline by
-# tools/ThumbBaker.tscn. Loaded (not preloaded) + existence-guarded so a missing bake just falls back
-# to the themed gradient tile — never a parse failure. "_random" is the RANDOM card's shuffle collage.
+# Baked wide arena thumbnails (frontend_visual_polish.md §3b), produced offline by
+# tools/ThumbBaker.tscn. Loaded (not preloaded) + existence-guarded so a missing bake just falls
+# back to the themed gradient tile. "_random" is the RANDOM card's shuffle collage.
 const THUMB_DIR := "res://assets/ui/thumbs"
+# Circuit crest emblems (frontend_ui_audit §3.7). Existence-guarded: missing crest -> the themed
+# gradient plate + circuit name (the audit's sanctioned fallback).
+const CREST_DIR := "res://assets/ui/circuits"
 
-# Per-circuit accent (circuits.json carries no colour; keep the spread-palette convention). Keyed by
-# circuit id so a new circuit just needs an entry here (else falls back to the RANDOM pink).
+const SHELF_A_CARD := Vector2(460, 340)   # §3.3 Shelf A: ways to play
+const SHELF_B_CARD := Vector2(380, 280)   # §3.3 Shelf B: single arenas
+const FOCUS_SCALE := 1.10                 # §3.6 (down from 1.12: keeps scaled edges in the band)
+const PAGE_JUMP := 3                      # §3.5 LB/RB + PageUp/PageDown jump
+
+# Per-circuit accent (circuits.json carries no colour; spread-palette convention). A new circuit
+# just needs an entry here (else falls back to the RANDOM pink).
 const CIRCUIT_COLORS := {
 	"meadow_mile": Color("#54c94a"),   # bright meadow green (on-ramp)
 	"scrapworks": Color("#a15fff"),    # arcade violet (industrial)
@@ -44,11 +55,16 @@ const ARENAS := [
 	{"path": "res://levels/wrecking_yard.json", "name": "Wrecking Yard", "color": Color("#c9a24a")},
 ]
 
-@onready var _grid: GridContainer = $Grid
+@onready var _shelf_a: Control = $ShelfA
+@onready var _shelf_b: Control = $ShelfB
 @onready var _back: Button = $Header/BackBtn
 
-var _cards: Array[Button] = []
+var _a_cards: Array[Button] = []
+var _b_cards: Array[Button] = []
+var _a_idx := 0   # remembered focus per shelf (§3.5 up/down restores it)
+var _b_idx := 0
 
+# ------------------------------------------------------------------ data loading (unchanged logic)
 ## Load levels/circuits.json into an ordered Array of card-data dicts (marked "circuit": true).
 ## Returns [] on any failure so the screen still shows RANDOM + arenas (never crashes).
 func _load_circuit_cards() -> Array:
@@ -75,30 +91,21 @@ func _load_circuit_cards() -> Array:
 		var pool: Array = ed.get("pool", [])
 		var levels: Array = ed.get("levels", [])
 		var count: int = draw_count if (draw_count > 0 and pool.size() > 0) else levels.size()
-		var stars := ""
-		for s in range(3):
-			stars += "*" if s < diff else "."
 		var unlocked: bool = Settings.is_circuit_unlocked(str(cid))
-		# The circuit NAME reads as the name; the arenas-count (unlocked) or the unlock hint (locked)
-		# goes into the smaller TAG/subtitle slot so a long "WIN X TO UNLOCK" wraps inside the card
-		# instead of overflowing the name band (frontend card grammar: name + optional tagline).
-		var tag_text: String
-		if unlocked:
-			tag_text = "%s  %d arenas" % [stars, count]
-		else:
-			tag_text = _lock_hint(str(cid))
 		out.append({
 			"circuit_id": str(cid),
 			"name": display,
-			"tag": tag_text,
+			"tag": "" if unlocked else _lock_hint(str(cid)),
+			"difficulty": diff,
+			"arena_count": count,
 			"color": CIRCUIT_COLORS.get(str(cid), MenuFX.ACCENT_PINK),
 			"circuit": true,
 			"locked": not unlocked,
 		})
 	return out
 
-## Phrase the unlock condition for a locked circuit card (v6 §4.3): the pity path once the predecessor
-## has been played at least once, else the mastery (win) hint. Uppercase to match the card name band.
+## Phrase the unlock condition for a locked circuit card (v6 §4.3): the pity path once the
+## predecessor has been played at least once, else the mastery (win) hint.
 func _lock_hint(cid: String) -> String:
 	var pred := Settings.unlock_predecessor(cid)
 	var pred_name := str(_circuit_display.get(pred, pred)).to_upper()
@@ -107,73 +114,206 @@ func _lock_hint(cid: String) -> String:
 		return "%d MORE MATCH%s TO UNLOCK" % [remaining, "" if remaining == 1 else "ES"]
 	return "WIN %s TO UNLOCK" % pred_name
 
-## Baked thumbnail for a card, or null (falls back to the themed gradient tile). Circuit cards get
-## none (they play a rotation, not one arena); RANDOM gets the shuffle collage; an arena gets its bake.
+## Art for a card, or null (falls back to the themed gradient plate). RANDOM gets the shuffle
+## collage; an arena gets its bake; a circuit gets its crest emblem (when the asset lands).
 func _thumb_for(a: Dictionary) -> Texture2D:
+	var path := ""
 	if bool(a.get("circuit", false)):
-		return null
-	var id := "_random" if bool(a.get("random", false)) else str(a.get("path", "")).get_file().get_basename()
-	if id == "":
-		return null
-	var path := "%s/%s.png" % [THUMB_DIR, id]
+		path = "%s/crest_%s.png" % [CREST_DIR, str(a.get("circuit_id", ""))]
+	else:
+		var id := "_random" if bool(a.get("random", false)) else str(a.get("path", "")).get_file().get_basename()
+		if id == "":
+			return null
+		path = "%s/%s.png" % [THUMB_DIR, id]
 	if ResourceLoader.exists(path):
 		return load(path) as Texture2D
 	return null
 
+# ------------------------------------------------------------------ build
 func _ready() -> void:
-	var all: Array = _load_circuit_cards()
-	all.append(RANDOM)
-	all.append_array(ARENAS)
-	for a in all:
-		var card: Button = CARD.instantiate()
-		card.custom_minimum_size = Vector2(340, 210)
-		_grid.add_child(card)
-		# Baked arena thumbnail (or the RANDOM shuffle collage) -> the card Art slot, mirroring the
-		# ModeSelect MODE_ART pattern (set_art auto-hides the placeholder glyph). Circuits have no
-		# per-arena thumb (they play a rotation); they keep the themed gradient plate.
-		var thumb := _thumb_for(a)
-		# No taglines on arena tiles (only RANDOM had one, and it clipped on the short card) — the
-		# name band is reserved for 2 lines so 1- and 2-line names align to the same tile height.
-		card.set_card({
-			"name": a["name"], "tag": a.get("tag", ""), "color": a["color"],
-			"glyph": a.get("glyph", ""), "art": thumb,
-		})
-		if thumb != null:
-			# opaque map-select thumbnails COVER the plate (full-bleed, cropped) rather than the
-			# transparent-diorama KEEP_ASPECT_CENTERED the scene defaults to; the themed accent border +
-			# gradient still frame it via the plate's chocolate outline + 10px inset (§3b).
-			var art := card.get_node_or_null("Content/VBox/Plate/Art")
-			if art is TextureRect:
-				(art as TextureRect).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		var plate := card.get_node_or_null("Content/VBox/Plate")
-		if plate is Control:
-			(plate as Control).custom_minimum_size = Vector2(0, 60)
-		var nm := card.get_node_or_null("Content/VBox/NameStrip/Labels/NameLabel")
-		if nm is Control:
-			(nm as Control).custom_minimum_size = Vector2(0, 84)   # fixed 2-line name band
-		card.set_meta("arena", a)
-		register(card, 1.12)
-		_cards.append(card)
-		if bool(a.get("locked", false)) and card.has_method("set_locked"):
-			card.set_locked(true)
-		# RANDOM (§3b hierarchy fix): the old rainbow gradient + spinning "?" was the flashiest tile on
-		# the screen, out-shining the real arenas. It now wears a calm 3-arena shuffle collage (baked as
-		# _random.png). If that collage is missing, fall back to the rainbow so it never reads as blank.
-		if bool(a.get("random", false)) and thumb == null:
-			card.set_plate_rainbow()
-			_spin_glyph(card)
+	# SHELF A — ways to play: RANDOM ROTATION first (default focus, the fun default), then the
+	# circuits in circuits.json order (§3.3).
+	var shelf_a_data: Array = [RANDOM]
+	shelf_a_data.append_array(_load_circuit_cards())
+	(_shelf_a as Object).call("set_label", "WAYS TO PLAY")
+	(_shelf_a as Object).call("set_separation", 36)
+	for a in shelf_a_data:
+		_a_cards.append(_make_card(a, _shelf_a, 0))
+	# SHELF B — the single-arena pool (count suffix in the label, §3.2).
+	(_shelf_b as Object).call("set_label", "ARENAS  %d" % ARENAS.size())
+	(_shelf_b as Object).call("set_separation", 32)
+	for a in ARENAS:
+		_b_cards.append(_make_card(a, _shelf_b, 1))
+	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
+	(_shelf_b as Object).call("set_counter", 0, _b_cards.size())
+	_shelf_a.connect("wheel_moved", _on_wheel.bind(0))
+	_shelf_b.connect("wheel_moved", _on_wheel.bind(1))
+
+	# focus wiring: left/right along the shelf, no wrap (§3.5 — ends point to self so Godot never
+	# auto-picks a spatial neighbour; the edge press becomes a rail nudge, see _on_card_gui).
+	_wire_rail(_a_cards)
+	_wire_rail(_b_cards)
+	register(_back, 1.05)
+	_rewire_cross()
+
 	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger)
 	_pending_celebrate = Settings.take_pending_unlock()
-	wire_grid(_cards, 4)
-	register(_back, 1.05)
-	_cards[_cards.size() - 1].focus_neighbor_bottom = _cards[_cards.size() - 1].get_path_to(_back)
-	_back.focus_neighbor_top = _back.get_path_to(_cards[0])
 
+## Instance + dress one MenuCard for a shelf (sizes per §3.3; internals of MenuCard unchanged).
+func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
+	var big := shelf_id == 0
+	var card: Button = CARD.instantiate()
+	card.custom_minimum_size = SHELF_A_CARD if big else SHELF_B_CARD
+	(shelf as Object).call("add_card", card)
+	var thumb := _thumb_for(a)
+	card.set_card({
+		"name": a["name"], "tag": a.get("tag", ""), "color": a["color"],
+		"glyph": a.get("glyph", ""), "art": thumb,
+	})
+	if thumb != null:
+		# opaque thumbs/crests COVER the plate (full-bleed, cropped) rather than the transparent-
+		# diorama KEEP_ASPECT_CENTERED default; the accent gradient + chocolate outline still frame it.
+		var art := card.get_node_or_null("Content/VBox/Plate/Art")
+		if art is TextureRect:
+			(art as TextureRect).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	# fixed name band so 1- and 2-line names align card-to-card (§3.3): Shelf A 100px / Shelf B 80px
+	# (inner Labels min height; the strip's own padding tops it up).
+	var labels := card.get_node_or_null("Content/VBox/NameStrip/Labels")
+	if labels is Control:
+		(labels as Control).custom_minimum_size = Vector2(0, 92 if big else 64)
+	var nm := card.get_node_or_null("Content/VBox/NameStrip/Labels/NameLabel")
+	if nm is Label:
+		(nm as Label).add_theme_font_size_override("font_size", 40 if big else 34)
+	var tag := card.get_node_or_null("Content/VBox/NameStrip/Labels/TagLabel")
+	if tag is Label:
+		(tag as Label).add_theme_font_size_override("font_size", 26)
+	# unlocked circuit line 2: real star icons + arena count (§3.7 — no ASCII stars)
+	if bool(a.get("circuit", false)) and not bool(a.get("locked", false)):
+		(card as Object).call("set_star_row", int(a.get("difficulty", 1)), 3,
+			"%d ARENAS" % int(a.get("arena_count", 0)))
+	card.set_meta("arena", a)
+	card.set_meta("shelf", shelf_id)
+	card.set_meta("idx", _a_cards.size() if shelf_id == 0 else _b_cards.size())
+	register(card, FOCUS_SCALE)
+	card.focus_entered.connect(_on_card_focus.bind(card))
+	card.focus_exited.connect(func() -> void: card.z_index = 0)
+	card.gui_input.connect(_on_card_gui.bind(card))
+	if bool(a.get("locked", false)) and card.has_method("set_locked"):
+		card.set_locked(true)
+	# RANDOM: shuffle collage (baked as _random.png); if missing, rainbow + spinning "?" fallback.
+	if bool(a.get("random", false)) and thumb == null:
+		card.set_plate_rainbow()
+		_spin_glyph(card)
+	return card
+
+# ------------------------------------------------------------------ focus / navigation (§3.5)
+## Left/right within the rail; ends point to SELF (no wrap, no cross-shelf auto-jump).
+func _wire_rail(cards: Array[Button]) -> void:
+	var n := cards.size()
+	for i in range(n):
+		var c: Button = cards[i]
+		var lf: Control = cards[i - 1] if i > 0 else c
+		var rt: Control = cards[i + 1] if i < n - 1 else c
+		c.focus_neighbor_left = c.get_path_to(lf)
+		c.focus_neighbor_right = c.get_path_to(rt)
+		c.focus_previous = c.get_path_to(lf)
+		c.focus_next = c.get_path_to(rt)
+
+## Up/down across shelves lands on each shelf's REMEMBERED card; Back is reachable above Shelf A
+## and below Shelf B. Re-run whenever a remembered index changes (cheap, <20 cards).
+func _rewire_cross() -> void:
+	var a_mem: Control = _a_cards[_a_idx]
+	var b_mem: Control = _b_cards[_b_idx]
+	for c in _a_cards:
+		c.focus_neighbor_top = c.get_path_to(_back)
+		c.focus_neighbor_bottom = c.get_path_to(b_mem)
+	for c in _b_cards:
+		c.focus_neighbor_top = c.get_path_to(a_mem)
+		c.focus_neighbor_bottom = c.get_path_to(_back)
+	_back.focus_neighbor_bottom = _back.get_path_to(a_mem)
+	_back.focus_neighbor_top = _back.get_path_to(b_mem)
+
+func _on_card_focus(card: Button) -> void:
+	card.z_index = 1   # focused card raises above rail neighbours (§3.6)
+	var shelf_id := int(card.get_meta("shelf", 0))
+	var idx := int(card.get_meta("idx", 0))
+	if shelf_id == 0:
+		_a_idx = idx
+		(_shelf_a as Object).call("set_counter", idx, _a_cards.size())
+	else:
+		_b_idx = idx
+		(_shelf_b as Object).call("set_counter", idx, _b_cards.size())
+	(_shelf_a as Object).call("set_shelf_focused", shelf_id == 0)
+	(_shelf_b as Object).call("set_shelf_focused", shelf_id == 1)
+	(_shelf_a if shelf_id == 0 else _shelf_b).call("scroll_to", card)
+	_rewire_cross()
+
+## Edge press feedback + mouse wheel on a hovered card. Key/pad events reach the focused card's
+## gui_input before viewport focus-nav; wheel events are swallowed by the Button so they're
+## re-routed from here (the shelf background handles wheel in gaps via wheel_moved).
+func _on_card_gui(e: InputEvent, card: Button) -> void:
+	var shelf_id := int(card.get_meta("shelf", 0))
+	var cards: Array[Button] = _a_cards if shelf_id == 0 else _b_cards
+	var idx := int(card.get_meta("idx", 0))
+	if e.is_action_pressed("ui_left") and idx == 0:
+		_edge_deny(shelf_id, -1)
+	elif e.is_action_pressed("ui_right") and idx == cards.size() - 1:
+		_edge_deny(shelf_id, 1)
+	elif e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+		var btn := (e as InputEventMouseButton).button_index
+		if btn == MOUSE_BUTTON_WHEEL_DOWN:
+			_step_shelf(shelf_id, 1)
+		elif btn == MOUSE_BUTTON_WHEEL_UP:
+			_step_shelf(shelf_id, -1)
+
+## End of shelf: 6px rail nudge + the low deny tick at -6dB (§3.5).
+func _edge_deny(shelf_id: int, dir: int) -> void:
+	(_shelf_a if shelf_id == 0 else _shelf_b).call("edge_nudge", dir)
+	AudioManager.play_sfx("ui_click", {"pitch": 0.55, "pitch_var": 0.0, "volume_db": -6.0})
+
+func _on_wheel(dir: int, shelf_id: int) -> void:
+	_step_shelf(shelf_id, dir)
+
+func _step_shelf(shelf_id: int, delta: int) -> void:
+	var cards: Array[Button] = _a_cards if shelf_id == 0 else _b_cards
+	var cur := _a_idx if shelf_id == 0 else _b_idx
+	var to := clampi(cur + delta, 0, cards.size() - 1)
+	if to == cur:
+		_edge_deny(shelf_id, signi(delta))
+		return
+	cards[to].grab_focus()
+
+## LB/RB + PageUp/PageDown: jump 3 cards along the CURRENT shelf (the 30+ arena answer, §3.5).
+func _unhandled_input(e: InputEvent) -> void:
+	super._unhandled_input(e)
+	if not _entered:
+		return
+	if e.is_action_pressed("menu_page_next"):
+		accept_event()
+		_page_jump(PAGE_JUMP)
+	elif e.is_action_pressed("menu_page_prev"):
+		accept_event()
+		_page_jump(-PAGE_JUMP)
+
+func _page_jump(delta: int) -> void:
+	var focused := get_viewport().gui_get_focus_owner()
+	var shelf_id := 0
+	if focused != null and focused.has_meta("shelf"):
+		shelf_id = int(focused.get_meta("shelf"))
+	elif focused == _back:
+		return
+	_step_shelf(shelf_id, delta)
+
+# ------------------------------------------------------------------ MenuScreen hooks
 func first_focus() -> Control:
-	return _cards[0]
+	return _a_cards[0]   # RANDOM ROTATION, the fun default (§3.3)
 
 func stagger_items() -> Array:
-	return _cards
+	# entry stagger per shelf left-to-right, Shelf A first (§3.6)
+	var all: Array = []
+	all.append_array(_a_cards)
+	all.append_array(_b_cards)
+	return all
 
 func accent_for(c: Control) -> Color:
 	if c.has_meta("arena"):
@@ -213,14 +353,15 @@ func enter() -> void:
 		_play_unlock_celebration(_pending_celebrate)
 		_pending_celebrate = ""
 
-## One-shot "you earned it" moment: a banner flash + a pop/focus-snap on the just-unlocked card, with
-## the win announcer sting. The pending flag was already consumed (take_pending_unlock) so it fires once.
+## One-shot "you earned it" moment: a banner flash + a pop/focus-snap on the just-unlocked card,
+## with the win announcer sting. The card is scrolled to center first (§3.6) so the celebration is
+## never off-screen. The pending flag was already consumed (take_pending_unlock) so it fires once.
 func _play_unlock_celebration(cid: String) -> void:
 	var banner := get_node_or_null("UnlockBanner")
 	var display := str(_circuit_display.get(cid, cid)).to_upper()
-	# find the (now-unlocked) card for this circuit
+	# find the (now-unlocked) card for this circuit (Shelf A holds the circuits)
 	var target: Button = null
-	for card in _cards:
+	for card in _a_cards:
 		var a: Dictionary = card.get_meta("arena", {})
 		if bool(a.get("circuit", false)) and str(a.get("circuit_id", "")) == cid:
 			target = card
@@ -229,6 +370,8 @@ func _play_unlock_celebration(cid: String) -> void:
 	get_tree().create_timer(0.5).timeout.connect(func() -> void:
 		AudioManager.play_sfx("ui_click", {"pitch": 1.5, "pitch_var": 0.0, "volume_db": 0.0})
 		EventBus.match_won.emit(0)   # reuse the win fanfare sting (presentation only)
+		if is_instance_valid(target):
+			(_shelf_a as Object).call("scroll_to", target)
 		if banner is Label:
 			(banner as Label).text = "CIRCUIT UNLOCKED\n%s" % display
 			banner.visible = true
@@ -246,7 +389,7 @@ func _play_unlock_celebration(cid: String) -> void:
 			target.grab_focus()
 			target.pivot_offset = target.size * 0.5
 			var tc := target.create_tween()
-			tc.tween_property(target, "scale", Vector2(1.22, 1.22), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tc.tween_property(target, "scale", Vector2(1.18, 1.18), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 			tc.tween_property(target, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT))
 
 ## Locked-card denied feedback: a quick horizontal shake (no launch).

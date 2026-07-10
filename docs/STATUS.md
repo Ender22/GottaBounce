@@ -131,6 +131,20 @@ Brawl circuits + Trials challenge-types + Sports pitches.
 - **Audio MIX quality** — a HUMAN must LISTEN. Audio is wired + firing (verified), but no one has judged levels/loop/punch (our
   playtests were accidentally muted until tonight's save repair). AI can't hear this.
 
+## OWNER FEEDBACK 2026-07-10 (drives current priorities)
+- **UI audits (owner-flagged):** full audit DONE (`docs/briefs/frontend_ui_audit_2026-07-10.md`) — MainMenu SHIP;
+  ModeSelect/CharacterSelect/Options/Pause FIX; ArenaSelect was REJECT → **REBUILT + designer-approved SHIP
+  (committed):** two-shelf scrolling layout (WAYS TO PLAY 460x340 / ARENAS 380x280 rails), scroll-to-focused,
+  clip bands (header/footer occlusion structurally impossible), ModeContext chip (ArenaSelect + CharacterSelect),
+  LB/RB+PgUp/PgDn 3-card jumps, real star icons, per-shelf remembered focus. ShelfRail is reusable — it IS the
+  future Sports court-select container. FOLLOW-UPS open: circuit CREST art (Shelf A plates are sanctioned gradient
+  fallbacks until the art pipeline delivers), HintStrip contrast (P2), CharacterSelect safe-area/type (P3),
+  de-clocked mode_trials.png diorama (P4), pause confirm prompts.
+- **CAMERA (repeated ~5x, owner rules now the acceptance spec):** `docs/feedback/owner_2026-07-10_camera_rules.md` —
+  per-level camera bounds = platform extents +200px; in-bounds player on-screen 100% of frames (smooth zoom-out);
+  target = clamped midpoint of extreme players; smooth motion; zoom-in cap keeping most of the level visible.
+  Prior "camera fixed" claims are NOT owner-accepted. Validate with motion evidence. IN PROGRESS.
+
 ## NEXT-UP BACKLOG (autonomous-safe; fresh-session ready)
 - CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);
   Gauntlet solo lives was a non-issue (already 4 via CharacterSelect — CD saw a dev-launch default).
