@@ -2,6 +2,21 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-10** CAMERA = OWNER RULES (supersedes `camera_2x_policy.md`'s action-cluster + velocity-lead +
+  0.60 readability-floor model; the owner rejected that lineage ~5 times — players off-screen on wide spreads,
+  frame "flying left and right"). New model (`docs/feedback/owner_2026-07-10_camera_rules.md` is the acceptance
+  spec): per-level `camera_bounds` = platform-union AABB + `Tuning.cam_bounds_pad` (200); frame TARGET = midpoint
+  of the extreme players' bounds-clamped positions (no weights/bias/lead — stable target = calm motion); zoom FITS
+  every clamped position (no floor — an in-bounds player is on-screen 100% of frames); zoom-in cap = show ≥
+  `Tuning.cam_close_fraction` (0.75) of the camera-bounds extent even when players cluster. Super-aim tight-framing
+  bias and P1 weight REMOVED (the wide stable frame keeps the fuse readable). CameraController smoothing unchanged.
+  QA (motion evidence): worst-case spread 0/120 off-screen violations; clustered zoom cap respected to the pixel;
+  live 4-bot combat on grassy_expanse + foundry_press_row 0/559 violations, 0 fast reversals, max pan ~2100px/s
+  one-directional. Solo TRIALS now shows most of the course (aligns with v10's "see the whole course" fantasy).
+  Trade-off accepted BY OWNER RULE: at full wide spread bodies render smaller than the old 63px readability floor.
+  NOT owner-accepted yet — needs his eyes; reopen knobs are cam_bounds_pad / cam_close_fraction / CAM_MARGIN, never
+  a return to cluster framing without an owner ruling.
+
 - **2026-07-10** TRIALS COMPLETION MODEL = PICO-PARK BINARY (owner ruling 2026-07-06, spec
   `docs/specs/v10_trials_completion_model.md`, built + QA'd + committed today). SUPERSEDES v7's TIME/MEDAL/PAR
   layer entirely (medals, par, best-time, fall penalty: REMOVED from code, HUD, and course JSON — the

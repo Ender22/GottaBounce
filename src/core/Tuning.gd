@@ -134,6 +134,15 @@ var hitstop_recover: float = 0.12
 var shake_max_offset: float = 22.0
 var trauma_decay: float = 1.4
 
+# --- Camera (OWNER RULES 2026-07-10 — docs/feedback/owner_2026-07-10_camera_rules.md) ---
+# Camera bounds per level = the platform-union AABB (LevelLoader play_rect) grown by this pad on
+# every side. An in-bounds living player is on-screen 100% of frames (the camera zooms out as far
+# as needed); the frame targets the midpoint of the extreme players' bounds-clamped positions.
+var cam_bounds_pad: float = 200.0
+# Zoom-in cap (owner rule 6): at the CLOSEST allowed zoom, this fraction of the camera-bounds
+# extent must still be visible — even with 2 clustered players the camera never dives in tight.
+var cam_close_fraction: float = 0.75
+
 # --- Input (FEEL §6) ---
 var stick_deadzone: float = 0.22
 var input_buffer: float = 0.10               # seconds

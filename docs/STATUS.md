@@ -140,10 +140,13 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   future Sports court-select container. FOLLOW-UPS open: circuit CREST art (Shelf A plates are sanctioned gradient
   fallbacks until the art pipeline delivers), HintStrip contrast (P2), CharacterSelect safe-area/type (P3),
   de-clocked mode_trials.png diorama (P4), pause confirm prompts.
-- **CAMERA (repeated ~5x, owner rules now the acceptance spec):** `docs/feedback/owner_2026-07-10_camera_rules.md` —
-  per-level camera bounds = platform extents +200px; in-bounds player on-screen 100% of frames (smooth zoom-out);
-  target = clamped midpoint of extreme players; smooth motion; zoom-in cap keeping most of the level visible.
-  Prior "camera fixed" claims are NOT owner-accepted. Validate with motion evidence. IN PROGRESS.
+- **CAMERA (repeated ~5x, owner rules now the acceptance spec):** `docs/feedback/owner_2026-07-10_camera_rules.md`.
+  **REWORKED TO THE RULES + committed (see DECISIONS 2026-07-10):** camera_bounds = platform AABB +200; target =
+  clamped midpoint of extreme players (cluster/weights/velocity-lead machinery deleted); zoom fits everyone (no
+  readability floor); zoom-in cap shows >=75% of the level. Motion-evidence QA: 0 off-screen violations in 679
+  combat player-samples across worst-case-spread + live 4-bot matches on grassy_expanse and foundry_press_row;
+  0 fast pan reversals; clustered zoom cap exact. **AWAITING OWNER EYES — do not call this fixed until he says so.**
+  Knobs if he wants adjustment: Tuning.cam_bounds_pad (200), Tuning.cam_close_fraction (0.75), CAM_MARGIN.
 
 ## NEXT-UP BACKLOG (autonomous-safe; fresh-session ready)
 - CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);

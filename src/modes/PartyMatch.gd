@@ -62,31 +62,20 @@ const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
 const SHELL_SCENE := "res://scenes/ui/ShellRoot.tscn"
 var _pause_overlay: CanvasLayer = null
 
-# --- Camera 2x policy (docs/briefs/camera_2x_policy.md) ---
-# Action-cluster framing + readability-floored zoom on the wide grassy_expanse. The old fit-to-global-
-# spread over-zoomed to ~0.42 (bouncers ~30px) during 4-player combat, killing Pillar-5 readability.
-const CAM_MIN_ZOOM := 0.60     # normal-combat readability floor (was 0.37). Body >= ~63px @1080p:
-                               # color ID, face, and crimson damage-pulse rim all read. A fast
-                               # flier's POSITION widens the smoothed AABB frame (no regime toggle).
-const CAM_LEAD_TIME := 0.32    # velocity leads the PAN (not the zoom): nudge the frame CENTER ahead
-                               # of the cluster's motion so a fast launch stays on-screen.
-const CAM_LEAD_CAP := 700.0    # px: cap each player's velocity-lead contribution so the pan-ahead is
-                               # a nudge, not a lurch.
-const CAM_MAX_ZOOM := 0.92     # never zoom in tighter than this
-const SUPER_BIAS_MIN_ZOOM := 0.70  # zoom-target floor while a super is charging (aim-fuse legibility)
-const SUPER_BIAS_WEIGHT := 2.5     # centroid weight on the charging caster (frame the aim)
+# --- Camera (OWNER RULES 2026-07-10 — docs/feedback/owner_2026-07-10_camera_rules.md) ---
+# This SUPERSEDES the camera_2x_policy action-cluster/velocity-lead/readability-floor model (the
+# owner rejected it ~5 times: players off-screen on wide spreads, frame flying left/right). Rules:
+# (1) camera_bounds = platform-union AABB + Tuning.cam_bounds_pad on every side; (2) a living
+# in-bounds player is on-screen 100% of frames — the zoom simply fits everyone (no readability
+# floor); (3) the frame targets the MIDPOINT of the extreme players' bounds-clamped positions —
+# no weights, no combat bias, no velocity lead (stable target = calm motion); (4) zoom-in cap:
+# even with players clustered, at least Tuning.cam_close_fraction of the camera-bounds extent
+# stays visible. CameraController's exp smoothing + asymmetric zoom damping are unchanged.
+const CAM_MAX_ZOOM := 0.92     # absolute zoom-in ceiling (small arenas; the per-level cap may be lower)
+const CAM_MIN_ZOOM := 0.60     # ONLY used by mode fixed-framing (SPORTS court fit) as its floor
 const CAM_OFFSCREEN_INSET := 40.0  # px: a living player outside visible rect+inset gets an edge chevron
-const COMBAT_ACTIVE_WINDOW := 1.2  # s since dealing/taking a hit or firing/charging a super to count
-                               # for the action-cluster centroid bias
-# --- CD #5 camera follow-targeting refinement (owner-flagged; concept unchanged, targeting only) ---
-const P1_CAM_WEIGHT := 0.85    # the LOCAL HUMAN (players[0]) is ALWAYS kept in the framing cluster so
-                               # the human never gets dropped fully off-screen behind a chevron. Modest
-                               # weight (< SUPER_BIAS_WEIGHT) so it guarantees inclusion without
-                               # overriding the super-aim bias when P1 isn't the aimer.
-const CAM_CLUSTER_LINGER := 0.9  # s a player LINGERS in the framing cluster after it drops out (e.g.
-                               # players split into pairs) — cluster hysteresis so the centroid/extent
-                               # target eases through the membership change instead of snapping.
-const CAM_MARGIN := Vector2(420.0, 340.0)  # breathing room added around the framed cluster
+const COMBAT_ACTIVE_WINDOW := 1.2  # s combat-active memory (kept for _mark_combat_active consumers)
+const CAM_MARGIN := Vector2(420.0, 340.0)  # breathing room added around the framed extremes
 const MATCH_END_ZOOM := 1.1    # winner punch-zoom (FEEL §7)
 const BOUNCE_HOLD := 0.4       # "BOUNCE!" banner hold (spec §1)
 const NAME_TAG_LINGER := 1.0   # name tags fade this long into COMBAT
@@ -127,6 +116,7 @@ var _spawns: Array = []
 var _pu_points: Array = []       # powerup_spawner positions from the level JSON
 var _pu_director                 # PowerupSpawnDirector (spec v1_powerups §4 pacing)
 var _stage_rect := Rect2(0, 0, 1920, 320)
+var camera_bounds := Rect2(0, 0, 1920, 1080)  # platform AABB + cam_bounds_pad (owner camera rule 1)
 var _camera: CameraController
 var _juice: Juice
 var _level_root: Node2D
@@ -134,7 +124,6 @@ var _hud
 var _had_contact: Array = []     # per-player: dealt/received >=1 smash this stage (stats)
 var _smash_off_stage: Array = [] # per-player: was the LAST smash they received taken off-stage?
 var _combat_active_t: Array = [] # per-player: seconds left in the combat-active window (camera bias)
-var _cluster_linger_t: Array = []# per-player: seconds left lingering in the framing cluster (hysteresis)
 var _edge_indicators             # EdgeIndicators overlay (off-screen player chevrons)
 
 # level rotation (shuffle-bag) lives in the mode now (BrawlMode)
@@ -258,13 +247,9 @@ func _despawn_bots() -> void:
 			lives_left.remove_at(i)
 			if i < _combat_active_t.size():
 				_combat_active_t.remove_at(i)
-			if i < _cluster_linger_t.size():
-				_cluster_linger_t.remove_at(i)
 	# trim any stale trailing camera entries so they can't outlive the roster
 	if _combat_active_t.size() > players.size():
 		_combat_active_t.resize(players.size())
-	if _cluster_linger_t.size() > players.size():
-		_cluster_linger_t.resize(players.size())
 
 ## Current per-player skins (QA readout; C7 "_skins() equivalent"). Reflects the live spawn plan.
 func _skins() -> Array:
@@ -285,6 +270,9 @@ func _load_stage(path: String) -> void:
 	_pu_points = data.get("powerup_spawners", [])
 	bounds = data.get("bounds", Rect2(-120, -120, 2160, 1380))
 	_stage_rect = data.get("play_rect", Rect2(bounds.get_center() - Vector2(900, 160), Vector2(1800, 320)))
+	# OWNER CAMERA RULE 1: per-level camera bounds = the platform-union AABB padded on every side.
+	# A player inside this rect is ALWAYS on-screen; outside it they're in off-screen-kill space.
+	camera_bounds = _stage_rect.grow(Tuning.cam_bounds_pad)
 	level_index = maxi(0, LEVEL_POOL.find(path))
 	level_name = str(data.get("name", path.get_file().get_basename()))
 	_kill_shape = str(data.get("kill_shape", "central_pit"))   # v2a §4b#1: QA target class
@@ -930,165 +918,57 @@ func _update_camera() -> void:
 		fz = clampf(fz, CAM_MIN_ZOOM, CAM_MAX_ZOOM)
 		_camera.set_frame(fr.get_center(), fz)
 		return
-	var dt := get_physics_process_delta_time()
-	while _combat_active_t.size() < players.size():
-		_combat_active_t.append(0.0)
-	while _cluster_linger_t.size() < players.size():
-		_cluster_linger_t.append(0.0)
+	# --- OWNER RULES framing (docs/feedback/owner_2026-07-10_camera_rules.md) ---
+	# The action-cluster/weights/velocity-lead machinery is GONE: the frame targets the midpoint of
+	# the extreme players' bounds-clamped positions and the zoom fits every clamped position. A
+	# stable, player-extremes-only target is what makes the motion calm — it moves only when the
+	# extremes move, so the frame cannot "fly left and right" on membership or weight changes.
 
 	# living fighters this tick (is_dead()==false covers hitstun/recovery)
 	var living: Array = []
-	for i in range(players.size()):
-		var p = players[i]
+	for p in players:
 		if is_instance_valid(p) and not p.is_dead():
 			living.append(p)
-			# a player charging/aiming a super counts as combat-active continuously
-			if p.is_super_aiming():
-				_combat_active_t[i] = COMBAT_ACTIVE_WINDOW
-		if _combat_active_t[i] > 0.0:
-			_combat_active_t[i] = maxf(0.0, _combat_active_t[i] - dt)
 	if living.is_empty():
 		return   # nothing to frame — hold the last frame
 
-	# super-aim caster (protects the aim-fuse ring via a framing bias, not a global floor)
-	var aimer = null
+	# RULE 3: each player contributes their position CLAMPED to camera_bounds — a player beyond the
+	# bounds pulls the frame only as far as the bound edge (off-screen-kill space stays off-screen,
+	# and their edge chevron marks them). RULE 2 follows by construction: the frame FITS every
+	# clamped position, so an in-bounds player is always inside the target frame.
+	var mn := Vector2(INF, INF)
+	var mx := Vector2(-INF, -INF)
 	for p in living:
-		if p.is_super_aiming():
-			aimer = p
-			break
+		var cp: Vector2 = (p.global_position as Vector2).clamp(camera_bounds.position, camera_bounds.end)
+		mn = mn.min(cp)
+		mx = mx.max(cp)
+	var centroid := (mn + mx) * 0.5          # midpoint of extremes, X and Y (rule 3)
+	var ext := (mx - mn) * 0.5 + CAM_MARGIN  # breathing room (rule 4 aesthetics, not a bias)
 
-	# No launch-cam regime toggle anymore (killed the "breathing pump" that fired on every smash):
-	# a fast flier's POSITION naturally widens the smoothed AABB frame, and the asymmetric zoom
-	# (out-fast / in-slow) in CameraController absorbs the transient. The 0.60 readability floor is
-	# the normal min zoom for everything.
-	var bcenter := bounds.get_center()
-
-	# --- choose the BASE framing membership this tick ---
-	# The local human P1 (players[0]) is tracked separately so it can always be guaranteed into the
-	# cluster (CD #5 fix a) without disturbing the super-aim path.
-	var p1 = players[0] if players.size() > 0 else null
-	var p1_live: bool = is_instance_valid(p1) and not p1.is_dead()
-
-	var base: Array = []
-	if aimer != null:
-		# super bias: frame caster + nearest living opponent tightly (§4). Left untouched so P1
-		# inclusion NEVER overrides the aim-fuse readability bias (brief a).
-		base = [aimer]
-		var opp = nearest_opponent(aimer)
-		if is_instance_valid(opp) and not opp.is_dead():
-			base.append(opp)
-	else:
-		# combat-active cluster (dealt/took a hit or aiming in the last COMBAT_ACTIVE_WINDOW s);
-		# fallback to all living when the fight is momentarily quiet (§2).
-		for p in living:
-			var idx := players.find(p)
-			if idx >= 0 and _combat_active_t[idx] > 0.0:
-				base.append(p)
-		if base.is_empty():
-			base = living.duplicate()
-
-	# cluster hysteresis (CD #5 fix b): base members refresh their linger to full; recently-framed
-	# players stay in the cluster (with a fading weight) for CAM_CLUSTER_LINGER so the centroid/extent
-	# target eases through a membership change (e.g. players splitting into pairs) instead of snapping.
-	for p in base:
-		var bi := players.find(p)
-		if bi >= 0:
-			_cluster_linger_t[bi] = CAM_CLUSTER_LINGER
-
-	# --- assemble the final cluster + per-member centroid weight ---
-	# Every contributor is a LIVING player position, so the weighted centroid can never land on empty
-	# geometry with no player (CD #5 fix c): the frame center is always player-driven by construction.
-	var cluster: Array = []
-	var weights: Array = []
-	for p in living:
-		var pi := players.find(p)
-		var linger: float = _cluster_linger_t[pi] if pi >= 0 else 0.0
-		var w := 0.0
-		if aimer != null and p == aimer:
-			w = SUPER_BIAS_WEIGHT
-		elif base.has(p):
-			w = 1.0
-		elif linger > 0.0:
-			w = maxf(0.05, linger / CAM_CLUSTER_LINGER)   # fade a dropped member's pull out smoothly
-		# guarantee the local human is always framed while living (fix a) — modest weight, and only in
-		# the non-aimer path so it can't drag the frame off a super telegraph.
-		if aimer == null and p == p1 and p1_live:
-			w = maxf(w, P1_CAM_WEIGHT)
-		if w > 0.0:
-			cluster.append(p)
-			weights.append(w)
-	if cluster.is_empty():
-		cluster = living.duplicate()
-		weights.clear()
-		for _p in cluster:
-			weights.append(1.0)
-
-	# decay linger for players that dropped out of the base this tick (used next tick)
-	for i in range(_cluster_linger_t.size()):
-		if i < players.size() and base.has(players[i]):
-			continue
-		_cluster_linger_t[i] = maxf(0.0, _cluster_linger_t[i] - dt)
-
-	# Frame center + extent. Positions only (an AABB), NOT velocities — folding velocity into the zoom
-	# extent made the zoom target jitter at high frequency in a bounce game; velocity leads the PAN below.
-	var centroid := Vector2.ZERO
-	var ext := Vector2.ZERO
-	if aimer != null:
-		# SUPER-AIM: keep the TIGHT weighted caster+opp framing (aim-fuse readability — brief a).
-		var wsum := 0.0
-		for i in range(cluster.size()):
-			centroid += cluster[i].global_position * weights[i]
-			wsum += weights[i]
-		centroid /= maxf(wsum, 0.001)
-		for p in base:
-			ext = ext.max((p.global_position - centroid).abs())
-	else:
-		# NON-AIM: FRAME ALL LIVING PLAYERS (their full AABB). The old combat-active-cluster subset
-		# drove a left/right frame oscillation — with 2 players each side it kept swapping which pair
-		# it fit, shoving the other pair off-screen even though everyone was on-stage. Now the ONLY
-		# things that drop a living player from view are the CAM_MIN_ZOOM readability floor (true wide
-		# spread) and a genuine off-screen fly-out (edge chevron). Everyone in the playable area stays framed.
-		var mn: Vector2 = living[0].global_position
-		var mx: Vector2 = living[0].global_position
-		for p in living:
-			mn = mn.min(p.global_position)
-			mx = mx.max(p.global_position)
-		centroid = (mn + mx) * 0.5
-		ext = (mx - mn) * 0.5
-	ext += CAM_MARGIN
-
-	# zoom to fit, then clamp to the floor .. max. The 0.60 readability floor is the normal min for
-	# everything now (no launch regime): a fast flier's position simply grows `ext` -> lower z, and
-	# the asymmetric out-fast damping widens the view smoothly to meet it.
+	# RULE 2 zoom: fit every clamped position + margin. NO readability floor — the camera zooms out
+	# as far as the level's own camera bounds require, and clamped positions bound how far that is.
 	var z := minf(1920.0 / maxf(2.0 * ext.x, 1.0), 1080.0 / maxf(2.0 * ext.y, 1.0))
-	var lo := CAM_MIN_ZOOM
-	if aimer != null:
-		lo = maxf(lo, SUPER_BIAS_MIN_ZOOM)   # aim-fuse legibility
-	z = clampf(z, lo, CAM_MAX_ZOOM)
+	# RULE 6 zoom-in cap: never closer than showing cam_close_fraction of the camera-bounds extent,
+	# and never past the absolute CAM_MAX_ZOOM ceiling (which binds only on tiny arenas).
+	var close_w: float = maxf(camera_bounds.size.x * Tuning.cam_close_fraction, 1.0)
+	var close_h: float = maxf(camera_bounds.size.y * Tuning.cam_close_fraction, 1.0)
+	var z_cap := minf(minf(1920.0 / close_w, 1080.0 / close_h), CAM_MAX_ZOOM)
+	z = minf(z, z_cap)
 
-	# Fix 1: velocity leads the PAN (frame center), not the zoom. Nudge the center ahead of the
-	# cluster's weighted motion so a fast launch stays on-screen without inflating the zoom target.
-	# (The weighted cluster still biases the PAN toward the action even though the ZOOM now fits all
-	# living — so the frame leans into the fight without ever dropping an on-stage player.)
-	var vlead := Vector2.ZERO
-	var vwsum := 0.0
-	for i in range(cluster.size()):
-		vlead += cluster[i].velocity.limit_length(CAM_LEAD_CAP) * weights[i]
-		vwsum += weights[i]
-	vlead = (vlead / maxf(vwsum, 0.001)) * CAM_LEAD_TIME
-
-	# clamp the frame center so the visible rect stays inside bounds (never reveal the void)
+	# Outer guard: keep the visible rect inside the KILL bounds (never reveal past the blast lines).
+	# The clamped midpoint already keeps the target inside camera_bounds; this only binds when the
+	# viewport at this zoom is wider than the kill box itself.
 	var half := Vector2(1920.0, 1080.0) / (2.0 * z)
-	var cx: float = centroid.x + vlead.x
-	var cy: float = centroid.y + vlead.y
+	var cx: float = centroid.x
+	var cy: float = centroid.y
 	if bounds.size.x > 2.0 * half.x:
 		cx = clampf(cx, bounds.position.x + half.x, bounds.end.x - half.x)
 	else:
-		cx = bcenter.x
+		cx = bounds.get_center().x
 	if bounds.size.y > 2.0 * half.y:
 		cy = clampf(cy, bounds.position.y + half.y, bounds.end.y - half.y)
 	else:
-		cy = bcenter.y
+		cy = bounds.get_center().y
 	_camera.set_frame(Vector2(cx, cy), z)
 
 func stage_center() -> Vector2:
