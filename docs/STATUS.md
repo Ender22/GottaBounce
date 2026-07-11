@@ -143,9 +143,10 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   safe-area/type (P3, 64px tray inset + 28/40px stepper type); Options tick-gutter + centered panel;
   PauseMenu hint strip (inside the panel footer — designer caught the first placement overlapping a HUD corner)
   + two-press REALLY? confirm on QUIT/RESTART. Designer re-grade: PASS all items after the relocation.
-  STILL OPEN: circuit CREST art + de-clocked mode_trials.png diorama (art pipeline); ToyToggle knob scale
-  (P5-minor); CharacterSelect stepper focus treatment (designer F-class follow-up: nothing visibly reads as
-  focused while focus is in the settings strip).
+  ~~Circuit CREST art~~ + ~~de-clocked mode_trials.png~~ **DONE + committed 2026-07-11** (all 5 crests AD-graded —
+  Foundry re-rolled once for High-Wire style bleed; TRIALS diorama de-clocked via surgical edit, AD Ship).
+  STILL OPEN: ToyToggle knob scale (P5-minor); CharacterSelect stepper focus treatment (designer F-class
+  follow-up: nothing visibly reads as focused while focus is in the settings strip).
 - **CAMERA (repeated ~5x, owner rules now the acceptance spec):** `docs/feedback/owner_2026-07-10_camera_rules.md`.
   **REWORKED TO THE RULES + committed (see DECISIONS 2026-07-10):** camera_bounds = platform AABB +200; target =
   clamped midpoint of extreme players (cluster/weights/velocity-lead machinery deleted); zoom fits everyone (no
