@@ -14,6 +14,7 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `characters/bouncer_purple_idle.png` | SHIP-CANDIDATE | VEX (purple markhor, spiral horns) — P5 |
 | `characters/bouncer_orange_idle.png` | SHIP-CANDIDATE | BILLY (orange billy goat, beard) — P6 |
 | _(squash/charge poses)_ | ART PASS #2 | goat squash + horns-forward super-charge poses pending; old pink-blob squash retired |
+| `ui/portraits/portrait_{pogo,butch,ziggy,puff,vex,billy}.png` (x6) | SHIPPED | CharacterSelect beauty-pose busts (docs/briefs/character_select_busts.md), art-director SHIP all six 2026-07-11. Three-quarter front, ornate bone horns, waist-up-ish. Gen: brief §4 recipe (idle attached per hero + shared framing clause); raws in tools/out/portrait_*_raw.png. INTAKE GOTCHA: generations bake dark RGB junk into transparent px (invisible composited, but bilinear filtering bleeds halos) — defringed via normalized-convolution color bleed (scratchpad intake_portrait.py pattern) before trim. Pogo runs hotter magenta than the idle (accepted; re-roll only if a flair recolor narrows the Pogo–Vex gap). |
 | `world/grass/body_std.png` | SHIP-CANDIDATE | 1284x243, 3-slice 22/56/22, plain middle |
 | `world/grass/platform_wide.png` | hero-only | 914x335 whole-sprite (mid flowers = unsliceable) |
 | `world/tiers/mat_*.png` (x4) | SHIP-CANDIDATE | tier mats per brief; 3-slice 18/64/18; legend check passed |

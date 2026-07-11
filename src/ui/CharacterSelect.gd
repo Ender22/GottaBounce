@@ -10,6 +10,9 @@ extends MenuScreen
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
 const STEPPER := preload("res://scenes/ui/Stepper.tscn")
 const SPRITE := "res://assets/characters/bouncer_%s_idle.png"
+# Beauty-pose busts (docs/briefs/character_select_busts.md): portrait-first with idle fallback so a
+# partial set ships cleanly (staged rollout — a mixed grid of busts + idles is sanctioned).
+const PORTRAIT := "res://assets/ui/portraits/portrait_%s.png"
 
 const HEROES := [
 	{"id": "pogo", "name": "POGO", "skin": "pink", "color": Color("#ff5fa8"),
@@ -63,7 +66,7 @@ func _ready() -> void:
 		var card: Button = CARD.instantiate()
 		card.custom_minimum_size = Vector2(250, 250)
 		_grid.add_child(card)
-		var tex: Texture2D = _tex(h["skin"])
+		var tex: Texture2D = _tex_for(h)
 		card.set_card({
 			"name": h["name"], "tag": "", "color": h["color"], "art": tex,
 		})
@@ -178,7 +181,7 @@ func _apply_hero(i: int, animate: bool) -> void:
 	_set_banner_name(str(h["name"]))
 	_blurb.text = str(h["blurb"])
 	_recolor_stage(col)
-	var tex: Texture2D = _tex(h["skin"])
+	var tex: Texture2D = _tex_for(h)
 	if not animate:
 		_pose.texture = tex
 		return
@@ -471,6 +474,13 @@ func _play_flair_celebration(fid: String) -> void:
 func _tex(skin: Variant) -> Texture2D:
 	var p: String = SPRITE % str(skin)
 	return load(p) if ResourceLoader.exists(p) else null
+
+## Portrait-first art for a hero: the beauty bust when its asset exists, else the idle sprite.
+func _tex_for(h: Dictionary) -> Texture2D:
+	var p: String = PORTRAIT % str(h.get("id", ""))
+	if ResourceLoader.exists(p):
+		return load(p) as Texture2D
+	return _tex(h["skin"])
 
 func _index_of(arr: Array, v: Variant, fallback: int) -> int:
 	var idx := arr.find(v)

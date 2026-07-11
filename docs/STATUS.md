@@ -186,7 +186,10 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   TRIALS ModeSelect tagline de-clocked ("Fly the line. Land it, and you're home.").
 - Trials polish follow-ups (from v10 QA): per-COURSE pause restart (today RESTART = whole set); C-CAM watch — author
   multi-player parallel courses screen-scale-aware (>1-screen spread renders far players as edge arrows).
-- CharacterSelect beauty-pose busts (§2c, Pogo+Butch first — nice-to-have, screen ships on idles).
+- ~~CharacterSelect beauty-pose busts~~ **DONE + committed 2026-07-11 — ALL SIX, art-director SHIP.** Generated via
+  the ChatGPT paste-edit pipeline per the brief's §4 recipe; portrait-first/idle-fallback wired in CharacterSelect
+  (_tex_for). New intake gotcha documented in CATALOG.md: defringe transparent-pixel RGB junk before trim
+  (bilinear halo risk). Pogo hue runs hotter magenta than the idle — accepted with a re-roll condition.
 - More Brawl circuits + the 3 seed arenas; always-on-hazard pre-combat lethality guard; goat-on-logo (deferred, text-gen flaky).
 - **CONTENT INITIATIVE = LARGELY COMPLETE** (all 6 gimmick mechanics incl. moving_platform now done). Remaining BACKLOG
   (clearly scoped, none blocking): fuller batteries (the_bowl/minefield/the_crusher Sports pitches,
