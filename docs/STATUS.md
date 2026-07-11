@@ -164,6 +164,14 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   only visual channels are touched; Tuning byte-identical); ui-ux spot-grade (title font shrink at 40px, flair
   stepper 24px density); art-gated appendix (crown/palettes) unbuilt.
 
+- **ART PASS #2 (goat action poses) — DONE + committed 2026-07-11.** All 12 sprites (squash + horns-forward charge
+  x 6 heroes) generated, AD-graded FIX→SHIP (Billy charge re-rolled for color read; 4 squashes re-generated
+  flame-free; all-six-alive readability gate passed). Player.gd now runs a 3-pose priority swap: squash
+  (bounce window) > charge (super aim + 0.35s launch read) > idle — the super finally reads as a creature
+  charging horns-first, and squash swaps for ALL six (was pink-only). Logged: Puff's charge horn oversize
+  (next regen). The bouncer_*_super_aim.png separate aim-pose idea is superseded by the charge pose serving
+  both aim + launch.
+
 ## NEXT-UP BACKLOG (autonomous-safe; fresh-session ready)
 - CD minor items — DONE: minefield elevated mines now fire (proximity mines detect the ball; Bomb._ball_within, sports-scoped);
   Gauntlet solo lives was a non-issue (already 4 via CharacterSelect — CD saw a dev-launch default).

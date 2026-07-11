@@ -130,9 +130,12 @@ var _skin_flip: Node2D             # facing flip (scale.x = ±1), separate from 
 var _sprite: Sprite2D              # character sprite (idle / squash pose)
 var _dmg_overlay: Sprite2D         # crimson damage flush (lerp-to-red overlay), normal/alpha blend
 var _idle_tex: Texture2D
-var _squash_tex: Texture2D         # squash pose (pink only for now; null = scale-squash only)
+var _squash_tex: Texture2D         # squash pose (art pass #2; null = scale-squash only)
+var _charge_tex: Texture2D         # horns-forward super-charge pose (art pass #2; null = idle)
+var _charge_flight_t := 0.0        # keeps the charge pose through the super LAUNCH read (post-fire)
+const CHARGE_FLIGHT_TIME := 0.35   # s of horns-first read after the super fires (visual only)
 var _sprite_scale := 1.0
-var _using_squash := false
+var _pose := &"idle"               # current sprite pose: idle | squash | charge
 var _facing := 1
 var _shadow: Polygon2D             # contact shadow ellipse (top_level, sits on the surface below)
 var _anim_t := 0.0
@@ -250,6 +253,9 @@ func _ready() -> void:
 	var squash_path := "res://assets/characters/bouncer_%s_squash.png" % skin
 	if ResourceLoader.exists(squash_path):
 		_squash_tex = load(squash_path)
+	var charge_path := "res://assets/characters/bouncer_%s_charge.png" % skin
+	if ResourceLoader.exists(charge_path):
+		_charge_tex = load(charge_path)
 	_sprite = Sprite2D.new()
 	_sprite_scale = (2.2 * _radius) / (_idle_tex.get_width() * SPRITE_BALL_FRAC)
 	_apply_idle_sprite()
@@ -359,6 +365,15 @@ func _apply_squash_sprite() -> void:
 	var world_h := _squash_tex.get_height() * k
 	_sprite.offset = Vector2(-0.05 * _squash_tex.get_width(),
 		(_radius - world_h * 0.5) / k)
+
+## Horns-forward super-charge pose (art pass #2): shown while aiming + through the launch read.
+## Framed like the idle (ball centered on the collider), width-matched so the body size holds.
+func _apply_charge_sprite() -> void:
+	_sprite.texture = _charge_tex
+	var k := (_idle_tex.get_width() * _sprite_scale) / float(_charge_tex.get_width())
+	_sprite.scale = Vector2.ONE * k
+	_sprite.offset = Vector2((0.5 - SPRITE_BALL_CENTER.x) * _charge_tex.get_width(),
+		(0.5 - SPRITE_BALL_CENTER.y) * _charge_tex.get_height())
 
 func _make_exhaust(is_fire: bool) -> CPUParticles2D:
 	# Textureless in v0 (default square particles, scaled small) — texture wiring returns with art.
@@ -586,6 +601,7 @@ func _fire_super(auto_fired: bool) -> void:
 	var aim_time := _sb_aim_t
 	velocity += _sb_aim_dir * Tuning.super_boost_impulse_full * speed_mult
 	fuel = 0.0                    # drain-all identity (§1.2); Unlimited Boost refills via fuel_locked
+	_charge_flight_t = CHARGE_FLIGHT_TIME   # horns-first launch read (art pass #2, visual only)
 	_sb_aiming = false
 	_sb_aim_t = 0.0
 	_super_recent = Tuning.super_active_time
@@ -1197,15 +1213,24 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			sx *= 1.0 + coil
 			sy *= 1.0 - coil
 		_body.scale = Vector2(sx, sy)
-		# squash-pose swap on bounce (skins with a squash texture, currently pink)
+		# pose swap (art pass #2): squash (bounce window) > charge (super aim + launch read) > idle.
 		if _sprite:
-			var want_squash := _squash_timer > 0.0 and _squash_tex != null
-			if want_squash != _using_squash:
-				_using_squash = want_squash
-				if want_squash:
-					_apply_squash_sprite()
-				else:
-					_apply_idle_sprite()
+			if _charge_flight_t > 0.0:
+				_charge_flight_t = maxf(0.0, _charge_flight_t - delta)
+			var want: StringName = &"idle"
+			if _squash_timer > 0.0 and _squash_tex != null:
+				want = &"squash"
+			elif (_sb_aiming or _charge_flight_t > 0.0) and _charge_tex != null:
+				want = &"charge"
+			if want != _pose:
+				_pose = want
+				match want:
+					&"squash":
+						_apply_squash_sprite()
+					&"charge":
+						_apply_charge_sprite()
+					_:
+						_apply_idle_sprite()
 			# hit flash (FEEL §5.2) > Star rainbow (spec 3.3) > Black Hole silhouette (spec 3.6) >
 			# damage flush (docs/briefs/damage_pulse_visual.md: crimson overlay lerps body toward red).
 			if _flash_timer > 0.0:
