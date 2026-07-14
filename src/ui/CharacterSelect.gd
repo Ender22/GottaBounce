@@ -356,9 +356,12 @@ func _refresh_picker_flag() -> void:
 	if lbl is Label:
 		(lbl as Label).text = "P%d" % (_pick_idx + 1)
 
+var _launching := false   # one launch per screen life — repeated accepts can't double-fire
+
 func _go_arena() -> void:
-	if shell == null:
+	if shell == null or _launching:
 		return
+	_launching = true
 	if _trials:
 		# TRIALS skips ArenaSelect (courses are the mode's own authored set) and launches straight in.
 		# human_count comes from the HUMANS stepper (v10 multi-player-parallel), never bots.
@@ -393,6 +396,13 @@ func _go_arena() -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	super._unhandled_input(e)
 	if not _entered or _spinning:
+		return
+	# ALL READY: accept launches from ANYWHERE (couch-play fix 2026-07-14 — a focused hero card
+	# already launches via Button.pressed and consumes the event; this catches focus parked on the
+	# steppers/BACK, where the old flow silently ate the "(A) FIGHT!" press).
+	if _locked and (e.is_action_pressed("ui_accept") or e.is_action_pressed("menu_accept")):
+		accept_event()
+		_go_arena()
 		return
 	if e is InputEventKey and (e as InputEventKey).pressed and (e as InputEventKey).keycode == KEY_R:
 		_random_pick()
