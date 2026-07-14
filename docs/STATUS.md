@@ -4,7 +4,14 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-14 — **LOCAL 2-4 PLAYER COUCH PLAY SHIPPED** (owner + wife playtest unblocked): per-device
+**Last updated:** 2026-07-14 (evening) — **FIRST REAL COUCH PLAYTEST found 2 shell-input bugs, BOTH FIXED
+(commit 8bbf855):** (1) gamepad A was dead in EVERY menu — ui_accept had no joypad event (Godot 4 default is
+keyboard-only; the MenuScreen comment claiming A fires ui_accept was wrong) → JoypadButton 0 added via a
+ui_accept override in project.godot; (2) with all humans locked, the "(A) FIGHT!" accept was silently eaten
+unless a hero card held focus → CharacterSelect now launches on accept from any focus (+_launching guard).
+Validated rendered with injected pad-A-only input through the full TRIALS 2H flow (tools/out/dbg_A_*.png).
+CAVEAT: if a REAL pad still does nothing (not even d-pad menu navigation), the pad isn't detected at the
+OS/SDL layer — that's a different bug; get the controller model from the owner. — **LOCAL 2-4 PLAYER COUCH PLAY SHIPPED** (owner + wife playtest unblocked): per-device
 input (InputHuman runtime-cloned per-pad action sets, INV-8 held), HUMANS stepper in ALL four modes, sequential
 P1→P2 hero pick with per-picker cursor flag. Rendered-validated end-to-end (device-scoped intents proven, all 4
 modes spawn N humans, full UI flow to live match). — **SHIP-class four-mode party brawler** (creative-director full-game verdict:
