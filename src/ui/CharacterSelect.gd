@@ -29,6 +29,8 @@ const HEROES := [
 		"blurb": "Back in MY day the mountain was TALLER."},
 ]
 const P1_COLOR := Color("#ff5fa8")
+# pick-cursor flag colour per human slot (P1 pink, P2 blue, P3 green, P4 yellow)
+const PICKER_COLORS := [Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f")]
 
 @onready var _grid: GridContainer = $Grid
 @onready var _strip_row: HBoxContainer = $SettingsTray/StripRow
@@ -51,7 +53,9 @@ var _trials := false      # TRIALS is solo (no bot/kills/lives strip; lock-in la
 var _gauntlet := false    # GAUNTLET is solo too (waves spawn dynamically; lock-in launches directly)
 var _sports := false      # SPORTS is a team preset (1v1: 1 human + 1 bot; single mode-owned arena)
 var _current := 0
-var _locked := false
+var _locked := false          # true once EVERY human has locked a goat (ready to launch)
+var _pick_idx := 0            # which human is picking now (0-based)
+var _picked: Array[String] = []   # skins locked so far, one per human, pick order
 var _pose_rest := Vector2.ZERO
 var _idle_tween: Tween
 var _spinning := false
@@ -80,9 +84,22 @@ func _ready() -> void:
 	# its focus wiring; a hero lock-in launches the run directly (see _go_arena). BRAWL keeps the strip.
 	register(_back, 1.05)
 	if _trials or _gauntlet or _sports:
-		var tray := get_node_or_null("SettingsTray")
-		if tray != null:
-			(tray as CanvasItem).visible = false
+		# Couch co-op: these modes expose ONE stepper — HUMANS. Trials runs multi-player-parallel
+		# (v10), Gauntlet is shared-pool co-op, Sports at 2 humans = human-vs-human 1v1 (bots drop
+		# to 0 in _go_arena). The Brawl-only steppers (bots/kills/lives) stay out of the tray.
+		var cfg0: MatchConfig = GameConfig.match_config
+		var max_h: int = 2 if _sports else 4
+		cfg0.human_count = clampi(cfg0.human_count, 1, max_h)
+		var labels: Array = []
+		var vals: Array = []
+		for n in range(1, max_h + 1):
+			labels.append(str(n))
+			vals.append(n)
+		_add_stepper("HUMANS", labels, vals, cfg0.human_count - 1, _on_humans_simple)
+		wire_col(_steppers)
+		for i in range(3, _cards.size()):
+			_cards[i].focus_neighbor_bottom = _cards[i].get_path_to(_steppers[0])
+		_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
 	else:
 		var cfg: MatchConfig = GameConfig.match_config
 		_add_stepper("HUMANS", ["1", "2", "3", "4"], [1, 2, 3, 4], cfg.human_count - 1, _on_humans)
@@ -139,7 +156,7 @@ func activate(c: Control) -> void:
 		_lock_in(c)
 
 func on_back() -> void:
-	if _locked:
+	if _locked or not _picked.is_empty():
 		_unlock()
 	elif shell != null:
 		shell.go_back()
@@ -252,15 +269,30 @@ func _kill_idle() -> void:
 
 # ------------------------------------------------------------------ lock / random
 func _lock_in(card: Button) -> void:
-	_locked = true
 	var h: Dictionary = card.get_meta("hero")
+	var skin := str(h["skin"])
+	if skin in _picked:
+		# hero already taken by an earlier picker — soft deny boop, pick someone else
+		AudioManager.play_sfx("ui_click", {"pitch": 0.6, "volume_db": -8.0})
+		return
 	var cfg: MatchConfig = GameConfig.match_config
 	var skins := cfg.skin_ids
-	while skins.size() < 1:
+	while skins.size() <= _pick_idx:
 		skins.append("pink")
-	skins[0] = str(h["skin"])
+	skins[_pick_idx] = skin
 	cfg.skin_ids = skins
-	cfg.character_ids = PackedStringArray(["bouncer"])
+	var chars := cfg.character_ids
+	while chars.size() <= _pick_idx:
+		chars.append("bouncer")
+	chars[_pick_idx] = "bouncer"
+	cfg.character_ids = chars
+	_picked.append(skin)
+	var humans: int = _humans_now()
+	if _picked.size() >= humans:
+		_locked = true          # everyone picked — next accept launches
+	else:
+		_pick_idx = _picked.size()
+		_refresh_picker_flag()
 	(card as Object).call("show_check", true)
 	AudioManager.play_sfx("super_fire", {"volume_db": -4.0})   # the goat-roar callout (§3.4)
 	# pose jump on stage
@@ -269,46 +301,91 @@ func _lock_in(card: Button) -> void:
 	t.tween_property(_pose, "position:y", _pose_rest.y - 60.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.tween_property(_pose, "position:y", _pose_rest.y, 0.28).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 	t.chain().tween_callback(_start_idle)
+	if _locked:
+		_ready_prompt.text = "P1 READY — (A) FIGHT!" if _humans_now() <= 1 else "ALL READY — (A) FIGHT!"
+	else:
+		_ready_prompt.text = "P%d — PICK YOUR GOAT" % (_pick_idx + 1)
 	_ready_prompt.visible = true
 	_ready_prompt.modulate.a = 0.0
 	var tp := _ready_prompt.create_tween()
 	tp.tween_property(_ready_prompt, "modulate:a", 1.0, 0.2)
 
+## Revert the MOST RECENT pick (multi-human: hands the cursor back to that picker; solo: the
+## classic un-lock). Focus-move after the final lock and BACK both route here.
 func _unlock() -> void:
 	_locked = false
 	_ready_prompt.visible = false
-	if _current < _cards.size():
-		(_cards[_current] as Object).call("show_check", false)
+	if _picked.is_empty():
+		if _current < _cards.size():
+			(_cards[_current] as Object).call("show_check", false)
+		return
+	var skin: String = _picked.pop_back()
+	for c in _cards:
+		if c.has_meta("hero") and str((c.get_meta("hero") as Dictionary)["skin"]) == skin:
+			(c as Object).call("show_check", false)
+	_pick_idx = _picked.size()
+	_refresh_picker_flag()
+	if _pick_idx > 0:
+		_ready_prompt.text = "P%d — PICK YOUR GOAT" % (_pick_idx + 1)
+		_ready_prompt.visible = true
+
+## Reset ALL picks (HUMANS stepper changed mid-flow — start the pick round over).
+func _reset_picks() -> void:
+	_locked = false
+	_ready_prompt.visible = false
+	_picked.clear()
+	_pick_idx = 0
+	for c in _cards:
+		(c as Object).call("show_check", false)
+	_refresh_picker_flag()
+
+func _humans_now() -> int:
+	var cfg: MatchConfig = GameConfig.match_config
+	return clampi(cfg.human_count, 1, 2 if _sports else 4) if cfg != null else 1
+
+## Recolor the pick-cursor flag (+ its label) to the CURRENT picker's slot colour.
+func _refresh_picker_flag() -> void:
+	var col: Color = PICKER_COLORS[mini(_pick_idx, PICKER_COLORS.size() - 1)]
+	var fsb := StyleBoxFlat.new()
+	fsb.bg_color = col
+	fsb.border_color = MenuFX.CHOCO
+	fsb.set_border_width_all(3)
+	fsb.set_corner_radius_all(10)
+	_p1flag.add_theme_stylebox_override("panel", fsb)
+	var lbl := _p1flag.get_node_or_null("P1Label")
+	if lbl is Label:
+		(lbl as Label).text = "P%d" % (_pick_idx + 1)
 
 func _go_arena() -> void:
 	if shell == null:
 		return
 	if _trials:
 		# TRIALS skips ArenaSelect (courses are the mode's own authored set) and launches straight in.
+		# human_count comes from the HUMANS stepper (v10 multi-player-parallel), never bots.
 		var cfg: MatchConfig = GameConfig.match_config
 		cfg.mode_id = &"trials"
-		cfg.human_count = 1
+		cfg.human_count = _humans_now()
 		cfg.bot_count = 0
 		shell.launch_match()
 	elif _gauntlet:
-		# GAUNTLET skips ArenaSelect (single mode-owned arena) and launches straight in: solo, no config-
-		# time bots (waves spawn dynamically), and lives_per_player re-read as the DEFENDER LIFE POOL (4).
+		# GAUNTLET skips ArenaSelect (single mode-owned arena) and launches straight in: co-op up to
+		# the HUMANS stepper, no config-time bots (waves spawn dynamically), and lives_per_player
+		# re-read as the DEFENDER LIFE POOL (4).
 		var cfg: MatchConfig = GameConfig.match_config
 		cfg.mode_id = &"gauntlet"
-		cfg.human_count = 1
+		cfg.human_count = _humans_now()
 		cfg.bot_count = 0
 		cfg.lives_per_player = 4
 		shell.launch_match()
 	elif _sports:
-		# SPORTS: set the team preset here (1v1: 1 human + 1 bot = even total 2), then go to the
-		# court select (ArenaSelect in sports guise, one COURTS shelf) which assigns arena_mode +
-		# single_arena_path (a court ID; SportsMode resolves it) and launches. SportsMode overrides
-		# skins by team colorway + forces the runner economy inert; the goal cap comes from
-		# Tuning.sports_goal_target (split from kills_to_win).
+		# SPORTS: team preset stays a 1v1 total of 2 — 1 human + 1 bot, or human-vs-human when the
+		# HUMANS stepper says 2 (spawn plan splits the roster in half, so P1=team RED, P2=team BLUE).
+		# Then the court select (ArenaSelect in sports guise) assigns the court and launches.
+		# SportsMode overrides skins by team colorway; goal cap = Tuning.sports_goal_target.
 		var cfg: MatchConfig = GameConfig.match_config
 		cfg.mode_id = &"sports"
-		cfg.human_count = 1
-		cfg.bot_count = 1
+		cfg.human_count = _humans_now()
+		cfg.bot_count = 2 - cfg.human_count
 		shell.go_forward("arena")
 	else:
 		shell.go_forward("arena")
@@ -344,6 +421,12 @@ func _add_stepper(title: String, labels: Array, vals: Array, idx: int, cb: Calla
 func _on_humans(_i: int, v: Variant) -> void:
 	GameConfig.match_config.human_count = int(v)
 	_enforce_counts(true)
+	_reset_picks()   # picker roster changed — restart the pick round
+
+## HUMANS for the solo-first modes (Trials/Gauntlet/Sports): no bot invariant to enforce.
+func _on_humans_simple(_i: int, v: Variant) -> void:
+	GameConfig.match_config.human_count = int(v)
+	_reset_picks()
 
 func _on_bots(_i: int, v: Variant) -> void:
 	GameConfig.match_config.bot_count = int(v)

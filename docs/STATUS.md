@@ -4,7 +4,10 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-10 — **SHIP-class four-mode party brawler** (creative-director full-game verdict:
+**Last updated:** 2026-07-14 — **LOCAL 2-4 PLAYER COUCH PLAY SHIPPED** (owner + wife playtest unblocked): per-device
+input (InputHuman runtime-cloned per-pad action sets, INV-8 held), HUMANS stepper in ALL four modes, sequential
+P1→P2 hero pick with per-picker cursor flag. Rendered-validated end-to-end (device-scoped intents proven, all 4
+modes spawn N humans, full UI flow to live match). — **SHIP-class four-mode party brawler** (creative-director full-game verdict:
 purchasable, cohesive, core fantasy lands, no regressions — `docs/feedback/cd_2026-07-06_fullgame.md`).
 **2026-07-10 session:** the v10 TRIALS BINARY-COMPLETION rewrite (Pico-Park model, owner-directed) is BUILT + QA'd +
 COMMITTED — no clock/medal/par anywhere; all-must-finish multi-player-parallel for REACH_GOAL+SURVIVE; solo for the 4
@@ -123,6 +126,23 @@ Brawl circuits + Trials challenge-types + Sports pitches.
   self-healing sanitize; the "High Wire open while Scrapworks locked" impossible state is dead); (2) repaired the dirty DEV save
   (music was 0% → our playtests ran MUTED; now defaults music=1.0 + clean progression); (3) Sports match length 10→6 goals
   (`Tuning.sports_goal_target`, split from Brawl's knob); (4) audio verified FIRING (music + SFX). 
+
+## LOCAL MULTIPLAYER (couch play) — BUILT + validated 2026-07-14
+Two-to-four humans on one screen, all four modes, controllers supported:
+- **Input:** `InputHuman` now clones the authored `[input]` bindings into per-device action sets at runtime
+  (`boost__d1` = boost events re-scoped to pad 1) — bindings stay in project.godot (INV-8), rebinds flow to all
+  players. Assignment (`InputHuman.for_human`): enough pads → human i gets pad i, P1 also keeps keyboard; fewer
+  pads → P1 keyboard, P2+ take pads in connect order. Solo play byte-for-byte unchanged (legacy any-device path).
+- **Modes:** BRAWL uses its existing HUMANS stepper; TRIALS (multi-player-parallel), GAUNTLET (co-op, shared
+  4-life pool), SPORTS (HUMANS 2 = human-vs-human 1v1, P1 RED vs P2 BLUE) now expose a HUMANS stepper too.
+- **CharacterSelect:** sequential pick — P1 locks, cursor flag recolors to P2 (blue) with "P2 — PICK YOUR GOAT",
+  duplicate heroes soft-denied, BACK reverts the last pick, HUMANS change resets the round.
+- **Evidence:** device-scoped poll proof (injected device-1 stick read ONLY by the device-1 poller), per-player
+  intent split in a live 2H brawl (P2 boost=true while P1 idle, and keyboard → P1 only), spawn counts + team
+  split verified in all 4 modes, full real-input UI flow to a live pink-vs-blue match (tools/out/2p_*.png).
+- **NOT yet covered:** no physical gamepad existed on the dev box — pad events were injected. The pad-assignment
+  mapping is 8 straightforward lines but the first REAL two-controller session is the owner's playtest. If a pad
+  misbehaves: pads are assigned in `Input.get_connected_joypads()` order; check Windows sees both pads first.
 
 ## ⚠ NEEDS OWNER (flagged, NOT auto-changed)
 - **BRAWL kill target — RESOLVED 2026-07-06: owner locked 10.** CD/QA had recommended ~7, but owner's ruling: Brawl is the

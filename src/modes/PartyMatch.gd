@@ -233,7 +233,8 @@ func _spawn_player(i: int, desc: Dictionary) -> void:
 	if sd > 0 and p.has_method("seed_damage"):
 		p.seed_damage(sd)
 	if bool(desc.get("human", false)):
-		p.set_provider(InputHuman.new())
+		# every mode's spawn plan lists humans FIRST, so slot i == human index for device assignment
+		p.set_provider(InputHuman.for_human(i, _config.human_count if _config != null else 1))
 		p.add_to_group("human")
 	else:
 		p.set_provider(InputBot.new(p, self, int(desc.get("bot_level", 2))))
