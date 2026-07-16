@@ -1,7 +1,7 @@
 extends MenuScreen
-## ModeSelect — "CHOOSE YOUR GAME" (frontend_ux_spec §2.2). BRAWL is the one live card; Trials /
-## Gauntlet / Sports are gorgeous COMING-SOON cards (ribbon + still-colored + playful locked wiggle
-## and a "Coming soon!" toast), never disabled-grey dead ends.
+## ModeSelect — "CHOOSE YOUR GAME" (frontend_ux_spec §2.2). Three live cards: BRAWL / TRIALS /
+## SPORTS. (GAUNTLET removed by owner ruling 2026-07-16 — see DECISIONS.md.) A future "soon" card
+## renders as a gorgeous COMING-SOON card (ribbon + wiggle + toast), never a disabled-grey dead end.
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
 
@@ -10,8 +10,6 @@ const MODES := [
 		"color": Color("#ff5fa8"), "glyph": "B", "soon": false},
 	{"id": "trials", "name": "TRIALS", "tag": "Fly the line. Land it, and you're home.",
 		"color": Color("#4aa8ff"), "glyph": "T", "soon": false},
-	{"id": "gauntlet", "name": "GAUNTLET", "tag": "Hold the line. They keep coming, you keep flying.",
-		"color": Color("#a15fff"), "glyph": "G", "soon": false},
 	{"id": "sports", "name": "SPORTS", "tag": "Headbutt the ball, not each other. (Okay, each other too.)",
 		"color": Color("#ff7a2d"), "glyph": "S", "soon": false},
 ]
@@ -21,7 +19,6 @@ const MODES := [
 const MODE_ART := {
 	"brawl": preload("res://assets/ui/modes/mode_brawl.png"),
 	"trials": preload("res://assets/ui/modes/mode_trials.png"),
-	"gauntlet": preload("res://assets/ui/modes/mode_gauntlet.png"),
 	"sports": preload("res://assets/ui/modes/mode_sports.png"),
 }
 

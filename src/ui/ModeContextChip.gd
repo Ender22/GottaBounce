@@ -7,7 +7,6 @@ extends PanelContainer
 const MODES := {
 	&"brawl": {"name": "BRAWL", "color": Color("#ff5fa8")},
 	&"trials": {"name": "TRIALS", "color": Color("#4aa8ff")},
-	&"gauntlet": {"name": "GAUNTLET", "color": Color("#a15fff")},
 	&"sports": {"name": "SPORTS", "color": Color("#ff7a2d")},
 }
 const ART_DIR := "res://assets/ui/modes"

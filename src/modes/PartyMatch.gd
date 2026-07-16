@@ -54,7 +54,6 @@ const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 const MODE_REGISTRY := {
 	&"brawl": preload("res://src/modes/BrawlMode.gd"),
 	&"trials": preload("res://src/modes/TrialsMode.gd"),
-	&"gauntlet": preload("res://src/modes/GauntletMode.gd"),
 	&"sports": preload("res://src/modes/SportsMode.gd"),
 }
 # Front-end shell hooks (v1_frontend_shell §5): pause overlay + return-to-menu on quit.

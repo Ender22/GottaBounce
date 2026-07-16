@@ -50,7 +50,6 @@ var _steppers: Array = []
 var _flair_vals: Array = []        # stepper vals: "" (NONE), unlocked ids, "__locked" tease sentinel
 var _pending_flair := ""           # consume-once celebration id (taken in _ready, fired in enter())
 var _trials := false      # TRIALS is solo (no bot/kills/lives strip; lock-in launches the run directly)
-var _gauntlet := false    # GAUNTLET is solo too (waves spawn dynamically; lock-in launches directly)
 var _sports := false      # SPORTS is a team preset (1v1: 1 human + 1 bot; single mode-owned arena)
 var _current := 0
 var _locked := false          # true once EVERY human has locked a goat (ready to launch)
@@ -62,7 +61,6 @@ var _spinning := false
 
 func _ready() -> void:
 	_trials = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"trials"
-	_gauntlet = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"gauntlet"
 	_sports = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"sports"
 	# build the 2x3 hero grid
 	for i in range(HEROES.size()):
@@ -83,10 +81,10 @@ func _ready() -> void:
 	# match-settings strip. TRIALS is solo (1 human, no bots, no kill target) — HIDE the strip and skip
 	# its focus wiring; a hero lock-in launches the run directly (see _go_arena). BRAWL keeps the strip.
 	register(_back, 1.05)
-	if _trials or _gauntlet or _sports:
+	if _trials or _sports:
 		# Couch co-op: these modes expose ONE stepper — HUMANS. Trials runs multi-player-parallel
-		# (v10), Gauntlet is shared-pool co-op, Sports at 2 humans = human-vs-human 1v1 (bots drop
-		# to 0 in _go_arena). The Brawl-only steppers (bots/kills/lives) stay out of the tray.
+		# (v10), Sports at 2 humans = human-vs-human 1v1 (bots drop to 0 in _go_arena). The
+		# Brawl-only steppers (bots/kills/lives) stay out of the tray.
 		var cfg0: MatchConfig = GameConfig.match_config
 		var max_h: int = 2 if _sports else 4
 		cfg0.human_count = clampi(cfg0.human_count, 1, max_h)
@@ -115,7 +113,7 @@ func _ready() -> void:
 		_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
 
 	# v11 FLAIR track (§5.4): stepper + KO-tally chip live on the STAGE, so they exist in ALL modes
-	# (the SettingsTray hides for Trials/Gauntlet/Sports; the stage never does). Consume the pending
+	# (the SettingsTray hides for Trials/Sports; the stage never does). Consume the pending
 	# unlock NOW; enter() fires the one-shot celebration after the stagger (ArenaSelect pattern §5.5).
 	_setup_flair()
 	_pending_flair = Settings.take_pending_flair_unlock()
@@ -370,16 +368,6 @@ func _go_arena() -> void:
 		cfg.human_count = _humans_now()
 		cfg.bot_count = 0
 		shell.launch_match()
-	elif _gauntlet:
-		# GAUNTLET skips ArenaSelect (single mode-owned arena) and launches straight in: co-op up to
-		# the HUMANS stepper, no config-time bots (waves spawn dynamically), and lives_per_player
-		# re-read as the DEFENDER LIFE POOL (4).
-		var cfg: MatchConfig = GameConfig.match_config
-		cfg.mode_id = &"gauntlet"
-		cfg.human_count = _humans_now()
-		cfg.bot_count = 0
-		cfg.lives_per_player = 4
-		shell.launch_match()
 	elif _sports:
 		# SPORTS: team preset stays a 1v1 total of 2 — 1 human + 1 bot, or human-vs-human when the
 		# HUMANS stepper says 2 (spawn plan splits the roster in half, so P1=team RED, P2=team BLUE).
@@ -433,7 +421,7 @@ func _on_humans(_i: int, v: Variant) -> void:
 	_enforce_counts(true)
 	_reset_picks()   # picker roster changed — restart the pick round
 
-## HUMANS for the solo-first modes (Trials/Gauntlet/Sports): no bot invariant to enforce.
+## HUMANS for the solo-first modes (Trials/Sports): no bot invariant to enforce.
 func _on_humans_simple(_i: int, v: Variant) -> void:
 	GameConfig.match_config.human_count = int(v)
 	_reset_picks()
