@@ -23,10 +23,12 @@ const BUSES := {"master": "Master", "music": "Music", "sfx": "SFX"}
 # Retention layer: circuits unlock as you play. The unlock chain ORDER lives in circuits.json
 # (top-level "order") so progression reads DATA, not a hardcoded chain. Trigger = mastery-first with a
 # pity fallback: circuit N+1 unlocks when circuit N is WON, OR after UNLOCK_PITY_MATCHES plays of N
-# (whichever first). The base (first-in-order) circuit is always unlocked. BRAWL-only; other modes and
-# the SINGLE/RANDOM sandbox never gate.
+# (whichever first). The first FREE_CIRCUITS circuits in the chain are always unlocked (owner ruling
+# 2026-07-16: at least 3 party circuits available at launch; only 4+ gate). BRAWL-only; other modes
+# and the SINGLE/RANDOM sandbox never gate.
 const CIRCUITS_PATH := "res://levels/circuits.json"
 const UNLOCK_PITY_MATCHES := 3
+const FREE_CIRCUITS := 3   # first N circuits in circuits.json "order" are launch-unlocked
 
 # --- SPORTS court unlock (v8_sports_courts.md §4.3) --- Sports courts unlock through the SAME
 # [progression] block. A court's "unlock" rule (from sports_courts.json) is one of: "always"; a
@@ -159,8 +161,8 @@ func _sanitize_progression() -> void:
 		var cid := str(order[i])
 		if not circuits_cleared.has(cid):
 			continue
-		if i == 0:
-			clean.append(cid)   # base circuit is always unlockable
+		if i < FREE_CIRCUITS:
+			clean.append(cid)   # launch-unlocked prefix is always unlockable
 			continue
 		var pred := str(order[i - 1])
 		var pred_ok: bool = clean.has(pred) or int(_circuit_plays.get(pred, 0)) >= UNLOCK_PITY_MATCHES
@@ -233,8 +235,9 @@ func record_match_result(circuit_id: String, won: bool) -> void:
 			break
 	_save()
 
-## True if a circuit is playable: the base (first-in-order) is always unlocked; any other is unlocked
-## once its PREDECESSOR in the chain is WON (in circuits_cleared) OR played UNLOCK_PITY_MATCHES times.
+## True if a circuit is playable: the first FREE_CIRCUITS in the chain are always unlocked (owner
+## ruling 2026-07-16); any later one is unlocked once its PREDECESSOR in the chain is WON (in
+## circuits_cleared) OR played UNLOCK_PITY_MATCHES times.
 ## A circuit not present in the order chain is treated as ungated (true) -- SINGLE/RANDOM never call this.
 ##
 ## PREFIX-INTEGRITY GUARD (CD 2026-07-06 #3): the unlock walk is RECURSIVE — a circuit is unlocked only
@@ -246,8 +249,8 @@ func record_match_result(circuit_id: String, won: bool) -> void:
 func is_circuit_unlocked(circuit_id: String) -> bool:
 	var order := _get_circuit_order()
 	var idx := order.find(circuit_id)
-	if idx <= 0:
-		return true   # base circuit (index 0) or not in the chain -> ungated
+	if idx < FREE_CIRCUITS:
+		return true   # launch-unlocked prefix (or not in the chain, find() = -1) -> ungated
 	var pred := str(order[idx - 1])
 	if not is_circuit_unlocked(pred):
 		return false  # predecessor not genuinely reachable -> this one can't be either
