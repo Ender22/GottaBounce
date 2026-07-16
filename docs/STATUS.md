@@ -4,7 +4,13 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-14 (evening) — **FIRST REAL COUCH PLAYTEST found 2 shell-input bugs, BOTH FIXED
+**Last updated:** 2026-07-16 — **OWNER DIRECTION NIGHT (big list, in progress):** GAUNTLET MODE REMOVED
+(e12f6c6, owner ruling — DECISIONS 2026-07-16; ModeSelect = 3 live cards, gauntlet ARENAS kept for Mayhem
+Mile) + FIRST 3 CIRCUITS LAUNCH-UNLOCKED (6717bed, Settings.FREE_CIRCUITS=3, validated [T,T,T,F,F] live).
+STILL QUEUED from the same owner message: player head-bounce (Mario coop style), ~20% easier upward flight,
+Duck-Game-style between-stage score screen (research done — see task notes), 4 new Trials circuits
+(tutorial/navigation+keys/soccer/physics+cannons), CharacterSelect settings-tray redesign (owner: "terrible
+looking", + focus sits invisibly on steppers eating pad-A), bots must never share a human's color. — **FIRST REAL COUCH PLAYTEST found 2 shell-input bugs, BOTH FIXED
 (commit 8bbf855):** (1) gamepad A was dead in EVERY menu — ui_accept had no joypad event (Godot 4 default is
 keyboard-only; the MenuScreen comment claiming A fires ui_accept was wrong) → JoypadButton 0 added via a
 ui_accept override in project.godot; (2) with all humans locked, the "(A) FIGHT!" accept was silently eaten

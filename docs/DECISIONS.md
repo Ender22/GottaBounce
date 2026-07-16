@@ -2,6 +2,23 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-16** GAUNTLET MODE REMOVED (owner ruling, verbatim: "it doesnt really work at all and i dont
+  understand what the idea is for it, it doesnt seem to fit the overall plans"). Deleted: GauntletMode.gd,
+  GauntletHUD (.gd/.tscn), levels/gauntlet_waves.json, mode_gauntlet.png diorama, the ModeSelect card, and
+  every mode_id==&"gauntlet" branch (CharacterSelect/ModeContextChip/PartyMatch registry). KEPT: the
+  gauntlet_* ARENA level JSONs + thumbs (they are Brawl arenas in the Mayhem Mile pool — only the mode died),
+  and the generic wave_spawn_plan()/_despawn_bots() runner seam (mode-agnostic infrastructure; SportsMode
+  docs reference the pattern). v4_gauntlet_mode.md spec stands as historical record, superseded. ModeSelect
+  is now 3 live cards (BRAWL/TRIALS/SPORTS). Reopen ONLY on explicit owner request for a survival mode —
+  and then as a fresh design against GAME_ESSENCE, not a resurrection of this implementation.
+
+- **2026-07-16** LAUNCH-UNLOCKED CIRCUIT PREFIX = 3 (owner ruling: "at least 3 of the party mode circuits
+  available at launch with only 4+ ones locked"). `Settings.FREE_CIRCUITS = 3` — the first 3 circuits in
+  circuits.json `order` (meadow_mile/scrapworks/high_wire) are always unlocked; the_foundry unlocks by
+  winning/pity-playing high_wire, mayhem_mile by the_foundry (chain unchanged past the free prefix).
+  _sanitize_progression treats the free prefix as always-unlockable. Supersedes the v6 §4 "base circuit
+  only" rule. Validated live: fresh-ish save shows exactly [T,T,T,F,F] + ArenaSelect ribbons match.
+
 - **2026-07-10** CAMERA = OWNER RULES (supersedes `camera_2x_policy.md`'s action-cluster + velocity-lead +
   0.60 readability-floor model; the owner rejected that lineage ~5 times — players off-screen on wide spreads,
   frame "flying left and right"). New model (`docs/feedback/owner_2026-07-10_camera_rules.md` is the acceptance
