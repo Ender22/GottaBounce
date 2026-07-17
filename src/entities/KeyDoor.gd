@@ -8,11 +8,13 @@ extends StaticBody2D
 ## {"type":"key_door","x","y","w","h","door":"<id>"} — x,y = TOP-LEFT (platform convention); door
 ## defaults "" (pairs with default-id keys).
 ##
-## ART-DEBT: body = tiled crate sprite tinted steel-blue + a code lock emblem (telegraph). A proper
-## door sprite is a next-art-pass item.
+## Body = the bespoke vault-panel tile (assets/objects/door_tile.png, 2026-07-17 art pass: glossy
+## navy plate + corner rivets + X brace) tiled over w x h; falls back to the tinted crate assembly
+## if the tile is missing. Code lock emblem stays as the locked telegraph.
 
 const LAYER_SURFACES := 1 << 2
 const CRATE_TEX: Texture2D = preload("res://assets/objects/crate.png")
+const DOOR_TEX_PATH := "res://assets/objects/door_tile.png"
 const STEEL_TINT := Color(0.62, 0.70, 0.88)
 const GOLD := Color(1.0, 0.82, 0.25, 0.95)
 
@@ -23,6 +25,7 @@ var open: bool = false
 var _t: float = 0.0
 var _cs: CollisionShape2D
 var _open_anim: float = 0.0   # 1 -> 0 while the opening pop plays
+var _door_tex: Texture2D = null   # bespoke vault-panel tile (null -> crate fallback)
 
 func setup_from_json(o: Dictionary) -> void:
 	w = float(o.get("w", 120.0))
@@ -32,6 +35,8 @@ func setup_from_json(o: Dictionary) -> void:
 
 func _ready() -> void:
 	add_to_group("key_door")
+	if ResourceLoader.exists(DOOR_TEX_PATH):
+		_door_tex = load(DOOR_TEX_PATH)
 	collision_layer = LAYER_SURFACES
 	collision_mask = 0
 	set_meta("bumper", true)   # honest ricochet off a locked door (existing bumper path, no refund rules changed)
@@ -79,19 +84,21 @@ func _draw() -> void:
 		return
 	var alpha := _open_anim if open else 1.0
 	var spread := (1.0 - alpha) * 60.0 if open else 0.0
-	# tiled crate body (sprite body per the no-code-drawn rule; tint reads "locked steel")
+	# body: bespoke vault-panel tile (square segments filling w x h); crate-tint fallback if absent
+	var body_tex: Texture2D = _door_tex if _door_tex != null else CRATE_TEX
+	var tint := Color(1, 1, 1, alpha) if _door_tex != null \
+		else Color(STEEL_TINT.r, STEEL_TINT.g, STEEL_TINT.b, alpha)
 	var tile := minf(w, 128.0)
 	var cols := maxi(1, int(ceil(w / tile)))
 	var rows := maxi(1, int(ceil(h / tile)))
 	var tw := w / float(cols)
 	var th := h / float(rows)
-	var tint := Color(STEEL_TINT.r, STEEL_TINT.g, STEEL_TINT.b, alpha)
 	for cy in range(rows):
 		for cx in range(cols):
 			var jitter := Vector2(0, 0)
 			if open:
 				jitter = Vector2(sin(float(cx * 7 + cy * 13)) * spread, -spread * (0.5 + 0.5 * float(cy) / float(rows)))
-			draw_texture_rect(CRATE_TEX,
+			draw_texture_rect(body_tex,
 				Rect2(Vector2(-w * 0.5 + cx * tw, -h * 0.5 + cy * th) + jitter, Vector2(tw, th)), false, tint)
 	if not open:
 		# lock emblem telegraph (code OK): pulsing gold ring + keyhole at the door center

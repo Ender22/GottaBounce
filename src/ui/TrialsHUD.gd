@@ -20,6 +20,7 @@ var _center_tw: Tween
 var _top_tw: Tween
 var _skin_colors: Array = []   # per-participant skin color (from setup), drives the pip fill
 
+@onready var _home_panel: PanelContainer = $Root/HomePanel
 @onready var _home_label: Label = $Root/HomePanel/HomeBox/HomeLabel
 @onready var _sub_label: Label = $Root/HomePanel/HomeBox/SubLabel
 @onready var _pips_row: HBoxContainer = $Root/HomePanel/HomeBox/PipsRow
@@ -85,27 +86,32 @@ func _process(_delta: float) -> void:
 	var otype := "REACH_GOAL"
 	if mode.has_method("objective_type"):
 		otype = str(mode.objective_type())
-	_update_home(mode, otype)
+	var n := _update_home(mode, otype)
 	_update_sub(mode, otype)
 	_update_fuel()
+	# SOLO (owner 2026-07-17: a permanent "GO" is not a HUD element): the home tracker and its pip
+	# are hidden — the panel carries only the course hint, and vanishes entirely when there is none.
+	_sub_label.visible = _sub_label.text != ""
+	_home_panel.visible = n > 1 or _sub_label.text != ""
 
-## The HOME tracker: "n of N HOME" (or "GO"/"HOME!" for a single player) + one skin-colored pip per
-## participant, filled by player_done (or SURVIVE progress). This is the primary readout for every type.
-func _update_home(mode, otype: String) -> void:
+## The HOME tracker: "n of N HOME" + one skin-colored pip per participant, filled by player_done
+## (or SURVIVE progress) — MULTIPLAYER ONLY (owner 2026-07-17: solo showed a permanent "GO", which
+## is a countdown word, not a HUD element; solo gets no tracker at all). Returns participant count.
+func _update_home(mode, otype: String) -> int:
 	var n := 0
 	if mode.has_method("participant_count"):
 		n = int(mode.participant_count(_runner))
 	var home := 0
 	if mode.has_method("home_count"):
 		home = int(mode.home_count(_runner))
-	if n <= 1:
-		_home_label.text = "HOME!" if home >= 1 else "GO"
-	else:
+	var solo := n <= 1
+	_home_label.visible = not solo
+	if not solo:
 		_home_label.text = "%d of %d  HOME" % [home, n]
 	for i in range(MAX_PIPS):
 		var pip: Dictionary = _pips[i]
 		var root: Panel = pip["root"]
-		if i >= n:
+		if solo or i >= n:
 			root.visible = false
 			continue
 		root.visible = true
@@ -118,6 +124,7 @@ func _update_home(mode, otype: String) -> void:
 		else:
 			ratio = 1.0 if done else 0.0
 		_paint_pip(pip, i, ratio, done)
+	return n
 
 ## Paint one pip: a skin-colored fill rising from the bottom by `ratio`; a full/done pip locks to gold.
 func _paint_pip(pip: Dictionary, idx: int, ratio: float, done: bool) -> void:

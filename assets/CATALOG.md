@@ -20,6 +20,9 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `world/grass/body_std.png` | SHIP-CANDIDATE | 1284x243, 3-slice 22/56/22, plain middle |
 | `world/grass/platform_wide.png` | hero-only | 914x335 whole-sprite (mid flowers = unsliceable) |
 | `world/tiers/mat_*.png` (x4) | SHIP-CANDIDATE | tier mats per brief; 3-slice 18/64/18; legend check passed |
+| `objects/cannon.png` | SHIP-CANDIDATE | 2026-07-17 rideable-cannon body (trials circuit 4); whole toy rocks around its mount in Cannon.gd (BAKED_ANGLE -30deg, PIVOT_FRAC 0.44/0.55); graded in-game on p4_cannon_school |
+| `objects/key.png` | SHIP-CANDIDATE | 2026-07-17 gold key collectible (trials circuit 2); drawn centred by aspect in KeyToken (halo/flash stay code VFX); graded in-game on n2_locksmith |
+| `objects/door_tile.png` | SHIP-CANDIDATE | 2026-07-17 vault-panel TILE (full-bleed 488px, alpha flattened opaque, 6px edge crop); KeyDoor tiles it w x h; gold lock ring stays code telegraph |
 | `world/bumper_post.png` | SHIP-CANDIDATE | 208x1003 vertical 3-slice |
 | `world/trampoline_blue.png` | prop | standalone trampoline prop (NOT the tier mat) |
 | `bg/sky_grass_day.png` | SHIP-CANDIDATE | 1672x941 opaque, layer-1 sky |
@@ -60,3 +63,5 @@ click image → viewer → download icon top-right; verify Downloads timestamp B
 - bouncer_pink_idle exact prompt recorded in git history of this file.
 - For pose variants: attach the existing sprite and ask for "the same exact character, same style, now [pose]".
 - Intake: `python tools/art.py trim <dl> <dest>` then `check`. Keyout only if alpha missing.
+
+- 2026-07-17 objects batch (ChatGPT, style_north_star attached): cannon = "cartoon toy CANNON ... chunky rounded steel barrel with glossy navy-blue metal bands and rivets, wide round muzzle ring ... on a small steel pivot ball mount. little gold star emblem" + base suffix, wide landscape. First take baked a dark backdrop panel INSIDE the subject bbox (corners were transparent so keyout can't reach it) — the fix was a regen asking for "ZERO background ... every pixel outside the cannon fully transparent", which worked. key = "cartoon golden KEY ... big circular bow with a star-shaped hole, thick shaft, two fat square teeth" + suffix. door_tile = "square VAULT DOOR PANEL tile ... TILING texture segment, plain and evenly repeating, no keyhole, plate fills the ENTIRE square edge to edge" (then 6px edge crop + alpha flatten for seamless tiling).

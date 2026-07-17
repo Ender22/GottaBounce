@@ -25,6 +25,9 @@ var r: float = 46.0
 var door_id: String = ""
 var collected: bool = false
 var _tex: Texture2D = TOKEN_TEX
+var _is_key_art := false   # true when the bespoke key sprite exists (2026-07-17 art pass) —
+                           # drawn centred by its own aspect; the tinted-coin fallback keeps the
+                           # old coin-geometry pinning + code keyhole emblem
 var _t: float = 0.0
 var _flash: float = 0.0
 
@@ -40,6 +43,7 @@ func _ready() -> void:
 	monitoring = true
 	if ResourceLoader.exists(KEY_TEX_PATH):
 		_tex = load(KEY_TEX_PATH)
+		_is_key_art = true
 	var cs := CollisionShape2D.new()
 	var c := CircleShape2D.new()
 	c.radius = r
@@ -81,6 +85,12 @@ func _draw() -> void:
 	var c := Vector2(0.0, bob)
 	var pulse := 1.0 + 0.06 * sin(_t * 5.0)
 	draw_circle(c, (r + 10.0) * pulse, Color(1.0, 0.8, 0.3, 0.16))   # halo (code VFX)
+	if _is_key_art:
+		# bespoke gold key sprite: width spans ~2.6r, height by its own aspect, no tint needed
+		var w := r * 2.6
+		var h := w * (float(_tex.get_height()) / maxf(1.0, float(_tex.get_width())))
+		draw_texture_rect(_tex, Rect2(c - Vector2(w * 0.5, h * 0.5), Vector2(w, h)), false)
+		return
 	var scale_u := (2.0 * r) / TOKEN_COIN_DIAM
 	var tl := c - Vector2(TOKEN_COIN_CX * scale_u, TOKEN_COIN_CY * scale_u)
 	draw_texture_rect(_tex, Rect2(tl, Vector2(TOKEN_TEX_W * scale_u, TOKEN_TEX_H * scale_u)), false, KEY_TINT)

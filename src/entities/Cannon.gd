@@ -14,12 +14,17 @@ extends Area2D
 ##  "hold_s":1.0,"r":70} — x,y = pivot CENTER; angles in DEGREES, screen-space (y down, so -90 = up).
 ## angle_min == angle_max = a FIXED barrel (pure ride, no timing read).
 ##
-## ART-DEBT: barrel = crusher steel sprite stretched + wrecking-ball pivot (existing Glossy Toybox
-## steel family); a bespoke cannon sprite is a next-art-pass item (assets/objects/cannon.png).
+## Body = the bespoke toy-cannon sprite (assets/objects/cannon.png, 2026-07-17 art pass: glossy
+## navy barrel + gold muzzle + red base). The WHOLE toy rocks around its mount to aim (the sprite's
+## barrel is baked at BAKED_ANGLE; we rotate by the difference). Crusher-steel assembly remains the
+## fallback if the sprite is missing.
 
 const MASK_PLAYERS := 1 << 0
 const BARREL_TEX: Texture2D = preload("res://assets/hazards/crusher.png")
 const PIVOT_TEX: Texture2D = preload("res://assets/hazards/wrecking_ball.png")
+const CANNON_TEX_PATH := "res://assets/objects/cannon.png"
+const BAKED_ANGLE := -0.52          # ~-30 deg: the barrel angle baked into the sprite (screen space)
+const PIVOT_FRAC := Vector2(0.44, 0.55)   # the mount point inside the sprite (fraction of w/h)
 
 var angle_min := -80.0        # degrees
 var angle_max := -10.0
@@ -34,6 +39,7 @@ var _rider = null             # captured Player (or null)
 var _hold_t := 0.0
 var _cooldown := 0.0          # per-cannon re-capture lockout after firing
 var _flash := 0.0
+var _tex: Texture2D = null    # bespoke cannon sprite (null -> steel-assembly fallback)
 
 func setup_from_json(o: Dictionary) -> void:
 	position = Vector2(float(o.get("x", 0.0)), float(o.get("y", 0.0)))
@@ -47,6 +53,8 @@ func setup_from_json(o: Dictionary) -> void:
 
 func _ready() -> void:
 	add_to_group("cannon")
+	if ResourceLoader.exists(CANNON_TEX_PATH):
+		_tex = load(CANNON_TEX_PATH)
 	collision_layer = 0
 	collision_mask = MASK_PLAYERS
 	monitoring = true
@@ -120,15 +128,22 @@ func _draw() -> void:
 	if not is_equal_approx(angle_min, angle_max):
 		var col := Color(1.0, 0.82, 0.25, 0.5 if _rider != null else 0.22)
 		draw_arc(Vector2.ZERO, barrel_len + 26.0, deg_to_rad(angle_min), deg_to_rad(angle_max), 40, col, 6.0, true)
-	# barrel: steel sprite stretched along the aim (sprite body per the art rule)
-	var bw := barrel_len
-	var bh := 86.0
-	draw_set_transform(Vector2.ZERO, ang, Vector2.ONE)
-	draw_texture_rect(BARREL_TEX, Rect2(Vector2(-24.0, -bh * 0.5), Vector2(bw + 24.0, bh)), false)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	# pivot ball over the barrel root
-	var ps := 120.0
-	draw_texture_rect(PIVOT_TEX, Rect2(Vector2(-ps * 0.5, -ps * 0.5), Vector2(ps, ps)), false)
+	if _tex != null:
+		# bespoke toy cannon: the whole sprite rocks around its mount by (aim - baked barrel angle)
+		var th := (barrel_len + 90.0) * 1.05
+		var tw := th * (float(_tex.get_width()) / maxf(1.0, float(_tex.get_height())))
+		draw_set_transform(Vector2.ZERO, ang - BAKED_ANGLE, Vector2.ONE)
+		draw_texture_rect(_tex, Rect2(-Vector2(tw * PIVOT_FRAC.x, th * PIVOT_FRAC.y), Vector2(tw, th)), false)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	else:
+		# fallback: steel assembly (barrel = crusher sprite along the aim + pivot ball at the root)
+		var bw := barrel_len
+		var bh := 86.0
+		draw_set_transform(Vector2.ZERO, ang, Vector2.ONE)
+		draw_texture_rect(BARREL_TEX, Rect2(Vector2(-24.0, -bh * 0.5), Vector2(bw + 24.0, bh)), false)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var ps := 120.0
+		draw_texture_rect(PIVOT_TEX, Rect2(Vector2(-ps * 0.5, -ps * 0.5), Vector2(ps, ps)), false)
 	# loaded fuse ring + muzzle flash (transient telegraph)
 	if _rider != null:
 		var k := _hold_t / hold_s
