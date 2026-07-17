@@ -413,6 +413,14 @@ func _add_stepper(title: String, labels: Array, vals: Array, idx: int, cb: Calla
 	_strip_row.add_child(st)
 	st.configure(title, labels, vals, idx)
 	st.changed.connect(cb)
+	# A on a focused stepper (owner 2026-07-16 fix — presses died silently here): launch when all
+	# humans are locked, otherwise hop focus back to the hero grid where accept means PICK.
+	st.accepted.connect(func() -> void:
+		if _locked:
+			_go_arena()
+		elif _current >= 0 and _current < _cards.size():
+			AudioManager.play_sfx("ui_click", {"pitch": 1.2, "volume_db": -8.0})
+			_cards[_current].grab_focus())
 	register(st, 1.06)
 	_steppers.append(st)
 
