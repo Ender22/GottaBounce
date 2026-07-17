@@ -40,6 +40,17 @@ hint 20px/560px autowrap; wordy n2_/p4_ hints trimmed). (c) Menu music now takes
 landing (acc86a8 — nothing had ever played title.wav; ALSO fixed: imported WAVs ship loop_end=0 so
 LOOP_FORWARD killed playback instantly — play_music sets whole-sample loop points). Music round-trip
 verified live. Powerup button for reference: pad B / keyboard L (owner asked — consider an in-game legend).
+**OWNER ROUND 3 (2026-07-17 evening, live playtest feedback — all shipped):** (a) Stepper = browse/edit
+chips (5cfc74e): LEFT/RIGHT browses the horizontal strip, A opens the value (chevrons appear, LEFT/RIGHT
+steps, A/B confirms — B consumed mid-edit), value sits in an inset dark WELL with gold rim while editing
+(no ASCII brackets); ALL-READY A still launches via accept_override. (b) BESPOKE ART via the
+Chrome+ChatGPT pipeline (14dd78a): objects/cannon.png (whole-toy rocking aim in Cannon.gd), objects/
+key.png, objects/door_tile.png (KeyDoor vault tiling) — all keyout/check clean, CATALOG rows + prompts
+recorded, graded from in-game screenshots; fallback drawing paths kept. (c) Solo trials drops the
+permanent "GO" (same commit — home tracker/pip hidden solo; panel = hint chip only). Powerups = pad B.
+**REMAINING ART DEBT (unchanged backlog, next art pass):** squash poses for blue/green/yellow, real font
+to replace SystemFont, skull icon, super-aim pose x4, arena thumb crests for circuits, cosmetics per
+CATALOG statuses.
 **FOLLOW-UPS (next session):** cannon/key/door PROPER SPRITES (interim = steel-sprite assembly + tinted
 token; art-debt logged in entity headers); full HUMAN-skill playthrough QA of n2_/p4_ courses (validated
 tonight by loads/gates/mechanic probes + measured carries, not full blind runs); ui-ux-designer formal
