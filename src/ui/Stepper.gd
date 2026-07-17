@@ -1,7 +1,9 @@
 extends Control
-## Compact stepper (frontend_ux_spec §2.3.4): a title + a [ <  VALUE  > ] row with two chip buttons.
-## Left/Right (D-pad/stick/arrows) or the chips step the value with a knob-bounce; a clamped edge does
-## a red micro-shake instead. Focusable as a whole; the owning screen connects `changed`.
+## Compact stepper ROW (frontend_ux_spec §2.3.4; re-laid out 2026-07-17 per owner): title on the
+## left, [ < VALUE > ] on the right, one plate per row. Steppers STACK VERTICALLY in their tray so
+## the pad mapping is the couch convention (Duck Game / Smash rules screens): UP/DOWN moves between
+## settings, LEFT/RIGHT (or the chips) changes the focused value with a knob-bounce; a clamped edge
+## does a red micro-shake. Focusable as a whole; the owning screen connects `changed`.
 ##
 ## FOCUS TREATMENT (owner 2026-07-16: the settings tray read as "terrible" and pad focus was
 ## INVISIBLE on it — accepts died silently): every stepper now carries its own plate; the focused
@@ -14,11 +16,11 @@ signal accepted
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 
-@onready var _vbox: VBoxContainer = $VBox
-@onready var _title: Label = $VBox/Title
-@onready var _value: Label = $VBox/Row/Value
-@onready var _minus: Button = $VBox/Row/Minus
-@onready var _plus: Button = $VBox/Row/Plus
+@onready var _row: HBoxContainer = $Row
+@onready var _title: Label = $Row/Title
+@onready var _value: Label = $Row/Value
+@onready var _minus: Button = $Row/Minus
+@onready var _plus: Button = $Row/Plus
 
 var labels: Array = []
 var vals: Array = []
@@ -32,18 +34,19 @@ var _sb_focus: StyleBoxFlat
 ## Content-fit width (audit P3 type pass): the root is a plain Control, so it must surface its VBox's
 ## minimum size for the owning HBox to lay steppers out side by side.
 func _get_minimum_size() -> Vector2:
-	var v := get_node_or_null("VBox")
+	var v := get_node_or_null("Row")
 	if v == null:
-		return Vector2(0, 104)
+		return Vector2(0, 56)
 	var m: Vector2 = (v as Control).get_combined_minimum_size()
-	return Vector2(m.x + 20.0, maxf(m.y + 12.0, 104.0))
+	return Vector2(m.x + 32.0, maxf(m.y + 12.0, 56.0))
 
 func _ready() -> void:
-	_vbox.minimum_size_changed.connect(update_minimum_size)
-	# focus plate: built here (not the theme) so the stepper is self-contained; idle = a quiet
-	# rounded chip that makes the control READ as a control, focus = accent ring + lift.
+	_row.minimum_size_changed.connect(update_minimum_size)
+	# focus plate: built here (not the theme) so the stepper is self-contained; idle = a dark glass
+	# chip (readable over bright toy art — the old 6%-white plate vanished on the stage) that makes
+	# the control READ as a control, focus = accent ring + lift.
 	_sb_idle = StyleBoxFlat.new()
-	_sb_idle.bg_color = Color(1.0, 1.0, 1.0, 0.06)
+	_sb_idle.bg_color = Color(0.12, 0.09, 0.07, 0.42)
 	_sb_idle.set_border_width_all(2)
 	_sb_idle.border_color = Color(1.0, 1.0, 1.0, 0.10)
 	_sb_idle.set_corner_radius_all(14)

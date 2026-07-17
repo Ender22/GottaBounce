@@ -33,7 +33,7 @@ const P1_COLOR := Color("#ff5fa8")
 const PICKER_COLORS := [Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f")]
 
 @onready var _grid: GridContainer = $Grid
-@onready var _strip_row: HBoxContainer = $SettingsTray/StripRow
+@onready var _strip_row: VBoxContainer = $SettingsTray/StripRow   # vertical list (owner 2026-07-17)
 @onready var _spotlight: Panel = $Stage/Spotlight
 @onready var _pose: TextureRect = $Stage/Pose
 @onready var _banner: Panel = $Stage/NameBanner
@@ -480,11 +480,12 @@ func _setup_flair() -> void:
 	(_flair_stepper as Object).call("configure", "FLAIR", labels, _flair_vals, idx)
 	(_flair_stepper as Object).connect("changed", _on_flair)
 	register(_flair_stepper, 1.06)
-	# long item names: compact the value label so the stepper stays inside the stage column
-	var v := _flair_stepper.get_node_or_null("VBox/Row/Value")
+	# long item names: compact the value label so the row stays inside the stage column (row layout
+	# keeps the chevrons hugging the value — the old 330px pad shoved them to the plate edges)
+	var v := _flair_stepper.get_node_or_null("Row/Value")
 	if v is Label:
-		(v as Label).add_theme_font_size_override("font_size", 24)
-		(v as Label).custom_minimum_size = Vector2(330, 0)
+		(v as Label).add_theme_font_size_override("font_size", 22)
+		(v as Label).custom_minimum_size = Vector2(285, 0)
 		(v as Label).clip_text = true
 	_refresh_ko_chip()
 	# focus wiring: the stage stepper hangs off BACK and the grid's left column
