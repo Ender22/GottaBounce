@@ -1,0 +1,30 @@
+{
+  "name": "Cannon School",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "PHYSICS-LAB circuit 4, course 1 of 4 (owner 2026-07-16: 'cannons you can ride in'). TEACHES: the rideable cannon, pure — two FIXED barrels (angle_min == angle_max, no timing read) chain the player across a void far too wide to fly. Fly into the barrel, it holds you hold_s and fires you along its aim at 2600 px/s. The course is the ballistics demo: watch the arc once, trust it forever.\n\nBALLISTIC DERIVATION (gravity 1600, impulse 2600, muzzle offset = barrel_len 190 + 40 = 230 along the barrel):\nCANNON 1 pivot (640,540), fixed -60 deg. Muzzle = pivot + 230*(cos-60,sin-60) = (755, 341). Launch v = (2600*cos60, -2600*sin60) = (1300, -2252). Apex = 2252^2/(2*1600) = 1585px above the muzzle -> apex y = -1244 (bounds top -1700 clears it with ~450px headroom). Landing on the catch basin top y=1000 (659px below the muzzle): solve 800t^2 - 2252t - 659 = 0 -> t = 3.08s, x = 755 + 1300*3.08 = 4762. The basin spans x4300-5700 (w1400, MARSHMALLOW — the deadest tier so the landing skip is smallest) -> touchdown lands ~460px in from the left edge, ~940px of run-out to the right. Landing velocity is (1300, 2680): the intent teaches the boost-tap brake (boost_enter_keep 0.25 cuts momentum to ~25% on boost start), and a bumper backstop wall (x5700, top y660) catches an un-braked skip and rebounds it back onto the basin (restitution 0.86) instead of losing the run.\nCANNON 2 pivot (5500,700), fixed -45 deg, mounted 300px above the basin (marshmallow apex 120 << 300 -> BOOST required to load it; the backstop top y660 is 160px below the fire line so the departing shot clears it by ~110px). Muzzle = (5663, 537). Launch v = (1839, -1839). Apex = 1839^2/3200 = 1056px above -> apex y = -519. Landing on the goal plateau top y=900 (363px below): 800t^2 - 1839t - 363 = 0 -> t = 2.48s, x = 5663 + 1839*2.48 = 10224 — dead-center of the plateau (x9700-10800, w1100). The goal_gate (center 10250,800, w300 h400 -> x10100-10400, y600-1000) sits ON the computed arc: at x=10100 the arc height is y=761, inside the gate, so the ring latches on the fly-through before touchdown.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight required):\n- Start pad top y1000 -> cannon 1 capture circle (r70 @ 640,540): 460px climb > trampoline apex 270 -> NORMAL BOOST required to load the first cannon.\n- Start side -> catch basin: ~3100px of open void (start pad ends x420, basin starts x4300). Boost tank at 760px/s x 3.5s = ~2660px < 3100 -> NOT crossable by flying; the CANNON is the only verb. A bounce is hopeless (spring drift reach ~527px).\n- Basin top y1000 -> cannon 2 capture (r70 @ 5500,700): 300px climb off a marshmallow (apex 120) -> BOOST required.\n- Basin -> goal plateau: ~4000px void (basin ends 5700, plateau starts 9700) > tank range -> cannon 2 only.\nNo leg of the course is bounce-reachable; two legs are not even boost-reachable. Flight loads the cannons; cannons do the crossing.\n\nFUEL BUDGET: spawn 100. Load cannon 1 ~0.8s of boost (~23 fuel). Cannon flight costs nothing. Basin: one brake tap + a ~1.2s climb to cannon 2 (~35 fuel), marshmallow touches refund +20 each. Worst case arrives at cannon 2 with ~60+ fuel; the course never runs the tank dry. A short/long landing falls into the void = free respawn at the start_gate.\n\nFAIRNESS: fixed barrels = zero timing skill this course (that is p4_swing_shot's job); landing zones are 1400px and 1100px pads, never a cannon-mouth pixel landing; the goal gate sits on the derived arc. Bounds top -1700 clears the -1244 apex with margin; explicit bounds because the derived side-cap would strangle an 11,000px course.",
+  "hint": "FLY INTO THE CANNON — IT DOES THE REST",
+  "sky_top": "#2b3a67",
+  "sky_bottom": "#b8d4e8",
+  "bounds": {
+    "left": -700,
+    "top": -1700,
+    "right": 11600,
+    "bottom": 1920
+  },
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 420, "h": 128, "tier": "trampoline" },
+    { "x": 4300, "y": 1000, "w": 1400, "h": 120, "tier": "marshmallow" },
+    { "x": 5700, "y": 660, "w": 120, "h": 460, "tier": "bumper" },
+    { "x": 9700, "y": 900, "w": 1100, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -600, "y": 1300, "w": 12200, "h": 620, "wall_px": 120 },
+    { "type": "start_gate", "x": 210, "y": 900 },
+    { "type": "cannon", "x": 640, "y": 540, "angle_min": -60, "angle_max": -60, "period_s": 2.4, "impulse": 2600, "hold_s": 0.8 },
+    { "type": "cannon", "x": 5500, "y": 700, "angle_min": -45, "angle_max": -45, "period_s": 2.4, "impulse": 2600, "hold_s": 0.8 },
+    { "type": "goal_gate", "x": 10250, "y": 800, "w": 300, "h": 400 }
+  ]
+}
