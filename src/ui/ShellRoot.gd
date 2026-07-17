@@ -27,6 +27,9 @@ func _ready() -> void:
 	# a fresh config on cold boot so an untouched flow reproduces today's default boot (C7)
 	if GameConfig.match_config == null:
 		GameConfig.reset_to_defaults()
+	# menu theme takes over on EVERY shell landing (boot + quit-to-menu) — gameplay music must
+	# never keep playing under the front-end (owner 2026-07-17).
+	AudioManager.play_menu_music()
 	_show("main", true)
 
 # ------------------------------------------------------------------ navigation API (screens call these)

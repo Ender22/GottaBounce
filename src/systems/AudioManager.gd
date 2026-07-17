@@ -38,6 +38,7 @@ const MUSIC_GAMEPLAY := [
 	"res://assets/music/gameplay_3.mp3", "res://assets/music/gameplay_4.mp3",
 ]
 const MUSIC_SCOREBOARD := "res://assets/music/scoreboard.mp3"
+const MUSIC_MENU := "res://assets/music/title.wav"
 const THRUST_STREAM := "res://assets/sfx/fireLoop.mp3"
 
 const POOL_SIZE := 14
@@ -155,9 +156,24 @@ func play_music(path: String, loop := true, db := 0.0) -> void:
 		s.loop = loop
 	elif s is AudioStreamWAV:
 		s.loop_mode = AudioStreamWAV.LOOP_FORWARD if loop else AudioStreamWAV.LOOP_DISABLED
+		if loop and int(s.loop_end) <= 0:
+			# imported WAVs ship loop_end=0 — LOOP_FORWARD then wraps at sample 0 and playback dies
+			# instantly (found live: title.wav went silent). Loop the whole sample.
+			s.loop_begin = 0
+			s.loop_end = int(s.get_length() * s.mix_rate)
 	_music.stream = s
 	_music.volume_db = db
 	_music.play()
+
+## Menu/title theme (owner 2026-07-17: "trials music stops and home screen music starts").
+## ShellRoot calls this on every landing — cold boot AND every quit-to-menu (both change_scene back
+## to ShellRoot) — so gameplay music never leaks into the front-end. No-op if already playing it,
+## so in-shell navigation never restarts the track.
+func play_menu_music() -> void:
+	var s := _stream(MUSIC_MENU)
+	if s != null and _music.stream == s and _music.playing:
+		return
+	play_music(MUSIC_MENU, true, -4.0)
 
 # --------------------------------------------------------------------- signal handlers
 
