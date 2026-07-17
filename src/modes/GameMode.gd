@@ -61,6 +61,12 @@ func wave_spawn_plan(_runner) -> Array:
 func on_stage_ready(_runner) -> void:
 	pass
 
+## Between-stage SCORE SCREEN opt-in (owner 2026-07-16). When true, the runner inserts a SCOREBOARD
+## state after the STAGE_END freeze (skippable, auto-advancing) before loading the next level.
+## Default false -> TRIALS/SPORTS keep their exact current stage flow (byte-for-byte parity).
+func wants_scoreboard() -> bool:
+	return false
+
 ## Scoring hook applied on every death. BRAWL: +1 credited kill / -1 self-fall floored at 0.
 func on_kill(_runner, _killer_idx: int, _victim_idx: int, _cause) -> void:
 	pass

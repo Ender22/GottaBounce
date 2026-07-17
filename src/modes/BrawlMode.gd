@@ -31,6 +31,10 @@ func display_name() -> String:
 func hud_scene() -> PackedScene:
 	return HUD_SCENE
 
+## BRAWL shows the between-stage score screen (owner 2026-07-16 — Duck Game/TowerFall pattern).
+func wants_scoreboard() -> bool:
+	return true
+
 # --- match setup ---
 func configure(runner, config: MatchConfig) -> void:
 	# read config into the runner (defaults reproduce Tuning.match_target_kills / lives_per_player)

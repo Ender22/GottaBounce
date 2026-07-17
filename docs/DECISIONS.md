@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-16** BETWEEN-STAGE SCORE SCREEN (owner ruling: "they show a brief score screen between levels
+  before the next level is loaded, let's do that" — Duck Game intermission / TowerFall tally lineage,
+  research in the task record). BRAWL-only via `GameMode.wants_scoreboard()` (TRIALS/SPORTS byte-for-byte
+  unchanged): after the STAGE_END freeze the runner enters a new SCOREBOARD state — `ScoreScreen.tscn`
+  (goat head + P# + colored RACE BAR toward the kill target + tally + stage delta chip, match-point red
+  staging) — auto-advances after 3.4s, accept skips after a 0.8s guard. The corner-card SCORE PIPS ARE
+  REMOVED (PlayerCard keeps identity+fuel; set_score/animate_score are no-op API stubs): combat carries no
+  persistent score display — the between-stage tally is the reveal (Duck Game's tension device). This
+  DELIBERATELY supersedes the lethality-spec ≤4.5s death→next-BOUNCE turnaround for BRAWL stage
+  transitions (owner-directed; the screen is skippable). Reopen (pips back / screen removal) only on owner
+  reversal; knobs: PartyMatch.SCORE_HOLD (3.4), SCORE_MIN_GUARD (0.8).
+
 - **2026-07-16** GAUNTLET MODE REMOVED (owner ruling, verbatim: "it doesnt really work at all and i dont
   understand what the idea is for it, it doesnt seem to fit the overall plans"). Deleted: GauntletMode.gd,
   GauntletHUD (.gd/.tscn), levels/gauntlet_waves.json, mode_gauntlet.png diorama, the ModeSelect card, and

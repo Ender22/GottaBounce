@@ -1,0 +1,134 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/ScoreScreen.gd" id="1_score"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[node name="ScoreScreen" type="CanvasLayer"]
+layer = 12
+script = ExtResource("1_score")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Dim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.14, 0.09, 0.07, 0.5)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root/Center"]
+layout_mode = 2
+theme_type_variation = &"MatchEndPanel"
+
+[node name="Box" type="VBoxContainer" parent="Root/Center/Panel"]
+custom_minimum_size = Vector2(860, 0)
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+theme_override_font_sizes/font_size = 52
+text = "SCORES"
+horizontal_alignment = 1
+
+[node name="Sub" type="Label" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 24
+text = "FIRST TO 10 KOs"
+horizontal_alignment = 1
+
+[node name="Rows" type="VBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RowTemplate" type="HBoxContainer" parent="Root/Center/Panel/Box/Rows"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Head" type="TextureRect" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+custom_minimum_size = Vector2(54, 54)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="PName" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 30
+text = "P1"
+
+[node name="BarSlot" type="Control" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+custom_minimum_size = Vector2(430, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="BarBG" type="Panel" parent="Root/Center/Panel/Box/Rows/RowTemplate/BarSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"FuelBG"
+
+[node name="BarFill" type="Panel" parent="Root/Center/Panel/Box/Rows/RowTemplate/BarSlot"]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = 3.0
+offset_bottom = 29.0
+mouse_filter = 2
+
+[node name="Score" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 38
+text = "0"
+horizontal_alignment = 2
+
+[node name="Delta" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 26
+text = ""
+
+[node name="Hint" type="Label" parent="Root/Center/Panel/Box"]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 2
+theme_type_variation = &"BannerPrompt"
+theme_override_font_sizes/font_size = 20
+text = "A / ENTER — NEXT ARENA"
+horizontal_alignment = 1

@@ -61,6 +61,15 @@ const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
 const SHELL_SCENE := "res://scenes/ui/ShellRoot.tscn"
 var _pause_overlay: CanvasLayer = null
 
+# Between-stage SCORE SCREEN (owner 2026-07-16 — Duck Game/TowerFall pattern; mode opt-in via
+# GameMode.wants_scoreboard, BRAWL only). Replaces the corner-card score pips as the score display.
+# NOTE: this deliberately extends the death->next-BOUNCE turnaround beyond the old <=4.5s contract
+# for BRAWL (owner-directed; the screen is skippable with accept after a short guard).
+const SCORE_SCENE := preload("res://scenes/ui/ScoreScreen.tscn")
+const SCORE_HOLD := 3.4        # auto-advance after this (real-time seconds)
+const SCORE_MIN_GUARD := 0.8   # accept ignored before this (no accidental skip from combat mashing)
+var _score_screen: CanvasLayer = null
+
 # --- Camera (OWNER RULES 2026-07-10 — docs/feedback/owner_2026-07-10_camera_rules.md) ---
 # This SUPERSEDES the camera_2x_policy action-cluster/velocity-lead/readability-floor model (the
 # owner rejected it ~5 times: players off-screen on wide spreads, frame flying left/right). Rules:
@@ -198,6 +207,12 @@ func _ready() -> void:
 	add_child(_hud)
 	_hud.setup(players, PLAYER_COLORS, _skins())
 
+	# between-stage score screen (BRAWL opt-in; hidden until the first SCOREBOARD state)
+	if _mode.wants_scoreboard():
+		_score_screen = SCORE_SCENE.instantiate()
+		_score_screen.visible = false
+		add_child(_score_screen)
+
 	# off-screen player edge chevrons (camera_2x_policy §3): own CanvasLayer, BELOW the HUD (layer 0
 	# vs the HUD's default layer 1) so corner cards stay on top of any edge indicator.
 	var edge_cl := CanvasLayer.new()
@@ -301,6 +316,8 @@ func _physics_process(delta: float) -> void:
 			_tick_combat(delta, rdelta)
 		"STAGE_END":
 			_tick_stage_end(rdelta)
+		"SCOREBOARD":
+			_tick_scoreboard(rdelta)
 		"MATCH_END":
 			_tick_match_end(rdelta)
 	if state != "MATCH_END":
@@ -740,7 +757,41 @@ func _tick_stage_end(delta: float) -> void:
 		if int(scores[i]) >= match_target_kills - 1 and not _match_point_announced.has(i):
 			_match_point_announced[i] = true
 			_pending_match_point.append(i)
-	_begin_stage()
+	# between-stage score screen (owner 2026-07-16): BRAWL detours through SCOREBOARD before the
+	# next level loads; every other mode goes straight to the next stage exactly as before.
+	if _score_screen != null:
+		_enter_scoreboard()
+	else:
+		_begin_stage()
+
+## SCOREBOARD (owner 2026-07-16): the brief Duck-Game-style tally between stages. Rows carry each
+## player's cumulative kills + this stage's delta (same survivor display-floor rule as the old
+## deltas banner line). Auto-advances after SCORE_HOLD; accept skips after SCORE_MIN_GUARD.
+func _enter_scoreboard() -> void:
+	state = "SCOREBOARD"
+	_state_t = 0.0
+	_hud.hide_center()
+	var rows: Array = []
+	for i in range(players.size()):
+		var d: int = _stage_deltas[i] if i < _stage_deltas.size() else 0
+		if _revived_this_stage and i == _stage_winner and d < 0:
+			d = 0   # SD survivor display floor (parity with _deltas_line)
+		rows.append({
+			"pn": i + 1,
+			"color": PLAYER_COLORS[i % PLAYER_COLORS.size()],
+			"skin": (players[i].skin if is_instance_valid(players[i]) else "pink"),
+			"score": int(scores[i]),
+			"delta": d,
+		})
+	_score_screen.present(rows, match_target_kills)
+
+func _tick_scoreboard(delta: float) -> void:
+	_state_t += delta
+	var skip: bool = _state_t >= SCORE_MIN_GUARD \
+		and (Input.is_action_just_pressed(&"menu_accept") or Input.is_action_just_pressed(&"ui_accept"))
+	if _state_t >= SCORE_HOLD or skip:
+		_score_screen.dismiss()
+		_begin_stage()
 
 func _enter_match_end(widx: int) -> void:
 	state = "MATCH_END"
