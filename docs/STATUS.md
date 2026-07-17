@@ -32,6 +32,14 @@
    the hero grid — never dies. Full gorgeous-pass = ui-ux follow-up below.
 11. **BOTS NEVER WEAR A HUMAN'S COLOR** (0b3b7c7): spawn plan excludes human picks; 5+ bots reuse BOT
    colors only. Validated live.
+**OWNER ROUND 2 (2026-07-17 morning, live playtest feedback — all shipped):** (a) settings tray is now a
+VERTICAL list of plated stepper rows (2e8ce4a — up/down walks settings, left/right changes value; the old
+horizontal strip made BOTS/BOT SKILL unreachable-by-instinct); FLAIR strip inherits the row layout (330px
+value pad had shoved its chevrons to the edges). (b) Trials home/hint panel compacted (347b8b1 — GO 42px,
+hint 20px/560px autowrap; wordy n2_/p4_ hints trimmed). (c) Menu music now takes over on EVERY shell
+landing (acc86a8 — nothing had ever played title.wav; ALSO fixed: imported WAVs ship loop_end=0 so
+LOOP_FORWARD killed playback instantly — play_music sets whole-sample loop points). Music round-trip
+verified live. Powerup button for reference: pad B / keyboard L (owner asked — consider an in-game legend).
 **FOLLOW-UPS (next session):** cannon/key/door PROPER SPRITES (interim = steel-sprite assembly + tinted
 token; art-debt logged in entity headers); full HUMAN-skill playthrough QA of n2_/p4_ courses (validated
 tonight by loads/gates/mechanic probes + measured carries, not full blind runs); ui-ux-designer formal
