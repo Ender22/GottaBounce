@@ -4,13 +4,39 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**Last updated:** 2026-07-16 — **OWNER DIRECTION NIGHT (big list, in progress):** GAUNTLET MODE REMOVED
-(e12f6c6, owner ruling — DECISIONS 2026-07-16; ModeSelect = 3 live cards, gauntlet ARENAS kept for Mayhem
-Mile) + FIRST 3 CIRCUITS LAUNCH-UNLOCKED (6717bed, Settings.FREE_CIRCUITS=3, validated [T,T,T,F,F] live).
-STILL QUEUED from the same owner message: player head-bounce (Mario coop style), ~20% easier upward flight,
-Duck-Game-style between-stage score screen (research done — see task notes), 4 new Trials circuits
-(tutorial/navigation+keys/soccer/physics+cannons), CharacterSelect settings-tray redesign (owner: "terrible
-looking", + focus sits invisibly on steppers eating pad-A), bots must never share a human's color. — **FIRST REAL COUCH PLAYTEST found 2 shell-input bugs, BOTH FIXED
+**Last updated:** 2026-07-17 (owner-direction night, ALL 11 ITEMS SHIPPED — see
+`docs/feedback/owner_2026-07-16_night_list.md` for the verbatim list):
+1. **GAUNTLET MODE REMOVED** (e12f6c6, DECISIONS 2026-07-16; ModeSelect = 3 live cards; gauntlet ARENAS
+   kept — they're Brawl arenas in the Mayhem Mile pool).
+2. **FIRST 3 CIRCUITS LAUNCH-UNLOCKED** (6717bed, Settings.FREE_CIRCUITS=3; validated [T,T,T,F,F] live).
+3. **PLAYER HEAD-BOUNCE** (28959c8, Mario-coop stomp): fall onto a player -> relaunch up 1150; NO fuel
+   refund, denied during hitstun (dry-reflect doctrine), shove credit reused; lateral contact stays SHOVE.
+   Measured live (+700 -> -1150 exact, fuel flat, 10-stage bot match healthy).
+4. **FLIGHT ~20% LIGHTER WHILE THRUSTING** (28959c8, Tuning.boost_gravity_scale=0.8, owner ask verbatim):
+   climb ramp measured -506@150ms (pred -498). CAVEAT for owner: sustained climb SPEED stays pinned at
+   the 760 cap (INV-1); if climbing still feels slow the next lever is the vertical thrust cap = designer
+   pass against INV-1 margin.
+5. **BETWEEN-STAGE SCORE SCREEN** (ba2b7de, DECISIONS 2026-07-16): Duck-Game-style tally between Brawl
+   stages (race bars to the kill target + delta chips + match-point staging; auto 3.4s, skippable);
+   corner-card PIPS REMOVED (combat has no persistent score readout). Supersedes the <=4.5s turnaround.
+6-9. **TRIALS = 5 CIRCUITS** (09b6a24 + 3 course commits): FLIGHT SCHOOL (4 NEW TUTORIALS w/ on-HUD hint
+   lines — fly/super/combo/refuel — each completed by real injected-input flight) + NEEDLE & KEY (5
+   navigation courses; NEW KeyToken/KeyDoor entities) + GOAL RUSH (4 player-driven soccer courses; Tap-In
+   scored by a real boost-drive) + THE PHYSICS LAB (4 courses; NEW rideable Cannon entity — capture/
+   auto-fire/sweep validated, boost-assisted carries MEASURED) + MIXED CHALLENGES (v7 battery).
+   ArenaSelect gained a trials "PICK YOUR CIRCUIT" shelf (course_sets.json data-driven).
+   REAL BUG FOUND+FIXED during QA: Pickup/KeyToken/LandTarget latched via body_entered -> the GoalGate
+   stale-position bug falsely collected tokens during stage-load; all three now COMBAT-gated polls.
+10. **SETTINGS TRAY FIXED** (cd7daff, owner: "terrible looking… how would a controller use it?"):
+   steppers now have a visible focus plate (gold ring) and A on a stepper launches (locked) or hops to
+   the hero grid — never dies. Full gorgeous-pass = ui-ux follow-up below.
+11. **BOTS NEVER WEAR A HUMAN'S COLOR** (0b3b7c7): spawn plan excludes human picks; 5+ bots reuse BOT
+   colors only. Validated live.
+**FOLLOW-UPS (next session):** cannon/key/door PROPER SPRITES (interim = steel-sprite assembly + tinted
+token; art-debt logged in entity headers); full HUMAN-skill playthrough QA of n2_/p4_ courses (validated
+tonight by loads/gates/mechanic probes + measured carries, not full blind runs); ui-ux-designer formal
+grade of ScoreScreen + settings tray; C-CAM zoom on the 10k-px cannon course (entities render tiny);
+ScoreScreen row sizing >4 players; consider trials-circuit unlock gating (all 5 open today, owner call). — **FIRST REAL COUCH PLAYTEST found 2 shell-input bugs, BOTH FIXED
 (commit 8bbf855):** (1) gamepad A was dead in EVERY menu — ui_accept had no joypad event (Godot 4 default is
 keyboard-only; the MenuScreen comment claiming A fires ui_accept was wrong) → JoypadButton 0 added via a
 ui_accept override in project.godot; (2) with all humans locked, the "(A) FIGHT!" accept was silently eaten
