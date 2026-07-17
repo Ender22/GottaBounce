@@ -23,6 +23,7 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `objects/cannon.png` | SHIP-CANDIDATE | 2026-07-17 rideable-cannon body (trials circuit 4); whole toy rocks around its mount in Cannon.gd (BAKED_ANGLE -30deg, PIVOT_FRAC 0.44/0.55); graded in-game on p4_cannon_school |
 | `objects/key.png` | SHIP-CANDIDATE | 2026-07-17 gold key collectible (trials circuit 2); drawn centred by aspect in KeyToken (halo/flash stay code VFX); graded in-game on n2_locksmith |
 | `objects/door_tile.png` | SHIP-CANDIDATE | 2026-07-17 vault-panel TILE (full-bleed 488px, alpha flattened opaque, 6px edge crop); KeyDoor tiles it w x h; gold lock ring stays code telegraph |
+| `ui/circuits/crest_trials_*.png` (x4) | SHIP-CANDIDATE | 2026-07-17 trials circuit crests (campaign/navigation/soccer/physics), gold-shield style matched to the brawl crests (meadow crest attached as ref); rendered-verified on the trials PICK YOUR CIRCUIT shelf. crest_trials_varied PENDING (ChatGPT image limit hit mid-batch) |
 | `world/bumper_post.png` | SHIP-CANDIDATE | 208x1003 vertical 3-slice |
 | `world/trampoline_blue.png` | prop | standalone trampoline prop (NOT the tier mat) |
 | `bg/sky_grass_day.png` | SHIP-CANDIDATE | 1672x941 opaque, layer-1 sky |

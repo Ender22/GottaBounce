@@ -139,6 +139,8 @@ func _thumb_for(a: Dictionary) -> Texture2D:
 		path = "%s/court_%s.png" % [THUMB_DIR, str(a.get("court_id", ""))]
 	elif bool(a.get("circuit", false)):
 		path = "%s/crest_%s.png" % [CREST_DIR, str(a.get("circuit_id", ""))]
+	elif bool(a.get("trials_set", false)):
+		path = "%s/crest_trials_%s.png" % [CREST_DIR, str(a.get("set_id", ""))]
 	else:
 		var id := "_random" if bool(a.get("random", false)) else str(a.get("path", "")).get_file().get_basename()
 		if id == "":
