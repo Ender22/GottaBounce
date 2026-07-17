@@ -1,6 +1,6 @@
 {
   "_comment": "Trials course sets (ordered, played once). Read by TrialsMode._load_course_set (set id from MatchConfig.circuit_id; empty => 'campaign'). RESTRUCTURED 2026-07-16 (owner): 5 circuits — 1 FLIGHT SCHOOL (new tutorial openers teaching fly/super/combo/refuel + the original campaign), 2 NEEDLE & KEY (hard navigation: wall climbs, tiny holes, precision refuels, keys->doors), 3 GOAL RUSH (soccer: drive the ball into the goal), 4 THE PHYSICS LAB (destructibles, rideable cannons, physics puzzles), 5 MIXED CHALLENGES (the v7 varied battery). `order` = the ArenaSelect display order. Missing course files are skipped gracefully by TrialsMode.",
-  "order": ["campaign", "navigation", "soccer", "physics", "varied"],
+  "order": ["campaign", "navigation", "soccer", "physics", "orbit", "varied"],
   "sets": {
     "campaign": {
       "display_name": "FLIGHT SCHOOL",
@@ -50,6 +50,16 @@
         "res://levels/courses/p4_demolition_day.json",
         "res://levels/courses/p4_swing_shot.json",
         "res://levels/courses/p4_chain_reaction.json"
+      ]
+    },
+    "orbit": {
+      "display_name": "ORBIT",
+      "tagline": "Gravity is a suggestion.",
+      "color": "#7a9cff",
+      "courses": [
+        "res://levels/courses/g6_moonwalk.json",
+        "res://levels/courses/g6_slingshot.json",
+        "res://levels/courses/g6_binary_run.json"
       ]
     },
     "varied": {

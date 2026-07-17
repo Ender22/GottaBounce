@@ -1,0 +1,23 @@
+{
+  "name": "Moonwalk",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "design_intent": "ORBIT circuit 1 of 3 (owner 2026-07-18: 'could be fun to play with gravity in another trial circuit too'). Lesson: A PLANET IS A FLOOR IN EVERY DIRECTION. One moon (body_r 200, field r 1000, g 1300); you spawn on the north pole and the goal ring hangs 220px BELOW the south pole - still inside the field, so 'down' is always the moon and the ring is reached by bouncing around the planetoid (each surface touch refunds +20). Falling out of the field drops you into global-down space and out the bottom bound = free respawn. Ring size 300 is generous; the skill is trusting the curved floor. Sample orbit math: trampoline apex 270 off the surface keeps you well inside the r 1000 field (200+270 << 1000), so casual bounces can never escape the moon.",
+  "hint": "THE MOON IS THE FLOOR — BOUNCE AROUND IT",
+  "sky_top": "#0b1030",
+  "sky_bottom": "#2a2f60",
+  "bounds": { "left": -1400, "top": -1500, "right": 3320, "bottom": 2400 },
+  "platforms": [
+    { "x": 810, "y": -640, "w": 300, "h": 40, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "gravity_source", "x": 960, "y": 200, "radius": 1000, "g": 1300, "body_r": 200, "tier": "trampoline", "visual": "moon" },
+    { "type": "start_gate", "x": 960, "y": -80 },
+    { "type": "goal_gate", "x": 960, "y": 620, "w": 300, "h": 300 }
+  ]
+}

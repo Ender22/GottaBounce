@@ -1,0 +1,24 @@
+{
+  "name": "Slingshot",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "design_intent": "ORBIT circuit 2 of 3. Lesson: USE THE WELL, DON'T FIGHT IT. A black-hole well (bumper core body_r 100 - never lethal in trials, same ruling as the Singularity arena; field r 1200, g 1100) sits between the start pad (far left, just outside the field edge) and a goal ring high on the far right at the field's opposite rim. The straight line to the goal passes the core: dive in, let the pull whip you around the bumper core (or ricochet off it - it IS a bumper), and release your boost on the outswing. Fuel math: the crossing is ~2400px; one tank flies ~2660px, and the start pad refunds on retry bounces, so a failed sling is a cheap retry (fall out the bottom of the field -> global down -> respawn). The faint field ring shows exactly where the pull begins.",
+  "hint": "DIVE IN — LET THE HOLE SLING YOU ACROSS",
+  "sky_top": "#0b1030",
+  "sky_bottom": "#28285a",
+  "bounds": { "left": -1500, "top": -1700, "right": 3700, "bottom": 2300 },
+  "platforms": [
+    { "x": -600, "y": 180, "w": 340, "h": 60, "tier": "trampoline" },
+    { "x": 2480, "y": -560, "w": 240, "h": 50, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "gravity_source", "x": 1100, "y": 300, "radius": 1200, "g": 1100, "body_r": 100, "tier": "bumper", "visual": "black_hole" },
+    { "type": "start_gate", "x": -430, "y": 80 },
+    { "type": "goal_gate", "x": 2600, "y": -740, "w": 340, "h": 340 }
+  ]
+}
