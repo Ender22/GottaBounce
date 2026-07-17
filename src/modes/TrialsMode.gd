@@ -41,6 +41,8 @@ var _course_set: Array = []
 var _course_idx := 0                 # index of the NEXT course to serve (advanced in next_level_path)
 var _cur_path := ""                  # the course currently loaded
 var _cur_objective: Dictionary = {}     # the current course's "objective" block ({} => REACH_GOAL)
+var _cur_hint := ""                  # optional top-level "hint" string — the tutorial teaching line
+                                     # (owner 2026-07-16 circuit-1 tutorials); TrialsHUD shows it
 
 # --- per-type live state (reset each course in next_level_path) ---
 # SURVIVE: per-player. Each participant i has a survival base (_survive_base[i]); while dead it is pinned
@@ -111,6 +113,7 @@ func next_level_path(_runner) -> String:
 	_cur_path = str(_course_set[_course_idx % _course_set.size()])
 	_course_idx += 1
 	_cur_objective = _read_objective(_cur_path)
+	_cur_hint = _read_hint(_cur_path)
 	_survive_base = []
 	_survived = []
 	_blocks_total = 0
@@ -203,6 +206,10 @@ func match_end_banner(_runner) -> Dictionary:
 ## The current course's objective type; ABSENT/unknown => REACH_GOAL (the back-compat resolution).
 func objective_type() -> String:
 	return _objective_type()
+
+## The current course's tutorial hint line ("" = none). TrialsHUD gives it the sub-readout slot.
+func hint() -> String:
+	return _cur_hint
 
 func _objective_type() -> String:
 	var t := str(_cur_objective.get("type", OBJ_REACH)).to_upper()
@@ -409,6 +416,15 @@ func _read_objective(path: String) -> Dictionary:
 		return {}
 	var ob: Variant = (parsed as Dictionary).get("objective", {})
 	return ob if typeof(ob) == TYPE_DICTIONARY else {}
+
+## Read the optional top-level "hint" teaching line from a course JSON ("" on any failure).
+func _read_hint(path: String) -> String:
+	if not FileAccess.file_exists(path):
+		return ""
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return ""
+	return str((parsed as Dictionary).get("hint", ""))
 
 ## Read the PHYSICS_PUZZLE "ball" object's spawn point (x,y) from a course JSON, else Vector2.ZERO.
 func _read_ball_spawn(path: String) -> Vector2:

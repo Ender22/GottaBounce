@@ -124,6 +124,24 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				var gz := GoalZone.new()
 				gz.setup_from_json(o)
 				parent.add_child(gz)
+			"key":
+				# owner 2026-07-16 (Trials circuit 2): a key token — Pickup-latch clone in group
+				# "trials_key"; a matching key_door opens when every key with its `door` id is collected.
+				var kt := KeyToken.new()
+				kt.setup_from_json(o)
+				parent.add_child(kt)
+			"key_door":
+				# owner 2026-07-16: a SOLID bumper-tier barrier that opens once its keys are collected.
+				# Never lethal — the void stays the killer (hazard doctrine fence).
+				var kd := KeyDoor.new()
+				kd.setup_from_json(o)
+				parent.add_child(kd)
+			"cannon":
+				# owner 2026-07-16 (Trials circuit 4): rideable cannon — fly in, the oscillating barrel
+				# auto-fires you along its aim. Plain velocity launch (no smash license / fuel change).
+				var cn := Cannon.new()
+				cn.setup_from_json(o)
+				parent.add_child(cn)
 			"pickup":
 				# v7_trials_challenge_types.md §1.3 (COLLECT_ALL): a floating token Area2D that latches
 				# `collected` on player overlap and joins group "trials_pickup". Thin GoalGate-latch clone.

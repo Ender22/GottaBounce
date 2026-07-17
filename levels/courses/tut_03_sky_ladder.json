@@ -1,0 +1,21 @@
+{
+  "name": "Sky Ladder",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "central_pit",
+  "design_intent": "TUTORIAL 3 of 4. Lesson: COMBINE — fly up first, THEN super for the peak. The goal ring is 3600px above the floor, chosen so NEITHER verb alone reaches it but the combo clears with margin: plain-boost ceiling = 760 px/s x 3.5s tank ~= 2660px < 3600 (tank dies 1000px short); super-only from the floor = 2800^2/3200 = 2450px < 3600 (1150px short); the COMBO — boost-climb ~1200px (~45 fuel), then fire the super while still rising (vy -760 + 2800 clamps to max_speed 3000 => apex 3000^2/3200 = 2812px above the fire point) — tops out around 1200+2812 = 4000px > 3600 with ~400px margin, and even a lazy hover-then-fire at 1200px still reaches 1200+2450 = 3650. The floor is SPRING tier (480 apex — the bounciest, so retry refuels bank fast at +20/touch and the course feels like a launchpad). Wide bumper rails mark the flight column visually. No void — a failed attempt is a long soft fall back to the spring floor.",
+  "hint": "FLY HIGH FIRST — THEN  X / K  FOR THE PEAK",
+  "sky_top": "#274f86",
+  "sky_bottom": "#a9d9f7",
+  "bounds": { "left": -300, "top": -3500, "right": 2700, "bottom": 1700 },
+  "platforms": [
+    { "x": 200, "y": 1000, "w": 2000, "h": 128, "tier": "spring" },
+    { "x": 560, "y": -2900, "w": 110, "h": 3900, "tier": "bumper" },
+    { "x": 1730, "y": -2900, "w": 110, "h": 3900, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "start_gate", "x": 1200, "y": 900 },
+    { "type": "goal_gate", "x": 1200, "y": -2600, "w": 380, "h": 380 }
+  ]
+}

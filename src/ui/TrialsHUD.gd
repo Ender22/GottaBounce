@@ -142,8 +142,12 @@ func _skin_color(idx: int) -> Color:
 			return c
 	return Color(0.29, 0.83, 0.95, 1.0)
 
-## Per-type neutral secondary readout — never a clock, never a score.
+## Per-type neutral secondary readout — never a clock, never a score. A course-authored HINT line
+## (owner 2026-07-16 tutorials) takes the slot when present.
 func _update_sub(mode, otype: String) -> void:
+	if mode.has_method("hint") and str(mode.hint()) != "":
+		_sub_label.text = str(mode.hint())
+		return
 	match otype:
 		"SURVIVE":
 			_sub_label.text = "SURVIVE %.0fs" % float(mode.survive_target()) if mode.has_method("survive_target") else "SURVIVE"

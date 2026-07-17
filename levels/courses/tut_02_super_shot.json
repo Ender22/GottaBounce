@@ -1,0 +1,21 @@
+{
+  "name": "Super Shot",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "central_pit",
+  "design_intent": "TUTORIAL 2 of 4. Lesson: PRESS+RELEASE SUPER TO LAUNCH. A wide open chimney (two bumper columns purely as visual rails, 1000px apart — never a tight squeeze) with the goal ring 2000px straight above the start floor. Numbers vs Tuning: super impulse 2800 px/s from rest => apex v^2/2g = 2800^2/3200 = 2450px > 2000 (clean one-shot with 450px margin); plain-boost climb could theoretically reach 2660px on a full tank but takes ~2.9s of sustained thrust vs the super's instant pop — the hint sells the intended verb, and a player who climbs it anyway has still learned to fly. Floor is trampoline so a missed launch lands soft and each floor touch refunds +20 fuel toward the retry (super fires at ANY fuel >= 5, so retries are nearly instant). No void — zero-stakes teaching space.",
+  "hint": "PRESS + RELEASE  X / K  —  SUPER LAUNCH!",
+  "sky_top": "#2b5f9e",
+  "sky_bottom": "#bfe6ff",
+  "bounds": { "left": -300, "top": -1900, "right": 2700, "bottom": 1700 },
+  "platforms": [
+    { "x": 200, "y": 1000, "w": 2000, "h": 128, "tier": "trampoline" },
+    { "x": 600, "y": -1300, "w": 110, "h": 2300, "tier": "bumper" },
+    { "x": 1690, "y": -1300, "w": 110, "h": 2300, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "start_gate", "x": 1200, "y": 900 },
+    { "type": "goal_gate", "x": 1200, "y": -1000, "w": 360, "h": 360 }
+  ]
+}

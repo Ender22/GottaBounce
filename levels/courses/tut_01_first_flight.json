@@ -1,0 +1,18 @@
+{
+  "name": "First Flight",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "central_pit",
+  "design_intent": "TUTORIAL 1 of 4 (owner 2026-07-16: 'help explain the controls'). Lesson: HOLD BOOST TO FLY. One wide safe trampoline floor (no void anywhere — a failed flight lands back on the floor, zero stakes), goal ring floating 540px above the floor top at the far end. 540 > 270 (trampoline apex) so a plain bounce cannot reach it — the ONLY way in is holding boost (climb 760 px/s => ~0.8s of thrust after a bounce). Fuel is a non-issue (tank = 3.5s ~ 2660px of flight; the whole course is one 1600px drift + one 540px climb). The ring sits over solid floor so the miss case is a soft landing, never a death. Teaching is carried by the persistent HUD hint line + the geometry making flight the only verb that works.",
+  "hint": "HOLD  A / SPACE  —  FLY UP TO THE RING",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 2400, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "start_gate", "x": 260, "y": 900 },
+    { "type": "goal_gate", "x": 1900, "y": 460, "w": 300, "h": 300 }
+  ]
+}

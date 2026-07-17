@@ -49,6 +49,9 @@ const TIER_COLORS := {
 var _circuit_display: Dictionary = {}
 var _pending_celebrate := ""
 var _sports := false   # SPORTS flow: one COURTS shelf instead of circuits/arenas (§3.8)
+var _trials := false   # TRIALS flow (owner 2026-07-16): one CIRCUITS shelf of course sets
+
+const COURSE_SETS_PATH := "res://levels/course_sets.json"
 
 const RANDOM := {"path": "", "name": "RANDOM ROTATION", "tag": "A new peak every round.",
 	"color": Color("#ff5fa8"), "glyph": "?", "random": true}
@@ -148,15 +151,18 @@ func _thumb_for(a: Dictionary) -> Texture2D:
 # ------------------------------------------------------------------ build
 func _ready() -> void:
 	_sports = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"sports"
+	_trials = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"trials"
 	if _sports:
 		_build_sports()
+	elif _trials:
+		_build_trials()
 	else:
 		_build_brawl()
 	register(_back, 1.05)
 	_rewire_cross()
 	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger).
 	# BRAWL only: the celebration is a circuit moment and consuming the flag here would eat it.
-	if not _sports:
+	if not _sports and not _trials:
 		_pending_celebrate = Settings.take_pending_unlock()
 
 func _build_brawl() -> void:
@@ -202,6 +208,64 @@ func _build_sports() -> void:
 	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
 	_shelf_a.connect("wheel_moved", _on_wheel.bind(0))
 	_wire_rail(_a_cards)
+
+## TRIALS circuit select (owner 2026-07-16): the SAME scene, retitled "PICK YOUR CIRCUIT", ONE shelf
+## of course-set cards from levels/course_sets.json (order array; a 6th circuit = zero code change).
+## Mirrors _build_sports exactly. No lock gates — every trials circuit is open (owner: gate later
+## only if playtests want it).
+func _build_trials() -> void:
+	var title := get_node_or_null("Header/Title")
+	if title is Label:
+		(title as Label).text = "PICK YOUR CIRCUIT"
+	_shelf_b.visible = false
+	_shelf_a.offset_top = 326.0
+	_shelf_a.offset_bottom = 761.0
+	var sets := _load_trials_cards()
+	(_shelf_a as Object).call("set_label", "CIRCUITS  %d" % sets.size())
+	(_shelf_a as Object).call("set_separation", 36)
+	for a in sets:
+		_a_cards.append(_make_card(a, _shelf_a, 0))
+	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
+	_shelf_a.connect("wheel_moved", _on_wheel.bind(0))
+	_wire_rail(_a_cards)
+
+## Load levels/course_sets.json into an ordered Array of card-data dicts (marked "trials_set": true).
+## Returns [] on any failure (BACK-only screen, never crashes; TrialsMode's proof-course fallback
+## still protects the launch path).
+func _load_trials_cards() -> Array:
+	var out: Array = []
+	if not FileAccess.file_exists(COURSE_SETS_PATH):
+		return out
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(COURSE_SETS_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return out
+	var sets: Variant = (parsed as Dictionary).get("sets", {})
+	if typeof(sets) != TYPE_DICTIONARY:
+		return out
+	var order: Variant = (parsed as Dictionary).get("order", (sets as Dictionary).keys())
+	var n := 0
+	for sid in (order as Array):
+		var entry: Variant = (sets as Dictionary).get(str(sid), null)
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var ed: Dictionary = entry as Dictionary
+		n += 1
+		var courses: Array = ed.get("courses", [])
+		# count only courses whose file exists (agents/authoring in flight never inflate the card)
+		var have := 0
+		for c in courses:
+			if FileAccess.file_exists(str(c)):
+				have += 1
+		out.append({
+			"set_id": str(sid),
+			"name": str(ed.get("display_name", sid)),
+			"tag": str(ed.get("tagline", "")),
+			"color": Color(str(ed.get("color", "#4aa8ff"))),
+			"trials_set": true,
+			"difficulty": n,
+			"arena_count": have,
+		})
+	return out
 
 ## Load levels/sports_courts.json into an ordered Array of card-data dicts (marked "court": true),
 ## tier order calm->chaos (stable within a tier). Returns [] on any failure (screen shows BACK only,
@@ -314,6 +378,12 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 	if bool(a.get("court", false)) and card.has_method("set_badge"):
 		card.set_badge("TIER %d" % int(a.get("tier", 1)),
 			TIER_COLORS.get(int(a.get("tier", 1)), MenuFX.ACCENT_PINK))
+	# TRIALS circuit: ordinal badge + course count (owner 2026-07-16 circuit select)
+	if bool(a.get("trials_set", false)):
+		if card.has_method("set_badge"):
+			card.set_badge("CIRCUIT %d" % int(a.get("difficulty", 1)), a.get("color", MenuFX.ACCENT_PINK))
+		(card as Object).call("set_star_row", mini(int(a.get("difficulty", 1)), 3), 3,
+			"%d COURSES" % int(a.get("arena_count", 0)))
 	card.set_meta("arena", a)
 	card.set_meta("shelf", shelf_id)
 	card.set_meta("idx", _a_cards.size() if shelf_id == 0 else _b_cards.size())
@@ -467,6 +537,14 @@ func activate(c: Control) -> void:
 		_deny_shake(c)
 		return
 	var cfg: MatchConfig = GameConfig.match_config
+	if bool(a.get("trials_set", false)):
+		# TRIALS: the set id rides circuit_id (TrialsMode._load_course_set's key); launch directly.
+		cfg.arena_mode = MatchConfig.ArenaMode.CIRCUIT
+		cfg.circuit_id = StringName(str(a["set_id"]))
+		cfg.single_arena_path = ""
+		if shell != null:
+			shell.launch_match()
+		return
 	if bool(a.get("court", false)):
 		# SPORTS: pass the court ID (not the path) — SportsMode._resolve_court stays the single
 		# source of truth for unlock/missing-file fallback (the CD #7 ball-through-world guard).

@@ -361,13 +361,13 @@ func _go_arena() -> void:
 		return
 	_launching = true
 	if _trials:
-		# TRIALS skips ArenaSelect (courses are the mode's own authored set) and launches straight in.
-		# human_count comes from the HUMANS stepper (v10 multi-player-parallel), never bots.
+		# TRIALS routes through the circuit select (owner 2026-07-16: 5 course circuits — ArenaSelect
+		# in trials guise picks the set, then launches). human_count from the HUMANS stepper, no bots.
 		var cfg: MatchConfig = GameConfig.match_config
 		cfg.mode_id = &"trials"
 		cfg.human_count = _humans_now()
 		cfg.bot_count = 0
-		shell.launch_match()
+		shell.go_forward("arena")
 	elif _sports:
 		# SPORTS: team preset stays a 1v1 total of 2 — 1 human + 1 bot, or human-vs-human when the
 		# HUMANS stepper says 2 (spawn plan splits the roster in half, so P1=team RED, P2=team BLUE).
