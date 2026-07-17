@@ -3,44 +3,51 @@
 [ext_resource type="Script" path="res://src/ui/Stepper.gd" id="1_step"]
 
 [node name="Stepper" type="Control"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 96)
 focus_mode = 2
 script = ExtResource("1_step")
 
-[node name="Row" type="HBoxContainer" parent="."]
+[node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_right = -16.0
+offset_left = 10.0
+offset_top = 6.0
+offset_right = -10.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 4
+alignment = 1
 
-[node name="Title" type="Label" parent="Row"]
+[node name="Title" type="Label" parent="VBox"]
 layout_mode = 2
-size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"StepTitle"
+horizontal_alignment = 1
 text = "TITLE"
 
-[node name="Spacer" type="Control" parent="Row"]
+[node name="Row" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-size_flags_horizontal = 3
 mouse_filter = 2
+theme_override_constants/separation = 6
+alignment = 1
 
-[node name="Minus" type="Button" parent="Row"]
-custom_minimum_size = Vector2(44, 44)
+[node name="Minus" type="Button" parent="VBox/Row"]
+custom_minimum_size = Vector2(40, 44)
 layout_mode = 2
-size_flags_vertical = 4
 focus_mode = 0
 theme_type_variation = &"StepChip"
 text = "<"
 
-[node name="Value" type="Label" parent="Row"]
-custom_minimum_size = Vector2(84, 0)
+[node name="ValueWell" type="PanelContainer" parent="VBox/Row"]
+custom_minimum_size = Vector2(84, 44)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Value" type="Label" parent="VBox/Row/ValueWell"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"StepValueBig"
@@ -48,10 +55,9 @@ horizontal_alignment = 1
 vertical_alignment = 1
 text = "0"
 
-[node name="Plus" type="Button" parent="Row"]
-custom_minimum_size = Vector2(44, 44)
+[node name="Plus" type="Button" parent="VBox/Row"]
+custom_minimum_size = Vector2(40, 44)
 layout_mode = 2
-size_flags_vertical = 4
 focus_mode = 0
 theme_type_variation = &"StepChip"
 text = ">"

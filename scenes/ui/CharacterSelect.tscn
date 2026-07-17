@@ -208,19 +208,19 @@ columns = 3
 
 [node name="SettingsTray" type="PanelContainer" parent="."]
 layout_mode = 1
-anchor_left = 0.55
-anchor_top = 0.615
+anchor_left = 0.46
+anchor_top = 0.67
 anchor_right = 1.0
-anchor_bottom = 0.935
+anchor_bottom = 0.87
 offset_right = -64.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_type_variation = &"SettingsTray"
 
-[node name="StripRow" type="VBoxContainer" parent="SettingsTray"]
+[node name="StripRow" type="HBoxContainer" parent="SettingsTray"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 alignment = 1
 
 [node name="ReadyPrompt" type="Label" parent="."]

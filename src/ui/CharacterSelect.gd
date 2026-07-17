@@ -33,7 +33,7 @@ const P1_COLOR := Color("#ff5fa8")
 const PICKER_COLORS := [Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f")]
 
 @onready var _grid: GridContainer = $Grid
-@onready var _strip_row: VBoxContainer = $SettingsTray/StripRow   # vertical list (owner 2026-07-17)
+@onready var _strip_row: HBoxContainer = $SettingsTray/StripRow   # horizontal browse strip (owner round 3)
 @onready var _spotlight: Panel = $Stage/Spotlight
 @onready var _pose: TextureRect = $Stage/Pose
 @onready var _banner: Panel = $Stage/NameBanner
@@ -94,7 +94,7 @@ func _ready() -> void:
 			labels.append(str(n))
 			vals.append(n)
 		_add_stepper("HUMANS", labels, vals, cfg0.human_count - 1, _on_humans_simple)
-		wire_col(_steppers)
+		wire_row(_steppers)
 		for i in range(3, _cards.size()):
 			_cards[i].focus_neighbor_bottom = _cards[i].get_path_to(_steppers[0])
 		_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
@@ -106,11 +106,13 @@ func _ready() -> void:
 		_add_stepper("BOT SKILL", ["MIX", "1", "2", "3", "4", "5"], [0, 1, 2, 3, 4, 5], cfg.bot_difficulty, _on_skill)
 		_add_stepper("KILLS", ["5", "7", "8", "10"], [5, 7, 8, 10], _index_of([5, 7, 8, 10], cfg.kills_to_win, 3), _on_kills)
 		_add_stepper("LIVES", ["1", "2", "3"], [1, 2, 3], _index_of([1, 2, 3], cfg.lives_per_player, 0), _on_lives)
-		wire_col(_steppers)
-		# grid<->strip: Down from bottom row -> first stepper, Up from first stepper -> grid
+		# horizontal browse strip (owner round 3): LEFT/RIGHT walks the settings, A edits.
+		wire_row(_steppers)
+		# grid<->strip: Down from bottom row -> first stepper; Up from ANY stepper -> grid
 		for i in range(3, _cards.size()):
 			_cards[i].focus_neighbor_bottom = _cards[i].get_path_to(_steppers[0])
-		_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
+		for st in _steppers:
+			st.focus_neighbor_top = st.get_path_to(_cards[3])
 
 	# v11 FLAIR track (§5.4): stepper + KO-tally chip live on the STAGE, so they exist in ALL modes
 	# (the SettingsTray hides for Trials/Sports; the stage never does). Consume the pending
@@ -413,14 +415,13 @@ func _add_stepper(title: String, labels: Array, vals: Array, idx: int, cb: Calla
 	_strip_row.add_child(st)
 	st.configure(title, labels, vals, idx)
 	st.changed.connect(cb)
-	# A on a focused stepper (owner 2026-07-16 fix — presses died silently here): launch when all
-	# humans are locked, otherwise hop focus back to the hero grid where accept means PICK.
-	st.accepted.connect(func() -> void:
+	# ALL-READY overrides edit-mode entry: once every human is locked, A anywhere must LAUNCH
+	# (couch fix 2026-07-14) — the stepper hands the press back via accept_override.
+	st.accept_override = func() -> bool:
 		if _locked:
 			_go_arena()
-		elif _current >= 0 and _current < _cards.size():
-			AudioManager.play_sfx("ui_click", {"pitch": 1.2, "volume_db": -8.0})
-			_cards[_current].grab_focus())
+			return true
+		return false
 	register(st, 1.06)
 	_steppers.append(st)
 
@@ -479,10 +480,14 @@ func _setup_flair() -> void:
 	var idx: int = maxi(0, _flair_vals.find(Settings.equipped_flair))
 	(_flair_stepper as Object).call("configure", "FLAIR", labels, _flair_vals, idx)
 	(_flair_stepper as Object).connect("changed", _on_flair)
+	_flair_stepper.accept_override = func() -> bool:
+		if _locked:
+			_go_arena()   # ALL-READY: A anywhere launches, even on the flair chip
+			return true
+		return false
 	register(_flair_stepper, 1.06)
-	# long item names: compact the value label so the row stays inside the stage column (row layout
-	# keeps the chevrons hugging the value — the old 330px pad shoved them to the plate edges)
-	var v := _flair_stepper.get_node_or_null("Row/Value")
+	# long item names: compact the value label so the chip stays inside the stage column
+	var v := _flair_stepper.get_node_or_null("VBox/Row/ValueWell/Value")
 	if v is Label:
 		(v as Label).add_theme_font_size_override("font_size", 22)
 		(v as Label).custom_minimum_size = Vector2(285, 0)
