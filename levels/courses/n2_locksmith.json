@@ -1,0 +1,32 @@
+{
+  "name": "Locksmith",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "N2 circuit (hard navigation, owner 2026-07-16) course 4/5: FIRST KEY/DOOR COURSE. The goal sits behind a floor-to-past-ceiling key_door (door d1); the single key hangs near the TOP of a 1800px bumper chimney rising off the main line. Teaches the vocabulary: spot the key, detour, unlock, proceed.\n\nMOVEMENT MATH (current Tuning): trampoline apex 270, zero-boost drift ~395px (trampoline) / ~527 (spring); boost 760 px/s at 28.6 fuel/s (~26.6px/fuel); touch refund +20; super impulse 2800 => apex ~2450px above launch.\n\nFLIGHT-REQUIRED PROOF: main-line gaps start->mid (320->940) and mid->approach (1260->1880) are both 620px > 527 spring drift >> 395 trampoline drift; approach->goal (2200->3100) is 900px with the door at x 2700. THE KEY CLIMB: chimney interior (x 1020..1340, 320px wide vs 92px player) opens directly above the mid pad; ledge L1 (y=-300) is 1300px above the pad -- 4.8x trampoline apex; L2 (y=-850) is 550px above L1 (> 480 spring apex); the key (y=-1200) is 350px above L2 (> 270 trampoline apex, so even the last hop needs a boost puff). Zero segment of the key detour is bounce-reachable.\n\nFUEL BUDGET: multi-bounce the mid pad to a full 100 tank (each touch +20). Climb pad(1000)->L1(-300): 1300px ~= 49 fuel; touch L1 +20; L1->L2 550px ~= 21 fuel; touch +20; L2->key 350px ~= 13 fuel. Worst-point fuel ~ 100-49 = 51, ending ~37 at the key -- then FALL back out of the shaft mouth (free) and re-bank on the mid pad. Comfortable single-tank ledger with two refund stops. Expert alt: an exterior climb over the column tops (y=-1400) from the mid pad is 2500px ~= 90 fuel -- legal, near-empty, still pure flight.\n\nDOOR + FENCES: key_door d1 (x 2700, y -2800..1300) spans void-line to 400px PAST the ceiling, so no overfly band exists. Ceiling at -2400: a vertical super from the pads (y=1000) apexes -1450, 950px below it (safe); a super from the key region (-1200) would apex -3650 and rings out at -2400 -- free respawn, and it kills the only diagonal-super door-crest line (which needs y<-2800 anyway, unreachable below the ceiling). Door has exactly one matching key (d1) -- never zero. Falls hit the void line (y 1300) -> free respawn at start_gate.\n\nBOUNDS: explicit -- left -700, top -2400, right 4200, bottom 1900.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "GRAB THE KEY — OPEN THE DOOR",
+  "bounds": { "left": -700, "top": -2400, "right": 4200, "bottom": 1900 },
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+
+    { "x": 940, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+    { "x": 900, "y": -1400, "w": 120, "h": 1800, "tier": "bumper" },
+    { "x": 1340, "y": -1400, "w": 120, "h": 1800, "tier": "bumper" },
+    { "x": 1020, "y": -300, "w": 140, "h": 40, "tier": "trampoline" },
+    { "x": 1200, "y": -850, "w": 140, "h": 40, "tier": "trampoline" },
+
+    { "x": 1880, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+
+    { "x": 3100, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -700, "y": 1300, "w": 4900, "h": 600, "wall_px": 120 },
+    { "type": "start_gate", "x": 160, "y": 900 },
+    { "type": "key", "x": 1180, "y": -1200, "r": 46, "door": "d1" },
+    { "type": "key_door", "x": 2700, "y": -2800, "w": 120, "h": 4100, "door": "d1" },
+    { "type": "goal_gate", "x": 3280, "y": 860, "w": 240, "h": 320 }
+  ]
+}

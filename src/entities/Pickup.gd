@@ -41,19 +41,29 @@ func _ready() -> void:
 	cs.shape = c
 	add_child(cs)
 	z_index = 44   # over platforms/void, under HUD
-	body_entered.connect(_on_body_entered)
 
-func _on_body_entered(body: Node) -> void:
+## Latch by OVERLAP POLL, only while the match is in COMBAT — never via body_entered (the GoalGate
+## stale-position lesson, DECISIONS 2026-07-10, observed live on a key token 2026-07-17: during the
+## stage-load->respawn window the previous course's finisher positions can overlap THIS course's
+## fresh token and falsely collect it). Current-position check guards the stale overlap list.
+func _poll_collect() -> void:
 	if collected:
 		return
-	if body is Player:
-		collected = true
-		_flash = 1.0
+	var runner := get_tree().current_scene
+	if runner == null or str(runner.get("state")) != "COMBAT":
+		return
+	for body in get_overlapping_bodies():
+		if body is Player and not body.is_dead() \
+				and body.global_position.distance_to(global_position) <= r + 46.0:
+			collected = true
+			_flash = 1.0
+			return
 
 func _physics_process(delta: float) -> void:
 	_t += delta
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 2.0)
+	_poll_collect()
 	queue_redraw()
 
 # ------------------------------------------------------------------ display (glossy token)

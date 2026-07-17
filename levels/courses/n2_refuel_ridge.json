@@ -1,0 +1,27 @@
+{
+  "name": "Refuel Ridge",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "N2 circuit (hard navigation, owner 2026-07-16) course 3/5: SUPER-PRECISION JUMP REFILLS. A 6280px void crossing -- 2.4x one full tank of powered flight (~2660px) -- where the ONLY fuel is the +20-per-touch refund on six TINY 120px trampoline pads. Hit every pad and the ledger closes; skip one and you fall short. The skill is landing a 92px ball on a 120px target at speed, seven times.\n\nMOVEMENT MATH (current Tuning): tank 100 = 3.5s at 28.6 fuel/s; boost cap 760 px/s => ~26.6px/fuel, full tank ~2660px. Trampoline apex 270, zero-boost drift reach ~395px (trampoline) / ~527px (spring). Pad TOUCH refunds +20 fuel; a deliberate double-bounce on a pad = two touches = +40 (that is the banking tech for safety margin).\n\nFLIGHT-REQUIRED PROOF: all six inter-pad gaps are 680px and the final gap is 800px -- every one exceeds even the 527px spring drift ceiling (these are trampolines, reach ~395), so a zero-boost bounce lands in the void every single time. Total run 6280px >> 2660px one-tank flight, so no single-burn line exists either: refuel touches are structurally mandatory.\n\nFUEL LEDGER (single-touch line): hop cost ~ (680/760 s + spin-up) x 28.6 ~= 28.5 fuel; refund +20 per pad => net -8.5 per hop x 6 hops = -51; final 800px gap ~= 33 fuel. 100 - 51 - 33 = ~16 fuel remaining at the goal. COMPLETABLE with margin, and double-bouncing any pad banks +20 more. MISS-A-PAD PROOF: skipping one pad merges two gaps into 1480px (~58 fuel) and forfeits its +20 -- ledger goes ~25 fuel negative before the goal => the run dies. Every pad must be touched, which is the whole course.\n\nHeights undulate 920-1020 (a ridge, not a runway) so each approach needs a fresh aim solution. A missed pad = void fall = free respawn at start_gate; the course punishes with restart-of-crossing time only.\n\nBOUNDS: explicit -- top -1900 (a vertical super from the highest pad, y=920, apexes at 920-2450 = -1530; ceiling sits 370px above that), bottom 1950, sides -700/7000. Void line y=1350 under the whole ridge.",
+  "sky_top": "#3a7d44",
+  "sky_bottom": "#cfeecf",
+  "hint": "EVERY PAD IS A FUEL CAN — TAP THEM ALL",
+  "bounds": { "left": -700, "top": -1900, "right": 7000, "bottom": 1950 },
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+    { "x": 1000, "y": 960, "w": 120, "h": 40, "tier": "trampoline" },
+    { "x": 1800, "y": 1020, "w": 120, "h": 40, "tier": "trampoline" },
+    { "x": 2600, "y": 940, "w": 120, "h": 40, "tier": "trampoline" },
+    { "x": 3400, "y": 1000, "w": 120, "h": 40, "tier": "trampoline" },
+    { "x": 4200, "y": 920, "w": 120, "h": 40, "tier": "trampoline" },
+    { "x": 5000, "y": 1000, "w": 120, "h": 40, "tier": "trampoline" },
+    { "x": 5920, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -700, "y": 1350, "w": 7700, "h": 600, "wall_px": 120 },
+    { "type": "start_gate", "x": 160, "y": 900 },
+    { "type": "goal_gate", "x": 6100, "y": 860, "w": 240, "h": 320 }
+  ]
+}

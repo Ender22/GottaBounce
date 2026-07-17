@@ -1,0 +1,35 @@
+{
+  "name": "Needle Thread",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "N2 circuit (hard navigation, owner 2026-07-16) course 2/5: BLAST THROUGH TINY HARD-TO-AIM HOLES. Three full-height bumper walls, each pierced by one small mouth, mouths escalating 240 -> 200 -> 160px against a 92px player (74/54/34px of clearance per side). Threading demands controlled boost flight: line up, feather speed, commit -- or super-shot the line if you dare (bumper edges ricochet a sloppy shot).\n\nMOVEMENT MATH (current Tuning): trampoline apex 270, zero-boost drift reach ~395px (trampoline) / ~527px (spring); boost cap 760 px/s at 28.6 fuel/s (~26.6px/fuel); pad touch +20 fuel.\n\nFLIGHT-REQUIRED PROOF (per wall): W1 mouth at y 300..540 sits 460-700px ABOVE the start pad top (y=1000) -- trampoline apex 270 falls 190+px short of the mouth bottom, and the pad-edge-to-wall-exit span (320 -> 1020) is 700px > 395 drift. W2 mouth (y 640..840) is apex-adjacent in height but the thread span pad1-edge (1500) to wall exit (2120) is 620px > 395 drift, so a passive bounce drops into the void mid-wall. W3 mouth (y 200..360) needs a 720px climb from pad2 (top y=1000) -- 2.7x trampoline apex. No wall can be bounced through; every one must be FLOWN through.\n\nFUEL BUDGET: each thread leg (climb 260-720px + cross 500-620px + wall 120px) costs 33-55 fuel from the multi-bounce-refueled pad before it (each touch +20; a couple of extra bounces banks a full tank), so every leg is comfortably inside one tank with margin for a re-line-up. A ricochet or fall drops to the void line (y 1300) -> free respawn at start_gate.\n\nNO-OVERFLY FENCE: walls extend to y=-2000, past the explicit ceiling at -1800, so there is no over-the-top band. A vertical super from the pads (y=1000) apexes at 1000-2450 = -1450, 350px BELOW the ceiling (safe headroom); a vertical super fired from inside a mouth (y 200-840) would apex at up to -2150 and rings out at -1800 first -- that ring-out IS the fence and it costs only a free respawn.\n\nGEOMETRY: mouths deliberately vary height (mid-high 420 center, low 740 center, high 280 center) so each wall re-tests aim, not muscle memory. W3's 160px mouth is the capstone squeeze.\n\nBOUNDS: explicit -- top -1800 (>=300 above the highest legit reachable point, the -1450 pad super apex), bottom 1900, sides -700/4700.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "SLOW DOWN — THREAD THE NEEDLE",
+  "bounds": { "left": -700, "top": -1800, "right": 4700, "bottom": 1900 },
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+
+    { "x": 900, "y": -2000, "w": 120, "h": 2300, "tier": "bumper" },
+    { "x": 900, "y": 540, "w": 120, "h": 760, "tier": "bumper" },
+
+    { "x": 1300, "y": 1000, "w": 200, "h": 128, "tier": "trampoline" },
+
+    { "x": 2000, "y": -2000, "w": 120, "h": 2640, "tier": "bumper" },
+    { "x": 2000, "y": 840, "w": 120, "h": 460, "tier": "bumper" },
+
+    { "x": 2400, "y": 1000, "w": 200, "h": 128, "tier": "trampoline" },
+
+    { "x": 3100, "y": -2000, "w": 120, "h": 2200, "tier": "bumper" },
+    { "x": 3100, "y": 360, "w": 120, "h": 940, "tier": "bumper" },
+
+    { "x": 3600, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -700, "y": 1300, "w": 5400, "h": 600, "wall_px": 120 },
+    { "type": "start_gate", "x": 160, "y": 900 },
+    { "type": "goal_gate", "x": 3780, "y": 860, "w": 240, "h": 320 }
+  ]
+}

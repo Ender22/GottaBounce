@@ -42,6 +42,12 @@ func _ready() -> void:
 func _on_body_entered(body: Node) -> void:
 	if landed or not (body is Player):
 		return
+	# COMBAT gate (GoalGate stale-position lesson, DECISIONS 2026-07-10): during the stage-load ->
+	# respawn window the previous course's finisher positions can overlap this pad while frozen
+	# (velocity zero = reads as a "soft landing") and falsely latch it. Entries only count live.
+	var runner := get_tree().current_scene
+	if runner == null or str(runner.get("state")) != "COMBAT":
+		return
 	var spd: float = 0.0
 	if "velocity" in body:
 		spd = (body.velocity as Vector2).length()
