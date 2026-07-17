@@ -56,7 +56,19 @@ new PNGs need one `--editor --quit` import pass before a rendered run can load t
 **REMAINING ART DEBT:** crest_trials_varied (MIXED CHALLENGES) + skull icon — ChatGPT image limit hit
 mid-batch, generate when it resets (prompts in CATALOG); real font to replace SystemFont (needs owner
 font pick + download approval); super-aim pose x6 (aim state reuses idle).
-**FOLLOW-UPS (next session):** cannon/key/door PROPER SPRITES (interim = steel-sprite assembly + tinted
+**ORBITAL GRAVITY (2026-07-18, owner ask — b99b8c5 + 026ba56):** the P8 gravity_source seam is FILLED:
+GravitySource = radial constant-g wells (GravityField registry; Player/Ball/StormBall were already
+field-correct), round planetoid bounce bodies (meta "round" keeps the true radial normal — axis-snap is
+rect-only now), optional lethal core via the existing Hazard path, self-rendered black_hole/moon visuals
+(moon sprite queued). Underside no-refund guard is now GRAVITY-RELATIVE (flat levels byte-identical).
+NEW BRAWL ARENAS: **Singularity** (black-hole pinball hub — a lethal core was live-measured as a bot
+blender, 32/36 uncredited core suicides, and PIVOTED to a bumper event horizon: re-measure 3/3 credited
+blast-edge kills, real stage lengths) and **Twin Moons** (two planetoids, radial bounce verified, ~8s
+stages, 55% credited, all 4 scoring). NEW TRIALS CIRCUIT **ORBIT** (Moonwalk/Slingshot/Binary Run — all
+completed by real injected-input flight). KNOWN v1 LIMITS (watch): bot recovery logic is screen-down
+biased (orbital arenas play best with humans; bots survive but fly clumsy); the idle air-drift brake is
+global-x (damps orbital coasting when no input held — irrelevant with a stick held); crest_trials_orbit
+pending with the other art. —  cannon/key/door PROPER SPRITES (interim = steel-sprite assembly + tinted
 token; art-debt logged in entity headers); full HUMAN-skill playthrough QA of n2_/p4_ courses (validated
 tonight by loads/gates/mechanic probes + measured carries, not full blind runs); ui-ux-designer formal
 grade of ScoreScreen + settings tray; C-CAM zoom on the 10k-px cannon course (entities render tiny);
