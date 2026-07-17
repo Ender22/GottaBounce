@@ -7,30 +7,126 @@
   "design_intent": "N2 circuit (hard navigation, owner 2026-07-16) course 1/5: BOOST UP TWO TALL VERTICAL WALLS. Two 2200px bumper chimneys in sequence with a traverse between; bumper walls give NO fuel refunds, so the tiny trampoline ledges bolted inside each shaft are the fuel route.\n\nMOVEMENT MATH (current Tuning): tank 100 = 3.5s thrust at 28.6 fuel/s; boost cap 760 px/s => ~26.6px of powered flight per fuel, one full tank ~2660px. Trampoline apex 270 / spring 480; zero-boost drift reach ~395px (trampoline). Each pad TOUCH refunds +20 fuel.\n\nFLIGHT-REQUIRED PROOF: every ledge-to-ledge climb segment is 730-740px vertical -- 2.7x the trampoline apex (270) and 1.5x even a spring apex (480), so NO bounce reaches the next ledge; only sustained boost does. Horizontal entries: start pad (ends x=320) to chimney-1 mouth (x=760) = 440px > 395px trampoline drift; traverse (ends x=2100) to chimney-2 mouth (x=2500) = 400px at matching height but the 300px mouth (y 200..500) demands aimed flight, and the exit crest over each 2200px wall is pure boost.\n\nFUEL BUDGET (the actual test): chimney = base pad 2400 -> L1 1670 -> L2 940 -> crest 200: segments 730/730/740px cost ~27/27/31 fuel; each ledge touch refunds +20, so net drain ~7-11 per segment; multi-bouncing base/traverse pads tops the tank to 100. Sustainable ledger, never below ~40 on the intended line. EXPERT ALT LINE: a one-tank exterior wall-scale (2200px = ~83 fuel + exit drift ~8) arrives at the traverse with <10 fuel -- legal but knife-edge; the interior ledge route is the taught line (hence the hint: walls refund NOTHING).\n\nGEOMETRY: chimney 1 walls x 760-880 (left, y 200..2100, 300px entry mouth below it) and x 1280-1400 (right, full 200..2400); interior 400px wide vs 92px player. Base pad y=2400, ledges alternate sides (L1 right y=1670, L2 left y=940). Traverse pad y=500. Chimney 2 mirrors it 1900px higher: walls x 2500-2620 (mouth y 200..500) and x 3020-3140, base y=500, L3 y=-230, L4 y=-960, crest -1700, goal pad y=-1750. Falls drop past everything into the void line -> free respawn at start_gate (no penalty), so a blown climb costs time, not stock.\n\nBOUNDS: explicit because the course spans y 2400..-1750. Top -3600 clears a vertical super from L4 (-960 - 2450 super apex = -3410) with 190px to spare and sits 1850px above the goal pad; bottom 3200 keeps the void (y 2600) as the killer; sides +/-700 past geometry.",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
-  "hint": "WALLS REFUEL NOTHING — RIDE THE LEDGES UP",
-  "bounds": { "left": -700, "top": -3600, "right": 4500, "bottom": 3200 },
+  "hint": "RIDE THE LEDGES UP",
+  "bounds": {
+    "left": -700,
+    "top": -3600,
+    "right": 4500,
+    "bottom": 3200
+  },
   "platforms": [
-    { "x": 0, "y": 2400, "w": 320, "h": 128, "tier": "trampoline" },
-
-    { "x": 760, "y": 200, "w": 120, "h": 1900, "tier": "bumper" },
-    { "x": 1280, "y": 200, "w": 120, "h": 2200, "tier": "bumper" },
-    { "x": 880, "y": 2400, "w": 400, "h": 128, "tier": "trampoline" },
-    { "x": 1140, "y": 1670, "w": 140, "h": 40, "tier": "trampoline" },
-    { "x": 880, "y": 940, "w": 140, "h": 40, "tier": "trampoline" },
-
-    { "x": 1600, "y": 500, "w": 500, "h": 128, "tier": "trampoline" },
-
-    { "x": 2500, "y": -1700, "w": 120, "h": 1900, "tier": "bumper" },
-    { "x": 3020, "y": -1700, "w": 120, "h": 2200, "tier": "bumper" },
-    { "x": 2620, "y": 500, "w": 400, "h": 128, "tier": "trampoline" },
-    { "x": 2880, "y": -230, "w": 140, "h": 40, "tier": "trampoline" },
-    { "x": 2620, "y": -960, "w": 140, "h": 40, "tier": "trampoline" },
-
-    { "x": 3400, "y": -1750, "w": 400, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 2400,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 760,
+      "y": 200,
+      "w": 120,
+      "h": 1900,
+      "tier": "bumper"
+    },
+    {
+      "x": 1280,
+      "y": 200,
+      "w": 120,
+      "h": 2200,
+      "tier": "bumper"
+    },
+    {
+      "x": 880,
+      "y": 2400,
+      "w": 400,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1140,
+      "y": 1670,
+      "w": 140,
+      "h": 40,
+      "tier": "trampoline"
+    },
+    {
+      "x": 880,
+      "y": 940,
+      "w": 140,
+      "h": 40,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1600,
+      "y": 500,
+      "w": 500,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2500,
+      "y": -1700,
+      "w": 120,
+      "h": 1900,
+      "tier": "bumper"
+    },
+    {
+      "x": 3020,
+      "y": -1700,
+      "w": 120,
+      "h": 2200,
+      "tier": "bumper"
+    },
+    {
+      "x": 2620,
+      "y": 500,
+      "w": 400,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2880,
+      "y": -230,
+      "w": 140,
+      "h": 40,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2620,
+      "y": -960,
+      "w": 140,
+      "h": 40,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3400,
+      "y": -1750,
+      "w": 400,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -700, "y": 2600, "w": 5200, "h": 600, "wall_px": 120 },
-    { "type": "start_gate", "x": 160, "y": 2300 },
-    { "type": "goal_gate", "x": 3600, "y": -1910, "w": 240, "h": 320 }
+    {
+      "type": "void",
+      "x": -700,
+      "y": 2600,
+      "w": 5200,
+      "h": 600,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 160,
+      "y": 2300
+    },
+    {
+      "type": "goal_gate",
+      "x": 3600,
+      "y": -1910,
+      "w": 240,
+      "h": 320
+    }
   ]
 }

@@ -7,33 +7,142 @@
   "design_intent": "N2 circuit (hard navigation, owner 2026-07-16) course 5/5 CAPSTONE: TWO KEYS, TWO DOORS, TWO SKILLS. Door 'a' is opened by a key at the top of a 1800px chimney climb (Wall Climb's verb); door 'b' by a key floating just past a 180px needle mouth (Needle Thread's verb). Both doors span void-line to past-ceiling, so the order is forced: climb -> door a -> thread (key b sits in the thread line) -> door b -> goal. Longest n2 course (~4700px of forced-order navigation).\n\nMOVEMENT MATH (current Tuning): trampoline apex 270, zero-boost drift ~395 (trampoline) / ~527 (spring); boost 760 px/s at 28.6 fuel/s (~26.6px/fuel); touch +20; super 2800 => apex ~2450px above launch.\n\nFLIGHT-REQUIRED PROOF (every leg): start->chimney base (320->940) 620px, pad2->needle wall (2420->3040) 620px, pad3->goal (3600->4300) 700px, base->pad2 (1260->2100) 840px with door a at x1700 -- ALL exceed the 527px spring drift ceiling (pads are trampolines, reach ~395). KEY A CLIMB: shaft interior x 940..1260 (320px vs 92px player) directly above the base pad; L1 (y=-100) is 1300px above the pad (4.8x trampoline apex), L2 (y=-650) is 550px above L1 (> 480 spring apex), key a (y=-1000) is 350px above L2 (> 270 trampoline apex -- final boost puff). KEY B THREAD: mouth y 700..880 (180px, 44px clearance/side) sits 320-500px above pad2's 730 bounce apex line at a 620px standoff -- aimed flight only; key b (x 3260, y 790) hangs 100px past the mouth exit dead-center in the thread line, so collecting it IS threading it.\n\nFUEL LEDGER: key-a climb from a multi-bounce-full tank: 1300px ~= 49 fuel, +20 at L1, 550px ~= 21, +20 at L2, 350px ~= 13 => worst point 51, ~37 left at the key; fall out free, re-bank on base pad. Door-a leg 840px ~= 31 fuel. Needle leg (climb ~400 + cross 620 + wall 120) ~= 45 fuel from a full pad2 bank. Door-b leg 700px ~= 26. Every leg is single-tank with a refund stop before it. Falls -> void line (y 1500) -> free respawn at start_gate; keys already collected stay collected, so a fall costs travel time only.\n\nDOOR/CEILING FENCES: both doors and the needle's upper wall run y=-3200..(floor), i.e. 300px PAST the -2900 ceiling -- zero overfly band. Ceiling -2900: vertical super from the pads (y=1200) apexes -1250, 1650px below it (safe); super from L2 (-650) would apex -3100 and rings out at -2900 (the fence; free respawn); the best diagonal super from the shaft (45 deg, components ~1980) crests only ~1225px above launch => -1875 from L2, far below the -3200 door tops. Doors each have exactly one matching key (a, b) -- never zero.\n\nBOUNDS: explicit -- left -700, top -2900, right 5400, bottom 2100.",
   "sky_top": "#26527d",
   "sky_bottom": "#b0d8f0",
-  "hint": "TWO KEYS, TWO DOORS — CLIMB, THEN THREAD",
-  "bounds": { "left": -700, "top": -2900, "right": 5400, "bottom": 2100 },
+  "hint": "TWO KEYS OPEN TWO DOORS",
+  "bounds": {
+    "left": -700,
+    "top": -2900,
+    "right": 5400,
+    "bottom": 2100
+  },
   "platforms": [
-    { "x": 0, "y": 1200, "w": 320, "h": 128, "tier": "trampoline" },
-
-    { "x": 940, "y": 1200, "w": 320, "h": 128, "tier": "trampoline" },
-    { "x": 820, "y": -1200, "w": 120, "h": 1800, "tier": "bumper" },
-    { "x": 1260, "y": -1200, "w": 120, "h": 1800, "tier": "bumper" },
-    { "x": 940, "y": -100, "w": 140, "h": 40, "tier": "trampoline" },
-    { "x": 1120, "y": -650, "w": 140, "h": 40, "tier": "trampoline" },
-
-    { "x": 2100, "y": 1200, "w": 320, "h": 128, "tier": "trampoline" },
-
-    { "x": 3040, "y": -3200, "w": 120, "h": 3900, "tier": "bumper" },
-    { "x": 3040, "y": 880, "w": 120, "h": 620, "tier": "bumper" },
-
-    { "x": 3280, "y": 1200, "w": 320, "h": 128, "tier": "trampoline" },
-
-    { "x": 4300, "y": 1200, "w": 360, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1200,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 940,
+      "y": 1200,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 820,
+      "y": -1200,
+      "w": 120,
+      "h": 1800,
+      "tier": "bumper"
+    },
+    {
+      "x": 1260,
+      "y": -1200,
+      "w": 120,
+      "h": 1800,
+      "tier": "bumper"
+    },
+    {
+      "x": 940,
+      "y": -100,
+      "w": 140,
+      "h": 40,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1120,
+      "y": -650,
+      "w": 140,
+      "h": 40,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2100,
+      "y": 1200,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3040,
+      "y": -3200,
+      "w": 120,
+      "h": 3900,
+      "tier": "bumper"
+    },
+    {
+      "x": 3040,
+      "y": 880,
+      "w": 120,
+      "h": 620,
+      "tier": "bumper"
+    },
+    {
+      "x": 3280,
+      "y": 1200,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 4300,
+      "y": 1200,
+      "w": 360,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -700, "y": 1500, "w": 6100, "h": 600, "wall_px": 120 },
-    { "type": "start_gate", "x": 160, "y": 1100 },
-    { "type": "key", "x": 1100, "y": -1000, "r": 46, "door": "a" },
-    { "type": "key_door", "x": 1700, "y": -3200, "w": 120, "h": 4700, "door": "a" },
-    { "type": "key", "x": 3260, "y": 790, "r": 46, "door": "b" },
-    { "type": "key_door", "x": 3900, "y": -3200, "w": 120, "h": 4700, "door": "b" },
-    { "type": "goal_gate", "x": 4480, "y": 1060, "w": 240, "h": 320 }
+    {
+      "type": "void",
+      "x": -700,
+      "y": 1500,
+      "w": 6100,
+      "h": 600,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 160,
+      "y": 1100
+    },
+    {
+      "type": "key",
+      "x": 1100,
+      "y": -1000,
+      "r": 46,
+      "door": "a"
+    },
+    {
+      "type": "key_door",
+      "x": 1700,
+      "y": -3200,
+      "w": 120,
+      "h": 4700,
+      "door": "a"
+    },
+    {
+      "type": "key",
+      "x": 3260,
+      "y": 790,
+      "r": 46,
+      "door": "b"
+    },
+    {
+      "type": "key_door",
+      "x": 3900,
+      "y": -3200,
+      "w": 120,
+      "h": 4700,
+      "door": "b"
+    },
+    {
+      "type": "goal_gate",
+      "x": 4480,
+      "y": 1060,
+      "w": 240,
+      "h": 320
+    }
   ]
 }

@@ -5,7 +5,7 @@
   "mode": "trials",
   "kill_shape": "void_is_floor",
   "design_intent": "PHYSICS-LAB circuit 4, course 2 of 4 (owner 2026-07-16: 'physics puzzles solved by knocking over or exploding things'). DESTROY_ALL: wreck every crate on the site — 10 destructible_blocks in three sub-puzzles, each teaching a different way to break things. Verified against DestructibleBlock.gd: break_on 'hit' = any bounce contact >= 300px/s costs 1hp; break_on 'smash' = a fired super (is_super_active) OR contact speed >= Tuning.smash_impact_min (900px/s) costs 1hp — and plain boost caps at 760px/s (INV-1), so SMASH crates are IMMUNE to normal flying: only a super or a genuine dive breaks them. Dive math: impact speed = sqrt(2*1600*fall) -> a 253px free fall hits exactly 900px/s; every smash dive in this course has 300px+ of drop.\n\nTHE THREE PUZZLES:\n(A) THE TOWER (right, floating over the void): three SMASH hp1 crates stacked at x1900, y700/810/920 (column y700-1020 with 10px seams). Two solutions, both taught: (1) CHAIN DIVE — climb above the tower (boost; top crate is 380px above the base pad top, > trampoline 270), free-fall 300px+ onto the top crate (>=980px/s = smash), the trampoline-tier crate BOUNCES you back up (apex 270) while it cracks and breaks 0.28s later, and the re-fall from that bounce apex hits the next crate at ~930px/s — the tower eats itself one dive rhythm at a time; (2) SUPER — one vertical super (2800px/s, super_active 0.45s = 1260px of licensed travel) hammered up or down the 320px column registers a hit on each crate's own detector (per-block 0.3s hit_cd is independent). Recovery is over the void: the crate bounce itself refunds nothing but the base/spring pads are one boost away.\n(B) THE SEALED BOX (left): four HIT hp1 shell faces (top 140,560 480x80; bottom 140,1000 480x80; left wall 60,640 80x360; right wall 620,640 80x360 — flush against the base pad edge at x700) enclose a CORE crate (310,760 140x100, SMASH hp1). The core's damage sensor (rect + 12px) is unreachable while the shell stands: the ONLY order is break a face first (any >=300px/s bounce — a 760px/s boost ram works, and the face bounces you off as it cracks), fly in through the 480px opening, then SUPER the core — inside the 480x360 chamber there is no 253px of fall, so the super (min 5 fuel) is the only smash tool in there. This is the 'break things to forge the path to more things' beat.\n(C) THE HIGH SHELF: two HIT hp1 crates at y260 (x700 and x1500, 200x90). They hang 820px above the pads — beyond even the SPRING apex (480), so the only way up is spring bounce + sustained boost (boost_gravity_scale 0.8 while thrusting). Pure flight gate.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight required):\n- High shelf crates: 820px above footing > spring 480 -> BOOST mandatory (course cannot complete without it — DESTROY_ALL counts them).\n- Tower: top crate 380px above base pad top > trampoline 270 -> BOOST to set up the dive; recovery from the over-void bounce-offs is boost or die (free respawn).\n- Core: SUPER mandatory (>=5 fuel) — plain boost 760 < 900 gate, no fall room inside.\n- Base pad (700,1080 w520 trampoline) and spring pad (1350,1080 w300 spring) are the only permanent footing; both bounce (no standable ground).\nEvery sub-puzzle demands a flight verb: boost climb, dive (a controlled flight exit), or super.\n\nFUEL BUDGET: spawn 100. Shelf run: spring bounce is free, ~1.4s boost (~40) to top out at y260, crates bounce you back (they are trampoline-tier surfaces). Box run: one boost ram (~10) + entry + one super (dumps tank, min 5 to fire); the shell faces are bounce surfaces so working inside the box refunds +20 per touch before the super. Tower run: climb ~30, dives are free, each crate bounce sustains the rhythm. Order is free (any-order clear); the natural route is shelf while fuel is full -> tower -> box last (the super dump ends near the pads for refuel). A fall = free respawn with a full tank, blocks stay broken (DESTROY_ALL state persists in-run).\n\nFAIRNESS: every crate telegraphs 0.28s of cracks before vanishing; no crate is anyone's sole footing (base + spring pads always remain — no softlock); void spans the whole floor; spawn (960,980) is over the base pad, clear of all crates. Explicit bounds give 1400px of climb headroom over the high shelf.",
-  "hint": "SMASH CRATES BREAK ONLY TO A SUPER OR A REAL DIVE — CRACK THE SHELL TO REACH THE CORE",
+  "hint": "DIVE OR SUPER — SMASH EVERY CRATE",
   "sky_top": "#5a4a3a",
   "sky_bottom": "#d9c9a3",
   "bounds": {
@@ -18,24 +18,134 @@
     "type": "DESTROY_ALL"
   },
   "platforms": [
-    { "x": 700, "y": 1080, "w": 520, "h": 120, "tier": "trampoline" },
-    { "x": 1350, "y": 1080, "w": 300, "h": 120, "tier": "spring" }
+    {
+      "x": 700,
+      "y": 1080,
+      "w": 520,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1350,
+      "y": 1080,
+      "w": 300,
+      "h": 120,
+      "tier": "spring"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -400, "y": 1300, "w": 3200, "h": 500, "wall_px": 120 },
-    { "type": "start_gate", "x": 960, "y": 980 },
-
-    { "type": "destructible_block", "x": 1900, "y": 920, "w": 220, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
-    { "type": "destructible_block", "x": 1900, "y": 810, "w": 220, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
-    { "type": "destructible_block", "x": 1900, "y": 700, "w": 220, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
-
-    { "type": "destructible_block", "x": 140, "y": 560, "w": 480, "h": 80, "tier": "trampoline", "break_on": "hit", "hp": 1 },
-    { "type": "destructible_block", "x": 140, "y": 1000, "w": 480, "h": 80, "tier": "trampoline", "break_on": "hit", "hp": 1 },
-    { "type": "destructible_block", "x": 60, "y": 640, "w": 80, "h": 360, "tier": "trampoline", "break_on": "hit", "hp": 1 },
-    { "type": "destructible_block", "x": 620, "y": 640, "w": 80, "h": 360, "tier": "trampoline", "break_on": "hit", "hp": 1 },
-    { "type": "destructible_block", "x": 310, "y": 760, "w": 140, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
-
-    { "type": "destructible_block", "x": 700, "y": 260, "w": 200, "h": 90, "tier": "trampoline", "break_on": "hit", "hp": 1 },
-    { "type": "destructible_block", "x": 1500, "y": 260, "w": 200, "h": 90, "tier": "trampoline", "break_on": "hit", "hp": 1 }
+    {
+      "type": "void",
+      "x": -400,
+      "y": 1300,
+      "w": 3200,
+      "h": 500,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 960,
+      "y": 980
+    },
+    {
+      "type": "destructible_block",
+      "x": 1900,
+      "y": 920,
+      "w": 220,
+      "h": 100,
+      "tier": "trampoline",
+      "break_on": "smash",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 1900,
+      "y": 810,
+      "w": 220,
+      "h": 100,
+      "tier": "trampoline",
+      "break_on": "smash",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 1900,
+      "y": 700,
+      "w": 220,
+      "h": 100,
+      "tier": "trampoline",
+      "break_on": "smash",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 140,
+      "y": 560,
+      "w": 480,
+      "h": 80,
+      "tier": "trampoline",
+      "break_on": "hit",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 140,
+      "y": 1000,
+      "w": 480,
+      "h": 80,
+      "tier": "trampoline",
+      "break_on": "hit",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 60,
+      "y": 640,
+      "w": 80,
+      "h": 360,
+      "tier": "trampoline",
+      "break_on": "hit",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 620,
+      "y": 640,
+      "w": 80,
+      "h": 360,
+      "tier": "trampoline",
+      "break_on": "hit",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 310,
+      "y": 760,
+      "w": 140,
+      "h": 100,
+      "tier": "trampoline",
+      "break_on": "smash",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 700,
+      "y": 260,
+      "w": 200,
+      "h": 90,
+      "tier": "trampoline",
+      "break_on": "hit",
+      "hp": 1
+    },
+    {
+      "type": "destructible_block",
+      "x": 1500,
+      "y": 260,
+      "w": 200,
+      "h": 90,
+      "tier": "trampoline",
+      "break_on": "hit",
+      "hp": 1
+    }
   ]
 }

@@ -54,7 +54,7 @@ theme_override_constants/separation = 6
 [node name="HomeLabel" type="Label" parent="Root/HomePanel/HomeBox"]
 layout_mode = 2
 theme_type_variation = &"BannerTop"
-theme_override_font_sizes/font_size = 72
+theme_override_font_sizes/font_size = 42
 text = "GO"
 horizontal_alignment = 1
 
@@ -64,7 +64,7 @@ alignment = 1
 theme_override_constants/separation = 20
 
 [node name="Pip0" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(58, 58)
+custom_minimum_size = Vector2(38, 38)
 layout_mode = 2
 mouse_filter = 2
 
@@ -73,7 +73,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="Pip1" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(58, 58)
+custom_minimum_size = Vector2(38, 38)
 layout_mode = 2
 mouse_filter = 2
 
@@ -82,7 +82,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="Pip2" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(58, 58)
+custom_minimum_size = Vector2(38, 38)
 layout_mode = 2
 mouse_filter = 2
 
@@ -91,7 +91,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="Pip3" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(58, 58)
+custom_minimum_size = Vector2(38, 38)
 layout_mode = 2
 mouse_filter = 2
 
@@ -100,10 +100,13 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="SubLabel" type="Label" parent="Root/HomePanel/HomeBox"]
+custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
 theme_type_variation = &"Hint"
+theme_override_font_sizes/font_size = 20
 text = ""
 horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="FuelWrap" type="Control" parent="Root"]
 layout_mode = 1
