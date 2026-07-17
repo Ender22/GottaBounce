@@ -1,0 +1,99 @@
+{
+  "name": "Hazard Striker",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "S3 SOCCER TRIALS #4 -- the TIMED strike capstone. Same player-driven shot as s3_tap_in (flat pitch, ground-level goal right, small lip guard) but the shooting lane is guarded by TWIN fuse bombs on offset cycles: bomb A mid-approach (1700,1000) and bomb B hanging at the goal mouth (2100,780). Bombs are OBSTACLES ONLY (owner brief: no bomb-solves in s3 -- here a blast that catches the ball in flight punts it OFF line via receive_hazard_impulse, and a player inside kill_radius eats it). The skill: read the telegraphs (telegraph_lead 1.0) and fire the drive in the quiet window between blasts. Goal is GENEROUS (360x480 mouth) to compensate, per brief.\n\nDERIVED SHOT + WINDOW (Ball.gd dv=(500+0.9*speed)/0.6; gravity 1600; boost 760): ball rests at (800,1040). Full boost-speed drive at ~25 deg (just under the equator) => 1973 px/s: vx 1788, vy -834. It clears the 70px goal lip (top y1030; ball center must be <=970 over x2180-2250) at y~890 with 80px to spare, and enters the zone (x2270-2630, y640-1120) at t=0.82s, y=889 -- SCORE. THE GAUNTLET: the flight passes within blast range of BOTH bombs -- at x1700 the ball is 178px from bomb A (blast_radius 320) and at x2100 it is 77px from bomb B -- so a blast during the ~0.31-0.90s span of the flight punts the shot away. TIMING MATH: both bombs recur at 5.0s with fuses offset 2.5s (A fuse 2.0, B fuse 4.5, same recur => the 2.5s stagger holds whatever the engine's exact cadence anchor), so the longest blast-free window is ~2.5s; total flight time to goal is ~0.82s and the hot span is ~0.6s of it. Striking right after ANY explosion leaves >1.5s of slack -- a readable, generous window that still punishes firing blind. A blast-punted miss settles or flies OOB and auto-resets (2.8s), unlimited attempts; average player clears well inside 90s.\n\nNO-AUTO-SCORE GUARD: two independent guards. (1) The 70px bumper lip at x2180 sits between the ball's rest path (rolling center y1040 vs required clearance center <=970) and the mouth -- a resting or dribbled ball cannot get over it. (2) The resting ball at (800,1040) is 901px from bomb A and 1327px from bomb B -- both far outside blast_radius 320, so the recurring blasts can NEVER punt the ball from its spawn (no blast-lottery auto-solve; the PLAYER must supply the launch, honoring the no-bomb-shot rule for s3).\n\nPLAYER SAFETY: spawn (400,1000) is 1300px from bomb A and 1717px from bomb B -- far outside kill_radius 170 and blast_radius 320; the strike itself happens at the ball (x~800), still 900px clear. Only a player who chases the shot into the guarded mouth risks the fuses, and the 1.0s telegraph plus 2.5s stagger keeps that dodgeable. Deck marshmallow, lip and back wall bumper (overshoots rebound goalward), void below kills.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "WATCH THE FUSES - SHOOT BETWEEN THE BLASTS",
+  "bounds": {
+    "left": -300,
+    "top": -600,
+    "right": 3100,
+    "bottom": 1700
+  },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    {
+      "x": 200,
+      "y": 1100,
+      "w": 2400,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 2180,
+      "y": 1030,
+      "w": 70,
+      "h": 70,
+      "tier": "bumper"
+    },
+    {
+      "x": 2600,
+      "y": 400,
+      "w": 140,
+      "h": 800,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -300,
+      "y": 1400,
+      "w": 3400,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 400,
+      "y": 1000
+    },
+    {
+      "type": "ball",
+      "x": 800,
+      "y": 1040
+    },
+    {
+      "type": "bomb",
+      "x": 1700,
+      "y": 1000,
+      "blast_radius": 320,
+      "kill_radius": 170,
+      "trigger": "fuse",
+      "fuse_s": 2.0,
+      "telegraph_lead": 1.0,
+      "recur": 5.0,
+      "arm_delay": 0.3,
+      "impulse_center": 1500
+    },
+    {
+      "type": "bomb",
+      "x": 2100,
+      "y": 780,
+      "blast_radius": 320,
+      "kill_radius": 170,
+      "trigger": "fuse",
+      "fuse_s": 4.5,
+      "telegraph_lead": 1.0,
+      "recur": 5.0,
+      "arm_delay": 0.3,
+      "impulse_center": 1500
+    },
+    {
+      "type": "goal_zone",
+      "x": 2450,
+      "y": 880,
+      "w": 360,
+      "h": 480,
+      "team": 0
+    }
+  ]
+}

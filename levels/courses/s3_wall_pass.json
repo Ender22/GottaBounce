@@ -1,0 +1,80 @@
+{
+  "name": "Wall Pass",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "S3 SOCCER TRIALS #3 -- the PLAYER-DRIVEN bank shot (t_bank_shot's geometry lesson, but the player's shoulder is the cannon). The goal pocket sits behind a mid-field bumper blocker AND under a floating crossbar, so BOTH the flat line and the drop-from-above line are sealed: the only way in is over the blocker, off the tall back wall, and back under the crossbar through the right-side slot. Teaches reading a carom off the player's own drive.\n\nDERIVED BANK (Ball.gd dv=(500+0.9*speed)/0.6, restitution 0.85; gravity 1600): ball rests at (700,1040). Full boost-speed (760) 45-deg underside drive => 1973 px/s, vx=vy=1395. (1) CLEARS THE BLOCKER: at the blocker span x1500-1640 the ball center is y503-463, ball bottom 563-523 vs blocker top 640 -- clears by ~77px. (2) NO PREMATURE SCORE: outbound it crosses the zone x-range 1700-2050 at y451-440, i.e. ~110px ABOVE the crossbar top (560) and far above the zone top (700) -- passes clean over. (3) THE BANK: it strikes the back wall's face (ball center x2440) at t=1.25s, y=544, now descending at vy~600; the carom keeps vx*0.85 => -1186 leftward. From (2440,544) it re-enters below the crossbar through the 450px slot (crossbar right edge 2050 to wall face 2500) and crosses the zone edge x2050 at t+0.33s at y=829 -- inside the y700-1100 band -- SCORE. Steeper drives (55-65 deg) hit the wall lower and harder, plunge into the slot, and score off the floor bounce (e.g. 60 deg lands at x~2104, first bounce carries it left across x2050 inside the band) -- the geometry is forgiving to any over-the-blocker shot because everything funnels off the wall into the pocket.\n\nWHY DIRECT ENTRY FAILS: flat/shallow lines from deck height into the zone (top y700) all pass the blocker span at y>=700 vs blocker top 640 -- blocked. Steep lobs (70-80 deg) that clear the blocker high descend onto the CROSSBAR (x1700-2050, y560-640) which caps the zone from above -- rejected. Super-drive (ball capped 2400) hits the wall near its top (y~141) at apex and caroms all the way back over the blocker to the left deck -- overshoot, reset; the committed normal boost drive is the intended tool.\n\nNO-AUTO-SCORE GUARD: the blocker (x1500-1640, standing 460px above the deck, flush to the floor) is a hard lip between the ball's rest position (700,1040) and the zone (x>=1700); a resting ball has no impulse source and a slow dribble stops against the blocker face, settles, and resets (2.8s).\n\nPLAYER: spawns at (350,1000), 350px left of the ball, no hazards -- safe. Deck marshmallow, blocker/wall/crossbar bumper, void below. NOTE the two tight in-engine margins for the director's rendered check: blocker clearance ~77px and outbound crossbar clearance ~50-60px at the ideal 45-deg full-speed drive -- both scale up with any extra approach speed (a short dive-then-boost run-up at ~1000 px/s gives 2333 drive and ~150px of margin), so the average-player solve is a committed run-up, well inside 90s of tries.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "OVER THE WALL - BANK IT OFF THE BACK",
+  "bounds": {
+    "left": -400,
+    "top": -900,
+    "right": 3100,
+    "bottom": 1700
+  },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    {
+      "x": 200,
+      "y": 1100,
+      "w": 2300,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 1500,
+      "y": 640,
+      "w": 140,
+      "h": 460,
+      "tier": "bumper"
+    },
+    {
+      "x": 1700,
+      "y": 560,
+      "w": 350,
+      "h": 80,
+      "tier": "bumper"
+    },
+    {
+      "x": 2500,
+      "y": 100,
+      "w": 160,
+      "h": 1120,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -400,
+      "y": 1400,
+      "w": 3500,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 350,
+      "y": 1000
+    },
+    {
+      "type": "ball",
+      "x": 700,
+      "y": 1040
+    },
+    {
+      "type": "goal_zone",
+      "x": 1875,
+      "y": 900,
+      "w": 350,
+      "h": 400,
+      "team": 0
+    }
+  ]
+}

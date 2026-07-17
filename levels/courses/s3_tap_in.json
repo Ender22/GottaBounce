@@ -1,0 +1,73 @@
+{
+  "name": "Tap-In",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "S3 SOCCER TRIALS #1 (circuit 3, owner 2026-07-16: hit a soccer ball into a goal) -- the TEACH course for the PLAYER-DRIVEN shoulder-drive. Unlike the bomb-punt proofs (t_ball_cannon/t_bank_shot) there are NO bombs: the player flies into the Ball and Ball._drive_from imparts velocity = (BALL_TOUCH_IMPULSE 500 + BALL_DRIVE_GAIN 0.9 * player_speed) / mass 0.6 along the away/travel blend. Flat pitch, ball mid-field, one big open ground-level goal on the right. One clean boost-drive scores.\n\nDERIVED SHOT (vs Ball.gd constants + Tuning boost 760 px/s, gravity 1600): a boost-speed hit gives the ball (500 + 0.9*760)/0.6 = 1973 px/s. Ball rests at (1200,1040) on the deck (deck top 1100, ball radius 60). A near-flat drive at ~20 deg (hit the ball just below its equator while flying right): vx 1854, vy -675. It crosses the 200px deck gap (x2350-2550) at t~0.62-0.73s riding ~100px of loft and enters the goal band (zone x2420-2820, y620-1140) at t~0.66, y~936 -- SCORE. Even the WEAKEST possible touch works: Ball.gd floors every contact at impulse 500 => 500/0.6 = 833 px/s minimum, which crosses the 200px gap in ~0.24s dropping only ~46px and enters the zone at y~1046, still inside the band. So ANY committed fly-into-the-ball contact scores; the course cannot dead-end, which is exactly right for the tutorial beat.\n\nNO-AUTO-SCORE GUARD: the guard is the 200px deck gap (x2350-2550, void below) between the ball's rest position and the goal apron. A resting ball has zero velocity and TrialsMode only arms the settle-reset after BALL_LAUNCH_SPEED 220 -- at rest it simply sits; it cannot roll 1150px and cross a 200px gap with no impulse. Anything slower than a touch does not exist (833 px/s floor), and a mis-hit that dribbles into the gap falls to the void, goes OOB, and auto-resets to spawn (reset_settle_s 2.8) -- unlimited attempts. Back wall (bumper x2840) rebounds overshoots into the zone from behind, keeping the tap-in generous.\n\nPLAYER: spawns at (700,1000) on the left deck, 500px from the ball, no hazards anywhere -- safe. The only kill surface is the void under the gap/edges (every surface bounces or kills; deck is marshmallow). Completable in one try by an average player; sub-90s trivially.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "FLY INTO THE BALL - DRIVE IT HOME",
+  "bounds": {
+    "left": -300,
+    "top": -500,
+    "right": 3300,
+    "bottom": 1700
+  },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    {
+      "x": 200,
+      "y": 1100,
+      "w": 2150,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 2550,
+      "y": 1100,
+      "w": 290,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 2840,
+      "y": 500,
+      "w": 140,
+      "h": 720,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -300,
+      "y": 1400,
+      "w": 3600,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 700,
+      "y": 1000
+    },
+    {
+      "type": "ball",
+      "x": 1200,
+      "y": 1040
+    },
+    {
+      "type": "goal_zone",
+      "x": 2620,
+      "y": 880,
+      "w": 400,
+      "h": 520,
+      "team": 0
+    }
+  ]
+}

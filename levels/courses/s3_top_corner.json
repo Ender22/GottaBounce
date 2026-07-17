@@ -1,0 +1,66 @@
+{
+  "name": "Top Corner",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "S3 SOCCER TRIALS #2 -- the LOFT shot. The goal mouth is mounted HIGH on the right wall (zone y360-680; bottom edge sits 420px above the deck, center 580px up -- inside the 500-700 elevation brief), so a flat drive can never score: the player must dive UNDER the ball and strike its underside so the away/travel blend in Ball._drive_from points up-right (~45 deg). Teaches angle control on the shoulder-drive that s3_tap_in introduced flat.\n\nDERIVED SHOT (Ball.gd: dv = (500 + 0.9*speed)/0.6, x2 super; gravity 1600): ball rests at (900,1040) on the deck (top 1100). A full boost-speed (760) underside hit gives 1973 px/s; at 45 deg that is vx = vy = 1395. Apex rise = 1395^2/(2*1600) = 608px > the 520px needed to reach goal center. The ball enters the zone's left edge (x1600) at t=0.50s at y=542 -- inside the y360-680 band -- SCORE. Angle window at full drive is roughly 40-55 deg: at 30 deg apex rise is only 304px so the ball smacks the wall below the mouth (contact y~739) and bounces back; at 60 deg it crosses x1600 at y~230, sails OVER the wall top (y300) and out of bounds -- auto-reset, try again. A lazy half-speed touch also fails honestly: approach 400 px/s => drive 1433, 45-deg apex 321px, peaking at y~719 just short and below the band. So the shot REQUIRES a committed full-boost approach plus a read of the strike angle -- the jetpack is the club. A super-drive (ball capped at 2400; 45 deg apex 900px) overshoots the mouth high and caroms off the wall top region; normal boost is the intended tool.\n\nNO-AUTO-SCORE GUARD: pure elevation. The zone's bottom edge (y680) is 420px above the resting ball's center path (y1040 rolling on the deck); the deck runs flush into the wall base so a rolling ball just stops against the wall far below the mouth. Zero gravity-only path from spawn rest into the zone.\n\nPLAYER: spawns at (450,1000) on the open left deck, 450px from the ball, no hazards -- safe. Deck is marshmallow (bounces), wall is bumper, void below kills. Misses reset via settle (2.8s) or OOB; the ~15-deg angle window at a natural full-boost speed makes this an average-player clear well inside 90s of tries.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "HIT IT LOW - LOFT IT TO THE TOP CORNER",
+  "bounds": {
+    "left": -300,
+    "top": -700,
+    "right": 2500,
+    "bottom": 1700
+  },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    {
+      "x": 200,
+      "y": 1100,
+      "w": 1700,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 1900,
+      "y": 300,
+      "w": 140,
+      "h": 920,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -300,
+      "y": 1400,
+      "w": 2800,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 450,
+      "y": 1000
+    },
+    {
+      "type": "ball",
+      "x": 900,
+      "y": 1040
+    },
+    {
+      "type": "goal_zone",
+      "x": 1760,
+      "y": 520,
+      "w": 320,
+      "h": 320,
+      "team": 0
+    }
+  ]
+}
