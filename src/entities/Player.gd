@@ -537,11 +537,16 @@ func _physics_process(delta: float) -> void:
 			_fire_super(_sb_aim_t >= Tuning.super_aim_max)
 	_sb_was_held = sh
 
-	# gravity — floaty while aiming (§1.1), full otherwise
-	velocity += g * (Tuning.super_aim_gravity if _sb_aiming else 1.0) * delta
-
 	var boosting := intent.boost and fuel > 0.0 and not _sb_aiming   # no normal thrust while aiming
 	_boosting_now = boosting
+	# gravity — floaty while aiming (§1.1); ~20% lighter while THRUSTING (owner 2026-07-16: upward
+	# flight had too little authority, players defaulted to supers); full weight otherwise.
+	var g_scale := 1.0
+	if _sb_aiming:
+		g_scale = Tuning.super_aim_gravity
+	elif boosting:
+		g_scale = Tuning.boost_gravity_scale
+	velocity += g * g_scale * delta
 	# Starting a fresh boost cuts momentum, so a tap of boost lets you reclaim control of your path.
 	if boosting and not _boost_was_held:
 		velocity *= Tuning.boost_enter_keep
@@ -862,6 +867,27 @@ func _handle_smashes() -> void:
 				_smash_cd = 0.3
 				return
 			else:
+				# PLAYER HEAD-BOUNCE (owner 2026-07-16, Mario-coop style): falling onto another player
+				# from above relaunches ME upward like a surface bounce; they take a squash + small
+				# nudge. Non-smash path ONLY (license/gate above already returned), NEVER while stunned
+				# (dry-reflect doctrine: hitstun ends by TIME — a head is a surface like any other),
+				# NO fuel refund (a head is not a refuel station — no hover-farming an opponent).
+				var to_b: Vector2 = (b.global_position - global_position).normalized()
+				var closing_down: float = velocity.y - b.velocity.y
+				if _stun_timer <= 0.0 and _shove_cd <= 0.0 and to_b.y > 0.7 \
+						and closing_down >= Tuning.player_bounce_min_closing:
+					velocity.y = -Tuning.player_bounce_speed   # keep horizontal momentum, Mario-style
+					_squash_timer = 0.12
+					_shove_cd = 0.3
+					if not b.invincible and b._spawn_protect <= 0.0:
+						b._squash_timer = 0.12
+						b.velocity += to_b * Tuning.player_bounce_victim_push
+						# same credit rule as the shove: a stomp that carries someone over the line
+						if closing_down >= Tuning.shove_credit_min_rel:
+							b.credit_attacker(self)
+					EventBus.bounced.emit(self)
+					EventBus.bounced_juicy.emit(self, Tuning.player_bounce_speed, b.global_position)
+					return
 				_soft_separate(b)
 		else:
 			# props (ball / crate / support): plain speed gate — a fast heavy ball doesn't need a

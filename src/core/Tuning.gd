@@ -41,6 +41,23 @@ var fuel_per_bumper: float = 20.0    # bumper walls refund fuel too — enables 
 var normal_boost_accel: float = 4600.0       # snappier thrust response
 var normal_boost_max_speed: float = 760.0     # a bit more top thrust speed for control
 var boost_rampup: float = 0.06
+var boost_gravity_scale: float = 0.8         # owner 2026-07-16: flying players are ~20% "lighter"
+                                             # WHILE THRUSTING (gravity scaled only when boost is
+                                             # firing), so climbing has more authority — players were
+                                             # avoiding upward flight and defaulting to supers. Does
+                                             # not touch the 760 thrust cap (INV-1 untouched: plain
+                                             # boost still can never reach smash_impact_min).
+
+# --- Player head-bounce (owner 2026-07-16, "Mario coop" bounce off other players) ---
+# Falling onto another player from above relaunches YOU upward like a surface bounce; the player you
+# hit takes a small squash-nudge. NO fuel refund (a head is not a refuel station — prevents hover-
+# farming an opponent's head) and NEVER granted while stunned (hitstun ends by TIME — the dry-reflect
+# doctrine, DECISIONS 2026-07-03, applies to heads exactly like walls). Shove kill-credit rule reused.
+var player_bounce_speed: float = 1150.0        # upward exit speed (≈ sqrt(2*g*h) for a ~415px hop —
+                                               # between the trampoline and spring tiers; feels earned)
+var player_bounce_min_closing: float = 220.0   # min downward closing speed (px/s) to count as a stomp
+                                               # (grazing overlaps stay SHOVEs)
+var player_bounce_victim_push: float = 240.0   # downward/outward nudge on the bounced-on player (px/s)
 
 # --- Super boost v2: UN-CHARGED (docs/specs/v0_combat_lethality.md §1) ---
 # Press super (fuel >= min) -> AIM state (floaty hover, stick steers the arrow), release or
