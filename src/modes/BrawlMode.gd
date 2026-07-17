@@ -126,27 +126,58 @@ func _id_tier(item: Variant) -> Dictionary:
 		return {"id": str((item as Dictionary).get("id", "")), "tier": int((item as Dictionary).get("tier", 1))}
 	return {"id": str(item), "tier": 1}
 
-## Per-slot descriptors: humans first, then bots (today's spawn order). Skin/character indexed by
-## player from the config; bot level = Tuning.bot_levels rotation when difficulty 0 (today), else fixed.
+# The 6-goat skin roster (owner 2026-07-16: a bot must NEVER wear a human's color). Order = bot
+# preference when picking a free skin; humans' picks always come from CharacterSelect via config.
+const SKIN_ROSTER: Array[String] = ["blue", "green", "yellow", "purple", "orange", "pink"]
+
+## Per-slot descriptors: humans first, then bots (today's spawn order). Human skin/character indexed
+## from the config (their CharacterSelect picks); BOT skins are assigned from SKIN_ROSTER excluding
+## every human pick and preferring unused skins (owner 2026-07-16 — the config's default skin tail
+## could duplicate a human's color). Bot level = Tuning.bot_levels rotation when difficulty 0, else fixed.
 func spawn_plan(_runner, config: MatchConfig) -> Array:
 	var out: Array = []
+	var used: Array = []          # every skin already in the match (humans first, then placed bots)
+	var human_skins: Array = []   # skins a bot may NEVER take, even when the roster runs dry
 	for i in range(config.human_count):
+		var hs := config.skin_for(i)
+		used.append(hs)
+		human_skins.append(hs)
 		out.append({
-			"human": true, "skin": config.skin_for(i), "character": config.character_for(i),
+			"human": true, "skin": hs, "character": config.character_for(i),
 			"bot_level": 0, "seed_damage": 0, "team": 0,
 		})
 	for b in range(config.bot_count):
-		var i := config.human_count + b
 		var lvl: int
 		if config.bot_difficulty == 0:
 			lvl = Tuning.bot_levels[b % Tuning.bot_levels.size()]   # today's mixed [2,3,4] rotation
 		else:
 			lvl = clampi(config.bot_difficulty, 1, 5)               # fixed level for all bots (§2.3)
 		out.append({
-			"human": false, "skin": config.skin_for(i), "character": config.character_for(i),
+			"human": false, "skin": _bot_skin(used, human_skins), "character": "bouncer",
 			"bot_level": lvl, "seed_damage": 0, "team": 0,
 		})
 	return out
+
+## The first roster skin not yet in the match; when all 6 are in play (5+ bots), reuse the
+## LEAST-USED non-human skin — a bot can repeat another bot's color but never a human's.
+func _bot_skin(used: Array, human_skins: Array) -> String:
+	for s in SKIN_ROSTER:
+		if not (s in used):
+			used.append(s)
+			return s
+	var best := ""
+	var best_n := 1 << 30
+	for s in SKIN_ROSTER:
+		if s in human_skins:
+			continue
+		var n := used.count(s)
+		if n < best_n:
+			best_n = n
+			best = s
+	if best == "":
+		best = SKIN_ROSTER[0]   # unreachable (max 4 humans < 6 skins) — defensive only
+	used.append(best)
+	return best
 
 # --- stage lifecycle ---
 
