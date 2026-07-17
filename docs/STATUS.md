@@ -48,9 +48,14 @@ Chrome+ChatGPT pipeline (14dd78a): objects/cannon.png (whole-toy rocking aim in 
 key.png, objects/door_tile.png (KeyDoor vault tiling) — all keyout/check clean, CATALOG rows + prompts
 recorded, graded from in-game screenshots; fallback drawing paths kept. (c) Solo trials drops the
 permanent "GO" (same commit — home tracker/pip hidden solo; panel = hint chip only). Powerups = pad B.
-**REMAINING ART DEBT (unchanged backlog, next art pass):** squash poses for blue/green/yellow, real font
-to replace SystemFont, skull icon, super-aim pose x4, arena thumb crests for circuits, cosmetics per
-CATALOG statuses.
+**ART PASS 2 (2026-07-17 late, 4ac0c2c):** trials circuit CRESTS x4 shipped (FLIGHT SCHOOL / NEEDLE & KEY /
+GOAL RUSH / PHYSICS LAB, gold-shield style matched to brawl crests; ArenaSelect trials cards now show art)
+— rendered-verified. STALE-NOTE CORRECTED: squash/charge poses exist for ALL 6 colors and the 5 brawl
+crests were already in place (the old backlog line was from the 2026-07-03 snapshot). Gotcha recorded:
+new PNGs need one `--editor --quit` import pass before a rendered run can load them.
+**REMAINING ART DEBT:** crest_trials_varied (MIXED CHALLENGES) + skull icon — ChatGPT image limit hit
+mid-batch, generate when it resets (prompts in CATALOG); real font to replace SystemFont (needs owner
+font pick + download approval); super-aim pose x6 (aim state reuses idle).
 **FOLLOW-UPS (next session):** cannon/key/door PROPER SPRITES (interim = steel-sprite assembly + tinted
 token; art-debt logged in entity headers); full HUMAN-skill playthrough QA of n2_/p4_ courses (validated
 tonight by loads/gates/mechanic probes + measured carries, not full blind runs); ui-ux-designer formal
