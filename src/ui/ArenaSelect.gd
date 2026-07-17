@@ -68,6 +68,8 @@ const ARENAS := [
 	{"path": "res://levels/bumper_gauntlet.json", "name": "Bumper Gauntlet", "color": Color("#ff5a4a")},
 	{"path": "res://levels/the_ascent.json", "name": "The Ascent", "color": Color("#7a9cff")},
 	{"path": "res://levels/wrecking_yard.json", "name": "Wrecking Yard", "color": Color("#c9a24a")},
+	{"path": "res://levels/singularity.json", "name": "Singularity", "color": Color("#a15fff")},
+	{"path": "res://levels/twin_moons.json", "name": "Twin Moons", "color": Color("#7a9cff")},
 ]
 
 @onready var _shelf_a: Control = $ShelfA

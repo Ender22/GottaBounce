@@ -162,8 +162,16 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 			"powerup_spawner":
 				# spawn POINT only (v1 powerups): pacing/placement live in PowerupSpawnDirector
 				result["powerup_spawners"].append(Vector2(o["x"], o["y"]))
+			"gravity_source":
+				# P8 seam FILLED (owner 2026-07-18): a radial gravity well — constant-magnitude pull
+				# toward its center inside `radius`; optional round planetoid bounce body (`body_r` +
+				# `tier`), lethal core (`lethal_core_r`, existing Hazard path), and black_hole/moon
+				# visual. GravityField/BounceResolver/Player were already field-correct (INV-1).
+				var gs := GravitySource.new()
+				gs.setup_from_json(o)
+				parent.add_child(gs)
 			"physics_prop", "container", "physics_structure", \
-			"gravity_source", "fan":
+			"fan":
 				# v0: these entity types are not ported yet — skip cleanly so old levels still load.
 				push_warning("LevelLoader: '%s' not ported in v0 — skipped (%s)" % [otype, path])
 			_:

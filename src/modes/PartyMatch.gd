@@ -41,6 +41,8 @@ const LEVEL_POOL: Array[String] = [
 	"res://levels/bumper_gauntlet.json",
 	"res://levels/the_ascent.json",
 	"res://levels/wrecking_yard.json",
+	"res://levels/singularity.json",
+	"res://levels/twin_moons.json",
 ]
 # Player color palette, indexed by player (presentation only; skin IDENTITY comes from the config's
 # skin_ids — v1_frontend_shell §2.2). P1 pink / bots blue/green/yellow reproduce today; 4 extra hues

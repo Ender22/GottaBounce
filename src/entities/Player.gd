@@ -663,10 +663,11 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 		var collider = col.get_collider()
 		if collider == null:
 			continue
-		# All level surfaces are axis-aligned rectangles, so snap the contact normal to its dominant
-		# axis. This stops glancing edge/corner hits from launching you diagonally — a flat floor
-		# always bounces you straight up (keeping your existing horizontal momentum).
-		var n := _axis_snap(col.get_normal())
+		# RECT surfaces snap the contact normal to its dominant axis (stops glancing edge/corner
+		# hits from launching you diagonally — a flat floor always bounces straight up). ROUND
+		# surfaces (meta "round": GravitySource planetoids, owner 2026-07-18) keep the TRUE radial
+		# normal — axis-snapping a sphere would quantize every bounce to 4 directions.
+		var n := col.get_normal() if collider.has_meta("round") else _axis_snap(col.get_normal())
 		if collider.has_meta("bounce_tier_height"):
 			var tier_h: float = collider.get_meta("bounce_tier_height") * bounce_mult
 			# v2 feel: bounce_apex_mult scales ONLY the target height passed to resolve() — NOT the
@@ -745,14 +746,15 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 	# ticking down on its own clock in _physics_process). Neutral/self-triggered contact (includes
 	# the owner's wall-return shot, which by construction never involves hitstun) is unchanged.
 	#
-	# Underside/ceiling guard (no-camp pillar): the contact normal is axis-snapped upstream, so in
-	# screen space (y is down) hitting the UNDERSIDE of a platform yields a normal pointing +y.
-	# A head-bonk on an underside must NOT refund fuel or supercharge — otherwise you could boost
-	# up into a ceiling, refund the fuel you spent, and hover forever (the infinite-hover exploit).
-	# The physical reflect, squash FX, and bounced/bounced_juicy events below still fire, so you
-	# still bonk your head and ricochet down — you just pay for it. Top (normal up) and wall
-	# (normal sideways) bounces refund exactly as before.
-	var is_underside: bool = contact_normal.y > 0.5
+	# Underside/ceiling guard (no-camp pillar): a head-bonk on an underside must NOT refund fuel or
+	# supercharge — otherwise you could boost up into a ceiling, refund the fuel you spent, and
+	# hover forever (the infinite-hover exploit). The physical reflect, squash FX, and bounced/
+	# bounced_juicy events below still fire — you bonk your head and pay for it. GRAVITY-RELATIVE
+	# (owner 2026-07-18 orbital fields): a ceiling is a surface whose normal points WITH local
+	# gravity — on flat levels this is exactly the old `normal.y > 0.5`; on a moon the south pole
+	# is a legitimate floor (normal opposes the local pull) and refunds like any floor.
+	var g_dir := GravityField.get_gravity_at(contact).normalized()
+	var is_underside: bool = contact_normal.dot(g_dir) > 0.5
 	if _stun_timer <= 0.0 and not is_underside:
 		fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
 		if boost_held:

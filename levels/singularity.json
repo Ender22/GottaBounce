@@ -1,0 +1,126 @@
+{
+  "name": "Singularity",
+  "version": 1,
+  "theme": "grass",
+  "mode": "brawl",
+  "kill_shape": "enclosed_hole",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "horizon_glow": false,
+  "design_intent": "OWNER 2026-07-18: 'party levels where we start off orbiting a black hole'. One central gravity well (constant radial pull g=1000 inside r=1500) whose core is a round BUMPER ball (body_r 120) dressed as the event horizon: a lethal core was tried first (r=130, then 70) and LIVE-MEASURED as a bot blender - 32/36 deaths were uncredited core suicides (bot recovery logic is screen-down biased and orbit-decays into the middle), so a kill-race match could never end. As a bumper the hole is a violent pinball hub - dives slingshot or ricochet (stunned victims dry-reflect, no refund) - and kills happen the classic credited way: smash rivals OUT past the blast bounds (edge deaths were already occurring in the probe). Four trampoline shell-platforms at compass points are the local floors; four corner bumpers + two bumper pylons deflect careless orbits. kill_shape dual_blast-ish: every bound is live. Space palette + stars; the source draws its own field-extent ring (telegraphy).",
+  "sky_top": "#0b1030",
+  "sky_bottom": "#28285a",
+  "bounds": {
+    "left": -450,
+    "top": -800,
+    "right": 2370,
+    "bottom": 1900
+  },
+  "platforms": [
+    {
+      "x": 700,
+      "y": -120,
+      "w": 520,
+      "h": 64,
+      "tier": "trampoline"
+    },
+    {
+      "x": 700,
+      "y": 1116,
+      "w": 520,
+      "h": 64,
+      "tier": "trampoline"
+    },
+    {
+      "x": 336,
+      "y": 290,
+      "w": 64,
+      "h": 480,
+      "tier": "bumper"
+    },
+    {
+      "x": 1520,
+      "y": 290,
+      "w": 64,
+      "h": 480,
+      "tier": "bumper"
+    },
+    {
+      "x": 260,
+      "y": -20,
+      "w": 130,
+      "h": 130,
+      "tier": "bumper"
+    },
+    {
+      "x": 1530,
+      "y": -20,
+      "w": 130,
+      "h": 130,
+      "tier": "bumper"
+    },
+    {
+      "x": 260,
+      "y": 950,
+      "w": 130,
+      "h": 130,
+      "tier": "bumper"
+    },
+    {
+      "x": 1530,
+      "y": 950,
+      "w": 130,
+      "h": 130,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "gravity_source",
+      "x": 960,
+      "y": 530,
+      "radius": 1500,
+      "g": 1000,
+      "lethal_core_r": 0,
+      "visual": "black_hole",
+      "body_r": 120,
+      "tier": "bumper"
+    },
+    {
+      "type": "player_spawn",
+      "x": 960,
+      "y": -200
+    },
+    {
+      "type": "player_spawn",
+      "x": 960,
+      "y": 1260
+    },
+    {
+      "type": "player_spawn",
+      "x": 260,
+      "y": 530
+    },
+    {
+      "type": "player_spawn",
+      "x": 1660,
+      "y": 530
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 960,
+      "y": 100
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 500,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1420,
+      "y": 900
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "Twin Moons",
+  "version": 1,
+  "theme": "grass",
+  "mode": "brawl",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "horizon_glow": false,
+  "design_intent": "OWNER 2026-07-18: 'another one where maybe we are orbiting 2 moons'. Two round trampoline PLANETOIDS (body_r 210, meta round -> true radial bounce normals) each with its own constant radial field (g=1400, r=820 — fields deliberately DON'T overlap: the ~330px corridor between them is neutral global-down space, so crossing moons means committing to a fall). Standing anywhere on a moon is a floor (gravity-relative underside guard); knockback that clears a field drops victims into global-down gravity and out the bottom blast line — the classic ring-out preserved in space. Two small trampoline perches float high in the neutral column (contested powerup ground; reachable by trampoline apex 270 off either moon's north pole + a short boost). Spawns: north pole of each moon + the two perches. Space palette + stars; each source draws its faint field-extent ring.",
+  "sky_top": "#0b1030",
+  "sky_bottom": "#2a2f60",
+  "bounds": { "left": -700, "top": -900, "right": 2620, "bottom": 1750 },
+  "platforms": [
+    { "x": 810, "y": 40, "w": 140, "h": 40, "tier": "trampoline" },
+    { "x": 970, "y": 250, "w": 140, "h": 40, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "gravity_source", "x": 400, "y": 620, "radius": 820, "g": 1400, "body_r": 210, "tier": "trampoline", "visual": "moon" },
+    { "type": "gravity_source", "x": 1520, "y": 620, "radius": 820, "g": 1400, "body_r": 210, "tier": "trampoline", "visual": "moon" },
+    { "type": "player_spawn", "x": 400, "y": 330 },
+    { "type": "player_spawn", "x": 1520, "y": 330 },
+    { "type": "player_spawn", "x": 880, "y": -40 },
+    { "type": "player_spawn", "x": 1040, "y": 170 },
+    { "type": "powerup_spawner", "x": 960, "y": 620 },
+    { "type": "powerup_spawner", "x": 400, "y": 100 },
+    { "type": "powerup_spawner", "x": 1520, "y": 100 }
+  ]
+}
