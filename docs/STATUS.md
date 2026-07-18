@@ -20,6 +20,19 @@ flight in a parallel session at time of writing. OWNER ART FEEDBACK (2026-07-18,
 gradient hard-cutoff + code-drawn moons/planets read cheap — painted-backdrop pass + moon/
 black-hole sprite generation is the next art priority.
 
+**SPORTS SLICE SHIPPED (2026-07-18, 416998e — owner list, agent-built + rendered-validated):**
+compact top-center score chip; crushers kill ONLY on a true squeeze (crusher_crush_gap=100, side
+contact harmless); 2v2 up to 4 players (HUMANS+TEAMS steppers, team-side respawn seam); goals
+require ball-CENTER inside the net + team-colored net burst; NEW SPORT **DROPSHOT** (floaty beach
+ball, 65% center net, ball-only 2-hit crack→break tiles, every contact bounces — point = ball
+falls into an ALREADY-open hole; bots finished a full match to 6 unassisted). Follow-ups logged
+by the builder: beach-ball bespoke sprite + dropshot court card art; dropshot bot role-separation;
+goal burst vs full-screen flash layering; 3-human UI-flow run; crusher design_intent prose stale
+in 3 foundry JSONs. Painted-backdrops brief also landed (docs/briefs/painted_backdrops_2026-07-18.md
+— 4 paintings cover all open-sky themes; kill-line restyle spec; "backdrop_painting" JSON knob) —
+NEXT session executes it. STILL UNCOMMITTED: src/core/InputBot.gd (bot-brains v2 WIP, unvalidated).
+PAUSED here for a model switch — victory_rays generated in ChatGPT but not yet downloaded.
+
 **ART PASS 3 (2026-07-18, 8988a82):** bespoke moon.png + black_hole.png shipped and rendered-
 verified (Twin Moons / Singularity) — no more code-drawn planets. OWNER ART DIRECTION (verbatim
 intent): "no svg, 100% ai generated graphics"; big painted zoomed-out backgrounds wanted instead
