@@ -16,7 +16,7 @@ const SFX := {
 	"bounce":            ["res://assets/sfx/spring.mp3", "res://assets/sfx/balloon_pop.mp3"],
 	"smash":             ["res://assets/sfx/impact1.mp3", "res://assets/sfx/impact2.mp3", "res://assets/sfx/impact3.mp3"],
 	"smash_heavy":       ["res://assets/sfx/slam.mp3"],
-	"super_fire":        ["res://assets/sfx/combo_bigRoar.mp3"],
+	"super_fire":        ["res://assets/sfx/explosion_boss.mp3"],   # owner pick 2026-07-18 (was combo_bigRoar)
 	"death":             ["res://assets/sfx/mm_quickdie.mp3"],
 	"death_whoosh":      ["res://assets/sfx/woosh.mp3"],
 	"damage_1":          ["res://assets/sfx/enemyHurt_01.mp3"],
@@ -39,7 +39,7 @@ const MUSIC_GAMEPLAY := [
 ]
 const MUSIC_SCOREBOARD := "res://assets/music/scoreboard.mp3"
 const MUSIC_MENU := "res://assets/music/title.wav"
-const THRUST_STREAM := "res://assets/sfx/fireLoop.mp3"
+const THRUST_STREAM := "res://assets/sfx/coke_blast.mp3"   # owner pick 2026-07-18 (was fireLoop); looped jetpack voice
 
 const POOL_SIZE := 14
 const THRUST_ON_DB := -7.0
