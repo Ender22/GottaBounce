@@ -33,6 +33,20 @@ in 3 foundry JSONs. Painted-backdrops brief also landed (docs/briefs/painted_bac
 NEXT session executes it. STILL UNCOMMITTED: src/core/InputBot.gd (bot-brains v2 WIP, unvalidated).
 PAUSED here for a model switch — victory_rays generated in ChatGPT but not yet downloaded.
 
+**THEMED PLATFORMS + COURT INTERIORS + KILL-LINE OFF-SCREEN (2026-07-18, cb38c9f — owner "do both"
++ "death line off-screen like Smash"):** (1) THEMED BODIES — grass ledges no longer float in
+space/foundry/quarry; BODIES manifest + platform_body knob auto-derived from backdrop_painting
+(space_rock/foundry_steel/quarry_stone, dusk=quarry warm-tinted); 3 new 3-slice body strips; tier
+MATS untouched; grass decals suppressed on themed bodies. (2) ENCLOSED INTERIORS — sealed courts now
+sit in a painted interior (INTERIORS manifest + interior_painting knob behind the shell, code
+sheen+vignette kept): interior_arena_stadium (team-neutral) on all 9 sports courts, interior_silo_cavern
+on drop_chamber. (3) KILL-LINE moved from the void rim to bottom_y (bounds.bottom, ~840px below
+platforms, OFF the camera) — no red line in the playfield now; abyss visuals stay at the rim. All
+rendered-verified. FOLLOW-UPS: twin_moons uses h=40 mat-only slabs so it shows no themed body (flag if
+its space-rock example matters); the flat blue Zone-A surround AROUND sealed courts is unchanged (only
+the interior is painted); a future level with a shallow void h could pull the kill-line into view (none
+today). docs/briefs/themed_platforms_and_interiors_2026-07-18.md is the brief.
+
 **PAINTED BACKDROPS SHIPPED (2026-07-18, 908cd2d — owner: "every level should have a nice bg image",
 "no svg 100% ai gen"):** the code sky-gradient + hardcoded sage-green void (the purple->green hard
 cutoff the owner flagged) are REPLACED by full-bleed AI-painted sky+abyss compositions — one painting,
