@@ -42,6 +42,11 @@ const ASCENT_EDGE_MAX := 46            # max scan steps (bounded, human-ish reac
 # measure BEFORE (fix off) vs AFTER (fix on) in one build. Flip via gbplay eval: InputBot.ascent_fix_enabled = false
 static var ascent_fix_enabled := true
 
+# A/B regression switch for the GRAVITY-FRAME sense (bot brains v2 slice 1, default ON): OFF
+# reproduces the screen-down-biased v1 bot (orbit-decay in radial wells) for BEFORE measurements.
+# Flip via gbplay eval: InputBot.gravity_fix_enabled = false
+static var gravity_fix_enabled := true
+
 # --- Motion-health telemetry geometry (process-gate 2026-07-04: make "looks dumb" a NUMBER). ---
 const MH_STUCK_WINDOW := 1.0           # s window for the no-progress (stuck) test
 const MH_STUCK_DISP := 90.0            # net displacement below this over the window while intending = stuck
@@ -91,7 +96,7 @@ var _mh_underside := 0                # bounces whose contact normal points DOWN
 var _mh_underside_boosted := 0        # subset SELF-PROPELLED: hit the underside while boosting UP (the AI bug,
                                       # vs knockback into a ceiling which is legit combat physics)
 var _mh_asc_active := false
-var _mh_asc_ref_y := 0.0             # highest (min-y) point reached in the current ascent attempt
+var _mh_asc_ref_pos := Vector2.ZERO  # highest point (against LOCAL gravity) reached in the current ascent attempt
 var _mh_asc_t := 0.0                 # s since last upward progress while ascending
 var _mh_blocked_now := false         # live BLOCKED-ASCENT flag (wants up, Y not decreasing)
 var _mh_blocked_ascent_episodes := 0
@@ -278,6 +283,42 @@ func _stage_center() -> Vector2:
 		return arena.stage_center()
 	return _stage().get_center()
 
+# ------------------------------------------------- gravity frame (bot brains v2 slice 1, INV-1)
+# The bot's spatial sense expresses "down/up/fall" in the LOCAL gravity frame queried from
+# GravityField. In a flat arena the field returns exactly global down, so _radial() is false
+# everywhere and every branch below reduces to the legacy screen-down code path (regression-tested).
+
+## Local unit "down" at a world position (defaults to my own position).
+func _gdown(at := Vector2.INF) -> Vector2:
+	if me == null or not is_instance_valid(me):
+		return Vector2.DOWN
+	var p: Vector2 = me.global_position if at == Vector2.INF else at
+	var g: Vector2 = GravityField.get_gravity_at(p)
+	return g.normalized() if g.length_squared() > 0.01 else Vector2.DOWN
+
+## Is the local frame meaningfully rotated away from screen-down (off-axis inside a radial well)?
+## Flat arenas / the well's straight-below-the-center column return false -> legacy code paths.
+func _radial(down: Vector2) -> bool:
+	return gravity_fix_enabled and down.y < Tuning.bot_radial_down_dot
+
+## First bounce surface along `dir` from `from`, or {} if none within `dist`. The gravity-frame
+## analogue of _ground_y_below: cast ALONG the local pull, whatever direction that is.
+func _surface_along(from: Vector2, dir: Vector2, dist: float) -> Dictionary:
+	if me == null or not is_instance_valid(me):
+		return {}
+	var space := me.get_world_2d().direct_space_state
+	var q := PhysicsRayQueryParameters2D.create(from, from + dir * dist, Player.MASK_SURFACES)
+	q.exclude = [me.get_rid()]
+	return space.intersect_ray(q)
+
+## Gravity-aware "on/near the stage": flat frame = the legacy stage-rect test; radial frame = a
+## position with floor along the local pull IS stage (any face of a round body is standable ground),
+## so bots fight on moon faces instead of writing them off as off-stage space.
+func _near_stage(p: Vector2, grow_px: float) -> bool:
+	if _radial(_gdown(p)):
+		return not _over_void(p)
+	return _stage().grow(grow_px).has_point(p)
+
 func _in_danger() -> bool:
 	var pos: Vector2 = me.global_position
 	# already over open void (no landing surface anywhere below) -> reflexive recovery, top priority
@@ -285,8 +326,15 @@ func _in_danger() -> bool:
 		return true
 	var future: Vector2 = pos + me.velocity * 0.6
 	var outside_soon := not _bounds().grow(-80.0).has_point(future)
+	if outside_soon:
+		return true
+	# Radial frame: the well's round body IS the stage — a bot on ANY face of it is on safe ground.
+	# The rect off_stage test and the x-column drift scan below are screen-down constructs and read
+	# garbage off-axis; here danger is ONLY bounds-exit (above) or no floor along the pull (top).
+	if _radial(_gdown(pos)):
+		return false
 	var off_stage := not _stage().grow(440.0).has_point(pos)
-	if outside_soon or off_stage:
+	if off_stage:
 		return true
 	# ANTICIPATORY void-abort: about to DRIFT out over the void with no fuel to reach the island in the
 	# heading direction. A REACHABLE, deliberate crossing is NOT flagged (so bots still fly gaps & fight);
@@ -349,6 +397,21 @@ func _decide() -> void:
 	_cached_super = false
 	# --- refuel rhythm (rule 2): below the floor, dive to a bounce surface — one bounce re-arms
 	if me.fuel < _eff_refuel_floor():
+		# Radial frame: the refuel dive is ALONG the local pull — the well's round body / shell
+		# platform below is the bounce surface (one bounce re-arms). The stage-rect-bottom dive and
+		# _refuel_x column scan below are screen-down constructs. (§2a finisher transit bias skipped:
+		# wells are small, every dive lands near the fight.)
+		var rdown := _gdown(pos)
+		if _radial(rdown):
+			var rhit := _surface_along(pos - rdown * 40.0, rdown, VOID_PROBE_DROP)
+			var rtarget: Vector2 = (rhit["position"] as Vector2) if not rhit.is_empty() \
+				else pos + rdown * Tuning.bot_radial_dive_fallback
+			var rdir := (rtarget - pos).normalized()
+			_cached_aim = rdir
+			# boost only when falling AWAY from the surface (same trigger as the flat dive)
+			_cached_boost = me.fuel > 2.0 and me.velocity.dot(rdir) < -60.0
+			_hunt = false
+			return
 		var sr := _stage()
 		var desired_x := pos.x
 		# §2a: a finisher refuels IN-TRANSIT — bias the dive x toward the lone opponent so every
@@ -401,7 +464,7 @@ func _decide() -> void:
 					and _super_safe(pos, fopp.global_position):
 				_cached_super = true
 			return
-	var on_stage := _stage().grow(360.0).has_point(pos)
+	var on_stage := _near_stage(pos, 360.0)
 	var target = _pick_target()
 	_target = target
 	if target != null and is_instance_valid(target) and on_stage:
@@ -410,7 +473,7 @@ func _decide() -> void:
 		var dist := d.length()
 		_cached_aim = _jitter(d.normalized())
 		# hunt commitment (§3.1 commit_time): once rolled TRUE it sticks — no re-rolling every tick
-		var target_near := _stage().grow(520.0).has_point(tp)
+		var target_near := _near_stage(tp, 520.0)
 		# §5.5: in finisher, never disengage the lone survivor on distance — chase it to the edge
 		# (where the kill lives); otherwise keep the dist-gated + edge-guard prey logic.
 		var target_ok := true if _finisher else (target_near or _is_edge_guard_prey(target))
@@ -620,7 +683,8 @@ func _most_wounded_in_range():
 	return best
 
 func _is_edge_guard_prey(p) -> bool:
-	return not _stage().grow(360.0).has_point(p.global_position)
+	# gravity-aware: a rival standing on a moon face is ON stage, not off-stage prey
+	return not _near_stage(p.global_position, 360.0)
 
 func _score_leader():
 	if not ("scores" in arena and "players" in arena):
@@ -657,9 +721,13 @@ func _check_dodge() -> bool:
 			_dodged[pid] = true
 			var threat: Vector2 = p.get_super_aim_dir()
 			var perp := Vector2(-threat.y, threat.x)
-			var to_stage := (_stage_center() - me.global_position).normalized()
-			if perp.dot(to_stage) < 0.0:
-				perp = -perp   # prefer the side that carries me back over bounce surfaces
+			# prefer the side that carries me back over bounce surfaces — in a radial frame the
+			# bounce floor is along the LOCAL pull (the well's body), not at the stage-rect center
+			var down := _gdown()
+			var to_safe: Vector2 = down if _radial(down) \
+				else (_stage_center() - me.global_position).normalized()
+			if perp.dot(to_safe) < 0.0:
+				perp = -perp
 			_dodge_dir = perp
 			return true
 	return false
@@ -712,6 +780,10 @@ func _over_void(at := Vector2.INF) -> bool:
 	if me == null or not is_instance_valid(me):
 		return false
 	var p: Vector2 = me.global_position if at == Vector2.INF else at
+	var down := _gdown(p)
+	if _radial(down):
+		# radial frame: "below" is along the local pull — a body face along it IS floor
+		return _surface_along(p - down * 40.0, down, VOID_PROBE_DROP).is_empty()
 	return _ground_y_below(p.x, p.y - 40.0) == INF
 
 ## Fuel needed to translate `dx` px horizontally under boost, plus a reserve to keep after landing.
@@ -736,6 +808,15 @@ func _scan_ground_x(from_x: float, limit_x: float, dir: float) -> float:
 ## the recovery-super gamble in _danger_recover can try for it. Falls back to legacy stage-center behavior
 ## only if the whole level has no surface below the search band (never on a real level).
 func _land_target(pos: Vector2) -> Vector2:
+	var down := _gdown(pos)
+	if _radial(down):
+		# Radial frame: recover ALONG the local pull to the surface it lands on (a moon face IS
+		# floor; in Singularity the shell platforms/bumper hub are the catch). Hover the landing
+		# margin above it so we clear any lip. The x-column scans below are screen-down constructs.
+		var hit := _surface_along(pos - down * 40.0, down, VOID_PROBE_DROP)
+		if not hit.is_empty():
+			return (hit["position"] as Vector2) - down * VOID_LAND_MARGIN
+		return pos + down * Tuning.bot_radial_dive_fallback   # defensive: ride the pull inward
 	var lo: float = _bounds().position.x + 60.0
 	var hi: float = _bounds().end.x - 60.0
 	var cx: float = clampf(pos.x, lo, hi)
@@ -753,7 +834,7 @@ func _land_target(pos: Vector2) -> Vector2:
 	if not is_nan(right_x):
 		choices.append({"x": right_x, "dx": absf(right_x - pos.x), "side": 1.0})
 	if choices.is_empty():
-		return _stage_center() + Vector2(0, -120)
+		return _fallback_land(pos)
 	var chosen = null
 	# 1) the biased side, if reachable
 	for c in choices:
@@ -777,6 +858,27 @@ func _land_target(pos: Vector2) -> Vector2:
 		sy = _ground_y_below(tx, pos.y - 40.0)
 	var ty: float = (sy - VOID_LAND_MARGIN) if sy < INF else pos.y - 120.0
 	return Vector2(tx, ty)
+
+## No x-column with ground below in scan range. Unreachable on flat levels (there is always ground
+## somewhere in the band — legacy returned stage_center there); REACHABLE in an orbital arena's
+## neutral corridor (twin_moons: global-down space between the wells, floors are the moons/perches).
+## Head for the nearest spawn point — spawns always sit on real floor (moon poles / perches) — so a
+## corridor knock-out recovers toward a landable surface instead of an abstract rect center.
+func _fallback_land(pos: Vector2) -> Vector2:
+	if not gravity_fix_enabled:
+		return _stage_center() + Vector2(0, -120)   # A/B: legacy fallback
+	var candidates: Array = arena._spawns if ("_spawns" in arena) else []
+	var best := Vector2.ZERO
+	var bd := INF
+	for s in candidates:
+		var sp: Vector2 = s
+		var d: float = sp.distance_to(pos)
+		if d < bd:
+			bd = d
+			best = sp
+	if bd < INF:
+		return best - _gdown(best) * VOID_LAND_MARGIN
+	return _stage_center() + Vector2(0, -120)   # legacy fallback (no spawns known)
 
 ## Would committing a super from `from` toward `target_pos` be safe (not a whiff-super self-ringout)?
 ## Safe when: not already over the void, AND either no void lies between me and the target (a same-
@@ -882,6 +984,10 @@ func _ascent_detour(aim: Vector2) -> Vector2:
 	if aim.y > ASCENT_AIM_UP or me == null or not is_instance_valid(me):
 		return aim   # not meaningfully ascending
 	var pos: Vector2 = me.global_position
+	if _radial(_gdown(pos)):
+		# radial frame: "up" isn't -y and there's no rect platform grid to edge-route around the
+		# orbital arenas' round bodies — _steer's feeler fan handles local avoidance there.
+		return aim
 	var head_y := pos.y - 40.0
 	if _ceiling_y_above(pos.x, head_y) == -INF:
 		return aim   # open sky above -> a real climb, no obstruction to route around
@@ -950,18 +1056,21 @@ func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
 		_mh_stuck_secs += dt
 	else:
 		_mh_in_stuck = false
-	# (c) BLOCKED-ASCENT: aiming up + boosting, but the highest point reached isn't improving
-	var ascending: bool = boost and aim.y < ASCENT_AIM_UP
+	# (c) BLOCKED-ASCENT: aiming up + boosting, but the highest point reached isn't improving.
+	# "Up" is against the LOCAL gravity frame; in a flat arena down=(0,1) so aim.dot(down)==aim.y and
+	# the progress dot == the old ref_y - pos.y test — algebraically identical to the legacy code.
+	var down := _gdown(pos)
+	var ascending: bool = boost and aim.dot(down) < ASCENT_AIM_UP
 	if ascending:
 		if not _mh_asc_active:
 			_mh_asc_active = true
-			_mh_asc_ref_y = pos.y
+			_mh_asc_ref_pos = pos
 			_mh_asc_t = 0.0
 			_mh_blocked_now = false
 		else:
 			_mh_asc_t += dt
-			if pos.y < _mh_asc_ref_y - MH_ASCENT_PROGRESS:
-				_mh_asc_ref_y = pos.y   # real upward progress -> not blocked, restart the stall clock
+			if (_mh_asc_ref_pos - pos).dot(down) > MH_ASCENT_PROGRESS:
+				_mh_asc_ref_pos = pos   # real upward progress -> not blocked, restart the stall clock
 				_mh_asc_t = 0.0
 				_mh_blocked_now = false
 			elif _mh_asc_t >= MH_ASCENT_STALL:
@@ -978,10 +1087,12 @@ func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
 func _on_surface_bounced(_surface, player, normal: Vector2, _contact) -> void:
 	if player != me:
 		return
-	if normal.y > 0.5:
+	# gravity-frame "underside": the normal points ALONG the local pull (flat: normal.y > 0.5, identical)
+	var down := _gdown()
+	if normal.dot(down) > 0.5:
 		_mh_underside += 1
 		# self-propelled = I was thrusting UPWARD into it (the dumb-AI head-bang), NOT knocked into it
-		if _cached_boost and _cached_aim.y < -0.10:
+		if _cached_boost and _cached_aim.dot(down) < -0.10:
 			_mh_underside_boosted += 1
 
 ## Live motion-health snapshot (queryable via gbplay eval and snapshotted into round_stats per stage).
