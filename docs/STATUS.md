@@ -33,6 +33,21 @@ in 3 foundry JSONs. Painted-backdrops brief also landed (docs/briefs/painted_bac
 NEXT session executes it. STILL UNCOMMITTED: src/core/InputBot.gd (bot-brains v2 WIP, unvalidated).
 PAUSED here for a model switch — victory_rays generated in ChatGPT but not yet downloaded.
 
+**PAINTED BACKDROPS SHIPPED (2026-07-18, 908cd2d — owner: "every level should have a nice bg image",
+"no svg 100% ai gen"):** the code sky-gradient + hardcoded sage-green void (the purple->green hard
+cutoff the owner flagged) are REPLACED by full-bleed AI-painted sky+abyss compositions — one painting,
+no seam possible. 4 paintings (space_nebula/ember_foundry/dusk_gold/overcast_quarry, 1536x1024 opaque)
+via a "backdrop_painting" JSON knob + ArenaRenderer PAINTINGS manifest (path/horizon_frac/void fill
+ramp/wall triple, all in the theme hue). 28 level JSONs wired + sky hexes retuned. KILL-LINE restyled
+(function kept): 3px rim + pulsing additive red glow band (#E6402C 0.25<->0.55 @1.6s) + bigger/fewer
+chevrons. Meadow keeps its grass sky (owner likes it), only void+line change. Rendered-verified all 5
+themes. FOLLOW-UPS: (1) themed PLATFORM art — grass mats/dirt still used on space/foundry/quarry levels,
+look slightly off floating in space (next art pass; platforms are arena_rendering's domain, out of this
+scope); (2) p4_swing_shot/p4_chain_reaction switched meadow->open_sky (lost meadow parallax, carry
+themed sky colors); (3) enclosed courts/sports NOT painted this pass (no sky/void — sealed interiors;
+owner may want painted interiors later); (4) VictoryScreen victory_rays.png shipped (cba66d8).
+Ceremony sunburst + bot gravity-recovery (341ae3d, +23pts credited on Singularity) also committed.
+
 **OPUS SESSION CONTINUATION (2026-07-18, after Fable's pause):**
 - Owner net feedback: DROPSHOT net lowered 740→490px (534d476) — the ball lofts over readily now.
 - Owner bug: bouncers spawned squished — Player.respawn now resets _squash_timer/_charge_flight_t/
