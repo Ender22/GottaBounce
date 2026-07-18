@@ -20,6 +20,19 @@ flight in a parallel session at time of writing. OWNER ART FEEDBACK (2026-07-18,
 gradient hard-cutoff + code-drawn moons/planets read cheap — painted-backdrop pass + moon/
 black-hole sprite generation is the next art priority.
 
+**ART PASS 3 (2026-07-18, 8988a82):** bespoke moon.png + black_hole.png shipped and rendered-
+verified (Twin Moons / Singularity) — no more code-drawn planets. OWNER ART DIRECTION (verbatim
+intent): "no svg, 100% ai generated graphics"; big painted zoomed-out backgrounds wanted instead
+of the gradient sky + hard void cutoff; the red dotted kill-line telegraph read as "weird" —
+NEXT ART SLICE: art-director brief for painted per-theme backdrops (sky + below-horizon void
+treatment as ONE painting; kill-line telegraph restyled to look intentional, function kept),
+then generation batch (+ still pending: victory_rays, crest_trials_orbit, crest_trials_varied,
+skull icon). OWNER SPORTS LIST (2026-07-18, in flight via agent): compact top-center score chip,
+crush-only crusher kills, 4P/2-team support, ball-fully-in-net goal + net explosion, NEW SPORT
+"DROPSHOT" (floaty ball volleyball, center net, ball-only destructible floor, 2-hit breakthrough
+scoring). Bot-brains-v2 (gravity-aware recovery) agent resumed after a session-limit death —
+InputBot.gd/Tuning.gd carry ITS uncommitted work-in-progress edits; do not commit those blind.
+
 **SFX OWNER PICKS (2026-07-18, 920a8df):** jetpack thrust loop = coke_blast.mp3, super boost =
 explosion_boss.mp3 (both from the owner's SamuraiRobot2.0 library, copied into assets/sfx/;
 thrust verified looping live). Owner audio-mix listen still the acceptance gate.
