@@ -33,6 +33,20 @@ in 3 foundry JSONs. Painted-backdrops brief also landed (docs/briefs/painted_bac
 NEXT session executes it. STILL UNCOMMITTED: src/core/InputBot.gd (bot-brains v2 WIP, unvalidated).
 PAUSED here for a model switch — victory_rays generated in ChatGPT but not yet downloaded.
 
+**OPUS SESSION CONTINUATION (2026-07-18, after Fable's pause):**
+- Owner net feedback: DROPSHOT net lowered 740→490px (534d476) — the ball lofts over readily now.
+- Owner bug: bouncers spawned squished — Player.respawn now resets _squash_timer/_charge_flight_t/
+  _anim_t/_spin_vel + body scale/rotation + forces idle sprite (12529be, verified forced-squash→respawn).
+- STAGED ON DISK, NOT yet committed/validated (both need the rendered game, currently owned by a QA
+  agent measuring bot-brains): assets/ui/victory_rays.png (the ceremony gold sunburst — VictoryScreen
+  RAYS_PATH; needs --editor --quit import pass + in-game check behind the bust) and
+  assets/bg/painting_space_nebula.png (1536x1024 opaque full-bleed, first of the 4 painted backdrops;
+  needs the ArenaRenderer wiring per docs/briefs/painted_backdrops_2026-07-18.md §4 + kill-line restyle).
+  PLAN: wire nebula on the space levels as a PROOF-OF-CONCEPT, owner eyes, THEN batch ember/dusk/quarry.
+- QA AGENT RUNNING: A/B validation of the uncommitted src/core/InputBot.gd gravity-recovery (credited-
+  kill % on Singularity/Twin Moons fix ON vs OFF + flat-arena regression). Commit InputBot.gd only if it
+  reports improvement + no flat regression.
+
 **ART PASS 3 (2026-07-18, 8988a82):** bespoke moon.png + black_hole.png shipped and rendered-
 verified (Twin Moons / Singularity) — no more code-drawn planets. OWNER ART DIRECTION (verbatim
 intent): "no svg, 100% ai generated graphics"; big painted zoomed-out backgrounds wanted instead
