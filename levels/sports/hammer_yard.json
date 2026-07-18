@@ -4,6 +4,7 @@
   "theme": "scrap",
   "kill_shape": "sports_court",
   "backdrop": "enclosed",
+  "interior_painting": "arena_stadium",
   "design_intent": "SPORTS hazard court (v8_sports_courts.md tier 3). The center_pitch shell (2800x1600, strict mirror about x=1400) with the two mid-caroms REMOVED and a single CENTRAL spinning_hammer on the exact centre axis. The rotor sweeps the midfield: it WHACKS the loose ball around (SpinningHammer._whack_ball -> Ball.receive_hazard_impulse, ~2000px/s from rest) and SPLATS a careless player (the existing kill(&ring_out) path; SPORTS respawns at 99 lives, never eliminates). SYMMETRY (SC-SYM/SYM-3): a single hazard ON the centre axis is inherently mirror-symmetric -> no side bias. SYM-4 (no own-goal machine): pivot (1400,300), arm_len 520, arc 130deg -> the head sweeps x929..1871 (the central third) and y520..820, ~620px clear of each goal mouth (x170..310 / x2490..2630) -> a whack sends the ball into OPEN play, never into a near net; the swept arc never overlaps a goal mouth. Clear beat: dwell_frac 0.26 at each apex + arc < 180deg leaves a wide clear window each ~4.5s period. NO powerup_spawners. Kickoff ball spawns at centre (1400,~800) right in the head's low pass -> the headline fun. Goals/spawns/walls verbatim from center_pitch (a known-fair symmetric shell).",
   "sky_top": "#2a2320",
   "sky_bottom": "#4a3b30",

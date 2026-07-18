@@ -11,6 +11,32 @@ extends Node2D
 # --- asset paths (data-driven: drop the file in, it gets used on next level load) ---
 const BODY_TEX := "res://assets/world/grass/body_std.png"
 const HERO_TEX := "res://assets/world/grass/platform_wide.png"
+
+# --- themed platform BODIES (docs/briefs/themed_platforms_and_interiors_2026-07-18.md PART A) ---
+# The chunky block UNDER the mat, swapped per theme so a grass ledge never floats in the nebula /
+# foundry / quarry. The tier MATS (TIERS below) are UNTOUCHED — same mat = same bounce everywhere;
+# only the BODY texture + its grass decals are themed. Per body id:
+#   path        — 3-slice body strip (transparent, 22% caps / 56% center), or the grass whole-hero.
+#   cap_frac    — outer-cap fraction for ThreeSlice (0.22 per arena_rendering.md §1).
+#   grass_decals— true ONLY on grass; themed bodies render bare (no tufts/flowers, §A.3).
+# The resolved body is derived from backdrop_painting in setup() (no new JSON edits for painted
+# open-sky levels). Missing themed file -> grass body fallback via _platform_body (never a flat poly).
+const BODIES := {
+	"grass": { "path": "res://assets/world/grass/body_std.png", "cap_frac": 0.22, "grass_decals": true },
+	"space_rock": { "path": "res://assets/world/bodies/body_space_rock.png", "cap_frac": 0.22, "grass_decals": false },
+	"foundry_steel": { "path": "res://assets/world/bodies/body_foundry_steel.png", "cap_frac": 0.22, "grass_decals": false },
+	"quarry_stone": { "path": "res://assets/world/bodies/body_quarry_stone.png", "cap_frac": 0.22, "grass_decals": false },
+}
+# dusk_gold reuses quarry_stone warm-tinted to sandstone (§A.1 "reuse one" saving), not a 4th body.
+const DUSK_BODY_TINT := Color("#E8C79E")
+
+# --- enclosed INTERIORS (themed_platforms_and_interiors §B): an opaque full-bleed painting behind the
+# sealed-arena plastic shell, drawn IN PLACE OF the flat teal gradient (sheen + vignette stay on top).
+# Mirrors PAINTINGS. Per-level knob "interior_painting". Missing/absent -> today's teal/sheen/vignette.
+const INTERIORS := {
+	"arena_stadium": { "path": "res://assets/bg/interior_arena_stadium.png" },
+	"silo_cavern": { "path": "res://assets/bg/interior_silo_cavern.png" },
+}
 const SKY_TEX := "res://assets/bg/sky_grass_day.png"
 const HILLS_TEX := "res://assets/bg/hills_far.png"
 const CLOUD_TEXES: Array[String] = ["res://assets/bg/cloud_a.png", "res://assets/bg/cloud_b.png"]
@@ -100,6 +126,11 @@ var _twinkles: Array = []    # { node, speed, phase, max_a }
 var _springs: Array = []     # { pivot, next_t } idle shimmer (springs only — motion must mean something)
 var _danger_glows: Array = []  # kill-line glow band sprites (slow additive alpha pulse)
 var _void_palette := {}      # resolved abyss/wall colors for paint_void (from the painting manifest)
+# resolved themed body (from setup()'s _resolve_body): grass default so paint_platform is safe pre-setup
+var _body_path := BODY_TEX
+var _body_tint := Color.WHITE
+var _body_grass_decals := true
+var _body_is_grass := true
 var _surfaces := {}          # StaticBody2D -> { tier, art, mat, w, top, last_ms } for bounce FX
 var _warned := {}
 var _t := 0.0
@@ -135,7 +166,36 @@ func setup(json: Dictionary) -> void:
 	# Resolve the void/abyss recolor palette (painted_backdrops §4) BEFORE painting anything. Defaults
 	# to the shipped grass values (meadow_day) so unpainted/meadow levels are byte-identical to before.
 	_void_palette = _resolve_void_palette(json)
+	# Resolve the themed platform body ONCE (§A: platform_body knob, else derive from backdrop_painting).
+	_resolve_body(json)
 	_build_background(json, brect, floor_y, backdrop, play_rect)
+
+## Resolve the themed platform body (themed_platforms_and_interiors §A) from the level JSON. Explicit
+## "platform_body" wins; else derive from backdrop_painting so painted open-sky levels need ZERO new
+## JSON. dusk_gold reuses quarry_stone with a warm sandstone tint. Unknown/absent -> grass (default).
+func _resolve_body(json: Dictionary) -> void:
+	var id := str(json.get("platform_body", ""))
+	var tint := Color.WHITE
+	if id == "":
+		match str(json.get("backdrop_painting", "")):
+			"space_nebula": id = "space_rock"
+			"ember_foundry": id = "foundry_steel"
+			"overcast_quarry": id = "quarry_stone"
+			"dusk_gold":
+				id = "quarry_stone"
+				tint = DUSK_BODY_TINT   # warm-tint grey rock to sandstone at golden hour
+			_: id = "grass"
+	if not BODIES.has(id):
+		id = "grass"
+	# an explicit body_tint hex (rare) overrides the derived dusk tint
+	var tint_hex := str(json.get("body_tint", ""))
+	if tint_hex != "":
+		tint = Color(tint_hex)
+	var m: Dictionary = BODIES[id]
+	_body_path = str(m["path"])
+	_body_grass_decals = bool(m.get("grass_decals", false))
+	_body_is_grass = id == "grass"
+	_body_tint = tint
 
 ## Resolve the abyss fill + dirt-wall colors paint_void uses, from the level's backdrop_painting knob.
 ## Missing/unknown id -> meadow_day (the shipped grass ramp) so nothing regresses.
@@ -178,7 +238,7 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 	# Enclosed backdrop (Zone B interior shell): suppress the entire meadow parallax stack below and
 	# paint a dim glossy interior clipped to the play AABB instead. paint_void() still draws on top.
 	if enclosed:
-		_build_enclosed_interior(play_rect)
+		_build_enclosed_interior(play_rect, json)
 		return
 
 	# Open-sky backdrop (docs/briefs/circuit_theming_plan.md §3.1): suppress the meadow PNG parallax
@@ -316,18 +376,41 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 ## (the Layer-0 gradient) for free, because this is clipped to play_rect. All code-drawn gradients
 ## (same toolkit as paint_void) — no assets, adapts to any axis-aligned enclosed box. World-static
 ## (added directly, not a parallax layer). paint_void() draws on top at z >= -8.
-func _build_enclosed_interior(play_rect: Rect2) -> void:
+func _build_enclosed_interior(play_rect: Rect2, json: Dictionary = {}) -> void:
 	if play_rect.size.x <= 0.0 or play_rect.size.y <= 0.0:
 		return
 	# grow a touch so the shell meets the inner wall faces / lid underside with no seam
 	var shell := play_rect.grow(16.0)
 
-	# Zone B — dim mossy-teal vertical interior gradient (a hair lighter than the surround), z -92.
-	var bg := Gradient.new()
-	bg.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	bg.colors = PackedColorArray([Color("#2C4A44"), Color("#21403C"), Color("#18332F")])
-	add_child(_gradient_sprite(shell, bg, GradientTexture2D.FILL_LINEAR,
-		Vector2(0, 0), Vector2(0, 1), Vector2i(4, 256), -92))
+	# Zone B WALL. Painted interior (§B) IN PLACE OF the flat teal gradient when interior_painting is set
+	# and the file loads: an opaque full-bleed painting stretched-to-fill `shell` (centered=false, exact
+	# _gradient_sprite sizing so it never bleeds past shell into Zone-A), z -93. Sheen + vignette below
+	# stay ON TOP unchanged (the plastic-drum curvature read). Missing/absent -> today's teal gradient.
+	var painted := false
+	var iid := str(json.get("interior_painting", ""))
+	if iid != "" and INTERIORS.has(iid):
+		var ipath := str(INTERIORS[iid]["path"])
+		if ResourceLoader.exists(ipath):
+			var tex: Texture2D = load(ipath)
+			if tex != null and tex.get_width() > 0:
+				var sp := Sprite2D.new()
+				sp.texture = tex
+				sp.centered = false
+				sp.position = shell.position
+				sp.scale = Vector2(shell.size.x / float(tex.get_width()), shell.size.y / float(tex.get_height()))
+				sp.z_index = -93
+				add_child(sp)
+				painted = true
+		if not painted:
+			_warn_once("interior_" + iid,
+				"ArenaRenderer: missing interior " + ipath + " — teal gradient fallback")
+	if not painted:
+		# Zone B — dim mossy-teal vertical interior gradient (a hair lighter than the surround), z -92.
+		var bg := Gradient.new()
+		bg.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+		bg.colors = PackedColorArray([Color("#2C4A44"), Color("#21403C"), Color("#18332F")])
+		add_child(_gradient_sprite(shell, bg, GradientTexture2D.FILL_LINEAR,
+			Vector2(0, 0), Vector2(0, 1), Vector2i(4, 256), -92))
 
 	# Gloss sheen — soft white radial highlight near the upper-centre (curved-plastic tell), z -91.
 	# A wide ellipse: ~70% interior width x ~45% interior height, centred at ~30% height.
@@ -679,7 +762,8 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 		if body_art != null:
 			body_art.position = Vector2(0.0, top - BODY_BLEED_TOP + art_h * 0.5)
 			art.add_child(body_art)
-		_scatter_back_tufts(art, w, top, rng)   # behind the mat, tips peeking above it
+		if _body_grass_decals:   # §A.3: no grass tufts on themed (rock/steel/stone) bodies
+			_scatter_back_tufts(art, w, top, rng)   # behind the mat, tips peeking above it
 		mat_h = MAT_H
 		mat_top = top - MAT_RISE
 	else:
@@ -697,7 +781,8 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 		mat.position = Vector2(0.0, -mat_h * 0.5)
 		pivot.add_child(mat)
 
-	_scatter_end_decals(art, w, mat_top, rng, suppress_left, suppress_right)   # tufts + flowers (skipped at a void lip)
+	if _body_grass_decals:   # §A.3: themed bodies carry their own end detail — no grass tufts/flowers
+		_scatter_end_decals(art, w, mat_top, rng, suppress_left, suppress_right)   # tufts + flowers (skipped at a void lip)
 	if tier == "spring":
 		_springs.append({ "pivot": pivot, "next_t": _t + randf_range(2.0, 5.0) })
 	_surfaces[body] = { "tier": tier, "art": art, "mat": pivot, "w": w, "top": top, "last_ms": -9999 }
@@ -705,17 +790,29 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 func _canonical_height(h: float) -> float:
 	return 64.0 if absf(h - 64.0) <= absf(h - 128.0) else 128.0
 
-## Themed body art: whole-sprite hero if some source is within ±20% aspect, else 3-slice grass body.
+## Themed body art (§A). GRASS: whole-sprite hero (has mid-span flowers) if within ±20% aspect, else
+## the grass 3-slice body. THEMED: 3-slice the resolved themed strip (22/56/22), warm-tinted for dusk;
+## NEVER the grass hero (its flowers would land on a rock/steel/stone ledge). Missing themed file ->
+## grass body strip fallback (never a flat polygon) so late-arriving art slots in on the next load.
 func _platform_body(art_w: float, art_h: float) -> Node2D:
-	for path in [HERO_TEX, BODY_TEX]:
-		if not ResourceLoader.exists(path):
-			continue
-		var whole := ThreeSlice.build_whole(load(path), art_w, art_h)
-		if whole != null:
-			return whole
+	if _body_is_grass:
+		for path in [HERO_TEX, BODY_TEX]:
+			if not ResourceLoader.exists(path):
+				continue
+			var whole := ThreeSlice.build_whole(load(path), art_w, art_h)
+			if whole != null:
+				return whole
+		if ResourceLoader.exists(BODY_TEX):
+			return ThreeSlice.build(load(BODY_TEX), art_w, art_h, 0.22)
+		_warn_once("body", "ArenaRenderer: missing " + BODY_TEX + " — platform bodies mat-only")
+		return null
+	# themed body: 3-slice with the body_tint baked into the segment sprites (dusk sandstone tint)
+	if ResourceLoader.exists(_body_path):
+		return ThreeSlice.build(load(_body_path), art_w, art_h, 0.22, false, _body_tint)
+	_warn_once("body_" + _body_path,
+		"ArenaRenderer: missing themed body " + _body_path + " — grass body fallback")
 	if ResourceLoader.exists(BODY_TEX):
 		return ThreeSlice.build(load(BODY_TEX), art_w, art_h, 0.22)
-	_warn_once("body", "ArenaRenderer: missing " + BODY_TEX + " — platform bodies mat-only")
 	return null
 
 ## Mat texture for a tier. Fallbacks: missing tier mat -> marshmallow mat tinted with the tier
@@ -900,9 +997,11 @@ func paint_void(v: Dictionary, platforms: Array = []) -> void:
 	motes.z_index = -5
 	root.add_child(motes)
 
-	# --- 3e. Hazard LIP telegraph (painted_backdrops §3): a taut wire + slow-pulsing danger glow band +
-	# fewer/larger matte chevrons. Hazard red is reserved to this line only. Reads "below = death" in <1s.
-	_paint_kill_line(root, left_x, right_x, rim_y, wall_px)
+	# --- 3e. Hazard BLAST-LINE telegraph (owner 2026-07-18): the taut red wire + slow-pulsing danger glow
+	# band + matte chevrons ride the REAL death boundary (bottom_y == bounds.bottom), NOT the platform-level
+	# rim. Owner wants the red line OFF-SCREEN below the platforms like a Smash blast zone — the abyss visuals
+	# (3a fill / 3b walls / 3c AO / 3d motes) still start at rim_y, but no red line shows in the playfield.
+	_paint_kill_line(root, left_x, right_x, bottom_y, wall_px)
 
 	# --- 3f. INNER-ISLAND chasm treatment (CD #5 P1): the void rect spans the whole bottom, but 3a/3b
 	# above only line the ARENA edges, so a single inter-island gap read as a thin dark strip amid green

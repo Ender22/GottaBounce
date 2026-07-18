@@ -116,5 +116,6 @@
   ],
   "backdrop_painting": "space_nebula",
   "painting_tint": "#D9C4E8",
-  "backdrop": "open_sky"
+  "backdrop": "open_sky",
+  "clouds": false
 }

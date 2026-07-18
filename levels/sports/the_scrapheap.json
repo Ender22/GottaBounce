@@ -4,6 +4,7 @@
   "theme": "scrap",
   "kill_shape": "sports_court",
   "backdrop": "enclosed",
+  "interior_painting": "arena_stadium",
   "design_intent": "SPORTS chaos finale (v8_sports_courts.md tier 5). The hammer_yard shell (2800x1600, strict mirror about x=1400) with the central spinning_hammer PLUS two MIRRORED landmine pairs -> hammer + mines together, goals half-accidental hilarity. SYMMETRY (SC-SYM/SYM-3): the hammer sits ON the centre axis (inherently symmetric); each mine PAIR is a mirror pair at the same y with IDENTICAL params/phase, so no instant pressures one team's half more. NOTE (deviation, reported): the full v8 spec also lists a falling_debris cadence here; this build scopes the finale to hammer+mines (both already interact with the ball) and defers debris ball-punt -- flagged, not silently dropped. SYM-4 (no own-goal machine): mines sit at x1080/1720 (y1180, low) and x1180/1620 (y640, mid), blast_radius 300 -> blasts reach at most x780/x2020, ~470px clear of the goal mouths (x170..310 / x2490..2630); no blast overlaps a goal mouth, so a mine punt sends the ball into open play. Ball-hazard: hammer whacks the ball (~2000px/s), a mine blast PUNTS it (Bomb._punt_balls -> Ball.receive_hazard_impulse, ~1500px/s point-blank), both re-capped to 2400 (chaseable). Fuse mines recur with telegraphed accelerating blink; clear windows remain (hammer dwell + fuse leads). NO powerup_spawners. Skilled power-shots still score (SC-CHAOS) -- chaos ADDS accidents, doesn't replace intent.",
   "sky_top": "#241d1a",
   "sky_bottom": "#45332a",

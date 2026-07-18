@@ -31,6 +31,11 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `bg/painting_dusk_gold.png` | SHIP-CANDIDATE | 2026-07-18 PAINTED BACKDROP; blue->violet->golden-amber horizon ~0.60, canyon depth; the_ascent/convoy/twin_chasms |
 | `bg/painting_overcast_quarry.png` | SHIP-CANDIDATE | 2026-07-18 PAINTED BACKDROP; grey overcast quarry terraces + crane, horizon ~0.58, grey pit depth; hammer_arena/wrecking_yard/hazard_yard/minefield/gauntlet_*/course_04/t_hammer_* |
 | `ui/victory_rays.png` | SHIP-CANDIDATE | 2026-07-18 ceremony gold radial sunburst (785x821, real alpha); VictoryScreen RAYS_PATH, spins behind the winner bust; rendered-verified |
+| `world/bodies/body_space_rock.png` | SHIP-CANDIDATE | 2026-07-18 THEMED PLATFORM BODY (3-slice 22/56/22, real alpha, ~1468x243); dark indigo basalt + crystal-facet caps + rocky lip. ArenaRenderer BODIES manifest, auto-derived on space_nebula levels. Replaces grass body (owner: no grass floating in space) |
+| `world/bodies/body_foundry_steel.png` | SHIP-CANDIDATE | 2026-07-18 THEMED BODY; riveted warm gunmetal plate (distinct from bumper grey), rivets at ends; ember_foundry levels |
+| `world/bodies/body_quarry_stone.png` | SHIP-CANDIDATE | 2026-07-18 THEMED BODY; warm-grey layered stone + shelf lip + end pebbles; overcast_quarry levels AND dusk_gold (warm-tinted #E8C79E to sandstone via DUSK_BODY_TINT) |
+| `bg/interior_arena_stadium.png` | SHIP-CANDIDATE | 2026-07-18 ENCLOSED INTERIOR (1536x1024 opaque); dark team-neutral night stadium (blurred crowd, dim floodlights, teal pitch band). ArenaRenderer INTERIORS manifest, drawn behind the sealed court; sheen+vignette kept on top. All sports courts |
+| `bg/interior_silo_cavern.png` | SHIP-CANDIDATE | 2026-07-18 ENCLOSED INTERIOR (1536x1024 opaque); dark charcoal silo/cavern + light shaft, near-black edges; drop_chamber |
 | `world/bumper_post.png` | SHIP-CANDIDATE | 208x1003 vertical 3-slice |
 | `world/trampoline_blue.png` | prop | standalone trampoline prop (NOT the tier mat) |
 | `bg/sky_grass_day.png` | SHIP-CANDIDATE | 1672x941 opaque, layer-1 sky |

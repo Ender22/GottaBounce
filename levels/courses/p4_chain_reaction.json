@@ -146,5 +146,6 @@
     }
   ],
   "backdrop_painting": "ember_foundry",
-  "backdrop": "open_sky"
+  "backdrop": "open_sky",
+  "clouds": false
 }

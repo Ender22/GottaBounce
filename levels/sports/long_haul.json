@@ -4,6 +4,7 @@
   "theme": "grass",
   "kill_shape": "sports_court",
   "backdrop": "enclosed",
+  "interior_painting": "arena_stadium",
   "design_intent": "SPORTS calm court #3 (v8_sports_courts.md tier 1, SIZE variety). A BIG/OPEN (3600x1900) strict-mirror two-goal pitch: wide open middle, tall airspace -> long boost runs, midfield interception reads, the biggest power-shot arcs in the set. NO hazards, NO powerup_spawners (SYM-6, SC-CALM-CLEAN). SYMMETRY (SC-SYM): every element mirrors about centre x=1800; the single mid-bumper pair sits at the SAME y=560 (both halves identical under gravity). FLIGHT GATE: centre x=1800; nearest inner spawn x=2850/750 -> 1050px to centre (>> 395 trampoline drift); centre-to-far-goal 1800->245 = 1555px (>> 527 spring drift) -> long boosted flights, fuel management matters. Full-width TRAMPOLINE floor (y1650) + bumper ceiling/walls -> no flat standable ground (Pillar 2). Goal mouth y760..1100 (centre y=930); goal_zone just inside, back wall seals the pocket. Deliberately sparse bumpers keep the middle open for the flagship long arcs.",
   "sky_top": "#123a5c",
   "sky_bottom": "#1f6ea8",
