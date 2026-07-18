@@ -23,7 +23,8 @@ extends Node2D
 
 const LAYER_SURFACES := 1 << 2
 const LAYER_HAZARDS := 1 << 3
-const MOON_TEX_PATH := "res://assets/objects/moon.png"   # future art pass; code render until then
+const MOON_TEX_PATH := "res://assets/objects/moon.png"           # bespoke sprite (art pass 2026-07-18)
+const BH_TEX_PATH := "res://assets/objects/black_hole.png"       # bespoke swirl sprite (same pass)
 
 var radius: float = 1400.0
 var g: float = 1300.0
@@ -34,6 +35,7 @@ var visual := "none"
 
 var _t := 0.0
 var _moon_tex: Texture2D = null
+var _bh_tex: Texture2D = null
 
 func setup_from_json(o: Dictionary) -> void:
 	position = Vector2(float(o.get("x", 0.0)), float(o.get("y", 0.0)))
@@ -59,6 +61,8 @@ func _ready() -> void:
 	z_index = 18   # under players/props, over backdrop
 	if ResourceLoader.exists(MOON_TEX_PATH):
 		_moon_tex = load(MOON_TEX_PATH)
+	if ResourceLoader.exists(BH_TEX_PATH):
+		_bh_tex = load(BH_TEX_PATH)
 	if body_r > 0.0:
 		var body := StaticBody2D.new()
 		body.collision_layer = LAYER_SURFACES
@@ -108,6 +112,18 @@ func _draw_black_hole() -> void:
 	var core_r := maxf(lethal_core_r, 60.0)
 	# faint field-extent ring (the "you are now orbiting" line)
 	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 96, Color(0.62, 0.45, 1.0, 0.10), 8.0, true)
+	if body_r > 0.0:
+		core_r = body_r   # the visual core matches the actual event-horizon collider
+	# bespoke swirl sprite (owner: no code-drawn planets) — slow pinwheel spin; the sprite's dark
+	# core is sized to sit on the collider circle, the painted swirl extends beyond it.
+	if _bh_tex != null:
+		var d := core_r * 4.4
+		draw_set_transform(Vector2.ZERO, _t * 0.5, Vector2.ONE)
+		draw_texture_rect(_bh_tex, Rect2(Vector2(-d * 0.5, -d * 0.5), Vector2(d, d)), false)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var spx := Vector2.from_angle(_t * 2.3) * core_r * (1.9 - 0.5 * fmod(_t * 0.7, 1.0))
+		draw_circle(spx, 6.0, Color(1.0, 0.9, 0.6, 0.8))
+		return
 	# outer glow
 	for i in range(4):
 		var k := 1.0 - float(i) / 4.0
