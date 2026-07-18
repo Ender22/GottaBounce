@@ -20,6 +20,10 @@ flight in a parallel session at time of writing. OWNER ART FEEDBACK (2026-07-18,
 gradient hard-cutoff + code-drawn moons/planets read cheap — painted-backdrop pass + moon/
 black-hole sprite generation is the next art priority.
 
+**SFX OWNER PICKS (2026-07-18, 920a8df):** jetpack thrust loop = coke_blast.mp3, super boost =
+explosion_boss.mp3 (both from the owner's SamuraiRobot2.0 library, copied into assets/sfx/;
+thrust verified looping live). Owner audio-mix listen still the acceptance gate.
+
 **Last updated:** 2026-07-17 (owner-direction night, ALL 11 ITEMS SHIPPED — see
 `docs/feedback/owner_2026-07-16_night_list.md` for the verbatim list):
 1. **GAUNTLET MODE REMOVED** (e12f6c6, DECISIONS 2026-07-16; ModeSelect = 3 live cards; gauntlet ARENAS
