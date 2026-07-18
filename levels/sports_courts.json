@@ -5,6 +5,7 @@
     { "id": "center_pitch",  "path": "res://levels/sports_court.json",         "display_name": "CENTER PITCH",  "tier": 1, "hazard": "",                "unlock": "always" },
     { "id": "the_box",       "path": "res://levels/sports/the_box.json",       "display_name": "THE BOX",       "tier": 1, "hazard": "",                "unlock": "always" },
     { "id": "long_haul",     "path": "res://levels/sports/long_haul.json",     "display_name": "LONG HAUL",     "tier": 1, "hazard": "",                "unlock": "always" },
+    { "id": "dropshot_beach","path": "res://levels/sports/dropshot_beach.json","display_name": "DROPSHOT",      "tier": 2, "hazard": "",                "unlock": "always" },
     { "id": "the_bowl",      "path": "res://levels/sports/the_bowl.json",      "display_name": "THE BOWL",      "tier": 2, "hazard": "",                "unlock": "sports_matches:2" },
     { "id": "hammer_yard",   "path": "res://levels/sports/hammer_yard.json",   "display_name": "HAMMER YARD",   "tier": 3, "hazard": "spinning_hammer", "unlock": "circuit:scrapworks" },
     { "id": "minefield",     "path": "res://levels/sports/minefield.json",     "display_name": "MINEFIELD",     "tier": 3, "hazard": "bomb",            "unlock": "circuit:mayhem_mile" },

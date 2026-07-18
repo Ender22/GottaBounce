@@ -1,0 +1,38 @@
+{
+  "name": "Dropshot Beach",
+  "version": 1,
+  "theme": "grass",
+  "sport": "dropshot",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "design_intent": "DROPSHOT (owner list 2026-07-18 item 5) — the volleyball-like SECOND SPORT. An enclosed symmetric court split by a solid centre NET; the floor is a row of ball-only destructible DROP_TILES. The floaty BEACH BALL (Ball.configure_dropshot: 0.35x gravity, 0.93 restitution, r84, 1900 cap) cracks a tile on its first hit and BREAKS it open on the second; the ball falling through the hole = a POINT for the other team (hidden under-floor goal_zone strips, team-tagged to the DEFENDING half — standard volleyball concede). Players can NOT damage tiles (DropTile senses the ball layer only) and a hole is never directly lethal: a player who drops through falls to the bounds bottom, takes the ordinary ring-out (SPORTS lives = 99), and respawns on their own side (SportsMode.respawn_position seam). RALLY FLOW: each point ends the stage; the arena JSON reloads = fresh tiles + serve (the SPORTS stage-per-point pattern). Serve: the conceding team receives (SportsMode._kickoff_center), offset a quarter-court from the net.\n\nFANTASY-FIT (GAME_ESSENCE): the NET rises 740px above the floor tiles (y610..1350) — trampoline apex is 270px, so crossing to attack REQUIRES boost (Verb: FLY). Half-court width 1110px > 527px max spring drift, so pressing the ball to the far tiles requires flight too. Hitting the ball IS the existing bounce/drive contact physics (Ball._drive_from) — no new hit mechanic; a super/hitstun body still doubles the strike (the power spike).\n\nGEOMETRY: bounds 0..2800 x 0..1600. Interior x290..2510, ceiling bottom y210 (bumper), side walls bumper x200..290 / x2510..2600 down to y1350. NET: bumper column x1385..1415, y610..1350 (65% of the 1140px interior height — ball and players can never pass THROUGH, players fly OVER the 400px top gap). FLOOR: 10 drop_tiles of 222x100 at y1350 spanning x290..2510 (5 per half; the x1400 tile seam sits exactly under the net so no tile straddles the halves); two solid bumper caps seal the wall feet (x200..290, x2510..2600). UNDER-FLOOR: two hidden goal_zone strips y1455..1585 (team 0 left / team 1 right, mouth up) catch a ball that breaks through. Hole clearance: tile 222 vs beach-ball diameter 168.",
+  "sky_top": "#1d6fae",
+  "sky_bottom": "#ffca7a",
+  "bounds": { "left": 0, "right": 2800, "top": 0, "bottom": 1600 },
+  "platforms": [
+    { "x": 200,  "y": 130,  "w": 2400, "h": 80,   "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 1140, "tier": "bumper" },
+    { "x": 2510, "y": 210,  "w": 90,   "h": 1140, "tier": "bumper" },
+    { "x": 1385, "y": 610,  "w": 30,   "h": 740,  "tier": "bumper" },
+    { "x": 200,  "y": 1350, "w": 90,   "h": 100,  "tier": "bumper" },
+    { "x": 2510, "y": 1350, "w": 90,   "h": 100,  "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "drop_tile", "x": 290,  "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 512,  "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 734,  "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 956,  "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 1178, "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 1400, "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 1622, "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 1844, "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 2066, "y": 1350, "w": 222, "h": 100 },
+    { "type": "drop_tile", "x": 2288, "y": 1350, "w": 222, "h": 100 },
+    { "type": "goal_zone", "x": 845,  "y": 1520, "w": 1110, "h": 130, "team": 0, "mouth": "up", "style": "hidden" },
+    { "type": "goal_zone", "x": 1955, "y": 1520, "w": 1110, "h": 130, "team": 1, "mouth": "up", "style": "hidden" },
+    { "type": "player_spawn", "x": 500,  "y": 1150 },
+    { "type": "player_spawn", "x": 750,  "y": 1000 },
+    { "type": "player_spawn", "x": 2300, "y": 1150 },
+    { "type": "player_spawn", "x": 2050, "y": 1000 }
+  ]
+}

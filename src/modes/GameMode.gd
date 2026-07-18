@@ -83,6 +83,13 @@ func stage_end_banner(_runner) -> Dictionary:
 func match_end_banner(_runner) -> Dictionary:
 	return {}
 
+## Additive seam (owner 2026-07-18, SPORTS 2v2): a mode may override WHERE player `idx` respawns
+## mid-stage (the multi-life _respawn_after_death path). Returns a world Vector2 or null -> the
+## runner's default _spawn_at(i) (BRAWL/TRIALS byte-for-byte). SPORTS returns a spawn on the
+## player's TEAM side so a mid-rally respawn never drops a defender into the enemy half.
+func respawn_position(_runner, _idx: int) -> Variant:
+	return null
+
 # --- bot / camera seams (v5_sports bot-play fix) ---
 ## Additive seam: a mode may override WHERE a bot wants to go this reaction tick, returning a world
 ## Vector2 objective the bot steers/boosts toward using its EXISTING movement logic. Default null ->

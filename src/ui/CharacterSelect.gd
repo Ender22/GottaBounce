@@ -82,11 +82,12 @@ func _ready() -> void:
 	# its focus wiring; a hero lock-in launches the run directly (see _go_arena). BRAWL keeps the strip.
 	register(_back, 1.05)
 	if _trials or _sports:
-		# Couch co-op: these modes expose ONE stepper — HUMANS. Trials runs multi-player-parallel
-		# (v10), Sports at 2 humans = human-vs-human 1v1 (bots drop to 0 in _go_arena). The
-		# Brawl-only steppers (bots/kills/lives) stay out of the tray.
+		# Couch co-op: these modes expose the HUMANS stepper. SPORTS (owner 2026-07-18 item 3) also
+		# gets a TEAMS format stepper (1V1 total 2 / 2V2 total 4): bots fill the roster to the format
+		# total in _go_arena, and 3-4 humans force 2V2. The Brawl-only steppers (bots/kills/lives)
+		# stay out of the tray.
 		var cfg0: MatchConfig = GameConfig.match_config
-		var max_h: int = 2 if _sports else 4
+		var max_h: int = 4
 		cfg0.human_count = clampi(cfg0.human_count, 1, max_h)
 		var labels: Array = []
 		var vals: Array = []
@@ -94,6 +95,10 @@ func _ready() -> void:
 			labels.append(str(n))
 			vals.append(n)
 		_add_stepper("HUMANS", labels, vals, cfg0.human_count - 1, _on_humans_simple)
+		if _sports:
+			# seed the format from the config so a CHANGE SETUP round-trip keeps the 2v2 choice
+			_sports_total = 4 if (cfg0.human_count + cfg0.bot_count) >= 4 else 2
+			_add_stepper("TEAMS", ["1V1", "2V2"], [2, 4], 1 if _sports_total == 4 else 0, _on_sports_format)
 		wire_row(_steppers)
 		for i in range(3, _cards.size()):
 			_cards[i].focus_neighbor_bottom = _cards[i].get_path_to(_steppers[0])
@@ -339,9 +344,11 @@ func _reset_picks() -> void:
 		(c as Object).call("show_check", false)
 	_refresh_picker_flag()
 
+var _sports_total := 2   # SPORTS roster total from the TEAMS stepper: 2 = 1v1, 4 = 2v2 (owner item 3)
+
 func _humans_now() -> int:
 	var cfg: MatchConfig = GameConfig.match_config
-	return clampi(cfg.human_count, 1, 2 if _sports else 4) if cfg != null else 1
+	return clampi(cfg.human_count, 1, 4) if cfg != null else 1
 
 ## Recolor the pick-cursor flag (+ its label) to the CURRENT picker's slot colour.
 func _refresh_picker_flag() -> void:
@@ -371,14 +378,18 @@ func _go_arena() -> void:
 		cfg.bot_count = 0
 		shell.go_forward("arena")
 	elif _sports:
-		# SPORTS: team preset stays a 1v1 total of 2 — 1 human + 1 bot, or human-vs-human when the
-		# HUMANS stepper says 2 (spawn plan splits the roster in half, so P1=team RED, P2=team BLUE).
+		# SPORTS (owner 2026-07-18 item 3): the TEAMS stepper picks the roster total (2 = 1v1, 4 = 2v2);
+		# bots fill the seats humans don't (3-4 humans force the 2v2 total). spawn_plan splits the
+		# roster in half — humans first, so 2H+2B = humans (RED) vs bots (BLUE), 4H = P1&P2 vs P3&P4.
 		# Then the court select (ArenaSelect in sports guise) assigns the court and launches.
 		# SportsMode overrides skins by team colorway; goal cap = Tuning.sports_goal_target.
 		var cfg: MatchConfig = GameConfig.match_config
 		cfg.mode_id = &"sports"
 		cfg.human_count = _humans_now()
-		cfg.bot_count = 2 - cfg.human_count
+		var total: int = _sports_total
+		if cfg.human_count > total:
+			total = 4
+		cfg.bot_count = total - cfg.human_count
 		shell.go_forward("arena")
 	else:
 		shell.go_forward("arena")
@@ -434,6 +445,11 @@ func _on_humans(_i: int, v: Variant) -> void:
 func _on_humans_simple(_i: int, v: Variant) -> void:
 	GameConfig.match_config.human_count = int(v)
 	_reset_picks()
+
+## SPORTS TEAMS format (owner item 3): 1V1 (total 2) / 2V2 (total 4). Roster math happens in
+## _go_arena; picks are untouched (the human roster didn't change).
+func _on_sports_format(_i: int, v: Variant) -> void:
+	_sports_total = int(v)
 
 func _on_bots(_i: int, v: Variant) -> void:
 	GameConfig.match_config.bot_count = int(v)

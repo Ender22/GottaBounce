@@ -1,8 +1,10 @@
 extends CanvasLayer
-## SPORTS HUD (docs/specs/v5_sports_mode.md §5). Built from SportsHUD.tscn + assets/ui/theme.tres
-## (chunky panels, chocolate outlines, oversized type; no OS-default widgets). Shows two big team
-## scores (RED left / BLUE right) with the goal cap, and a full-screen "GOAL!" flash on last_scoring_team
-## change. It fills the SAME method surface PartyMatch calls on a HUD (setup / reset_scores / hide_center
+## SPORTS HUD (docs/specs/v5_sports_mode.md §5, chip rework per owner list 2026-07-18 item 1).
+## Built from SportsHUD.tscn + assets/ui/theme.tres. The score readout is ONE compact color-coded
+## pill TOP-CENTER — red number | dash | blue number with a tiny "TO N" cap line — replacing the two
+## huge side panels that ate the screen. Navy chip, chocolate outline, chunky type (theme grammar).
+## Full-screen team-colored flash + "GOAL!"/"POINT!" (mode goal_word) on last_scoring_team change.
+## It fills the SAME method surface PartyMatch calls on a HUD (setup / reset_scores / hide_center
 ## / set_dead / show_center / animate_scores / show_top / show_match_end / show_match_prompt) so the
 ## runner drives it unchanged; the per-player-pip ones are no-ops. Team scores poll runner._mode each frame.
 
@@ -17,10 +19,9 @@ var _top_tw: Tween
 var _flash_tw: Tween
 var _shown_scoring := -2   # last last_scoring_team we flashed for (-2 = uninitialized)
 
-@onready var _red_score: Label = $Root/RedPanel/RedBox/RedScore
-@onready var _red_cap: Label = $Root/RedPanel/RedBox/RedCap
-@onready var _blue_score: Label = $Root/BluePanel/BlueBox/BlueScore
-@onready var _blue_cap: Label = $Root/BluePanel/BlueBox/BlueCap
+@onready var _red_score: Label = $Root/ScoreChip/ChipBox/Scores/RedScore
+@onready var _blue_score: Label = $Root/ScoreChip/ChipBox/Scores/BlueScore
+@onready var _cap: Label = $Root/ScoreChip/ChipBox/CapLabel
 @onready var _flash: ColorRect = $Root/GoalFlash
 @onready var _flash_label: Label = $Root/GoalFlashLabel
 
@@ -68,8 +69,7 @@ func _process(_delta: float) -> void:
 	if scores.size() >= 2:
 		_red_score.text = str(int(scores[0]))
 		_blue_score.text = str(int(scores[1]))
-	_red_cap.text = "TO %d" % cap
-	_blue_cap.text = "TO %d" % cap
+	_cap.text = "TO %d" % cap
 	# GOAL flash on a scoring-team change
 	var last: int = int(mode.last_scoring_team())
 	if last != _shown_scoring:
@@ -83,7 +83,10 @@ func _goal_flash(team: int) -> void:
 		_flash_tw.kill()
 	_flash.color = Color(col.r, col.g, col.b, 0.0)
 	_flash.visible = true
-	_flash_label.text = "GOAL!"
+	var word := "GOAL!"
+	if _runner != null and _runner._mode != null and _runner._mode.has_method("goal_word"):
+		word = str(_runner._mode.goal_word())
+	_flash_label.text = word
 	_flash_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	_flash_label.visible = true
 	_flash_label.modulate.a = 1.0

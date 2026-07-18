@@ -9,9 +9,10 @@ extends Area2D
 ## deterministic phase-clock oscillator with a long OPEN DWELL (the clear beat), self-rendering `_draw`
 ## telegraphy (hazard-stripe faces + a windup shudder/flash before each slam), and LevelLoader wiring.
 ##
-## DOCTRINE (§2.0):
-##   (1) LETHAL by default — the heads instakill on contact via kill(&"ring_out"); no new death
-##       impulse/hitstun, no shove. Identical to the hammer head.
+## DOCTRINE (§2.0, amended by owner 2026-07-18):
+##   (1) LETHAL only on a TRUE CRUSH — a body dies only while squeezed between the two inner faces
+##       (gap closed to <= Tuning.crusher_crush_gap). Side/back/parked-face contact is HARMLESS.
+##       The kill path itself is unchanged: kill(&"ring_out"), no new death impulse/hitstun/shove.
 ##   (2) TELEGRAPHY — a long OPEN DWELL (the clear safe beat), then a windup SHUDDER + hazard-red FLASH
 ##       on the closing faces for `telegraph_lead` seconds BEFORE a fast, readable close. The player
 ##       learns the rhythm and clears the crush lane on the open beat.
@@ -233,21 +234,41 @@ func _physics_process(delta: float) -> void:
 	_kill_overlapping()
 	_eject_ball()
 
-## LETHAL contact — the whole mechanic. Any live Killable body overlapping either head dies via the
-## EXISTING kill pipeline with cause &"ring_out" (§2.0#1): no new impulse, no shove, no hitstun. The
-## &"ring_out" cause inherits the 6.0s ring-out credit window, so a rival who knocked the victim in
-## within the window is credited and an untouched victim is an uncredited self-fall (§2.0#4). The
-## crusher NEVER passes itself as attacker (it is not a Player -> no invented environment scorer).
+## LETHAL only when truly CRUSHED (owner 2026-07-18, supersedes the touch-kill doctrine of §2.0#1):
+## a body dies ONLY while it is SQUEEZED in the crush lane — its centre sits BETWEEN the two inner
+## faces (head<->head, or head<->anvil: the anvil face IS the "wall/floor" the victim is pinned
+## against) while the face-to-face gap has closed to <= Tuning.crusher_crush_gap (~player diameter +
+## pinch margin). Touching a head's SIDE / BACK / parked face, or standing beside the lane, is
+## HARMLESS (the heads are overlap-only, so non-crush contact simply clips — no shove, no kill).
+## The kill itself is unchanged: the EXISTING pipeline, cause &"ring_out" (inherits the 6.0s ring-out
+## credit window; a rival who knocked the victim into the lane is credited, an untouched victim is an
+## uncredited self-fall). The crusher NEVER passes itself as attacker (INV-9).
 func _kill_overlapping() -> void:
 	if not _lethal:
 		return   # pre-combat / post-stage: the heads still slam + telegraph, but never crush-kill.
+	var along := _along()
+	# inner-face positions along the slam axis (signed, relative to `center`); head2 may be an anvil.
+	var f1: float = (_shape1.position - center).dot(along) + head_len * 0.5   # head1 inner face (- side)
+	var f2: float = (_shape2.position - center).dot(along) - head_len * 0.5   # head2 inner face (+ side)
+	var gap: float = f2 - f1
+	if gap > Tuning.crusher_crush_gap:
+		return   # faces still apart: nobody can be squeezed — ALL contact is harmless right now.
+	var perp := along.orthogonal()
 	for body in get_overlapping_bodies():
 		if not is_instance_valid(body):
 			continue
 		if body.has_method("is_dead") and body.is_dead():
 			continue
-		if body.has_method("kill"):
-			body.kill(&"ring_out", null)
+		if not body.has_method("kill"):
+			continue
+		# squeeze test: body centre BETWEEN the faces (small tolerance) and inside the lane width.
+		var rel: Vector2 = (body as Node2D).global_position - center
+		var a: float = rel.dot(along)
+		if a < f1 - 12.0 or a > f2 + 12.0:
+			continue   # beside/behind a head — shoved aside visually at most, never crushed
+		if absf(rel.dot(perp)) > head_w * 0.5 + 12.0:
+			continue   # outside the crush lane
+		body.kill(&"ring_out", null)
 
 ## Ball-eject (v8_sports_courts.md §3.2): the crusher is overlap-only, so the sports Ball is never
 ## physically trapped between the plates — but a ball sitting in the crush lane as the heads CLOSE would

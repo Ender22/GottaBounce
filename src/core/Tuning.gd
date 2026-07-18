@@ -281,6 +281,28 @@ var pu_slow_mo_factor: float = 0.5
 # bots (minimal v1 behavior: collect on touch, use after a beat — no seeking brain yet)
 var bot_powerup_delay: float = 1.5       # s a bot sits on a pickup before using it (+ level-scaled variance)
 
+# --- Bot gravity-frame sense (bot brains v2 slice 1 — orbital arenas, see STATUS "ORBITAL GRAVITY") ---
+# The bot expresses up/down/fall in the LOCAL gravity frame (GravityField.get_gravity_at, INV-1).
+# In a flat arena the field returns exactly global down, so every gravity-relative branch reduces to
+# the legacy screen-down behavior. Bot SPATIAL-REASONING dials — NOT game-feel constants.
+var bot_radial_down_dot: float = 0.999      # local down.y >= this = the FLAT frame (legacy code paths run)
+var bot_radial_dive_fallback: float = 400.0 # px along the local pull to aim when no floor reads along it (defensive)
+
+# --- SPORTS owner list 2026-07-18 (append-only; NOT fenced player-feel constants) ---
+# CRUSHER fairness (owner item 2): a crusher only kills when a body is truly SQUEEZED between the
+# two inner faces (or face + anvil) — i.e. the face-to-face gap has closed to at most this many px
+# (player diameter ~88 at Standard size, + a small pinch margin). Side/back/resting contact with a
+# head is harmless. Read by Crusher._kill_overlapping.
+var crusher_crush_gap: float = 100.0
+
+# DROPSHOT beach-ball variant (owner item 5): the floaty volleyball. Applied by Ball.configure_dropshot
+# on courts whose JSON declares "sport": "dropshot"; the soccer ball keeps Ball.gd's mode-owned consts.
+var dropshot_ball_gravity_mult: float = 0.35   # fraction of field gravity (floaty hang-time)
+var dropshot_ball_restitution: float = 0.93    # bouncier than the soccer ball's 0.85
+var dropshot_ball_radius: float = 84.0         # bigger, reads "beach ball" (soccer = 60)
+var dropshot_ball_max_speed: float = 1900.0    # slower cap: rallies stay readable/chaseable
+var dropshot_serve_offset_frac: float = 0.25   # kickoff x offset from court centre (fraction of bounds width)
+
 # --- Derived helpers ---
 func normal_boost_drain() -> float:
 	# fuel units drained per second of normal boost

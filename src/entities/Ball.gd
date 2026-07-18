@@ -43,8 +43,27 @@ const MASK_PLAYERS := 1 << 0         # the sensing area detects Player bodies
 const BALL_TEX: Texture2D = preload("res://assets/objects/ball.png")
 const BALL_TEX_DIAM := 665.0         # circular-body diameter in image px (opaque bbox width)
 
+# --- variant config (owner 2026-07-18 item 5, DROPSHOT): per-instance overrides, defaulted to the
+# soccer constants above. SportsMode sets these via configure_dropshot() BEFORE add_child (so _ready
+# builds shapes at the right size). The DROPSHOT values live in Tuning (owner-directed) — the soccer
+# ball keeps reading the mode-owned constants above, byte-for-byte.
+var radius: float = BALL_RADIUS
+var restitution: float = BALL_RESTITUTION
+var gravity_mult: float = 1.0        # fraction of field gravity (DROPSHOT floaty beach ball < 1)
+var max_speed: float = BALL_MAX_SPEED
+var tint: Color = Color.WHITE       # BallGloss modulate (DROPSHOT = warm beach tint)
+
 var _sense_area: Area2D
 var _touch_cd: Dictionary = {}       # player instance_id -> seconds of cooldown remaining
+
+## DROPSHOT beach-ball preset (owner item 5): floatier, bouncier, bigger, slower cap. Call BEFORE
+## add_child. All values from Tuning (append-only block, 2026-07-18).
+func configure_dropshot() -> void:
+	radius = Tuning.dropshot_ball_radius
+	restitution = Tuning.dropshot_ball_restitution
+	gravity_mult = Tuning.dropshot_ball_gravity_mult
+	max_speed = Tuning.dropshot_ball_max_speed
+	tint = Color(1.0, 0.88, 0.62)   # sunny beach-ball warm-up (art variant is a follow-up)
 
 func _ready() -> void:
 	add_to_group("sports_ball")
@@ -55,17 +74,19 @@ func _ready() -> void:
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY    # a fast ball never tunnels a wall / goal mouth
 	z_index = 40
 	var pm := PhysicsMaterial.new()
-	pm.bounce = BALL_RESTITUTION
+	pm.bounce = restitution
 	pm.friction = BALL_FRICTION
 	physics_material_override = pm
 
 	var cs := CollisionShape2D.new()
 	var c := CircleShape2D.new()
-	c.radius = BALL_RADIUS
+	c.radius = radius
 	cs.shape = c
 	add_child(cs)
 
-	add_child(BallGloss.new())
+	var gloss := BallGloss.new()
+	gloss.modulate = tint
+	add_child(gloss)
 
 	# player-sensing Area2D (mask players only): drives the ball from bodies it overlaps.
 	_sense_area = Area2D.new()
@@ -73,17 +94,17 @@ func _ready() -> void:
 	_sense_area.collision_mask = MASK_PLAYERS
 	var hcs := CollisionShape2D.new()
 	var hc := CircleShape2D.new()
-	hc.radius = BALL_RADIUS + 8.0
+	hc.radius = radius + 8.0
 	hcs.shape = hc
 	_sense_area.add_child(hcs)
 	add_child(_sense_area)
 
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	# field gravity (READ-ONLY Tuning.gravity, exactly StormBall's read) + a hard max-speed cap so even a
-	# power shot stays chaseable (below the player max_speed of 3000).
+	# power shot stays chaseable (below the player max_speed of 3000). gravity_mult = the DROPSHOT float.
 	var g := GravityField.get_gravity_at(global_position)
-	state.linear_velocity += g * state.step
-	state.linear_velocity = state.linear_velocity.limit_length(BALL_MAX_SPEED)
+	state.linear_velocity += g * gravity_mult * state.step
+	state.linear_velocity = state.linear_velocity.limit_length(max_speed)
 
 func _physics_process(delta: float) -> void:
 	# tick down per-player contact cooldowns
@@ -122,7 +143,7 @@ func _drive_from(p: Player) -> void:
 		mag *= BALL_SMASH_MULT   # the power shot: a fired-super / knocked-flying body
 	# StormBall's receive_smash form (impulse / mass), then re-cap.
 	linear_velocity += strike_dir * mag / maxf(mass, 0.01)
-	linear_velocity = linear_velocity.limit_length(BALL_MAX_SPEED)
+	linear_velocity = linear_velocity.limit_length(max_speed)
 
 ## The ONE mode-owned hazard->ball entry point (v8_sports_courts.md §3.1). A hazard (bomb blast,
 ## hammer whack, debris drop, crusher eject) calls this to punt the ball; it is the SAME impulse form
@@ -133,14 +154,19 @@ func _drive_from(p: Player) -> void:
 ## into an untrackable blur). NOT a Tuning feel constant — mode-owned, alongside the drive constants.
 func receive_hazard_impulse(impulse: Vector2) -> void:
 	linear_velocity += impulse / maxf(mass, 0.01)
-	linear_velocity = linear_velocity.limit_length(BALL_MAX_SPEED)
+	linear_velocity = linear_velocity.limit_length(max_speed)
 
 ## Glossy team-neutral hero ball: the ball.png sprite drawn centred on the origin. As a child Node2D it
 ## inherits the RigidBody's transform, so the baked gold seam ROLLS with the ball's physics spin.
+## Sized off the parent Ball's INSTANCE radius (soccer 60 / dropshot beach 84).
 class BallGloss:
 	extends Node2D
 	func _draw() -> void:
-		var scale_u := (2.0 * Ball.BALL_RADIUS) / Ball.BALL_TEX_DIAM
+		var r: float = Ball.BALL_RADIUS
+		var host := get_parent()
+		if host is Ball:
+			r = (host as Ball).radius
+		var scale_u := (2.0 * r) / Ball.BALL_TEX_DIAM
 		var tw := float(Ball.BALL_TEX.get_width()) * scale_u
 		var th := float(Ball.BALL_TEX.get_height()) * scale_u
 		# centred on the origin (image centre ~= ball-circle centre); the transform handles the roll.

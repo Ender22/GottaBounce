@@ -699,7 +699,9 @@ func _respawn_after_death(i: int) -> void:
 			return
 		if int(lives_left[i]) <= 0:
 			return
-		p.respawn(_spawn_at(i))
+		# mode seam (owner 2026-07-18): SPORTS respawns on the player's TEAM side; null -> default.
+		var rp: Variant = _mode.respawn_position(self, i)
+		p.respawn(rp if rp is Vector2 else _spawn_at(i))
 		_hud.set_dead(i, false))
 
 ## `deferred` = we already sat out the double-KO window since the last death; credit that wait

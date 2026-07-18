@@ -36,6 +36,15 @@ var _last_scored_stage: int = -1       # idempotency guard: increment at most on
 var _ball: Ball = null                 # the live stage ball (freed + re-created each kickoff)
 var _court_set_cache: Dictionary = {}  # parsed sports_courts.json (lazy; {by_id, default_path, rotate})
 
+# --- SPORT VARIANT (owner 2026-07-18 item 5, DROPSHOT) ---
+# The court JSON declares its sport via a top-level "sport" field ("soccer" default | "dropshot").
+# DROPSHOT = volleyball-like: floaty beach ball (Ball.configure_dropshot), a solid centre NET wall
+# (authored as a bumper platform in the court JSON), a ball-only destructible DROP_TILE floor, and
+# hidden under-floor goal_zone strips — the ball breaking through YOUR half's floor = the OTHER
+# team's point (standard volleyball concede). Everything else (teams, kickoff-per-stage, goal cap,
+# HUD chip, camera court-fit) is the same SportsMode machinery — no PartyMatch fork.
+var _sport: String = "soccer"
+
 # --- bot-objective geometry (mode-owned, NOT fenced player-feel Tuning — this is WHERE to go, the
 # bot's existing movement/boost carries it there). To hit the ball toward the ENEMY goal a bot must
 # contact it from the side AWAY from that goal, so it flies to a point behind the ball; once basically
@@ -75,6 +84,7 @@ func configure(runner, config: MatchConfig) -> void:
 	# whenever the configured path is empty, whitespace, or points at a file that does not exist.
 	var want: String = str(config.single_arena_path).strip_edges() if config != null else ""
 	_arena_path = _resolve_court(want)
+	_sport = _read_sport(_arena_path)
 	_team_scores = [0, 0]
 	_last_scoring_team = -1
 	_last_scored_stage = -1
@@ -104,6 +114,15 @@ func _resolve_court(want: String) -> String:
 	if FileAccess.file_exists(want):
 		return want
 	return default_path
+
+## The court's SPORT ("soccer" | "dropshot") from its level JSON's top-level "sport" field.
+## Absent / unreadable -> "soccer" (every pre-DROPSHOT court is a soccer court, zero migration).
+func _read_sport(path: String) -> String:
+	if FileAccess.file_exists(path):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if typeof(parsed) == TYPE_DICTIONARY:
+			return str((parsed as Dictionary).get("sport", "soccer"))
+	return "soccer"
 
 ## Parse + cache sports_courts.json into {by_id: {id->court dict}, default_path, rotate: {key->[ids]}}.
 ## Absent / malformed file -> a safe stub whose default_path is DEFAULT_ARENA (back-compat).
@@ -251,8 +270,12 @@ func stage_end_banner(runner) -> Dictionary:
 		_last_scored_stage = int(runner.stage_index)
 		_team_scores[scoring] = int(_team_scores[scoring]) + 1
 		_last_scoring_team = scoring
-	return {"text": "GOAL!   RED %d — %d BLUE" % [int(_team_scores[0]), int(_team_scores[1])],
+	return {"text": "%s   RED %d — %d BLUE" % [goal_word(), int(_team_scores[0]), int(_team_scores[1])],
 		"color": TEAM_COLORS[scoring]}
+
+## The score exclamation ("GOAL!" for soccer, "POINT!" for DROPSHOT). Read by the HUD flash too.
+func goal_word() -> String:
+	return "POINT!" if _sport == "dropshot" else "GOAL!"
 
 ## Bot SPORTS objective (the load-bearing fix): steer the bot to a point that lets it hit the BALL
 ## toward its ENEMY goal. Approach the ball from the side AWAY from the enemy goal; once basically on
@@ -338,6 +361,8 @@ func _spawn_ball(runner) -> void:
 	if is_instance_valid(_ball):
 		_ball.queue_free()
 	_ball = BALL_SCRIPT.new()
+	if _sport == "dropshot":
+		_ball.configure_dropshot()   # floaty beach ball (Tuning dropshot_* block) — set BEFORE add_child
 	runner._level_root.add_child(_ball)
 	_ball.global_position = _kickoff_center(runner)
 	_ball.linear_velocity = Vector2.ZERO
@@ -370,7 +395,36 @@ func _place_teams(runner) -> void:
 
 ## Kickoff centre: the middle of the pitch. Uses bounds centre X (symmetric court) and the stage-rect
 ## centre Y (mid-air over the bouncy floor) so the ball falls onto the floor and bounces = constant motion.
+## DROPSHOT (owner item 5): the centre is the NET — the SERVE drops the ball onto one half instead.
+## Serve flow (spec'd here): the team that CONCEDED the last point receives (they get first touch,
+## volleyball serve-receive); before the first point the serve alternates by stage parity so neither
+## side owns the opener. Offset = dropshot_serve_offset_frac of the court width from centre.
 func _kickoff_center(runner) -> Vector2:
 	var b: Rect2 = runner.bounds
 	var sr: Rect2 = runner._stage_rect
-	return Vector2(b.get_center().x, sr.get_center().y)
+	var x: float = b.get_center().x
+	if _sport == "dropshot":
+		var receive_team: int = 1 - _last_scoring_team if _last_scoring_team >= 0 else int(runner.stage_index) % 2
+		var side: float = -1.0 if receive_team == 0 else 1.0   # team 0 = LEFT half, team 1 = RIGHT half
+		x += side * b.size.x * Tuning.dropshot_serve_offset_frac
+	return Vector2(x, sr.get_center().y)
+
+## Mid-rally respawn on the player's TEAM side (owner item 3 — the runner's default _spawn_at(i) is
+## index-cyclic and can drop a RED defender at a BLUE-side spawn in 2v2/DROPSHOT hole-falls). Mirrors
+## _place_teams: sorted-by-x spawns; team 0 takes from the LEFT end, team 1 from the RIGHT, indexed
+## by the player's within-team slot. null (no spawns/teams) -> runner default.
+func respawn_position(runner, idx: int) -> Variant:
+	if idx < 0 or idx >= _teams.size():
+		return null
+	var spawns: Array = runner._spawns.duplicate()
+	if spawns.size() < 2:
+		return null
+	spawns.sort_custom(func(a, b): return a.x < b.x)
+	var team: int = int(_teams[idx])
+	var within: int = 0
+	for i in range(idx):
+		if int(_teams[i]) == team:
+			within += 1
+	if team == 0:
+		return spawns[within % spawns.size()]
+	return spawns[maxi(0, spawns.size() - 1 - (within % spawns.size()))]

@@ -1,7 +1,26 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://src/ui/SportsHUD.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="score_chip"]
+content_margin_left = 26.0
+content_margin_top = 6.0
+content_margin_right = 26.0
+content_margin_bottom = 8.0
+bg_color = Color(0.0784314, 0.0784314, 0.156863, 0.93)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_left = 24
+corner_radius_bottom_right = 24
+shadow_color = Color(0, 0, 0, 0.25)
+shadow_size = 6
+shadow_offset = Vector2(0, 4)
 
 [node name="SportsHUD" type="CanvasLayer"]
 layer = 10
@@ -17,75 +36,59 @@ grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("2_theme")
 
-[node name="RedPanel" type="PanelContainer" parent="Root"]
+[node name="ScoreChip" type="PanelContainer" parent="Root"]
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 0.0
-anchor_top = 0.0
-offset_left = 40.0
-offset_top = 28.0
-grow_horizontal = 1
-theme_type_variation = &"MatchEndPanel"
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -110.0
+offset_right = 110.0
+offset_top = 18.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("score_chip")
 mouse_filter = 2
 
-[node name="RedBox" type="VBoxContainer" parent="Root/RedPanel"]
+[node name="ChipBox" type="VBoxContainer" parent="Root/ScoreChip"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 0
+theme_override_constants/separation = -6
 
-[node name="RedName" type="Label" parent="Root/RedPanel/RedBox"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "RED"
-horizontal_alignment = 1
-
-[node name="RedScore" type="Label" parent="Root/RedPanel/RedBox"]
-layout_mode = 2
-theme_type_variation = &"BannerCenter"
-theme_override_font_sizes/font_size = 96
-text = "0"
-horizontal_alignment = 1
-
-[node name="RedCap" type="Label" parent="Root/RedPanel/RedBox"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "TO 5"
-horizontal_alignment = 1
-
-[node name="BluePanel" type="PanelContainer" parent="Root"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_top = 0.0
-offset_left = -260.0
-offset_top = 28.0
-offset_right = -40.0
-grow_horizontal = 0
-theme_type_variation = &"MatchEndPanel"
-mouse_filter = 2
-
-[node name="BlueBox" type="VBoxContainer" parent="Root/BluePanel"]
+[node name="Scores" type="HBoxContainer" parent="Root/ScoreChip/ChipBox"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 0
+theme_override_constants/separation = 16
 
-[node name="BlueName" type="Label" parent="Root/BluePanel/BlueBox"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "BLUE"
-horizontal_alignment = 1
-
-[node name="BlueScore" type="Label" parent="Root/BluePanel/BlueBox"]
+[node name="RedScore" type="Label" parent="Root/ScoreChip/ChipBox/Scores"]
 layout_mode = 2
 theme_type_variation = &"BannerCenter"
-theme_override_font_sizes/font_size = 96
+theme_override_font_sizes/font_size = 52
 text = "0"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="BlueCap" type="Label" parent="Root/BluePanel/BlueBox"]
+[node name="Dash" type="Label" parent="Root/ScoreChip/ChipBox/Scores"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.949, 0.918, 0.847, 0.85)
+text = "—"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BlueScore" type="Label" parent="Root/ScoreChip/ChipBox/Scores"]
+layout_mode = 2
+theme_type_variation = &"BannerCenter"
+theme_override_font_sizes/font_size = 52
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CapLabel" type="Label" parent="Root/ScoreChip/ChipBox"]
 layout_mode = 2
 theme_type_variation = &"Hint"
-text = "TO 5"
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.949, 0.918, 0.847, 0.7)
+text = "TO 6"
 horizontal_alignment = 1
 
 [node name="GoalFlash" type="ColorRect" parent="Root"]

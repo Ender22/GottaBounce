@@ -124,6 +124,13 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 				var gz := GoalZone.new()
 				gz.setup_from_json(o)
 				parent.add_child(gz)
+			"drop_tile":
+				# owner 2026-07-18 (DROPSHOT, v5 item 5): a ball-only destructible floor tile — first
+				# ball hit cracks it, second breaks it open (a hole; the ball falling through = the
+				# point, via the hidden under-floor goal_zone strips). Players never damage tiles.
+				var dt := DropTile.new()
+				dt.setup_from_json(o)
+				parent.add_child(dt)
 			"key":
 				# owner 2026-07-16 (Trials circuit 2): a key token — Pickup-latch clone in group
 				# "trials_key"; a matching key_door opens when every key with its `door` id is collected.
