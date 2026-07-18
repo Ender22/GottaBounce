@@ -1189,8 +1189,20 @@ func respawn(pos: Vector2) -> void:
 	slow_factor = 1.0
 	wings_flaps = 0
 	_channel_timer = 0.0
+	# Reset the animation/pose to idle (owner 2026-07-18: bouncers sometimes spawned squished). A
+	# death mid-bounce (_squash_timer>0) or mid-charge leaves the squash/charge sprite + a deformed
+	# _body.scale; _frozen_preaim (pop-in, SD revive) never rewrites these, so a frozen respawn holds
+	# the stale pose until unfreeze. Clear them here so every spawn starts on the clean idle pose.
+	_squash_timer = 0.0
+	_charge_flight_t = 0.0
+	_anim_t = 0.0
+	_spin_vel = 0.0
 	if _body:
 		_body.rotation = 0.0
+		_body.scale = Vector2.ONE
+	if _sprite and _pose != &"idle":
+		_pose = &"idle"
+		_apply_idle_sprite()
 
 func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: bool, delta: float) -> void:
 	# spawn-protection blink (whole creature)
