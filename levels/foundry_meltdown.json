@@ -7,33 +7,194 @@
   "backdrop": "open_sky",
   "clouds": false,
   "horizon_glow": true,
-  "sky_top": "#24140C",
-  "sky_bottom": "#7A2E10",
-  "bounds": { "left": -640, "right": 3040, "top": -1600, "bottom": 1920 },
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -640,
+    "right": 3040,
+    "top": -1600,
+    "bottom": 1920
+  },
   "platforms": [],
   "objects": [
-    { "type": "void", "x": -500, "y": 1240, "w": 3560, "h": 680, "wall_px": 120 },
-
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 900,  "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 3.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 1200, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 3.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 600,  "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 4.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 1500, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 4.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 300,  "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 6.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 1800, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 6.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 0,    "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 7.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 2100, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 7.5 },
-
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_wall", "break_on": "timed", "telegraph_s": 1.0, "x": -180, "y": 520, "w": 180, "h": 680, "tier": "trampoline", "break_time": 8.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_wall", "break_on": "timed", "telegraph_s": 1.0, "x": 2400, "y": 520, "w": 180, "h": 680, "tier": "trampoline", "break_time": 8.5 },
-
-    { "type": "player_spawn", "x": 200,  "y": 1000 },
-    { "type": "player_spawn", "x": 600,  "y": 1000 },
-    { "type": "player_spawn", "x": 1000, "y": 1000 },
-    { "type": "player_spawn", "x": 1400, "y": 1000 },
-    { "type": "player_spawn", "x": 1800, "y": 1000 },
-    { "type": "player_spawn", "x": 2200, "y": 1000 },
-
-    { "type": "powerup_spawner", "x": 500,  "y": 920 },
-    { "type": "powerup_spawner", "x": 1900, "y": 920 }
-  ]
+    {
+      "type": "void",
+      "x": -500,
+      "y": 1240,
+      "w": 3560,
+      "h": 680,
+      "wall_px": 120
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 900,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 3.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1200,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 3.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 600,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 4.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1500,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 4.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 300,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 6.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1800,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 6.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 0,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 7.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 2100,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 7.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_wall",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": -180,
+      "y": 520,
+      "w": 180,
+      "h": 680,
+      "tier": "trampoline",
+      "break_time": 8.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_wall",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 2400,
+      "y": 520,
+      "w": 180,
+      "h": 680,
+      "tier": "trampoline",
+      "break_time": 8.5
+    },
+    {
+      "type": "player_spawn",
+      "x": 200,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 600,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1000,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1400,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1800,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2200,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 500,
+      "y": 920
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1900,
+      "y": 920
+    }
+  ],
+  "backdrop_painting": "ember_foundry"
 }

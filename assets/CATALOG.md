@@ -26,6 +26,11 @@ Every non-placeholder asset: what it is, how it was made, status. Prompts matter
 | `ui/circuits/crest_trials_*.png` (x4) | SHIP-CANDIDATE | 2026-07-17 trials circuit crests (campaign/navigation/soccer/physics), gold-shield style matched to the brawl crests (meadow crest attached as ref); rendered-verified on the trials PICK YOUR CIRCUIT shelf. crest_trials_varied + crest_trials_orbit PENDING |
 | `objects/moon.png` | SHIP-CANDIDATE | 2026-07-18 cratered toy planetoid (853x846, real alpha, chocolate outline); GravitySource "moon" visual draws it at body_r*2.08 (round bounce body); rendered-verified on Twin Moons — replaces the code-drawn circles (owner: no SVG-looking art) |
 | `objects/black_hole.png` | SHIP-CANDIDATE | 2026-07-18 gold/violet candy accretion swirl (893x825, real alpha); GravitySource "black_hole" visual spins it at ~0.5 rad/s, dark core sized to the event-horizon collider (core_r*4.4 span); rendered-verified on Singularity |
+| `bg/painting_space_nebula.png` | SHIP-CANDIDATE | 2026-07-18 PAINTED BACKDROP (1536x1024 opaque full-bleed, NO alpha — painterly no-outline exception). Indigo nebula + 2 pale moons, horizon glow ~0.58, abyss to near-black. ArenaRenderer PAINTINGS manifest; wired to singularity/twin_moons/spires/g6_*/bumper_gauntlet(+tint). Owner: "no svg, 100% ai gen"; replaces the code sky-gradient + green void |
+| `bg/painting_ember_foundry.png` | SHIP-CANDIDATE | 2026-07-18 PAINTED BACKDROP; smoky foundry cavern + amber furnace glow, horizon ~0.55; foundry_*/meltdown_box/p4_chain_reaction |
+| `bg/painting_dusk_gold.png` | SHIP-CANDIDATE | 2026-07-18 PAINTED BACKDROP; blue->violet->golden-amber horizon ~0.60, canyon depth; the_ascent/convoy/twin_chasms |
+| `bg/painting_overcast_quarry.png` | SHIP-CANDIDATE | 2026-07-18 PAINTED BACKDROP; grey overcast quarry terraces + crane, horizon ~0.58, grey pit depth; hammer_arena/wrecking_yard/hazard_yard/minefield/gauntlet_*/course_04/t_hammer_* |
+| `ui/victory_rays.png` | SHIP-CANDIDATE | 2026-07-18 ceremony gold radial sunburst (785x821, real alpha); VictoryScreen RAYS_PATH, spins behind the winner bust; rendered-verified |
 | `world/bumper_post.png` | SHIP-CANDIDATE | 208x1003 vertical 3-slice |
 | `world/trampoline_blue.png` | prop | standalone trampoline prop (NOT the tier mat) |
 | `bg/sky_grass_day.png` | SHIP-CANDIDATE | 1672x941 opaque, layer-1 sky |

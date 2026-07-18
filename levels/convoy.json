@@ -7,38 +7,119 @@
   "backdrop": "open_sky",
   "clouds": true,
   "horizon_glow": true,
-  "sky_top": "#243056",
-  "sky_bottom": "#C9743E",
-  "bounds": { "left": -560, "right": 6160, "top": -2090, "bottom": 1878 },
+  "sky_top": "#141939",
+  "sky_bottom": "#120C10",
+  "bounds": {
+    "left": -560,
+    "right": 6160,
+    "top": -2090,
+    "bottom": 1878
+  },
   "platforms": [
-    { "x": 0,    "y": 1080, "w": 720, "h": 128, "tier": "trampoline" },
-    { "x": 4880, "y": 1080, "w": 720, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 720,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 4880,
+      "y": 1080,
+      "w": 720,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -560, "y": 1260, "w": 6720, "h": 618, "wall_px": 120 },
-
-    { "type": "moving_platform", "vehicle": true,
-      "center": { "x": 1640, "y": 980 },
-      "axis_deg": 0, "amplitude": 200, "w": 380, "h": 48,
-      "period_s": 4.6, "phase": 0.0, "dwell_frac": 0.14 },
-
-    { "type": "moving_platform", "vehicle": true,
-      "center": { "x": 2800, "y": 980 },
-      "axis_deg": 90, "amplitude": 200, "w": 380, "h": 48,
-      "period_s": 5.6, "phase": 0.25, "dwell_frac": 0.12 },
-
-    { "type": "moving_platform", "vehicle": true,
-      "center": { "x": 3960, "y": 980 },
-      "axis_deg": 0, "amplitude": 200, "w": 380, "h": 48,
-      "period_s": 4.6, "phase": 0.0, "dwell_frac": 0.14 },
-
-    { "type": "player_spawn", "x": 240, "y": 1000 },
-    { "type": "player_spawn", "x": 520, "y": 1000 },
-    { "type": "player_spawn", "x": 5080, "y": 1000 },
-    { "type": "player_spawn", "x": 5360, "y": 1000 },
-
-    { "type": "powerup_spawner", "x": 380,  "y": 900 },
-    { "type": "powerup_spawner", "x": 2800, "y": 700 },
-    { "type": "powerup_spawner", "x": 5220, "y": 900 }
-  ]
+    {
+      "type": "void",
+      "x": -560,
+      "y": 1260,
+      "w": 6720,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "moving_platform",
+      "vehicle": true,
+      "center": {
+        "x": 1640,
+        "y": 980
+      },
+      "axis_deg": 0,
+      "amplitude": 200,
+      "w": 380,
+      "h": 48,
+      "period_s": 4.6,
+      "phase": 0.0,
+      "dwell_frac": 0.14
+    },
+    {
+      "type": "moving_platform",
+      "vehicle": true,
+      "center": {
+        "x": 2800,
+        "y": 980
+      },
+      "axis_deg": 90,
+      "amplitude": 200,
+      "w": 380,
+      "h": 48,
+      "period_s": 5.6,
+      "phase": 0.25,
+      "dwell_frac": 0.12
+    },
+    {
+      "type": "moving_platform",
+      "vehicle": true,
+      "center": {
+        "x": 3960,
+        "y": 980
+      },
+      "axis_deg": 0,
+      "amplitude": 200,
+      "w": 380,
+      "h": 48,
+      "period_s": 4.6,
+      "phase": 0.0,
+      "dwell_frac": 0.14
+    },
+    {
+      "type": "player_spawn",
+      "x": 240,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 520,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 5080,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 5360,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 380,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2800,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 5220,
+      "y": 900
+    }
+  ],
+  "backdrop_painting": "dusk_gold"
 }

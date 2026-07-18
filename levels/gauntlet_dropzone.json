@@ -6,32 +6,105 @@
   "design_intent": "THE GAUNTLET — level 5 (tier 2, a bigger single threat: a DEBRIS STORM). A symmetric flagship three-island arena over ONE full-width lethal void, pelted by a steady rain of lethal falling chunks across SIX spread columns (two over each island). Debris was only ever seen COMBINED before (hazard_yard); this is the solo, dialled-up read: 'the sky is falling -- watch the shadows and never stand still.' Reuses the shipped FallingDebris spawner -> a chunk overlap = kill(&ring_out) (NOT a shove); chunks despawn on landing with a dust puff. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- a chunk overlap instakills via kill(&ring_out); no new impulse/hitstun. (2) TELEGRAPHY -- a growing ground shadow + a pulsing hazard-red reticle + a drop line mark each impact column for telegraph_lead 0.7s BEFORE the chunk exists; read it, step off. (3) FAIRNESS -- a steady cadence 1.0s with max_concurrent 3 (NEVER a wall of chunks filling all footing at once); the six columns are ~450px apart with the island tops (900px wide) leaving wide gaps between them, so a safe standing spot always exists each beat; symmetric (any player under a marked column faces it equally). (4) CREDIT -- a chunk kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival knocked under a marked column within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. No environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor, mirrors hammer_arena): three flat trampoline islands over ONE full-width void: A x0..900 / B x1580..2480 / C x3160..4060, all top y1080, separated by 680px void gaps. SIX debris columns, two per island at the island quarters: A [225, 675] / B [1805, 2255] / C [3385, 3835] -- round-robined so the storm sweeps evenly, ~450px apart so the mid-column and island-edge bands are always safe to stand. Chunks drop from spawn_y 200 at fall_speed 1400, radius 60, and despawn on floor_y 1080 (the island tops). Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering (dark gradient + canyon walls + under-lip AO + hazard-red rim/chevrons + falling motes).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; spring apex 480 => ~527px max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the storm: step off a column during its 0.7s telegraph; with max_concurrent 3 and six spread columns, the gaps between columns (and the island edges) are always safe -- never a full-footing wall. Verb: DODGE (+ READ). The debris never makes a required GAP crossing uncrossable (chunks fall on the island tops, not into the crossing lane) and never creates a bounce path across a gap.\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the debris reshapes/times the on-island fight, it never carries you across.\n\nSIGNATURE / DISTINCT: the first SOLO falling-debris level and the densest debris read in the circuit (hazard_yard drips 3 columns as a side-threat; this is a 6-column storm you dance under). One-sentence C3 read: 'never stand still -- read the falling shadows and shove rivals under a chunk or off into the pit.'",
   "backdrop": "open_sky",
   "clouds": false,
-  "sky_top": "#5B5852",
-  "sky_bottom": "#A8A192",
-  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
   "platforms": [
-    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
-    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
-    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1580,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3160,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
-
-    { "type": "falling_debris",
-      "columns": [225, 1805, 3385, 675, 2255, 3835],
-      "floor_y": 1080, "spawn_y": 200,
-      "fall_speed": 1400, "chunk_radius": 60,
-      "cadence": 1.0, "telegraph_lead": 0.7,
-      "max_concurrent": 3, "start_delay": 0.7 },
-
-    { "type": "player_spawn", "x": 450,  "y": 1000 },
-    { "type": "player_spawn", "x": 2030, "y": 1000 },
-    { "type": "player_spawn", "x": 3610, "y": 1000 },
-    { "type": "player_spawn", "x": 80,   "y": 1000 },
-    { "type": "player_spawn", "x": 3980, "y": 1000 },
-
-    { "type": "powerup_spawner", "x": 450,  "y": 900 },
-    { "type": "powerup_spawner", "x": 2030, "y": 900 },
-    { "type": "powerup_spawner", "x": 3610, "y": 900 }
-  ]
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5280,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "falling_debris",
+      "columns": [
+        225,
+        1805,
+        3385,
+        675,
+        2255,
+        3835
+      ],
+      "floor_y": 1080,
+      "spawn_y": 200,
+      "fall_speed": 1400,
+      "chunk_radius": 60,
+      "cadence": 1.0,
+      "telegraph_lead": 0.7,
+      "max_concurrent": 3,
+      "start_delay": 0.7
+    },
+    {
+      "type": "player_spawn",
+      "x": 450,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2030,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3610,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 80,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3980,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2030,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3610,
+      "y": 900
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
 }

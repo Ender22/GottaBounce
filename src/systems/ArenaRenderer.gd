@@ -47,11 +47,59 @@ const BODY_BLEED_SIDE := 8.0   # caps past the collider sides
 const WALL_FACE_BLEED := 8.0   # wall art past the collider on its face sides
 const MAX_VIEW := Vector2(4800.0, 2700.0)   # view size at max zoom-out (+margin)
 
+# --- painted backdrops (docs/briefs/painted_backdrops_2026-07-18.md) ---
+# One big AI-painted sky+abyss composition per theme (no seam possible). Per painting id:
+#   path        — full-bleed OPAQUE 1536x1024 painting (sky above ~horizon_frac, abyss below)
+#   horizon_frac— vertical fraction of the image where the horizon sits; pinned to the arena floor_y
+#   fill        — the void's 4-stop bottomless-fill ramp (mouth -> near-black), IN the painting's hue
+#                 (recolors the old hardcoded sage->navy so the abyss scrim belongs to the painting)
+#   wall_top/deep/strata — the receding dirt-wall triple, retinted per theme (browns/iron/indigo rock)
+# Missing file -> _warn_once + today's gradient/void behavior (never a black screen). meadow_day carries
+# the SHIPPED grass values verbatim (default palette) so unpainted/meadow levels never regress.
+const PAINTINGS := {
+	"meadow_day": {
+		"path": "res://assets/bg/sky_grass_day.png", "horizon_frac": 0.58,
+		"fill": ["#2B5140", "#143A46", "#0E2536", "#060E18"],
+		"wall_top": "#6E4126", "wall_deep": "#241408", "wall_strata": "#2A1810" },
+	"space_nebula": {
+		"path": "res://assets/bg/painting_space_nebula.png", "horizon_frac": 0.58,
+		"fill": ["#1A2050", "#10163C", "#0A0E28", "#05081A"],
+		"wall_top": "#3A3A5E", "wall_deep": "#0B0C22", "wall_strata": "#17173A" },
+	"ember_foundry": {
+		"path": "res://assets/bg/painting_ember_foundry.png", "horizon_frac": 0.55,
+		"fill": ["#3A241A", "#2A160E", "#1C0E08", "#120A06"],
+		"wall_top": "#5A3320", "wall_deep": "#1C0E06", "wall_strata": "#2A1408" },
+	"dusk_gold": {
+		"path": "res://assets/bg/painting_dusk_gold.png", "horizon_frac": 0.60,
+		"fill": ["#3A2740", "#2A1B2E", "#1E1220", "#160F14"],
+		"wall_top": "#6E4A38", "wall_deep": "#241610", "wall_strata": "#2E1C18" },
+	"overcast_quarry": {
+		"path": "res://assets/bg/painting_overcast_quarry.png", "horizon_frac": 0.58,
+		"fill": ["#4A463E", "#35322C", "#22201A", "#14120F"],
+		"wall_top": "#6A6258", "wall_deep": "#22201A", "wall_strata": "#33302A" },
+}
+
+# --- kill-line telegraph (painted_backdrops_2026-07-18.md §3): a taut wire + slow-pulsing danger
+# glow band + fewer/larger matte chevrons. Hazard red is RESERVED to this line only. ---
+const HAZARD_RED := Color("#E6402C")
+const KILL_RIM_PX := 3.0            # core rim thickness (was 6) — a wire, not a plank
+const KILL_RIM_ALPHA := 0.85
+const KILL_GLOW_BAND_PX := 36.0     # danger glow: haz -> transparent over this many world px (the main read)
+const KILL_GLOW_PERIOD := 1.6       # sine pulse period (s)
+const KILL_GLOW_A_MIN := 0.25
+const KILL_GLOW_A_MAX := 0.55
+const KILL_CHEVRON_SPACING := 260.0 # world px between chevrons (was 90)
+const KILL_CHEVRON_W := 44.0        # full chevron width (was 16)
+const KILL_CHEVRON_H := 26.0        # chevron height (was 11)
+const KILL_CHEVRON_OUTLINE := Color("#7A1E14")
+
 var _layers: Array = []      # parallax: { node, factor: float, base: Vector2 }
 var _anchor := Vector2.ZERO  # camera anchor (play-rect center): layers sit at base when cam is here
 var _clouds: Array = []      # { node, speed, min_x, max_x }
 var _twinkles: Array = []    # { node, speed, phase, max_a }
 var _springs: Array = []     # { pivot, next_t } idle shimmer (springs only — motion must mean something)
+var _danger_glows: Array = []  # kill-line glow band sprites (slow additive alpha pulse)
+var _void_palette := {}      # resolved abyss/wall colors for paint_void (from the painting manifest)
 var _surfaces := {}          # StaticBody2D -> { tier, art, mat, w, top, last_ms } for bounce FX
 var _warned := {}
 var _t := 0.0
@@ -84,7 +132,28 @@ func setup(json: Dictionary) -> void:
 	# current meadow-parallax behavior (back-compat); "enclosed" = sealed-drum interior treatment.
 	# Orthogonal to kill_shape by design — keyed off its OWN field.
 	var backdrop := str(json.get("backdrop", "meadow"))
+	# Resolve the void/abyss recolor palette (painted_backdrops §4) BEFORE painting anything. Defaults
+	# to the shipped grass values (meadow_day) so unpainted/meadow levels are byte-identical to before.
+	_void_palette = _resolve_void_palette(json)
 	_build_background(json, brect, floor_y, backdrop, play_rect)
+
+## Resolve the abyss fill + dirt-wall colors paint_void uses, from the level's backdrop_painting knob.
+## Missing/unknown id -> meadow_day (the shipped grass ramp) so nothing regresses.
+func _resolve_void_palette(json: Dictionary) -> Dictionary:
+	var id := str(json.get("backdrop_painting", ""))
+	var m: Dictionary = PAINTINGS.get(id, PAINTINGS["meadow_day"])
+	var fill := PackedColorArray()
+	for h in m["fill"]:
+		fill.append(Color(str(h)))
+	var wt := Color(str(m["wall_top"]))
+	return {
+		"fill": fill,
+		"wall_top": wt,
+		"wall_deep": Color(str(m["wall_deep"])),
+		"wall_strata": Color(str(m["wall_strata"])),
+		"wall_hi": wt.lightened(0.22),
+		"ao": fill[3],   # near-black theme hue doubles as the under-lip overhang shadow
+	}
 
 # ============================== BACKGROUND (brief §3) ==============================
 
@@ -292,8 +361,14 @@ func _build_enclosed_interior(play_rect: Rect2) -> void:
 ##   stars (bool, default off)           — denser/brighter twinkles as a starfield (twilight spires).
 ## World-static + parallax layers only (same toolkit as the meadow path) — zero generated art.
 func _build_open_sky(json: Dictionary, brect: Rect2, floor_y: float) -> void:
+	# Painted backdrop (painted_backdrops_2026-07-18.md §4): one big AI-painted sky+abyss composition,
+	# scaled-to-cover, its horizon pinned to floor_y, parallax 0.05, extended below into the abyss. The
+	# Layer-0 sky_top/sky_bottom gradient stays behind it as the safety net + missing-file fallback.
+	var painted := _build_painting_backdrop(json, brect, floor_y)
+
 	# Optional horizon glow — behind the atmospherics, above the Layer-0 sky gradient. Accepts a hex
-	# string (custom warm color) or a bool (true = default golden amber); anything falsy = off.
+	# string (custom warm color) or a bool (true = default golden amber); anything falsy = off. FORCED
+	# OFF on painted levels (the glow is baked into the painting — §4).
 	var hg: Variant = json.get("horizon_glow", false)
 	var glow_on := false
 	var glow_col := Color("#F2B15E")   # default warm golden-hour amber (used only if enabled sans hex)
@@ -303,7 +378,7 @@ func _build_open_sky(json: Dictionary, brect: Rect2, floor_y: float) -> void:
 			glow_col = Color(str(hg))
 	elif hg is bool:
 		glow_on = hg
-	if glow_on:
+	if glow_on and not painted:
 		_build_horizon_glow(brect, floor_y, glow_col)
 
 	var want_clouds := bool(json.get("clouds", true))
@@ -377,6 +452,49 @@ func _build_horizon_glow(brect: Rect2, floor_y: float, col: Color) -> void:
 		Color(col.r, col.g, col.b, 0.5), Color(col.r, col.g, col.b, 0.0)])
 	add_child(_gradient_sprite(band_rect, grad, GradientTexture2D.FILL_LINEAR,
 		Vector2(0, 0), Vector2(0, 1), Vector2i(4, 256), -94))
+
+## Painted backdrop (painted_backdrops_2026-07-18.md §4): load the theme's single sky+abyss painting,
+## scale-to-cover the view at max zoom-out (same math as the shipped meadow Layer-1 sky), pin the
+## painting's baked horizon line (horizon_frac) to the arena floor_y, park it as a parallax-0.05 layer
+## behind the atmospherics, and _extend_below its own near-black bottom row into the abyss so no seam
+## can show at any depth. Returns true if a painting was placed; false (missing file / no knob) leaves
+## the Layer-0 gradient + code atmospherics exactly as today. Optional painting_tint hex modulates it.
+func _build_painting_backdrop(json: Dictionary, brect: Rect2, floor_y: float) -> bool:
+	var id := str(json.get("backdrop_painting", ""))
+	if id == "" or not PAINTINGS.has(id):
+		return false
+	var m: Dictionary = PAINTINGS[id]
+	var path := str(m["path"])
+	if not ResourceLoader.exists(path):
+		_warn_once("painting_" + id, "ArenaRenderer: missing painting " + path + " — gradient fallback")
+		return false
+	var tex: Texture2D = load(path)
+	if tex == null or tex.get_width() <= 0:
+		_warn_once("painting_" + id, "ArenaRenderer: unreadable painting " + path + " — gradient fallback")
+		return false
+	var need := MAX_VIEW * 1.1
+	var sc := maxf(need.x / tex.get_width(), need.y / tex.get_height())
+	var node := Node2D.new()
+	node.z_index = -95
+	var tint := str(json.get("painting_tint", ""))
+	if tint != "":
+		node.modulate = Color(tint)
+	var sp := Sprite2D.new()
+	sp.texture = tex
+	sp.scale = Vector2(sc, sc)
+	node.add_child(sp)
+	var sky_h := tex.get_height() * sc
+	var hf: float = float(m.get("horizon_frac", 0.58))
+	# sprite is centered: image top sits at local -sky_h/2, the horizon line at local (hf-0.5)*sky_h.
+	# pin that horizon world-y to floor_y => node origin (sprite center) world-y = floor_y + (0.5-hf)*sky_h.
+	var base := Vector2(_anchor.x, floor_y + (0.5 - hf) * sky_h)
+	# extend the painting's own near-black bottom row from its bottom edge (local +sky_h/2) down past the
+	# arena bottom, in the node's LOCAL space (world_bottom - base.y). Guarantees no gradient seam below.
+	var pad := 2600.0
+	_extend_below(node, tex, Vector2(0.0, sky_h * 0.5 - 4.0), tex.get_width() * sc,
+		(brect.end.y + pad) - base.y)
+	_add_layer(node, 0.05, base)
+	return true
 
 ## Build a world-static gradient sprite covering `rect`, backed by a GradientTexture2D (same toolkit
 ## paint_void's fill uses). `size` is the texture resolution (small on the flat axis for linear fills).
@@ -489,6 +607,15 @@ func _process(delta: float) -> void:
 		if is_instance_valid(d2):
 			var a := 0.5 + 0.5 * sin(_t * TAU * float(tw["speed"]) * 0.2 + float(tw["phase"]))
 			d2.color.a = a * a * float(tw["max_a"])
+	# kill-line danger glow: slow additive alpha pulse (KILL_GLOW_A_MIN..MAX over KILL_GLOW_PERIOD),
+	# the only slow pulse in the scene so its motion reads as "active hazard" over any painting.
+	if not _danger_glows.is_empty():
+		var mid := (KILL_GLOW_A_MAX + KILL_GLOW_A_MIN) * 0.5
+		var amp := (KILL_GLOW_A_MAX - KILL_GLOW_A_MIN) * 0.5
+		var ga := mid + amp * sin(_t * TAU / KILL_GLOW_PERIOD)
+		for g in _danger_glows:
+			if is_instance_valid(g):
+				(g as Node2D).modulate.a = ga
 	# idle spring shimmer: ±1px vertical blip every few seconds (springs only)
 	for s in _springs:
 		if _t >= float(s["next_t"]):
@@ -723,7 +850,7 @@ func paint_void(v: Dictionary, platforms: Array = []) -> void:
 	# with the inter-island gaps so the two look identical — §3f).
 	_void_fill_sprite(root, left_x, right_x, rim_y, bottom_y)
 	# solid deep-color extension below the rect to bounds.bottom+margin so no seam shows at any zoom
-	var deep := Color("#060E18")
+	var deep: Color = _void_palette["fill"][3]   # theme near-black (painting hue, was hardcoded #060E18)
 	var ext := Polygon2D.new()
 	ext.polygon = PackedVector2Array([
 		Vector2(left_x, bottom_y), Vector2(right_x, bottom_y),
@@ -741,7 +868,7 @@ func paint_void(v: Dictionary, platforms: Array = []) -> void:
 	ao.polygon = PackedVector2Array([
 		Vector2(left_x, rim_y), Vector2(right_x, rim_y),
 		Vector2(right_x, rim_y + 36.0), Vector2(left_x, rim_y + 36.0)])
-	var ao_c := Color("#0A1A24")
+	var ao_c: Color = _void_palette["ao"]   # theme overhang shadow (was hardcoded #0A1A24)
 	var ao_top := Color(ao_c.r, ao_c.g, ao_c.b, 0.55)
 	var ao_bot := Color(ao_c.r, ao_c.g, ao_c.b, 0.0)
 	ao.vertex_colors = PackedColorArray([ao_top, ao_top, ao_bot, ao_bot])
@@ -773,22 +900,9 @@ func paint_void(v: Dictionary, platforms: Array = []) -> void:
 	motes.z_index = -5
 	root.add_child(motes)
 
-	# --- 3e. Hazard LIP accent (inverse-of-chocolate "cannot stand here") — ON TOP (z +1) ---
-	var haz := Color("#E6402C")   # matte hazard red — reserved to the void lip (brief §5)
-	var rim := Polygon2D.new()    # thin matte red rim across the mouth, tucked under the grass fringe
-	rim.polygon = PackedVector2Array([
-		Vector2(left_x, rim_y - 1.0), Vector2(right_x, rim_y - 1.0),
-		Vector2(right_x, rim_y + 5.0), Vector2(left_x, rim_y + 5.0)])
-	rim.color = haz
-	rim.z_index = 1
-	root.add_child(rim)
-	# down-pointing chevrons spaced ~90px across the mouth, pointing INTO the pit
-	var span_l := left_x + wall_px * 0.5
-	var span_r := right_x - wall_px * 0.5
-	var n := maxi(1, int((span_r - span_l) / 90.0))
-	for i in range(n + 1):
-		var cx := lerpf(span_l, span_r, float(i) / float(n))
-		_void_chevron(root, cx, rim_y + 12.0, haz)
+	# --- 3e. Hazard LIP telegraph (painted_backdrops §3): a taut wire + slow-pulsing danger glow band +
+	# fewer/larger matte chevrons. Hazard red is reserved to this line only. Reads "below = death" in <1s.
+	_paint_kill_line(root, left_x, right_x, rim_y, wall_px)
 
 	# --- 3f. INNER-ISLAND chasm treatment (CD #5 P1): the void rect spans the whole bottom, but 3a/3b
 	# above only line the ARENA edges, so a single inter-island gap read as a thin dark strip amid green
@@ -808,8 +922,7 @@ func _void_fill_sprite(root: Node2D, left_x: float, right_x: float, top_y: float
 		return
 	var grad := Gradient.new()
 	grad.offsets = PackedFloat32Array([0.0, 0.18, 0.5, 1.0])
-	grad.colors = PackedColorArray([
-		Color("#2B5140"), Color("#143A46"), Color("#0E2536"), Color("#060E18")])
+	grad.colors = _void_palette["fill"]   # theme mouth->near-black ramp (was hardcoded sage->navy)
 	var gtex := GradientTexture2D.new()
 	gtex.gradient = grad
 	gtex.fill = GradientTexture2D.FILL_LINEAR
@@ -856,7 +969,7 @@ func _paint_void_gaps(root: Node2D, platforms: Array, rim_y: float, bottom_y: fl
 	# MOUTH color so the dirt underside sits on continuous chasm — exactly like grassy, where rim ==
 	# the mainland surface so no such band can exist. z=-8 (behind platform art; the dirt overhang
 	# occludes the top edge, and this meets the full-width fill's top color at the rim with no seam).
-	var mouth := Color("#2B5140")
+	var mouth: Color = _void_palette["fill"][0]   # theme mouth hue (was hardcoded #2B5140)
 	for r in isles:
 		var isle: Rect2 = r
 		if isle.end.y >= rim_y:
@@ -898,7 +1011,7 @@ func _paint_void_gaps(root: Node2D, platforms: Array, rim_y: float, bottom_y: fl
 ## pit (dark teal by the rim, near-black at the bottom center) — only a thin sage sliver at the mouth.
 func _void_gap_fill(root: Node2D, gl: float, gr: float, top_l: float, top_r: float, bottom_y: float) -> void:
 	var offs := [0.0, 0.18, 0.5, 1.0]
-	var cols := [Color("#2B5140"), Color("#143A46"), Color("#0E2536"), Color("#060E18")]
+	var cols: PackedColorArray = _void_palette["fill"]   # theme ramp (was hardcoded sage->navy)
 	for i in range(offs.size() - 1):
 		var f0: float = offs[i]
 		var f1: float = offs[i + 1]
@@ -916,8 +1029,8 @@ func _void_wall(root: Node2D, edge_x: float, dir: float, rim_y: float, bottom_y:
 	var taper := wall_px * 0.25
 	var inner_x := edge_x + dir * wall_px            # edge adjacent to the center fill
 	var bot_outer := edge_x + dir * taper            # outer edge insets toward center at the bottom
-	var top_c := Color("#6E4126")                    # lit dirt top
-	var deep_c := Color("#241408")                   # deep dirt
+	var top_c: Color = _void_palette["wall_top"]     # lit dirt top (theme, was hardcoded #6E4126)
+	var deep_c: Color = _void_palette["wall_deep"]   # deep dirt (theme, was hardcoded #241408)
 	var wall := Polygon2D.new()
 	wall.polygon = PackedVector2Array([
 		Vector2(edge_x, rim_y), Vector2(inner_x, rim_y),
@@ -926,7 +1039,7 @@ func _void_wall(root: Node2D, edge_x: float, dir: float, rim_y: float, bottom_y:
 	wall.z_index = -7
 	root.add_child(wall)
 	# cartoon rock strata (thin darker horizontal layers)
-	var strata_c := Color("#2A1810")
+	var strata_c: Color = _void_palette["wall_strata"]   # theme strata (was hardcoded #2A1810)
 	for f in [0.32, 0.55, 0.78]:
 		var sy := lerpf(rim_y, bottom_y, f)
 		var outer := lerpf(edge_x, bot_outer, f)
@@ -942,24 +1055,64 @@ func _void_wall(root: Node2D, edge_x: float, dir: float, rim_y: float, bottom_y:
 	hi.polygon = PackedVector2Array([
 		Vector2(edge_x, rim_y), Vector2(inner_x, rim_y),
 		Vector2(inner_x, rim_y + 2.0), Vector2(edge_x, rim_y + 2.0)])
-	hi.color = Color("#8A5A38")
+	hi.color = _void_palette["wall_hi"]   # theme top-corner highlight (was hardcoded #8A5A38)
 	hi.z_index = -7
 	root.add_child(hi)
 
-## A small down-pointing hazard chevron (matte red fill on a dark-red outline — NOT chocolate).
-func _void_chevron(root: Node2D, cx: float, cy: float, fill_c: Color) -> void:
-	var cw := 8.0
-	var ch := 11.0
-	var outline := Polygon2D.new()   # slightly larger dark-red triangle behind = the warning outline
+## Kill-line telegraph (painted_backdrops_2026-07-18.md §3), across the void mouth [left_x,right_x] at
+## rim_y. Three layers, all z +1 (on the lip, over the abyss, under the platform art):
+##   1. core wire — thin matte hazard-red rim (KILL_RIM_PX @ KILL_RIM_ALPHA), a taut wire not a plank.
+##   2. danger glow band (the MAIN read) — additive haz->transparent vertical gradient over
+##      KILL_GLOW_BAND_PX, slow-pulsing alpha (registered in _danger_glows, animated in _process). The
+##      only slow pulse in the scene, so its motion means "active hazard" over any painting.
+##   3. chevrons — fewer/larger MATTE down-triangles on a dark-red outline (never additive), solid over
+##      the glow. Hazard red is reserved to this whole line.
+func _paint_kill_line(root: Node2D, left_x: float, right_x: float, rim_y: float, wall_px: float) -> void:
+	# 2. danger glow band FIRST (lowest of the three, additive) — haz at the rim fading down to nothing.
+	var glow_grad := Gradient.new()
+	glow_grad.offsets = PackedFloat32Array([0.0, 1.0])
+	glow_grad.colors = PackedColorArray([Color(HAZARD_RED, 1.0), Color(HAZARD_RED, 0.0)])
+	var glow := _gradient_sprite(Rect2(left_x, rim_y, right_x - left_x, KILL_GLOW_BAND_PX),
+		glow_grad, GradientTexture2D.FILL_LINEAR, Vector2(0, 0), Vector2(0, 1), Vector2i(4, 64), 0)
+	var gm := CanvasItemMaterial.new()
+	gm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	glow.material = gm
+	glow.modulate.a = KILL_GLOW_A_MIN
+	root.add_child(glow)
+	_danger_glows.append(glow)
+
+	# 1. core wire — thin matte hazard rim, tucked under the platform fringe.
+	var rim := Polygon2D.new()
+	rim.polygon = PackedVector2Array([
+		Vector2(left_x, rim_y - 1.0), Vector2(right_x, rim_y - 1.0),
+		Vector2(right_x, rim_y - 1.0 + KILL_RIM_PX), Vector2(left_x, rim_y - 1.0 + KILL_RIM_PX)])
+	rim.color = Color(HAZARD_RED, KILL_RIM_ALPHA)
+	rim.z_index = 1
+	root.add_child(rim)
+
+	# 3. chevrons — spaced KILL_CHEVRON_SPACING across the walkable mouth, pointing INTO the pit.
+	var span_l := left_x + wall_px * 0.5
+	var span_r := right_x - wall_px * 0.5
+	var n := maxi(1, int((span_r - span_l) / KILL_CHEVRON_SPACING))
+	for i in range(n + 1):
+		var cx := lerpf(span_l, span_r, float(i) / float(n))
+		_void_chevron(root, cx, rim_y + 6.0)
+
+## A down-pointing hazard chevron (matte red fill on a dark-red outline — NOT chocolate, NEVER additive).
+func _void_chevron(root: Node2D, cx: float, cy: float) -> void:
+	var cw := KILL_CHEVRON_W * 0.5
+	var ch := KILL_CHEVRON_H
+	var pad := 4.0
+	var outline := Polygon2D.new()   # larger dark-red triangle behind = the warning outline
 	outline.polygon = PackedVector2Array([
-		Vector2(cx - cw - 2.0, cy - 2.0), Vector2(cx + cw + 2.0, cy - 2.0), Vector2(cx, cy + ch + 2.0)])
-	outline.color = Color("#7A1E14")
+		Vector2(cx - cw - pad, cy - pad), Vector2(cx + cw + pad, cy - pad), Vector2(cx, cy + ch + pad)])
+	outline.color = KILL_CHEVRON_OUTLINE
 	outline.z_index = 1
 	root.add_child(outline)
 	var tri := Polygon2D.new()
 	tri.polygon = PackedVector2Array([
 		Vector2(cx - cw, cy), Vector2(cx + cw, cy), Vector2(cx, cy + ch)])
-	tri.color = fill_c
+	tri.color = Color(HAZARD_RED, 0.9)   # matte, alpha 0.9 — solid over the bright glow
 	tri.z_index = 1
 	root.add_child(tri)
 

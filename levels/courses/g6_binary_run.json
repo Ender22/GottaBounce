@@ -9,14 +9,48 @@
   "stars": true,
   "design_intent": "ORBIT circuit 3 of 3, capstone. Lesson: HOP BETWEEN WORLDS. Two moons (body_r 180, fields r 800, g 1350) diagonal from each other with a neutral global-down gap between; the goal ring hangs past the second moon's far side. Route: bounce around moon A to its east face, commit to the jump across the ~440px neutral gap (global down pulls you screen-down mid-flight - lead the jump 'up' or pay fuel to correct), get captured by moon B's field, round it, and exit to the ring. Surface touches refund +20 each so both moons are fuel stations; the gap crossing costs ~15-20 fuel of correction. Misses fall out the bottom = free respawn at the start gate on moon A's north pole.",
   "hint": "JUMP WORLDS — LEAD THE GAP, THE PULL CHANGES",
-  "sky_top": "#0b1030",
-  "sky_bottom": "#2a2f60",
-  "bounds": { "left": -1300, "top": -1800, "right": 3900, "bottom": 2500 },
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -1300,
+    "top": -1800,
+    "right": 3900,
+    "bottom": 2500
+  },
   "platforms": [],
   "objects": [
-    { "type": "gravity_source", "x": 300, "y": 500, "radius": 800, "g": 1350, "body_r": 180, "tier": "trampoline", "visual": "moon" },
-    { "type": "gravity_source", "x": 2040, "y": -260, "radius": 800, "g": 1350, "body_r": 180, "tier": "trampoline", "visual": "moon" },
-    { "type": "start_gate", "x": 300, "y": 240 },
-    { "type": "goal_gate", "x": 2680, "y": -420, "w": 320, "h": 320 }
-  ]
+    {
+      "type": "gravity_source",
+      "x": 300,
+      "y": 500,
+      "radius": 800,
+      "g": 1350,
+      "body_r": 180,
+      "tier": "trampoline",
+      "visual": "moon"
+    },
+    {
+      "type": "gravity_source",
+      "x": 2040,
+      "y": -260,
+      "radius": 800,
+      "g": 1350,
+      "body_r": 180,
+      "tier": "trampoline",
+      "visual": "moon"
+    },
+    {
+      "type": "start_gate",
+      "x": 300,
+      "y": 240
+    },
+    {
+      "type": "goal_gate",
+      "x": 2680,
+      "y": -420,
+      "w": 320,
+      "h": 320
+    }
+  ],
+  "backdrop_painting": "space_nebula"
 }

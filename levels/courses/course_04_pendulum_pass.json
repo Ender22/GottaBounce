@@ -7,8 +7,8 @@
   "design_intent": "TRIALS course 4 of 5 (v3_content_plan PART B). MOVEMENT LESSON: HAZARD-TIMING TRAVERSAL. Reuses wrecking_yard's MovingHazard pendulum (the shipped 'moving_hazard' object -- a KINEMATIC SHOVE-hazard, never a killer; the void kills). Three void gaps, one swinging wrecking ball over each, anti-phased so you cross each gap on its CLEAR BEAT (the ~0.8s apex dwell) or get flung into the void. Flight-required flight + rhythm/timing on top.\n\nDERIVED vs CURRENT Tuning.gd: trampoline apex 270px, max spring drift ~527px, normal_boost_max 760px/s crosses a 680px gap in ~0.9-1.0s. Pendulum params copied from the VALIDATED wrecking_yard (arm_len 700, arc_deg 150, period_s 3.4, radius 100, dwell_frac 0.24) over identical 680px gaps, so the ball geometry is proven: bottom-of-swing ball center at pivot.y+700=1000, ball bottom 1100 (below the 1080 island-top crossing altitude, dead over the void); apexes park the ball UP HIGH (~y481) and to the SIDES over island interiors (the clear beat). Contact SHOVES <=700px/s along the swing dir with NO hitstun (Player.receive_shove) -- recoverable with fuel, never an instakill.\n\nLAYOUT: four wide trampoline islands (A/B/C/D) over ONE full-width void, separated by 680px gaps; a pendulum over each of the three gaps, phases 0.0 / 0.5 / 0.0 (anti-phase two-rhythm). Start on A, goal gate over D.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight-required proof, GAME_ESSENCE Rule A):\n- GAP A<->B / B<->C / C<->D (each island-edge-to-edge 680px over void): every gap > 527 (max spring drift) and >> 395 (trampoline drift). A zero-boost bounce falls short into the void. NORMAL BOOST REQUIRED each gap. Verb: FLY. (Rule A.)\n- THE LESSON (timing): each ball's danger-arc overhangs its crossing lane; launch just AFTER the ball passes gap-center (as it rises to an apex) and cross during its ~0.8s clear-beat dwell; launch as it is about to sweep down and it whips through your crossing altitude and flings you out over the void. Anti-phase means when one gap is dangerous the neighbour is clear -- there is always a crossable gap, the map is never locked. Verb: FLY + TIME.\n- RECOVER after a shove: <=700px/s, no hitstun, full control; ~670px of recovery sky under the islands -> a fuelled shoved player boosts back. Verb: FLY. (Rule D.)\n- The balls are shovers, not stepping stones: they never create a bounce path across a gap, they only add speed toward the void. Every crossing requires the jetpack; horizontal distance + timing are load-bearing.\n\nKILL: full-width display void; a fall (or a ball-flung miss) rings out -> respawn at start_gate + 2.0s. Explicit bounds keep the outer island edges ~560px inside the side blast lines and leave ~670px recovery sky under the islands; top bound clears a straight-up super arc.\n\nMEDAL TIMES [HISTORICAL - v10 removed medals/par; binary completion] (ROUGH, drive-checked): three timed crossings (~1.0s cross + up to ~1s waiting for a clear beat per gap) => ~9-13s skilled. gold 12.0 / silver 18.0 / bronze 28.0 (looser bronze -- mistimed crossings cost respawns).",
   "backdrop": "open_sky",
   "clouds": false,
-  "sky_top": "#6E6A63",
-  "sky_bottom": "#B8AE9E",
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
   "bounds": {
     "left": -560,
     "right": 5500,
@@ -108,5 +108,6 @@
       "w": 240,
       "h": 320
     }
-  ]
+  ],
+  "backdrop_painting": "overcast_quarry"
 }

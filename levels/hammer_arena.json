@@ -6,28 +6,106 @@
   "design_intent": "HAMMER ARENA — the PROOF level for the first LETHAL gimmick, the spinning_hammer (v6_party_gimmicks_circuits.md §2.1 + §2.0 lethal-hazard doctrine). A symmetric industrial three-island arena over ONE full-width lethal void (the flagship shape). A giant rotor HAMMER is mounted above the CENTER island and sweeps a bold, telegraphed arc across it on a steady ~4.5s rhythm; its head is LETHAL on contact (kill via the EXISTING kill(&ring_out) pipeline — the same path spikes use, NOT a shove). Kill identity stays 'get knocked/splatted off into the void': dodge-or-die the blade, fight rivals on the islands, and the money play is to KNOCK a rival into the blade (credited to you via the 6s ring-out window) or off an island into the void. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0): (1) LETHAL — the head instakills on contact; no new impulse/hitstun, the contact simply routes to kill(&ring_out). (2) TELEGRAPHY — a SINGLE bold blade on a slow readable rotation (period_s 4.5), a hazard-red swept-arc guide painted along the danger lane, and a ~1.08s DWELL at each apex (dwell_frac 0.24) = the clear beat you cross on. The blade sweeps arc_deg 150 (< 360), so a >= 120deg clear window ALWAYS returns; it never sweeps a full circle. (3) FAIRNESS — the swept arc is centered over the CENTER island; the two SIDE islands (A, C) are ALWAYS clear of the blade (permanent refuge), so the hazard never occupies 100% of survivable space and everyone faces it symmetrically. No player spawns under the blade (all spawns on A/C or the safe edges of B). (4) CREDIT — a hammer kill with no attacker = uncredited self-fall (killer=-1, INV-9); a rival who knocked/tagged the victim within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. The hammer never sets last_attacker; NO invented environment scorer.\n\nGEOMETRY (symmetric, flagship void_is_floor): three flat trampoline islands over ONE full-width void: A x0..900 top1080 / B x1580..2480 top1080 (the HAMMER stage, center x2030) / C x3160..4060 top1080, separated by 680px void gaps (flagship spacing; flight-required, > 527 max spring drift). The HAMMER hub is anchored at (2030, 480) directly above island B, arm_len 590, arc_deg 150, period_s 4.5, phase 0.0, radius 70, dwell_frac 0.24. At the bottom of its swing (theta 0) the head center sits at (2030, 1070) = ~10px above island B's top surface (1080), head radius 70 spanning y1000..1140 -> a standing player in island B's central strip (x ~1770..2290) is at body height and DIES. Toward the apexes the blade rises up and out to ~(2030 +/- 541, 625) — up HIGH and out over the gaps, well ABOVE the y1080 crossing altitude, so a crossing under the outer arc is at a different (safe) altitude and the island-B EDGES (x1580..1770 and 2290..2480) sit below the arc = safe standing refuge. The clear beat: when the blade dwells at the left apex the right half of B is clear for ~1.08s (and vice versa); islands A and C are always clear.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px, air_drift_max 340px/s => ~395px zero-boost drift off a trampoline; spring apex 480 / max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s @ ~26 fuel):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 (max spring drift) and >> 395 (trampoline drift). NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (island edges x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the blade on island B: the sweep's clear beat (apex dwell ~1.08s) is the window; a mistimed step into the central strip at body height = instant off-screen kill. Verb: DODGE (+ TIME). The hammer NEVER makes a required GAP crossing uncrossable (its arc over the gaps is high, above crossing altitude) and never covers island A/C, so a safe line always exists.\n- Zero-boost from any island reaches NO other surface across a 680px gap (falls into the void): flight is REQUIRED; the blade reshapes/times the fight on B, it never creates a bounce path across a gap.\n\nSIGNATURE / DISTINCT: this is the first LETHAL moving hazard (the wrecking_yard pendulum is a non-lethal SHOVER; bumper_gauntlet is static elastic reflectors; islands_void is a bare archipelago). One-sentence C3 read: 'dodge the swinging hammer on the center island, and knock your rivals into it or off into the pit.' The blade is the killer AND the tool; the void is the shared floor. Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky under the islands, outer edges 610px inside the side blast lines) mirror the validated wrecking_yard shape. VOID READS AS DEATH via the pit_void_rendering treatment (dark bottomless gradient + canyon walls + under-lip AO + hazard-red rim/chevrons + falling motes).",
   "backdrop": "open_sky",
   "clouds": false,
-  "sky_top": "#6E6A63",
-  "sky_bottom": "#B8AE9E",
-  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
   "platforms": [
-    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
-    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
-    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1580,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3160,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
-    { "type": "spinning_hammer",
-      "pivot": { "x": 2030, "y": 480 },
-      "arm_len": 590, "arc_deg": 150, "period_s": 4.5, "phase": 0.0,
-      "radius": 70, "head_len": 160, "head_w": 104, "dwell_frac": 0.24 },
-    { "type": "player_spawn", "x": 300,  "y": 1000 },
-    { "type": "player_spawn", "x": 650,  "y": 1000 },
-    { "type": "player_spawn", "x": 3460, "y": 1000 },
-    { "type": "player_spawn", "x": 3760, "y": 1000 },
-    { "type": "player_spawn", "x": 1650, "y": 1000 },
-    { "type": "player_spawn", "x": 2410, "y": 1000 },
-    { "type": "powerup_spawner", "x": 450,  "y": 900 },
-    { "type": "powerup_spawner", "x": 2030, "y": 980 },
-    { "type": "powerup_spawner", "x": 3610, "y": 900 }
-  ]
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5280,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 2030,
+        "y": 480
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.5,
+      "phase": 0.0,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "player_spawn",
+      "x": 300,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 650,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3460,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3760,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1650,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2410,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2030,
+      "y": 980
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3610,
+      "y": 900
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
 }

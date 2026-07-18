@@ -5,28 +5,122 @@
   "kill_shape": "void_is_floor",
   "design_intent": "BUMPER GAUNTLET — the interior-bumper PINBALL level (v1_level_circuit.md §L-10, build order #6). Islands-over-a-void (the flagship shape) STUDDED with free-standing INTERIOR bumper obstacles (tier=='bumper', NON-lethal, bumper_restitution 0.86) scattered through the OPEN play space so players ricochet/pinball around, over a lethal void floor. The bumpers are OBSTACLES WITHIN an open (NOT enclosed) arena — knocks still ring out off the side edges and down into the void; the bumpers only reshape airborne trajectories and refund fuel (fuel_per_bumper 20) to sustain long ricochet chains. Kill identity = knock rivals OFF an island / carom them off a bumper into the bottom void -> off the screen. Kill-shape class = void_is_floor -> QA uses K1' (off-screen kills >= 88%, uncredited self-falls relative to flagship ~44%) per docs/specs/v2a_kill_shape_void_floor_addendum.md §3, NOT the central_pit K1 edge/pit ratio; a high void share here is the fantasy working.\n\nSIGNATURE / DISTINCT FROM the six prior shipped levels: islands_void is a bare archipelago; the_spine a thin ridge; twin_chasms a two-void split; the_cliff an asymmetric mesa; atoll a radial ring; drop_chamber an ENCLOSED bumper DRUM (walls + ceiling seal it, the only exit is a central hole). Bumper Gauntlet is the ONLY level where bumpers are FREE-STANDING INTERIOR OBSTACLES inside an OPEN arena (open sky above, void below, blast lines on the sides) rather than the sealing shell of a closed box. It realises the §2.3a 'miss -> wall-rebound -> return-shot' fantasy at MAP scale: a super that misses a rival can carom off a floating bumper into an unexpected kill; a mis-timed gap boost can be knocked off-line by a post into the void. Feel = 'a pinball table over an abyss — nothing flies straight.'\n\nENGINE PRIMITIVE (reused, proven by drop_chamber — NO new primitive): interior bumpers are axis-aligned tier=='bumper' platforms. Player._resolve_bounces snaps every contact normal to its dominant axis (_axis_snap) then calls BounceResolver.resolve_bumper (velocity.bounce(normal) * 0.86), so a bumper reflects correctly off a VERTICAL face (horizontal reflect) OR a horizontal face (vertical reflect) OR a ceiling — no arc colliders needed. drop_chamber proved this for the drum shell; here the SAME primitive is placed as free-standing interior posts (tall, h>w -> reflect horizontal traffic) and floating square blocks (reflect on the dominant contact axis) in mid-air. Confirmed in-engine that a driven player REFLECTS off an interior bumper (ricochet), not pass-through. No Tuning/lethality/feel constant touched (fence per v1_level_circuit.md §6 — GEOMETRY + theme only).\n\nGEOMETRY: three wide flat islands over ONE full-width lethal void (flagship spacing): A trampoline x0..900 top1080 / B bubblegum x1580..2480 top1080 / C trampoline x3160..4060 top1080, separated by 680px void gaps. FIVE interior bumper obstacles float in the OPEN play space, all kept WELL AWAY from the side blast lines (BG2 / v2 §1c: no reflector within 560px of a side blast): POST-L vertical bumper x1220..1320 y620..1040 (over the A<->B gap) / POST-R vertical bumper x2740..2840 y620..1040 (over the B<->C gap) / CENTRAL block bumper x1980..2140 y420..580 (high over island B) / LEFT block bumper x560..700 y620..760 (over island A) / RIGHT block bumper x3360..3500 y620..760 (over island C). The two tall POSTS guard the interior gap-crossings (a high boost across a gap caroms off-line); the CENTRAL high block is the carom apex for over-shot supers; the two flanking blocks kick launched players sideways. Bounds -600..4660 keep the outer island edges (x0 / x4060) ~600px inside the side blast lines; the bottom bound y1980 leaves 772px of recovery sky under the islands. Top bound -2230 = the central block top (420) minus the 2650 clearance so a straight-up self-super arcs back (no routine top self-destruct).\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270px / bubblegum 180 / spring apex 480; air_drift_max 340px/s, gravity 1600 => zero-boost horizontal reach ~395px off a trampoline / ~527px off a spring (the MAX possible drift); normal_boost_max 760px/s crosses a 680px gap in <1s @ ~26 fuel, bounce refunds +20; super_boost_impulse 2800 clears everything but dumps the tank):\n- GAP A<->B: island edges x900..x1580 = 680px of open void. > 527 (max spring drift; no spring sits at gap height) and >> 395 (trampoline drift off the islands). NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY. (Rule A.)\n- GAP B<->C: island edges x2480..x3160 = 680px over the void. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- BUMPERS DO NOT create a bounce path across a gap: they are reflectors, not stepping stones. A vertical POST over a gap reflects the HORIZONTAL component of a body that hits it, so a zero-boost bounce-hop (which carries at most ~395px of trampoline drift into the gap and is FALLING) gets knocked BACK toward the island it left or straight down into the void — it never completes the 680px crossing. A body only reaches the far island by BOOSTING; the post just makes that boosted line chaotic (you must re-aim after a carom). Verified in-engine that fuel-pinned direction-hold from an island does NOT reach the far island across the 680px gap (falls into the void), so flight is REQUIRED (BG3). Verb: FLY.\n- CLIMB to the CENTRAL block region / contest the high line: the central block top (420) sits 660px above island B (top1080); a bubblegum apex 180 from B reaches only y900 -> 480px short, a trampoline apex 270 from A/C reaches y810 -> 390px short. Reaching the high carom line needs a JETPACK CLIMB (> 480 spring apex). Verb: FLY. (Rule B.)\n- SUPER as the committed play: a full super crosses any gap in one blast or fires across the table; a MISS caroms off a bumper (return-shot comedy / an unexpected carom-kill) but the tank is dumped -> the committed play, not routine traversal. Verb: FLY+SMASH. (Rule C.)\n- RECOVER after being knocked toward the void: the drop from an island bottom (1192-1208) to the bottom blast line (y1980) is 772-788px of open sky over the void (>= 650, Rule D) -> a healthy fuelled player boosts back to an island (the recovery gamble), while a near-edge dead-on smash or a starved/damaged victim rings out. A bumper in the fall path can even KICK a recovering player back over an island (a lucky save) or off-line into the void (unlucky) — pinball recovery. Verb: FLY. (Rule D.)\n- Every required crossing (680px gap) exceeds even a spring bounce's 527px reach and the high carom line sits > 480px above the islands, so NO route across or up the arena exists without the jetpack; the bumpers reshape airborne lines but never remove the boost need. Vertical AND horizontal distance are load-bearing, not scenery.\n\nSUCCESS CRITERIA (void_is_floor class, §L-10): BG1 — >=12 stages: credited off-screen kills >= 88%; the pinball identity is live (bumpers demonstrably reshape trajectories in-engine, ricochet confirmed). BG2 — bumpers don't guard the blast: NO interior bumper sits within 560px of a side blast line (verified from geometry: blast lines at x-600/x4660, nearest bumper faces at x560 / x3500, both > 560px inside). BG3 — flight-required: the 680px gaps need a boost (zero-boost fails into the void); a real crossing logs >= 1 boost activation. VOID READS AS DEATH via the pit_void_rendering treatment (dark cool bottomless gradient + receding dirt canyon walls at the island cliffs + under-lip AO + matte hazard-red rim/chevrons along y1240 + falling motes) so the whole bottom is unmistakably lethal, not safe green.",
   "backdrop": "open_sky",
-  "sky_top": "#2A1E4E",
-  "sky_bottom": "#5B3A8C",
-  "bounds": { "left": -600, "right": 4660, "top": -2230, "bottom": 1980 },
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -600,
+    "right": 4660,
+    "top": -2230,
+    "bottom": 1980
+  },
   "platforms": [
-    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
-    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "bubblegum" },
-    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
-    { "x": 1220, "y": 620,  "w": 100, "h": 420, "tier": "bumper" },
-    { "x": 2740, "y": 620,  "w": 100, "h": 420, "tier": "bumper" },
-    { "x": 1980, "y": 420,  "w": 160, "h": 160, "tier": "bumper" },
-    { "x": 560,  "y": 620,  "w": 140, "h": 140, "tier": "bumper" },
-    { "x": 3360, "y": 620,  "w": 140, "h": 140, "tier": "bumper" }
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1580,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "bubblegum"
+    },
+    {
+      "x": 3160,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1220,
+      "y": 620,
+      "w": 100,
+      "h": 420,
+      "tier": "bumper"
+    },
+    {
+      "x": 2740,
+      "y": 620,
+      "w": 100,
+      "h": 420,
+      "tier": "bumper"
+    },
+    {
+      "x": 1980,
+      "y": 420,
+      "w": 160,
+      "h": 160,
+      "tier": "bumper"
+    },
+    {
+      "x": 560,
+      "y": 620,
+      "w": 140,
+      "h": 140,
+      "tier": "bumper"
+    },
+    {
+      "x": 3360,
+      "y": 620,
+      "w": 140,
+      "h": 140,
+      "tier": "bumper"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -600, "y": 1240, "w": 5260, "h": 740, "wall_px": 120 },
-    { "type": "player_spawn", "x": 200,  "y": 1000 },
-    { "type": "player_spawn", "x": 680,  "y": 1000 },
-    { "type": "player_spawn", "x": 2030, "y": 1000 },
-    { "type": "player_spawn", "x": 3400, "y": 1000 },
-    { "type": "player_spawn", "x": 3860, "y": 1000 },
-    { "type": "powerup_spawner", "x": 450,  "y": 920 },
-    { "type": "powerup_spawner", "x": 2030, "y": 700 },
-    { "type": "powerup_spawner", "x": 3610, "y": 920 }
-  ]
+    {
+      "type": "void",
+      "x": -600,
+      "y": 1240,
+      "w": 5260,
+      "h": 740,
+      "wall_px": 120
+    },
+    {
+      "type": "player_spawn",
+      "x": 200,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 680,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2030,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3400,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3860,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 920
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2030,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3610,
+      "y": 920
+    }
+  ],
+  "backdrop_painting": "space_nebula",
+  "painting_tint": "#D9C4E8"
 }

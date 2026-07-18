@@ -6,27 +6,114 @@
   "design_intent": "SPIRES — the extreme-verticality level (v1_level_circuit.md §L-11, build order #5). A field of tall sky-pillars over a VERY DEEP void: the only surfaces are six spire-TOPS at wildly varied HEIGHTS plus one high central throne, separated by BOTH wide horizontal gaps AND large vertical offsets. The void dominates the frame; surfaces are islands in a sea of sky. Kill identity = knock rivals OFF a spire-top into the deep bottom void -> off the screen (the most void-dominant level in the circuit). Kill-shape class = void_is_floor -> QA uses K1' (off-screen kills >= 92% per SPR1, uncredited self-falls relative to flagship ~44%) per docs/specs/v2a_kill_shape_void_floor_addendum.md §3, NOT the central_pit K1 edge/pit ratio; a high void share here is the fantasy working.\n\nSIGNATURE / DISTINCT FROM the six prior shipped levels: islands_void is an even ARCHIPELAGO of four WIDE (960px) landing islands all near one height with forgiving runway; the_spine is ONE thin LINEAR ridge at a single height; twin_chasms is a LINEAR two-void split; the_cliff is a LINEAR asymmetric mesa+scatter; atoll is a RADIAL ring; drop_chamber is an enclosed bumper drum. Spires is the ONLY level built on EXTREME VERTICALITY — six spire-tops SAWTOOTH between y1080 (deep, near the void rim) and y560 (high in the sky), plus a throne up at y40, for a ~1040px vertical spread; every neighbour is a 420-520px vertical climb/drop. Every spire-to-spire move is a DIAGONAL boosted arc (up-and-over or down-and-across), never a bounce.\n\nTOP-SIZE + OFFSET TUNING (v1 in-engine QA over 15-18 idle-P1 all-bot stages, GEOMETRY only): pass 1 (300-340px tops) -> 100% off-screen but ~81% UNCREDITED self-falls (vs flagship ~44%); pass 2 (440-460px tops, 500-600px offsets) -> ~71%; pass 3 (THIS: 480-520px tops, 420-520px vertical offsets, pitch 1120) brings whiff-falls down further while KEEPING the gaps at 600px (> 527 max spring drift => FLIGHT-REQUIRED, Rule A intact) and a full ~1040px vertical spread (still the circuit's most vertical level). Per SPR1 the only knob touched is GEOMETRY (top size / offset / pitch) — never lethality/feel. Wider tops + slightly gentler climbs give a forgiving diagonal-arc LANDING (fewer self-whiffs, more smash-credited kills) WITHOUT making any gap bounce-hoppable. This is still the HARDEST-recovery, most self-fall-prone level by design (deep void, big climbs); its uncredited share sits above the flagship and that is the exposed-vertical fantasy, not a regression. Feel = 'climb the sky pillars on committed diagonal boosts; a mis-aimed arc drops you forever.'\n\nENGINE RISK: NONE new. Reuses the islands-over-void static-geometry physics + the pit_void_rendering void treatment (paint_void(platform_rects) carves the deep chasm in the gaps BETWEEN the floating spire-tops). No new primitive; no Tuning/lethality/feel constant touched (fence per v1_level_circuit.md §6 — GEOMETRY + theme only).\n\nGEOMETRY (six spire-tops L->R in a sawtooth of heights, over ONE deep full-width void; +1 central throne): S1 spring x0..520 top1020 / S2 trampoline x1120..1600 top560 / S3 spring x2200..2720 top1080 / S4 trampoline x3320..3800 top580 / S5 spring x4400..4920 top1040 / S6 trampoline x5520..6000 top620. CENTRAL THRONE spring x2800..3200 top40, hovering 520px ABOVE the highest spire (S2 top560), dead-centre over the S3<->S4 gap (the contested apex prize; an under-shot climb drops straight into the void). ONE full-width lethal void (rim y1200, a dark bottomless chasm) runs under the whole span. Bounds -720..6720 keep the outer spires (S1 left x0, S6 right x6000) ~720px inside the side blast lines; the bottom bound y2000 leaves a DEEP recovery sky (864px under the lowest spire S3, up to ~1360px under the high spires) so the void reads bottomless and a fuelled knock is a real-but-hard gamble. Top bound -2610 = throne top (40) minus the 2650 clearance so a straight-up self-super arcs back (no routine top self-destruct).\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270px / bubblegum 180 / spring apex 480; air_drift_max 340px/s, gravity 1600 => zero-boost horizontal reach ~395px off a trampoline / ~527px off a spring (the MAX possible drift); normal_boost_max 760px/s crosses a 600px gap in <0.9s @ ~24 fuel, bounce refunds +20; super_boost_impulse 2800 clears everything but dumps the tank). This is the STRONGEST flight-required bar in the circuit — EVERY neighbour combines a 600px horizontal gap (> 527) AND a >=420px vertical offset:\n- S1<->S2: 600px horizontal AND 460px vertical (S1 top1020 -> S2 top560). 600 > 527 (max spring drift) and >> 395 (trampoline). NORMAL BOOST REQUIRED (a diagonal up-and-over arc); miss = into the void. Verb: FLY. (Rule A.)\n- S2<->S3: 600px horizontal AND 520px vertical (down). > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- S3<->S4: 600px horizontal AND 500px vertical (up). > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- S4<->S5: 600px horizontal AND 460px vertical (down). > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- S5<->S6: 600px horizontal AND 420px vertical (up). > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- Because EVERY horizontal gap (600px) already exceeds the 527px max spring drift on its own, no spire's neighbour is reachable by ANY bounce regardless of tier or the vertical offset -> zero-boost from any spire reaches NO neighbour (SPR2, the strongest bar). The large vertical offsets make each crossing a well-aimed DIAGONAL boost, not a flat hop.\n- CLIMB to the CENTRAL THRONE (top40): 520px above S2 (top560), the highest spire, and hanging over the open S3<->S4 gap. A trampoline apex 270 from S4 reaches only y310 -> 270px short; no spring sits directly under it. JETPACK CLIMB REQUIRED, and an under-shot climb drops straight into the deep void. Verb: FLY (+ SUPER earns the throne). (Rule B/C.)\n- RECOVER after being knocked off a spire: the drop from a spire bottom (S3 1136 / S1 1076 / high spires ~644) to the bottom blast line (y2000) is 864px (low spires) up to ~1360px (high spires) of open sky over the deep chasm -> a healthy full-fuel player boosts back to A spire >=5/10 (SPR3, deliberately hard: the deep void keeps it a real gamble but not hopeless), while a near-brink dead-on smash or a starved/damaged victim falls forever. Verb: FLY. (Rule D, >=650 satisfied with wide margin.)\n- No route across or up the arena exists without the jetpack. Vertical AND horizontal distance are the entire level, not scenery.\n\nSUCCESS CRITERIA (void_is_floor class, §L-11): SPR1 — >=12 stages: credited off-screen kills >=92% (most void-dominant level); uncredited self-falls in the flagship ballpark (~44%), not the tiny-top ~81% outlier — enlarge tops (GEOMETRY only, never lethality) if higher. SPR2 — flight-required (STRONGEST): zero-boost from ANY spire reaches NO neighbour (falls into void every time); every spire-to-spire crossing logs >=1 boost activation. SPR3 — recovery sky: a healthy full-fuel player knocked off a spire boosts back to A spire >=5/10. VOID READS AS DEATH via the pit_void_rendering treatment (dark cool bottomless gradient + receding dirt canyon walls at every spire cliff + under-lip AO + matte hazard-red rim/chevrons along y1200 + falling motes) so the deep sea of sky below the spires is unmistakably lethal, not safe green.",
   "backdrop": "open_sky",
   "stars": true,
-  "sky_top": "#101830",
-  "sky_bottom": "#3A3E66",
-  "bounds": { "left": -720, "right": 6720, "top": -2610, "bottom": 2000 },
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -720,
+    "right": 6720,
+    "top": -2610,
+    "bottom": 2000
+  },
   "platforms": [
-    { "x": 0,    "y": 1020, "w": 520, "h": 56, "tier": "spring" },
-    { "x": 1120, "y": 560,  "w": 480, "h": 64, "tier": "trampoline" },
-    { "x": 2200, "y": 1080, "w": 520, "h": 56, "tier": "spring" },
-    { "x": 3320, "y": 580,  "w": 480, "h": 64, "tier": "trampoline" },
-    { "x": 4400, "y": 1040, "w": 520, "h": 56, "tier": "spring" },
-    { "x": 5520, "y": 620,  "w": 480, "h": 64, "tier": "trampoline" },
-    { "x": 2800, "y": 40,   "w": 400, "h": 48, "tier": "spring" }
+    {
+      "x": 0,
+      "y": 1020,
+      "w": 520,
+      "h": 56,
+      "tier": "spring"
+    },
+    {
+      "x": 1120,
+      "y": 560,
+      "w": 480,
+      "h": 64,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2200,
+      "y": 1080,
+      "w": 520,
+      "h": 56,
+      "tier": "spring"
+    },
+    {
+      "x": 3320,
+      "y": 580,
+      "w": 480,
+      "h": 64,
+      "tier": "trampoline"
+    },
+    {
+      "x": 4400,
+      "y": 1040,
+      "w": 520,
+      "h": 56,
+      "tier": "spring"
+    },
+    {
+      "x": 5520,
+      "y": 620,
+      "w": 480,
+      "h": 64,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2800,
+      "y": 40,
+      "w": 400,
+      "h": 48,
+      "tier": "spring"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -720, "y": 1200, "w": 7440, "h": 800, "wall_px": 120 },
-    { "type": "player_spawn", "x": 260,  "y": 940 },
-    { "type": "player_spawn", "x": 2460, "y": 1000 },
-    { "type": "player_spawn", "x": 4660, "y": 960 },
-    { "type": "player_spawn", "x": 1360, "y": 480 },
-    { "type": "player_spawn", "x": 3560, "y": 500 },
-    { "type": "powerup_spawner", "x": 3000, "y": -60 },
-    { "type": "powerup_spawner", "x": 260,  "y": 860 },
-    { "type": "powerup_spawner", "x": 5760, "y": 540 }
-  ]
+    {
+      "type": "void",
+      "x": -720,
+      "y": 1200,
+      "w": 7440,
+      "h": 800,
+      "wall_px": 120
+    },
+    {
+      "type": "player_spawn",
+      "x": 260,
+      "y": 940
+    },
+    {
+      "type": "player_spawn",
+      "x": 2460,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 4660,
+      "y": 960
+    },
+    {
+      "type": "player_spawn",
+      "x": 1360,
+      "y": 480
+    },
+    {
+      "type": "player_spawn",
+      "x": 3560,
+      "y": 500
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3000,
+      "y": -60
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 260,
+      "y": 860
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 5760,
+      "y": 540
+    }
+  ],
+  "backdrop_painting": "space_nebula"
 }

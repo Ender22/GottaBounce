@@ -6,32 +6,189 @@
   "design_intent": "HEADLINE COLLAPSING ARENA / LAST-ONE-FLYING (v6_party_gimmicks_circuits.md §2.8; owner headline archetype). An enclosed demolition box: a full floor of destructible_blocks + two destructible wall columns that PROGRESSIVELY ERODE on a telegraphed, SYMMETRIC timed cascade until there is NO standable ground left -> a pure jetpack-survival scramble over the void. Last one still flying wins; everyone else falls off-screen into the exposed void.\n\nFANTASY: 'the floor is disappearing under everyone -- stay in the air and be the last one flying.' The level itself removes the ground and dares you to fly (Pillars 2 no-standing + 4 death-is-cheap-and-funny, taken to the limit).\n\nHOW IT'S BUILT (composed from Batch-1 destructible_block only -- no new mechanic): the floor is 8 destructible_block segments (x0..2400 @ top1080, w300 h140, trampoline tier so bouncing to gain height is the skill) each with break_on 'timed'. They erode OUTER-ROWS-FIRST, symmetric pairs on the same schedule: edge pair (x0,x2100) at t3.0s, then (x300,x1800) t4.5s, (x600,x1500) t6.0s, center pair (x900,x1200) t7.5s -- so the safe footing shrinks continuously toward center and is GONE by ~7.5s (climax lands around the ~10s stage TTL). Two trampoline wall columns (x-180 and x2400, h680) contain the early bounce-fight and erode LAST (t8.5s), completing the 'box fully dissolved' read. Every block telegraphs its break with growing CRACKS + a SHUDDER + a hazard-red flash for telegraph_s=1.0s BEFORE it vanishes (fairness rule §2.0#2 -- you SEE where the floor goes next and flee upward/inward). All arm off EventBus.combat_started, so the countdown/intro never erodes the box early.\n\nFAIRNESS (§2.8, the ruling's key point): fair NOT because it's recoverable, but because EVERYONE'S floor erodes on the SAME schedule, SYMMETRICALLY -- no player keeps ground another loses. The void beneath is the shared killer; flight is the shared escape. Spawns are symmetric on the intact floor. A healthy fuelled player boosts to stay aloft as the floor goes (700px of recovery sky under the floor: floor bottom y1220 -> bottom blast line y1920).\n\nKILL IDENTITY (§2.0#4, credit unchanged): falls into the exposed void = off-screen ring-out kills via PartyMatch's existing bounds check -> kill(&\"ring_out\"). A rival who SMASHED you off just before your block broke is credited within the 6.0s window; a pure 'ran out of floor and couldn't stay up' fall is an UNCREDITED self-fall (killer=-1). QA NOTE (relaxed K1' per §2.8): expect a HIGH uncredited-self-fall share on this archetype BY DESIGN -- judge it against this note, NOT the standard >=88% void_is_floor target. Kills still happen via smash-offs during the early bounce-fight + the opening void as the box collapses.\n\nBACKDROP: open_sky, clouds off, dusty demolition-site palette (grey-brown) -- reads as a crumbling box, not a meadow. The void render (dark bottomless gradient + receding dirt canyon walls + under-lip AO + matte hazard-red rim/chevrons + falling motes) marks the whole bottom unmistakably lethal.",
   "backdrop": "open_sky",
   "clouds": false,
-  "sky_top": "#39332C",
-  "sky_bottom": "#6E6155",
-  "bounds": { "left": -640, "right": 3040, "top": -1600, "bottom": 1920 },
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -640,
+    "right": 3040,
+    "top": -1600,
+    "bottom": 1920
+  },
   "platforms": [],
   "objects": [
-    { "type": "void", "x": -500, "y": 1240, "w": 3560, "h": 680, "wall_px": 120 },
-
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 0,    "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 3.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 2100, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 3.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 300,  "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 4.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 1800, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 4.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 600,  "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 6.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 1500, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 6.0 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 900,  "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 7.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 1200, "y": 1080, "w": 300, "h": 140, "tier": "trampoline", "break_time": 7.5 },
-
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_wall", "break_on": "timed", "telegraph_s": 1.0, "x": -180, "y": 520, "w": 180, "h": 680, "tier": "trampoline", "break_time": 8.5 },
-    { "type": "destructible_block", "mode": "erode", "group": "meltdown_wall", "break_on": "timed", "telegraph_s": 1.0, "x": 2400, "y": 520, "w": 180, "h": 680, "tier": "trampoline", "break_time": 8.5 },
-
-    { "type": "player_spawn", "x": 250,  "y": 1000 },
-    { "type": "player_spawn", "x": 700,  "y": 1000 },
-    { "type": "player_spawn", "x": 1150, "y": 1000 },
-    { "type": "player_spawn", "x": 1600, "y": 1000 },
-    { "type": "player_spawn", "x": 2050, "y": 1000 },
-
-    { "type": "powerup_spawner", "x": 500,  "y": 920 },
-    { "type": "powerup_spawner", "x": 1600, "y": 920 }
-  ]
+    {
+      "type": "void",
+      "x": -500,
+      "y": 1240,
+      "w": 3560,
+      "h": 680,
+      "wall_px": 120
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 0,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 3.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 2100,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 3.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 300,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 4.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1800,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 4.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 600,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 6.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1500,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 6.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 900,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 7.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1200,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 7.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_wall",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": -180,
+      "y": 520,
+      "w": 180,
+      "h": 680,
+      "tier": "trampoline",
+      "break_time": 8.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "meltdown_wall",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 2400,
+      "y": 520,
+      "w": 180,
+      "h": 680,
+      "tier": "trampoline",
+      "break_time": 8.5
+    },
+    {
+      "type": "player_spawn",
+      "x": 250,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 700,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1150,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1600,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2050,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 500,
+      "y": 920
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1600,
+      "y": 920
+    }
+  ],
+  "backdrop_painting": "ember_foundry"
 }

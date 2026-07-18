@@ -7,8 +7,8 @@
   "backdrop": "open_sky",
   "clouds": false,
   "horizon_glow": true,
-  "sky_top": "#241811",
-  "sky_bottom": "#963C12",
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
   "bounds": {
     "left": -610,
     "right": 4670,
@@ -125,5 +125,6 @@
       "x": 3300,
       "y": 900
     }
-  ]
+  ],
+  "backdrop_painting": "ember_foundry"
 }

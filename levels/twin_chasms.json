@@ -6,24 +6,93 @@
   "design_intent": "TWIN CHASMS — the multi-void asymmetry level (v1_level_circuit.md §L-4, build order #3). A broken canyon land bridge: TWO big asymmetric landmasses with a small, exposed, powerup-bearing CENTRE ISLAND stranded between them, split by TWO separate chasms. Kill identity = knock rivals OFF a landmass / OFF the contested centre into one of the TWO bottom blast voids -> off the screen. Kill-shape class = void_is_floor -> QA uses K1' (off-screen kills >= 88%, uncredited self-falls <= 12%) per docs/specs/v2a_kill_shape_void_floor_addendum.md §3, NOT the central_pit K1 edge/pit ratio; a high void/pit share here is the fantasy working, not a regression. NOTE FOR QA (multi-void reading): there is NO distinct 'multi_void' kill_shape class in code — twin_chasms is a void_is_floor arena whose LAYOUT (two big landmasses + a small centre island = TWO gap-chasms) produces the twin-void shape. The engine void renderer (paint_void + _paint_void_gaps) carves the two gaps as two separate canyon maws. The per-level shape check TC1 ('deaths split across BOTH chasms') is read from the victim's death X (kills[].vx in round_stats): a bottom/void death with vx < the centre-island centre (~2190) fell into the LEFT chasm, vx > it fell into the RIGHT chasm. Neither chasm may be < 20% of void deaths — that proves it is a genuine two-void arena, not a single de-facto pit.\n\nSIGNATURE / DISTINCT FROM the other three shipped levels: islands_void is an EVEN archipelago of four wide 960px islands over one void (horizontal farm); the_spine is ONE thin exposed ridge over a void on all sides (max exposure); drop_chamber is an ENCLOSED bumper drum with a single centre hole (edges save, centre kills). Twin Chasms is NONE of those — its signature is ASYMMETRY + a HOT-SEAT CENTRE: a WIDE left 'safe farm' landmass (1300px) and a NARROWER right 'gauntlet' landmass (900px) flank a small 620px centre island that has a void on BOTH sides. Holding the centre (or its throne) is high-risk — a hit either way is a ring-out into a different chasm. The two chasms mean a knock can send you LEFT or RIGHT depending on facing, so deaths split across two maws instead of one.\n\nENGINE RISK: NONE new. Reuses the islands-over-void static-geometry physics + the pit_void_rendering void treatment (paint_void draws the chasm fill/dirt walls/rim chevrons; _paint_void_gaps carves each gap between the floating floor surfaces into a proper canyon maw flush with each cliff). No new primitive; no Tuning/lethality/feel constant touched (fence per v1_level_circuit.md §6 — GEOMETRY + theme only).\n\nGEOMETRY: LEFT landmass (safe farm, WIDE trampoline, x0..1300, top y1080, h128). LEFT chasm gap x1300..1880 = 580px. CENTRE island (small contested prize, bubblegum, x1880..2500 = 620px wide, top y1000, h112, centre x2190). RIGHT chasm gap x2500..3080 = 580px. RIGHT landmass (gauntlet, NARROWER trampoline, x3080..3980, top y1120, h128). One central SPRING throne (x2010..2370, top y480, h48) hangs 520px ABOVE the centre island top (boost-only). ONE full-width lethal void band (rim y1260, a dark bottomless chasm) runs under the whole span; the two GAPS between the three floor surfaces render as the TWO separate canyon chasms flanking the centre island (with hazard-red rim + chevrons + receding dirt walls), and the outer landmass edges get canyon walls at the arena sides. Gaps use the flagship's validated 580px (same as islands_void v3) — still > the 527px max spring drift and >> the 395px trampoline drift, so still FLIGHT-REQUIRED, but tight enough that a boosted crossing lands with real margin (fewer whiff self-falls than a 640px gap). Bounds -580..4560 keep the outer landmass edges only ~580px inside the side blast lines, and the bottom bound (y1920) leaves 672-808px of recovery sky under the surfaces.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270px / bubblegum 180 / spring 480; air_drift_max 340px/s, gravity 1600 => zero-boost horizontal reach ~395px off a trampoline, ~320px off bubblegum, ~527px off a spring; normal_boost_max 760px/s crosses a 580px gap in <0.9s @ ~24 fuel, bounce refunds +20; super_boost_impulse 2800 clears everything but dumps the tank):\n- LEFT chasm (left landmass right edge x1300 -> centre island left edge x1880 = 580px of open void). > 527 (max spring drift; the launch surfaces here are the trampoline landmass ~395 drift and the bubblegum centre ~320 drift, both far below 580). NORMAL BOOST REQUIRED both ways; a bounce-hop drifts at most ~395px and drops into the left chasm. Verb: FLY. (Rule A, >= 560.)\n- RIGHT chasm (centre island right edge x2500 -> right landmass left edge x3080 = 580px over the void). > 527, >> 395/320. NORMAL BOOST REQUIRED both ways; miss = fall into the right chasm. Verb: FLY. (Rule A.)\n- The CENTRE island is reachable ONLY by boosting over one of the two 580px chasms from a landmass (no bounce route exists) — that is what makes holding it a committed, exposed play. Verb: FLY.\n- CLIMB to the central SPRING throne (top y480): 520px above the centre island top (y1000). The best centre bounce is the bubblegum apex 180 -> only reaches y820, 340px short; no spring sits on a floor surface, and the trampoline landmasses (apex 270 from y1080/1120) are both a chasm away AND well below the throne. JETPACK CLIMB REQUIRED; an under-shot climb drops back to the centre island or past it into a chasm. Verb: FLY. (Rule B, >= 500.)\n- SUPER as the committed play: a full super clears either 580px chasm or the throne climb in one blast (contest the throne, snipe a rival off the centre into a chasm) but drains the tank -> the cross-map play, not routine traversal. Verb: FLY+SMASH. (Rule C.)\n- RECOVER after being knocked toward a chasm: the drop from a surface bottom (centre 1112 / left landmass 1208 / right landmass 1248) to the bottom blast line (y1920) is 672-808px of open sky over the chasm (>= 650, Rule D) -> a healthy fuelled player knocked toward a chasm can boost back onto a surface (the recovery gamble), while a near-brink dead-on smash or a starved/damaged victim rings out. The small centre island gives little runway, so a knock off it is a much shorter, less recoverable ring-out (the centre is a hot seat, not a safe perch). Verb: FLY.\n- Every crossing (both 580px chasms) exceeds even a spring bounce's 527px reach and far exceeds the trampoline/bubblegum drift (395/320), and the throne sits 520px above the centre (> the 480 spring apex), so NO route across or up the arena exists without the jetpack. Vertical AND horizontal distance are load-bearing, not scenery.\n\nSUCCESS CRITERIA (void_is_floor class + per-level multi-void checks, §L-4): TC1 — >= 12 stages: credited off-screen kills >= 90% (measured: 100% of deaths are bound crossings); deaths split across BOTH chasms (neither chasm < 20% of void deaths, read from kills[].vx vs the centre-island centre ~2190) — proves multi-void, not a single de-facto pit. TC2 — flight-required: zero-boost (fuel pinned) from either landmass fails to reach the centre island across its ~580px chasm >= 9/10 (falls into a chasm). TC3 — centre-island tension: a bot holding the centre with a rival adjacent is rung out (either chasm) within one exchange >= 6/10 (the prize is a hot seat, not a safe perch). VOID READS AS DEATH via the pit_void_rendering treatment (dark cool bottomless gradient + receding dirt canyon walls at each landmass/centre cliff + under-lip AO + matte hazard-red rim/chevrons along y1260 + falling motes) so both chasms are unmistakably lethal, not safe green.",
   "backdrop": "open_sky",
   "horizon_glow": "#D98A4A",
-  "sky_top": "#46599C",
-  "sky_bottom": "#C97F45",
-  "bounds": { "left": -580, "right": 4560, "top": -2170, "bottom": 1920 },
+  "sky_top": "#141939",
+  "sky_bottom": "#120C10",
+  "bounds": {
+    "left": -580,
+    "right": 4560,
+    "top": -2170,
+    "bottom": 1920
+  },
   "platforms": [
-    { "x": 0,    "y": 1080, "w": 1300, "h": 128, "tier": "trampoline" },
-    { "x": 1880, "y": 1000, "w": 620,  "h": 112, "tier": "bubblegum" },
-    { "x": 3080, "y": 1120, "w": 900,  "h": 128, "tier": "trampoline" },
-    { "x": 2010, "y": 480,  "w": 360,  "h": 48,  "tier": "spring" }
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 1300,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1880,
+      "y": 1000,
+      "w": 620,
+      "h": 112,
+      "tier": "bubblegum"
+    },
+    {
+      "x": 3080,
+      "y": 1120,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2010,
+      "y": 480,
+      "w": 360,
+      "h": 48,
+      "tier": "spring"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -580, "y": 1260, "w": 5140, "h": 660, "wall_px": 120 },
-    { "type": "player_spawn", "x": 500,  "y": 1000 },
-    { "type": "player_spawn", "x": 3500, "y": 1040 },
-    { "type": "player_spawn", "x": 1000, "y": 1000 },
-    { "type": "player_spawn", "x": 3250, "y": 1040 },
-    { "type": "player_spawn", "x": 2190, "y": 920 },
-    { "type": "powerup_spawner", "x": 2190, "y": 700 },
-    { "type": "powerup_spawner", "x": 650,  "y": 900 },
-    { "type": "powerup_spawner", "x": 3500, "y": 940 }
-  ]
+    {
+      "type": "void",
+      "x": -580,
+      "y": 1260,
+      "w": 5140,
+      "h": 660,
+      "wall_px": 120
+    },
+    {
+      "type": "player_spawn",
+      "x": 500,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3500,
+      "y": 1040
+    },
+    {
+      "type": "player_spawn",
+      "x": 1000,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3250,
+      "y": 1040
+    },
+    {
+      "type": "player_spawn",
+      "x": 2190,
+      "y": 920
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2190,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 650,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3500,
+      "y": 940
+    }
+  ],
+  "backdrop_painting": "dusk_gold"
 }
