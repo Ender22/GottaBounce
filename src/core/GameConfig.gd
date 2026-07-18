@@ -14,6 +14,11 @@ const MATCH_CONFIG_PATH := "res://src/core/MatchConfig.gd"
 
 var match_config: MatchConfig = null
 
+## CHANGE SETUP deep-link (match_ceremony brief §3): the VictoryScreen sets this before returning
+## to the shell; ShellRoot._ready consumes it (one-shot) and lands on CharacterSelect with the
+## current match_config intact — players keep their picks, that is the point of the button.
+var resume_setup := false
+
 func _ready() -> void:
 	if match_config == null:
 		reset_to_defaults()

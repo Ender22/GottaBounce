@@ -30,7 +30,14 @@ func _ready() -> void:
 	# menu theme takes over on EVERY shell landing (boot + quit-to-menu) — gameplay music must
 	# never keep playing under the front-end (owner 2026-07-17).
 	AudioManager.play_menu_music()
-	_show("main", true)
+	# CHANGE SETUP deep-link (match_ceremony brief §3): land straight on CharacterSelect with the
+	# match_config intact (players keep their picks); back-nav stack seeded so B walks home sanely.
+	if GameConfig.resume_setup:
+		GameConfig.resume_setup = false
+		_stack = ["main", "mode"]
+		_show("character", true)
+	else:
+		_show("main", true)
 
 # ------------------------------------------------------------------ navigation API (screens call these)
 func go_forward(key: String) -> void:

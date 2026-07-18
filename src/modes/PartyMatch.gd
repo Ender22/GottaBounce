@@ -72,6 +72,22 @@ const SCORE_HOLD := 3.4        # auto-advance after this (real-time seconds)
 const SCORE_MIN_GUARD := 0.8   # accept ignored before this (no accidental skip from combat mashing)
 var _score_screen: CanvasLayer = null
 
+# MATCH CEREMONY (docs/briefs/match_ceremony_2026-07-18.md — BRAWL opt-in via wants_scoreboard):
+# stage intro card (rides the existing STAGE_INTRO/countdown window, adds 0.0s and NEVER gates
+# state — gating _start_countdown on it is a design REJECT), first-stage controls legend, and the
+# match-end VICTORY ceremony (replaces _hud.show_match_end for BRAWL; Trials/Sports keep theirs).
+const INTRO_CARD_SCENE := preload("res://scenes/ui/StageIntroCard.tscn")
+const LEGEND_SCENE := preload("res://scenes/ui/ControlsLegend.tscn")
+const VICTORY_SCENE := preload("res://scenes/ui/VictoryScreen.tscn")
+const VICTORY_DELAY := 0.9     # s after the winning kill before the ceremony (punch-zoom breathes)
+const SKIN_NAMES := {
+	"pink": "POGO", "blue": "BUTCH", "green": "ZIGGY",
+	"yellow": "PUFF", "purple": "VEX", "orange": "BILLY",
+}
+var _intro_card: CanvasLayer = null
+var _legend: CanvasLayer = null
+var _victory: CanvasLayer = null
+
 # --- Camera (OWNER RULES 2026-07-10 — docs/feedback/owner_2026-07-10_camera_rules.md) ---
 # This SUPERSEDES the camera_2x_policy action-cluster/velocity-lead/readability-floor model (the
 # owner rejected it ~5 times: players off-screen on wide spreads, frame flying left/right). Rules:
@@ -214,6 +230,21 @@ func _ready() -> void:
 		_score_screen = SCORE_SCENE.instantiate()
 		_score_screen.visible = false
 		add_child(_score_screen)
+		# match ceremony pieces share the same BRAWL gate (brief §1/§2/§3)
+		_intro_card = INTRO_CARD_SCENE.instantiate()
+		add_child(_intro_card)
+		_legend = LEGEND_SCENE.instantiate()
+		add_child(_legend)
+		_victory = VICTORY_SCENE.instantiate()
+		add_child(_victory)
+		_victory.rematch_pressed.connect(func() -> void:
+			_victory.dismiss()
+			_start_match())
+		_victory.setup_pressed.connect(func() -> void:
+			GameConfig.resume_setup = true
+			get_tree().change_scene_to_file(SHELL_SCENE))
+		_victory.menu_pressed.connect(func() -> void:
+			get_tree().change_scene_to_file(SHELL_SCENE))
 
 	# off-screen player edge chevrons (camera_2x_policy §3): own CanvasLayer, BELOW the HUD (layer 0
 	# vs the HUD's default layer 1) so corner cards stay on top of any edge indicator.
@@ -398,6 +429,12 @@ func _begin_stage() -> void:
 	if _tiebreaker_next:
 		_tiebreaker_next = false
 		_hud.show_center("TIEBREAKER!", GOLD, 1.0)
+	elif _intro_card != null:
+		# stage intro card rides the pop-in/countdown window (0.0s added; suppressed on tiebreaker —
+		# that banner owns the drama). Exits on the first countdown beat in _tick_countdown.
+		_intro_card.present(stage_index, level_name, _pending_match_point.size() > 0)
+	if _legend != null and stage_index == 1:
+		_legend.present()   # first-stage controls legend (brief §2); fades 4s into COMBAT
 
 func _tick_intro(delta: float) -> void:
 	_state_t += delta
@@ -435,6 +472,8 @@ func _tick_countdown(delta: float) -> void:
 	_state_t += delta
 	var beat := int(_state_t / Tuning.countdown_beat)
 	if beat != _cd_beat and beat <= 2:
+		if beat == 0 and _intro_card != null:
+			_intro_card.exit()   # card pops out on the "3" beat (brief §1)
 		_cd_beat = beat
 		_hud.show_center(str(3 - beat), Color.WHITE, Tuning.countdown_beat)
 		EventBus.countdown_tick.emit(3 - beat)   # audio: 3 / 2 / 1 beep
@@ -462,6 +501,8 @@ func _bounce_go() -> void:
 	if _pu_director != null:
 		_pu_director.reset()       # first telegraph pu_first_spawn after BOUNCE! (spec §4)
 	_hud.show_center("BOUNCE!", GOLD, BOUNCE_HOLD)
+	if _legend != null:
+		_legend.on_combat_started()   # legend lingers 4s into combat, then fades (brief §2)
 	EventBus.combat_started.emit()   # audio: "BOUNCE!" starting gun
 	get_tree().create_timer(NAME_TAG_LINGER).timeout.connect(_fade_name_tags)
 
@@ -818,9 +859,37 @@ func _enter_match_end(widx: int) -> void:
 			_hud.set_dead(widx, false)
 		w.play_win_pop()
 		_camera.set_frame(w.global_position, MATCH_END_ZOOM)   # punch-zoom (FEEL §7)
+	# freeze the field: live bots bouncing behind the victory ceremony are visual noise (graded
+	# from the first rendered pass). The winner's bow pose stays; _start_match respawns everyone.
+	for p in players:
+		if is_instance_valid(p) and not p.is_dead():
+			p.frozen = true
 	EventBus.match_won.emit(widx)   # audio: win fanfare + scoreboard music
-	var banner: Dictionary = _mode.match_end_banner(self)
-	_hud.show_match_end(str(banner.get("text", "")), banner.get("color", Color.WHITE), str(banner.get("subline", "")))
+	if _victory != null:
+		# VICTORY CEREMONY (brief §3): the arena beat breathes first (punch-zoom stays visible),
+		# then the ceremony takes over. It owns input from here; _tick_match_end defers to it.
+		var rows: Array = []
+		for i in range(players.size()):
+			rows.append({
+				"pn": i + 1,
+				"color": PLAYER_COLORS[i % PLAYER_COLORS.size()],
+				"skin": (players[i].skin if is_instance_valid(players[i]) else "pink"),
+				"score": int(scores[i]),
+				"human": is_instance_valid(players[i]) and players[i].is_in_group("human"),
+			})
+		var winner := {
+			"pn": widx + 1,
+			"skin": (players[widx].skin if is_instance_valid(players[widx]) else "pink"),
+			"color": PLAYER_COLORS[widx % PLAYER_COLORS.size()],
+			"human": is_instance_valid(players[widx]) and players[widx].is_in_group("human"),
+		}
+		var tgt := match_target_kills
+		get_tree().create_timer(VICTORY_DELAY).timeout.connect(func() -> void:
+			if state == "MATCH_END" and _victory != null:
+				_victory.present(winner, rows, tgt))
+	else:
+		var banner: Dictionary = _mode.match_end_banner(self)
+		_hud.show_match_end(str(banner.get("text", "")), banner.get("color", Color.WHITE), str(banner.get("subline", "")))
 
 ## v6 §4.2 unlock trigger: record a finished BRAWL CIRCUIT match into Settings progression (win +
 ## per-circuit play + cumulative kills; may set pending_unlock). Guarded so it is a no-op for every
@@ -860,6 +929,8 @@ func _record_sports_progression(widx: int) -> void:
 
 func _tick_match_end(delta: float) -> void:
 	_state_t += delta
+	if _victory != null:
+		return   # the VictoryScreen owns MATCH_END input (its signals drive rematch/setup/menu)
 	if _state_t < PROMPT_GUARD:   # 1s input guard so nobody skips the screen by accident
 		return
 	if not _prompt_shown:

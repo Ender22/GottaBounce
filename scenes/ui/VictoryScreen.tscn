@@ -1,0 +1,246 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/ui/VictoryScreen.gd" id="1_vs"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="row_plain"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0.04)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="row_winner"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 0.823529, 0.247059, 0.12)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 0.823529, 0.247059, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="VictoryScreen" type="CanvasLayer"]
+layer = 13
+script = ExtResource("1_vs")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Scrim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0784314, 0.0784314, 0.156863, 0.6)
+
+[node name="FX" type="Node2D" parent="Root"]
+
+[node name="Rays" type="TextureRect" parent="Root"]
+layout_mode = 0
+offset_left = 170.0
+offset_top = 140.0
+offset_right = 1070.0
+offset_bottom = 1040.0
+pivot_offset = Vector2(450, 450)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Shadow" type="TextureRect" parent="Root"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 310.0
+offset_right = 900.0
+offset_bottom = 870.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+self_modulate = Color(0.231373, 0.141176, 0.105882, 0.85)
+
+[node name="Bust" type="TextureRect" parent="Root"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 300.0
+offset_right = 900.0
+offset_bottom = 860.0
+pivot_offset = Vector2(280, 560)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WinnerL" type="Label" parent="Root"]
+layout_mode = 0
+offset_left = 120.0
+offset_top = 100.0
+offset_right = 1120.0
+offset_bottom = 280.0
+pivot_offset = Vector2(500, 90)
+theme_type_variation = &"BannerCenter"
+theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
+theme_override_constants/outline_size = 20
+theme_override_font_sizes/font_size = 140
+text = "WINNER!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameL" type="Label" parent="Root"]
+layout_mode = 0
+offset_left = 120.0
+offset_top = 862.0
+offset_right = 1120.0
+offset_bottom = 918.0
+pivot_offset = Vector2(500, 28)
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 40
+text = "POGO — PLAYER 1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TrayArea" type="Control" parent="Root"]
+layout_mode = 0
+offset_left = 1150.0
+offset_top = 0.0
+offset_right = 1860.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="TrayCenter" type="CenterContainer" parent="Root/TrayArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Tray" type="PanelContainer" parent="Root/TrayArea/TrayCenter"]
+layout_mode = 2
+theme_type_variation = &"MatchEndPanel"
+
+[node name="Box" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray"]
+custom_minimum_size = Vector2(640, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+layout_mode = 2
+theme_type_variation = &"StepTitle"
+text = "FINAL SCORE"
+horizontal_alignment = 1
+
+[node name="Rows" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RowTemplate" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows"]
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("row_plain")
+
+[node name="RowBox" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Head" type="TextureRect" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 28
+text = "POGO"
+
+[node name="BarSlot" type="Control" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(240, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="BarBG" type="Panel" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/BarSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"FuelBG"
+
+[node name="BarFill" type="Panel" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/BarSlot"]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 3.0
+offset_right = 3.0
+offset_bottom = 29.0
+mouse_filter = 2
+
+[node name="Score" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 36
+text = "0"
+horizontal_alignment = 2
+
+[node name="Prompts" type="HBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -150.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 34
+alignment = 1
+
+[node name="BtnRematch" type="Button" parent="Root/Prompts"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ShellBtnPrimary"
+text = "  REMATCH  "
+
+[node name="BtnSetup" type="Button" parent="Root/Prompts"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ShellBtn"
+text = "  CHANGE SETUP  "
+
+[node name="BtnMenu" type="Button" parent="Root/Prompts"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ShellBtn"
+text = "  MENU  "

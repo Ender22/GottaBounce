@@ -1,0 +1,85 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/ui/StageIntroCard.gd" id="1_sic"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="underline_gold"]
+bg_color = Color(1, 0.823529, 0.247059, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="ribbon_choco"]
+content_margin_left = 26.0
+content_margin_top = 8.0
+content_margin_right = 26.0
+content_margin_bottom = 8.0
+bg_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="StageIntroCard" type="CanvasLayer"]
+layer = 11
+script = ExtResource("1_sic")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Card" type="VBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 100.0
+offset_bottom = 300.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="RibbonSlot" type="HBoxContainer" parent="Root/Card"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="Ribbon" type="PanelContainer" parent="Root/Card/RibbonSlot"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("ribbon_choco")
+
+[node name="RibbonLabel" type="Label" parent="Root/Card/RibbonSlot/Ribbon"]
+layout_mode = 2
+theme_type_variation = &"CardTag"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 30
+text = "STAGE 1"
+horizontal_alignment = 1
+
+[node name="NameL" type="Label" parent="Root/Card"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"BannerTop"
+theme_override_constants/outline_size = 16
+theme_override_font_sizes/font_size = 84
+text = "SINGULARITY"
+horizontal_alignment = 1
+
+[node name="UnderlineSlot" type="HBoxContainer" parent="Root/Card"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="Underline" type="Panel" parent="Root/Card/UnderlineSlot"]
+custom_minimum_size = Vector2(360, 6)
+layout_mode = 2
+theme_override_styles/panel = SubResource("underline_gold")
