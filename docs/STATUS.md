@@ -4,6 +4,22 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**MATCH CEREMONY SHIPPED (2026-07-18, b4e76dd — owner picked "ceremony & charm" as next):** per
+`docs/briefs/match_ceremony_2026-07-18.md`: (1) STAGE INTRO CARD ("STAGE N" ribbon + arena name +
+gold underline) rides the existing intro/countdown window — 0.0s added, exits on the "3" beat,
+DANGER ribbon on match point, suppressed on tiebreaker; (2) FIRST-STAGE CONTROLS LEGEND — drawn
+PadGlyph chips MOVE/FLY/SUPER SMASH/POWERUP (pad A/X/B or WASD/SPACE/K/L auto-variant), fades 4s
+into combat, chips press-bounce when you use them (fixes "owner didn't know powerup = B");
+(3) VICTORY SCREEN (Brawl-only) — winner bust mugging over gold glow + confetti + FINAL SCORE race
+bars (winner gold-rimmed, bots "NAME — CPU") + REMATCH / CHANGE SETUP / MENU focus row; accept
+FAST-FORWARDS the choreography (never skips); CHANGE SETUP deep-links to CharacterSelect with
+config intact (GameConfig.resume_setup). Field freezes at match end. All rendered-validated incl.
+rematch loop + deep-link (tools/out/cer_*.png). ART ORDERS queued: victory_rays.png + optional
+crown.png (drawn-glow/no-crown degrades shipped). Bot-brains-v2 (gravity-aware recovery) in
+flight in a parallel session at time of writing. OWNER ART FEEDBACK (2026-07-18, new): backdrop
+gradient hard-cutoff + code-drawn moons/planets read cheap — painted-backdrop pass + moon/
+black-hole sprite generation is the next art priority.
+
 **Last updated:** 2026-07-17 (owner-direction night, ALL 11 ITEMS SHIPPED — see
 `docs/feedback/owner_2026-07-16_night_list.md` for the verbatim list):
 1. **GAUNTLET MODE REMOVED** (e12f6c6, DECISIONS 2026-07-16; ModeSelect = 3 live cards; gauntlet ARENAS
