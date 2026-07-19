@@ -333,6 +333,10 @@ func _load_stage(path: String) -> void:
 	_pu_points = data.get("powerup_spawners", [])
 	bounds = data.get("bounds", Rect2(-120, -120, 2160, 1380))
 	_stage_rect = data.get("play_rect", Rect2(bounds.get_center() - Vector2(900, 160), Vector2(1800, 320)))
+	# ALL-DESTRUCTIBLE arenas (no static platforms — e.g. collapse finales) yield an EMPTY play_rect, which
+	# pins the camera at max zoom-in. Fall back to the arena bounds so the whole floor still frames (2026-07-19 QA).
+	if _stage_rect.size.x <= 1.0 or _stage_rect.size.y <= 1.0:
+		_stage_rect = bounds
 	# OWNER CAMERA RULE 1: per-level camera bounds = the platform-union AABB padded on every side.
 	# A player inside this rect is ALWAYS on-screen; outside it they're in off-screen-kill space.
 	camera_bounds = _stage_rect.grow(Tuning.cam_bounds_pad)

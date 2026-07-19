@@ -76,9 +76,9 @@
       "y": 650,
       "radius": 1600,
       "g": 1100,
-      "lethal_core_r": 90,
+      "lethal_core_r": 0,
       "visual": "black_hole",
-      "body_r": 0
+      "body_r": 120
     },
     {
       "type": "player_spawn",
