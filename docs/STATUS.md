@@ -17,8 +17,12 @@ FIRST BLOOD banner suppressed in sports (owner: killing isn't the point). MenuCa
 (ROCKETBALL fit). All rendered-verified (mode-select 4 cards, both court filters, dropshot serve). PENDING:
 DROPSHOT mode-card art (mode_dropshot.png — card shows "D" glyph until then; ChatGPT was rate-limiting);
 dropshot court-select cards use fallback gradient plates (need ThumbBaker bakes). TRIALS EXPANSION (owner greenlit "build all 16 + QA"): design at docs/briefs/trials_expansion_2026-07-19.md
-(circuits 2-5 -> 8 courses each, +16, ALL JSON-only, 0 art, 0 mechanics); 4 level-designer agents AUTHORING
-the JSONs now (per circuit) — NEXT wire course_sets.json + headless load-check + QA completability/difficulty.
+(circuits 2-5 -> 8 courses each, +16, ALL JSON-only, 0 art, 0 mechanics); all 16 AUTHORED +
+wired into course_sets.json + committed (aa4ae8e, all parse+schema-clean; circuits 2-5 now 8 courses each with
+the teach-then-build order). RENDERED QA pass IN PROGRESS (completability + difficulty + author-flagged risks:
+n2_shifting_needle vertical-plug gate, s3_trapdoor drop-tile-in-trials, s3_pinball_alley/keyhole tight shots,
+p4_breach/demolition_drop two-stroke break, p4_double_barrel steep window, g6_orbit_ring pickup+gravity,
+g6_dead_star/solar_tour lethal-core telegraphy) — each course has a documented JSON-only fallback if QA fails it.
 BRAWL circuit-select UX SHIPPED (89ea1a7): title -> CHOOSE BATTLEGROUND, arena-pool shelf removed (pick a
 CIRCUIT only), RANDOM ROTATION moved last. BRAWL ARENA CONTENT next (owner: DEDICATED ~20 arenas per circuit,
 5 circuits -> ~100 total; big push, not started).
