@@ -11,9 +11,11 @@ rendered-verified — floating grass islands over meadow_day), SCRAPWORKS 4->20 
 a time), HIGH WIRE 3->18 (ordered; ridges/spires/radial/vertical, hazard-light), FOUNDRY 4->16 (draw pool,
 draw_count 12; presses/crushers/debris/collapse), MAYHEM 8->20 (draw pool, draw_count 14; dropped 4 borrowed
 arenas, added mines/gravity-wells/carts/multi-hazard). circuits.json wired; all 94 slots resolve. QA RENDER PASS
-over the 55 non-Meadow arenas RUNNING (load + floating-islands + fair spawns + hazard fairness + flagged risks:
-black_hole_brawl lethal-core suicide, double_hammer no-refuge deck, the 3 collapse finales' survivable arc,
-multi-hazard spawn clustering) — fixes to follow. OWNER NOTE: ~55 fresh arenas want a human fun/playtest pass;
+DONE (93b5357): 52/55 SHIP, 3 fixed + verified — black_hole_brawl lethal core WAS a suicide blender (0
+credited kills) -> bounce core (lethal_core_r 0, body_r 120), now 3 alive; pandemonium_prime + foundry_collapse_ring
+(all-destructible -> empty play_rect -> camera max-zoom-pinned) -> PartyMatch falls back to bounds. Every arena
+loads, floats, spawns fair, hazards dodgeable. The BRAWL ARENA EXPANSION IS COMPLETE (94 arenas, 5 circuits).
+OWNER NOTE: ~55 fresh arenas want a human fun/playtest pass;
 auto-QA only confirms they load/frame/aren't-broken. Props on windmill/carousel/hay use the chrome skin (optional
 meadow_bloom art). NEXT ART: super-aim pose x6 (goat-gated).
 
