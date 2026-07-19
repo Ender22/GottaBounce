@@ -16,10 +16,12 @@ _bounce_go) launches toward the team that scored LAST (scorers make the first to
 FIRST BLOOD banner suppressed in sports (owner: killing isn't the point). MenuCard titles auto-shrink
 (ROCKETBALL fit). All rendered-verified (mode-select 4 cards, both court filters, dropshot serve). PENDING:
 DROPSHOT mode-card art (mode_dropshot.png — card shows "D" glyph until then; ChatGPT was rate-limiting);
-dropshot court-select cards use fallback gradient plates (need ThumbBaker bakes). TRIALS EXPANSION DESIGN
-landed (docs/briefs/trials_expansion_2026-07-19.md: circuits 2-5 -> 8 courses each, +16, ALL JSON-only,
-0 new art, 0 required mechanics) — awaiting greenlight to build+QA. BRAWL rework queued (rename PICK YOUR
-PEAK -> CHOOSE BATTLEGROUND, random-rotation last, drop the arena shelf; then ~20-arena/circuit content).
+dropshot court-select cards use fallback gradient plates (need ThumbBaker bakes). TRIALS EXPANSION (owner greenlit "build all 16 + QA"): design at docs/briefs/trials_expansion_2026-07-19.md
+(circuits 2-5 -> 8 courses each, +16, ALL JSON-only, 0 art, 0 mechanics); 4 level-designer agents AUTHORING
+the JSONs now (per circuit) — NEXT wire course_sets.json + headless load-check + QA completability/difficulty.
+BRAWL circuit-select UX SHIPPED (89ea1a7): title -> CHOOSE BATTLEGROUND, arena-pool shelf removed (pick a
+CIRCUIT only), RANDOM ROTATION moved last. BRAWL ARENA CONTENT next (owner: DEDICATED ~20 arenas per circuit,
+5 circuits -> ~100 total; big push, not started).
 
 **BOT TEAM-PLAY + ART BACKLOG (2026-07-19, 6df3aa3 + 6c231f2 — "continue bot brains + art backlog"):**
 (1) DROPSHOT bots no longer crowd the ball — SportsMode.bot_objective now designates the teammate
