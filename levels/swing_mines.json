@@ -1,0 +1,148 @@
+{
+  "name": "Swing Mines",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 13 (tier 2) — non-lethal wrecking balls that FLING you onto lethal mines. A four-island / one-void run with TWO anti-phase pendulum SHOVERS (moving_hazard, non-lethal directional fling) sweeping the outer gaps, and a proximity LANDMINE seated on the inner edge of islands B and C right where a shove lands you. The combo: the ball never kills, but it flings you toward the mine (or off into the void) -- read the swing AND the trigger ring. Reuses the shipped moving_hazard pendulum (<=700px/s shove, no hitstun) + Bomb mines (kill(&ring_out) + knockback). kill_shape void_is_floor -> QA K1'.\n\nDOCTRINE FIT (§2.0): (1) LETHAL/NON-LETHAL split -- pendulums NEVER kill (a bounded directional shove); the two mines instakill inside kill_radius via kill(&ring_out) + knockback; the void is the shared killer. No new death path/scorer. (2) TELEGRAPHY -- each pendulum is a single bold ball on a slow readable period (3.4s) painting a hazard-red swept arc with a ~0.8s apex dwell; each mine shows a pulsing trigger ring + an expanding warning ring over telegraph_lead 0.9s. (3) FAIRNESS -- pendulums are SYMMETRIC about x2700 on offset phase (0.0/0.5) so the two swings never both slam a lane at once; mines are symmetric on B and C inner edges, each >= 350px from every spawn (outside the 170px trigger ring); islands A and D outer halves + island tops away from a mine are refuges. (4) CREDIT -- a mine/void kill with no attacker = uncredited self-fall; a rival shoved onto a mine / off the edge within 6.0s is credited by the ring-out window. No environment scorer.\n\nGEOMETRY (symmetric four-island void_is_floor about x2700): four trampoline islands A x0..900 / B x1500..2400 / C x3000..3900 / D x4500..5400, all top y1080, 600px void gaps. Pendulum 1 pivots over the A<->B gap at (1200,400); pendulum 2 over the C<->D gap at (4200,400); both arm_len 590, arc_deg 150, period_s 3.4, radius 90, dwell_frac 0.2, phase 0.0 / 0.5. MINES on B inner-left edge (1650,1030) and C inner-right edge (3750,1030) -- symmetric, right where a swing shoves an off-balance body. Bounds -610..6010 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; normal_boost_max 760 crosses 600 in ~0.8s):\n- GAP A<->B (x900..1500 = 600 over void, swept by pendulum 1): > 527 and >> 395. NORMAL BOOST REQUIRED, timed off the ball's apex dwell; a mistimed cross gets shoved toward the void or the B mine. Verb: FLY (+ TIME).\n- GAP B<->C (x2400..3000 = 600 over void, clear of pendulums): NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP C<->D (x3900..4500 = 600, swept by pendulum 2, offset phase): identical to A<->B on the alternate beat. Verb: FLY (+ TIME).\n- DODGE the mines on B/C: keep off the inner-edge trigger ring, especially after a shove. Verb: DODGE (+ READ).\n- Zero-boost off any island reaches NO other surface across a 600px gap: flight is REQUIRED. The pendulums shove/time, they never carry you across a gap; the mines sit on island tops, clear of the crossing lanes.\n\nSIGNATURE / DISTINCT: the first shove-into-hazard combo (wrecking_yard is shove-only over void; minefield is mines-only). One-sentence read: 'ride the swings across the gaps without getting flung onto the inner-edge mines or into the pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -610,
+    "right": 6010,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1500,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3000,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 4500,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 6620,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "moving_hazard",
+      "kind": "pendulum",
+      "pivot": {
+        "x": 1200,
+        "y": 400
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 3.4,
+      "phase": 0.0,
+      "radius": 90,
+      "dwell_frac": 0.2
+    },
+    {
+      "type": "moving_hazard",
+      "kind": "pendulum",
+      "pivot": {
+        "x": 4200,
+        "y": 400
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 3.4,
+      "phase": 0.5,
+      "radius": 90,
+      "dwell_frac": 0.2
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 1650,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 3750,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "player_spawn",
+      "x": 300,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 600,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2100,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 4800,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 5100,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2700,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 4950,
+      "y": 900
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

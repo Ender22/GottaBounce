@@ -1,0 +1,31 @@
+{
+  "name": "Twin Towers",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "TWIN TOWERS — THE HIGH WIRE #12 (tier 3, two tall pillars + a low bridge isle). Two tall trampoline tower-tops (top y640) flank a LOW central bridge isle (top y1160) over TWO deep starfield voids, split by two 620px gaps, each tower crowned by a spring throne (+520). The low centre is the contested crossroads; the towers and their thrones are the high ground. A big-vertical-spread three-lane fight over twin abysses. kill_shape = void_is_floor. Signature: paired tall towers with a sunken middle (Zenith orbits one apex; the ridges are flat). Feel = 'hold a tower, own its throne, and knock rivals off into either abyss.'\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; drift ~395 trampoline / ~320 bubblegum / ~527 spring MAX; normal_boost_max 760 crosses 620px in ~0.9s; super 2800 clears all). Tower L x0..700 top640; centre isle x1320..1940 top1160 (bubblegum); tower R x2560..3260 top640; thrones spring x100..460 top120 (L) and x2800..3160 top120 (R):\n- GAP tower<->centre isle (both sides): tower-edge-to-isle-edge = 620px horizontal AND ~520px vertical drop/climb (a diagonal over the void). 620 > 527 (max spring drift) and >> 395/320. NORMAL BOOST REQUIRED; miss = fall into a deep void. Verb: FLY. (Rule A.)\n- CLIMB tower -> its THRONE (top y120): 520px above the tower top (640). Trampoline apex 270 reaches only y370 -> short. JETPACK CLIMB REQUIRED. Verb: FLY (+ SUPER). (Rule B, >= 520.)\n- CLIMB centre isle -> a tower: 520px up AND 620px across (the isle sits a full tower-height below). JETPACK REQUIRED both dimensions. Verb: FLY.\n- RECOVER: centre isle bottom 1256 -> bottom blast line 2160 = 904px of recovery sky (deeper under the towers) -> a fuelled knock boosts back; the twin voids mean a hit in either direction is a real gamble. Verb: FLY.\n- No bounce clears a 620px gap or climbs a 520px throne, so the jetpack is required to move at all. Vertical AND horizontal distance are load-bearing, not scenery.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": { "left": -670, "right": 3930, "top": -2530, "bottom": 2160 },
+  "platforms": [
+    { "x": 0,    "y": 640,  "w": 700, "h": 220, "tier": "trampoline" },
+    { "x": 1320, "y": 1160, "w": 620, "h": 96,  "tier": "bubblegum" },
+    { "x": 2560, "y": 640,  "w": 700, "h": 220, "tier": "trampoline" },
+    { "x": 100,  "y": 120,  "w": 360, "h": 48,  "tier": "spring" },
+    { "x": 2800, "y": 120,  "w": 360, "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -670, "y": 1300, "w": 4600, "h": 860, "wall_px": 120 },
+    { "type": "player_spawn", "x": 350,  "y": 560 },
+    { "type": "player_spawn", "x": 2910, "y": 560 },
+    { "type": "player_spawn", "x": 1630, "y": 1080 },
+    { "type": "player_spawn", "x": 280,  "y": 40 },
+    { "type": "player_spawn", "x": 2980, "y": 40 },
+    { "type": "powerup_spawner", "x": 1630, "y": 1060 },
+    { "type": "powerup_spawner", "x": 280,  "y": 40 },
+    { "type": "powerup_spawner", "x": 2980, "y": 40 }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "name": "Foundry: Press Gauntlet",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: PRESS GAUNTLET — THE FOUNDRY circuit's WEAVE stage (tier 2; brawl_arena_expansion_2026-07-19 Foundry row 10). A long central smelt-deck B is split by THREE vertical stamping presses on offset phases (.0/.33/.66); you weave the clear lanes between them, timing each dash, while two flanking islands A/C over the void bookend the run. The presses never all slam together and the deck's four inter-press bands are always-reachable refuges. Single-family (crusher only) scaled up to a rhythm gauntlet. Tier 2.\n\nDOCTRINE FIT: (1) LETHAL — each descending head instakills via kill(&ring_out); no shove. (2) TELEGRAPHY — each press runs a long OPEN DWELL (head parked ~y740 high) then a windup SHUDDER + hazard-red FLASH for telegraph_lead 0.6s BEFORE a fast ~0.34s slam (period_s 2.8). (3) FAIRNESS — narrow heads (head_w 150) at x1980/2680/3380 cover lanes x~1905..2055, x2605..2655... (each ~150 wide) leaving CLEAR bands: deck-left x1580..1905 (325), gap1 x2055..2605 (550), gap2 x2655..3105 (450), deck-right x3255..3580 (325); the three presses run at OFFSET phase (.0/.33/.66) so at most one slams at a time and the neighbouring band is always open to shuffle into; boosting UP above a parked head also clears a slam. Islands A/C are permanent hazard-free refuges. NO player spawns on deck B (spawns on A/C). (4) CREDIT — a press kill with no attacker = uncredited self-fall (killer=-1); a rival knocked under a press within the 6.0s ring-out window is credited; no environment scorer.\n\nGEOMETRY (void_is_floor): flank island A x0..900 top1080 / LONG DECK B x1580..3580 (w2000) top1080 (the PRESS GAUNTLET) / flank island C x4260..5160 top1080, separated by 680px void gaps. Bounds -610..5770 x, top -2090, bottom 1878 (>=650px recovery sky; outer edges 610px inside side blast lines). Molten open_sky (clouds off, horizon glow).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edge x900..deck edge x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (deck edge x3580..island edge x4260 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- WEAVE the gauntlet on deck B: dash between the three presses through the always-open inter-press bands, timing each on its 0.6s telegraph, or boost above a parked head. The presses never fill 100% of the deck and never make the A<->B or B<->C crossings uncrossable. Verb: DODGE (+ TIME).\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the presses reshape/time the fight ON the deck, not the crossings.\n\nSIGNATURE / DISTINCT: the Foundry's press-weave (foundry_first_pour = one press; press_row = two on one small island; this is a THREE-press run down a long deck). One-line read: 'weave the three pile-drivers down the smelt-deck and shove rivals under a slam.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -610,
+    "right": 5770,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 2000, "h": 112, "tier": "trampoline" },
+    { "x": 4260, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 6380, "h": 618, "wall_px": 120 },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": { "x": 1980, "y": 1080 },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.0,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": { "x": 2680, "y": 1080 },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.33,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": { "x": 3380, "y": 1080 },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.66,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 4560, "y": 1000 },
+    { "type": "player_spawn", "x": 4910, "y": 1000 },
+    { "type": "player_spawn", "x": 450, "y": 700 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2680, "y": 760 },
+    { "type": "powerup_spawner", "x": 4710, "y": 900 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

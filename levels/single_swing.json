@@ -1,0 +1,30 @@
+{
+  "name": "Single Swing",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "SINGLE SWING — THE SCRAPWORKS tier-2 NON-lethal MOVING-HAZARD intro (brawl_arena_expansion_2026-07-19 §Scrapworks row 9). Two trampoline yards split by one 680px void gap with ONE swinging wrecking-ball PENDULUM dipping into the crossing lane, plus an elevated spring THRONE. This is the FIRST moving part in the circuit (after the static-bumper stages) and deliberately simpler than wrecking_yard's twin anti-phase balls: one ball, one gap, one rhythm to read. Kill identity = the ball FLINGS a mistimed crosser into the void; the void is the killer. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%; >= 15% of void deaths within ~1.5s of a hazard contact).\n\nHAZARD DOCTRINE (moving_hazard pendulum, NON-lethal): the ball SHOVES a contacted body along the arm's motion direction (<= 700px/s, NO hitstun, NEVER kills, NEVER sets last_attacker); it dwells ~0.8s up high at each apex (the clear beat) and dips DEEP into the gap centre at the bottom of the swing (over the void). Cross on the apex dwell, or get whipped out over the void when the arm sweeps down through crossing altitude. It is a shover, not a stepping stone.\n\nGEOMETRY: LEFT yard x0..1400 top1080 / RIGHT yard x2080..3480 top1080 (both trampoline), split by a 680px void gap (edges x1400..x2080). ONE pendulum anchored at pivot (1740,300), arm_len 700, arc_deg 150, period_s 3.4, radius 100, dwell_frac 0.24, phase 0.0: apexes at ~(1740 +/- 676, 481) up high and clear; bottom of swing centre (1740,1000) reaching y1100, dead in the gap over the void. ONE spring THRONE x3020..3400 top560 over the right yard (520px climb). Bounds -610..4090 x, top -2090, bottom 1878 (yard outer edges 610px inside the side blast; 670px recovery sky). VOID READS AS DEATH via pit_void_rendering. Overcast grey open_sky = a wrecking yard.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline 270 / spring 480; ~395px trampoline drift / ~527 max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP L<->R (x1400..x2080 = 680px over void, the ball's lane): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. TIMING is load-bearing: launch on the ball's apex dwell and clear the lane; launch as it sweeps down and it flings you out over the void. Verb: FLY (+ TIME).\n- CLIMB to the spring THRONE (top560): 520px above the right yard (1080). Trampoline apex 270 reaches only y810 (270px short). JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER after a shove: the shove adds <= 700px/s with NO hitstun (full control), and yard bottoms (1208) to the bottom blast line (1878) = 670px of open sky (>= 650) -> a fuelled shoved player boosts back (recovery gamble). Verb: FLY.\n- The ball never creates a bounce path across the gap (a shove only ADDS speed toward the void, never a controlled crossing); the 680px gap exceeds a spring bounce's 527px reach and the throne sits > 480px above the yard, so NO route across or up exists without the jetpack. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the one-ball, one-gap wrecking intro — the cleanest possible read of the swing-rhythm crossing.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#8C877B",
+  "sky_bottom": "#14120F",
+  "bounds": { "left": -610, "right": 4090, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 2080, "y": 1080, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 3020, "y": 560, "w": 380, "h": 48, "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 4700, "h": 618, "wall_px": 120 },
+    { "type": "moving_hazard", "kind": "pendulum", "pivot": { "x": 1740, "y": 300 }, "arm_len": 700, "arc_deg": 150, "period_s": 3.4, "phase": 0.0, "radius": 100, "dwell_frac": 0.24 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 700, "y": 1000 },
+    { "type": "player_spawn", "x": 2480, "y": 1000 },
+    { "type": "player_spawn", "x": 2980, "y": 1000 },
+    { "type": "player_spawn", "x": 3210, "y": 480 },
+    { "type": "powerup_spawner", "x": 500, "y": 900 },
+    { "type": "powerup_spawner", "x": 3210, "y": 460 },
+    { "type": "powerup_spawner", "x": 2780, "y": 900 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

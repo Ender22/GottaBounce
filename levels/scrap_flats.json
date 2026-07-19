@@ -1,0 +1,30 @@
+{
+  "name": "Scrap Flats",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "SCRAP FLATS — THE SCRAPWORKS circuit's bare industrial ON-RAMP (tier 1; brawl_arena_expansion_2026-07-19 §Scrapworks row 5). The validated flagship three-island / one-void skeleton with NO hazards at all: a grey scrapyard version of grassy geometry that teaches the two 680px gap-boosts and the recovery gamble before the circuit's hazard families arrive. One elevated SPRING THRONE over island C is the only vertical prize. Kill identity = knock rivals OFF an island into the bottom void -> off the screen. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nGEOMETRY (symmetric flagship): three flat trampoline islands over ONE full-width lethal void: A x0..900 top1080 / B x1580..2480 top1080 (bubblegum, the calm centre) / C x3160..4060 top1080, separated by 680px void gaps. ONE spring THRONE x3640..4020 top560 over island C's outer-right, 520px above the islands (boost-only prize). Bounds -610..4670 x, top -2090, bottom 1878 (outer island edges 610px inside the side blast lines; 670px recovery sky under the islands). VOID READS AS DEATH via pit_void_rendering (dark bottomless gradient + canyon walls + hazard-red rim/chevrons + motes). Overcast grey open_sky (clouds off) = an industrial yard.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270px / bubblegum 180 / spring apex 480; air_drift_max 340 => zero-boost reach ~395px trampoline / ~320 bubblegum / ~527 spring = MAX bounce drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s @ ~26 fuel, bounce refunds +20; super 2800 clears all but dumps the tank):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 (max spring drift) and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- CLIMB to the spring THRONE (top560): 520px above island C's top (1080). A trampoline apex 270 from C reaches only y810 (270px short); no floor spring exists. JETPACK CLIMB REQUIRED; an under-shot drops toward the void. Verb: FLY.\n- RECOVER: island bottoms (1192-1208) to the bottom blast line (1878) = 670-686px of open sky over the void (>= 650) -> a fuelled knock-off boosts back (recovery gamble); a near-edge dead-on smash or starved victim rings out. Verb: FLY.\n- Every required crossing (680px) exceeds a spring bounce's 527px reach and the throne sits > 480px above the islands, so NO route across or up exists without the jetpack. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the hazard-free scrapworks on-ramp — pure geometry so a new player learns the gap-boost rhythm on grey islands before the bumpers/drum/swings/hammers arrive.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#8C877B",
+  "sky_bottom": "#14120F",
+  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "bubblegum" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 3640, "y": 560, "w": 380, "h": 48, "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 2030, "y": 1000 },
+    { "type": "player_spawn", "x": 3410, "y": 1000 },
+    { "type": "player_spawn", "x": 3760, "y": 1000 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 900 },
+    { "type": "powerup_spawner", "x": 3830, "y": 480 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

@@ -1,0 +1,83 @@
+{
+  "name": "Spark Yard",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 9 (tier 1 on-ramp) — the FIRST-SPARKS single-pulse bomb read. ONE wide industrial floor over ONE full-width lethal void, with a SINGLE central FUSE bomb that blows on a steady beat (recur 4.0s). The whole hook is one readable, telegraphed pulse at dead centre: bait/knock rivals into the blast or off the ends into the void. Deliberately the calmest Mayhem draw (a single hazard, one wide safe floor) so it tier-sorts to the front of a shuffle. Reuses the shipped Bomb (fuse) -> inner-radius kill(&ring_out) + outer radial knockback; kill_shape void_is_floor -> QA K1' (off-screen kills).\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- the fuse blast instakills every live body inside kill_radius via kill(&ring_out); the only added force is the shipped radial KNOCKBACK (no new death path/scorer). (2) TELEGRAPHY -- the bomb counts a visible fuse then paints an EXPANDING warning ring growing to the exact lethal radius over telegraph_lead 1.2s BEFORE it blows; you always see when + where centre is lethal and can clear it. (3) FAIRNESS -- ONE bomb at dead centre (x1700), symmetric about it; the wide floor's whole outer half is a permanent refuge each beat; every spawn is >= 430px from the bomb (outside blast_radius 340), so nobody spawns in a live blast. (4) CREDIT -- a blast kill with no attacker = uncredited self-fall (killer=-1); a rival who knocked/tagged the victim into the blast within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. No environment scorer.\n\nGEOMETRY (symmetric about x1700): ONE wide trampoline floor x300..3100 (w2800, top y1080) over ONE full-width void (rim y1260). Knocked off either END (x<300 / x>3100) = ring-out. Central FUSE bomb at (1700,1030): fuse_s 3.0, recur 4.0, blast_radius 340, kill_radius 170, telegraph_lead 1.2. Bounds -300..3700 x (side blast lines ~600 outside the floor ends), top -1200, bottom 1900 (>= ~690px recovery sky under the floor bottom y1208). VOID READS AS DEATH via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP / FLIGHT-REQUIRED (single-floor chaos arena, same pattern as minefield): there is NO standable ground off the floor -- the ENTIRE arena is one deck over a lethal void with side blast lines ~600px out (< no bounce ever carries a knocked body back over the rim on its own). A body knocked/blasted past an END is over open void with >= 690px of recovery sky (floor bottom y1208 -> bottom blast y1900): the ONLY way back is to BOOST (a zero-boost fall from the rim never re-clears the floor edge; trampoline drift ~395px, spring ~527px, but you launch from OUTSIDE the deck moving AWAY). So flight is REQUIRED to survive/recover, and the fuse blast's knockback is tuned to fling rivals into that recovery gamble. Verb: RECOVER (+ DODGE the pulse). No traversal gap exists to bounce-cheese; the hazard times the fight, the void + knockback are the killers.\n\nSIGNATURE / DISTINCT: the single-pulse fuse-bomb on-ramp (minefield seeds a whole grid; this is ONE clean beat). One-sentence read: 'ride the centre bomb's pulse and knock rivals into it or off the ends.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -300,
+    "right": 3700,
+    "top": -1200,
+    "bottom": 1900
+  },
+  "platforms": [
+    {
+      "x": 300,
+      "y": 1080,
+      "w": 2800,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -300,
+      "y": 1260,
+      "w": 4000,
+      "h": 640,
+      "wall_px": 120
+    },
+    {
+      "type": "bomb",
+      "trigger": "fuse",
+      "x": 1700,
+      "y": 1030,
+      "blast_radius": 340,
+      "kill_radius": 170,
+      "fuse_s": 3.0,
+      "telegraph_lead": 1.2,
+      "recur": 4.0
+    },
+    {
+      "type": "player_spawn",
+      "x": 500,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 950,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1250,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2150,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2900,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 900,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2500,
+      "y": 900
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "Moving Yard",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MOVING YARD — THE SCRAPWORKS tier-3 CART + HAMMER combo (brawl_arena_expansion_2026-07-19 §Scrapworks row 19). The scrap conveyor (two static end yards + a narrow centre island bridged by two drifting CART decks) now with a LETHAL spinning rotor HAMMER guarding the FAR (right) yard — so the last leg of the crossing is a dodge, not a walk. The circuit's moving-platform family combined with its lethal-rotor family. Carts are RIDABLE FOOTING (never kill); the void and the blade are the killers. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nHAZARD DOCTRINE: CARTS (moving_platform, NON-lethal) carry a standing rider on a fixed bounded oscillation. The HAMMER (spinning_hammer, LETHAL) over the far yard routes contact to kill(&ring_out) (never sets last_attacker); slow readable rotation + apex dwell + a hazard-red arc guide; its arc is centred over the far yard's centre, leaving the yard's LEFT edge (the landing spot from cart R) clear as a refuge. No spawns under the blade.\n\nGEOMETRY (near-mirror about x=2900): A x0..900 top1080 (trampoline, the safe near yard, center 450) / CENTRE island x2740..3060 top1080 (trampoline, w320, center 2900) / B x4900..5800 top1080 (trampoline, the FAR yard with the hammer, center 5350). CART L center (1820,980) and CART R center (3980,980), both axis_deg 0, amplitude 200, w380 h48, period_s 4.6, dwell_frac 0.14. HAMMER hub over the far yard at pivot (5350,480), arm_len 590, arc_deg 150, period_s 4.5, phase 0.0, radius 70, head_len 160, head_w 104, dwell_frac 0.24 (arc covers B's centre ~x5090..5610; B's LEFT edge x4900..5090 is the clear landing refuge). Bounds -560..6360 x, top -2090, bottom 1878 (yard outer edges >= 560px inside the side blast; 670px recovery sky). VOID READS AS DEATH via pit_void_rendering. Dusk-gold open_sky = a twilight scrap line.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / spring 480; ~395px trampoline drift / ~527 max spring drift; normal_boost_max 760 crosses ~530px in <0.9s; NO floor springs). Every ride-surface gap at CLOSEST approach exceeds a bounce's reach:\n- GAP A->CART L: A right x900 to CART L left at closest (1430) = 530px over void. > 527 and >> 395. NORMAL BOOST REQUIRED. Verb: FLY (+ TIME the drift).\n- GAP CART L->CENTRE: CART L right at closest (2210) to CENTRE left (2740) = 530px. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP CENTRE->CART R: CENTRE right (3060) to CART R left at closest (3590) = 530px. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP CART R->B: CART R right at closest (4370) to B left (4900) = 530px. > 527. NORMAL BOOST REQUIRED; land on B's clear LEFT edge, then DODGE the hammer to hold the far yard. Verb: FLY (+ DODGE).\n- DODGE the HAMMER on B: cross the yard on the apex-dwell clear beat; a mistimed step into B's centre at body height = instant off-screen kill; B's left edge stays clear. Verb: DODGE (+ TIME).\n- RECOVER: deck/island bottoms (~1156-1208) to the bottom blast line (1878) = ~670-720px of open sky (>= 650) -> a fuelled knock-off boosts back. Verb: FLY.\n- Every crossing (530px at closest) exceeds a spring bounce's 527px reach with NO floor spring, so flight is REQUIRED; carts move ride surfaces on a readable clock but never close a gap below the flight-required threshold; the blade times the far yard but never creates a bounce path. GI-2: carts on FIXED bounded paths, static A/centre/B anchor the ends -> no strand, no silent pin. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: ride the carts across the void and DODGE the rotor to hold the far yard — the circuit's mover-plus-lethal-hazard tier-3 combo.",
+  "backdrop": "open_sky",
+  "clouds": true,
+  "horizon_glow": true,
+  "sky_top": "#141939",
+  "sky_bottom": "#120C10",
+  "bounds": { "left": -560, "right": 6360, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 2740, "y": 1080, "w": 320, "h": 128, "tier": "trampoline" },
+    { "x": 4900, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -560, "y": 1260, "w": 6920, "h": 618, "wall_px": 120 },
+    { "type": "moving_platform", "vehicle": true, "center": { "x": 1820, "y": 980 }, "axis_deg": 0, "amplitude": 200, "w": 380, "h": 48, "period_s": 4.6, "phase": 0.0, "dwell_frac": 0.14 },
+    { "type": "moving_platform", "vehicle": true, "center": { "x": 3980, "y": 980 }, "axis_deg": 0, "amplitude": 200, "w": 380, "h": 48, "period_s": 4.6, "phase": 0.0, "dwell_frac": 0.14 },
+    { "type": "spinning_hammer", "pivot": { "x": 5350, "y": 480 }, "arm_len": 590, "arc_deg": 150, "period_s": 4.5, "phase": 0.0, "radius": 70, "head_len": 160, "head_w": 104, "dwell_frac": 0.24 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 500, "y": 1000 },
+    { "type": "player_spawn", "x": 700, "y": 1000 },
+    { "type": "player_spawn", "x": 2900, "y": 1000 },
+    { "type": "player_spawn", "x": 4980, "y": 1000 },
+    { "type": "powerup_spawner", "x": 500, "y": 900 },
+    { "type": "powerup_spawner", "x": 2900, "y": 900 },
+    { "type": "powerup_spawner", "x": 5350, "y": 980 }
+  ],
+  "backdrop_painting": "dusk_gold"
+}

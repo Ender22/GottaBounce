@@ -1,0 +1,138 @@
+{
+  "name": "Cart Chaos",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 14 (tier 2) — moving carts ferrying a debris zone. Two static anchor islands (A left / D right, the spawns) and a static MIDDLE island B, bridged by TWO drifting VEHICLE carts; molten/scrap DEBRIS rains on the mid island. You must ride the carts and hop between them (flight-required crossings) while the middle island is a falling-chunk hazard -- ride, dodge, and knock rivals off a cart or under a chunk. Reuses the shipped MovingPlatform (non-lethal ridable deck) + FallingDebris (chunk overlap = kill(&ring_out)). kill_shape void_is_floor -> QA K1'.\n\nDOCTRINE FIT (§2.0): (1) LETHAL/NON-LETHAL split -- carts NEVER kill (ridable footing; ride one off-stage = void kill); debris chunks instakill on overlap via kill(&ring_out); the void is the shared killer. No new death path/scorer. (2) TELEGRAPHY -- carts drift on a deterministic phase clock with an end-dwell (a beat to board/leave); each debris column shows a growing ground shadow + hazard-red reticle for telegraph_lead 0.75s before the chunk exists. (3) FAIRNESS -- strictly symmetric about x2900: carts MV_L (center 1640) and MV_R (center 4160) are mirror images, identical amp/period/phase; the mid island's three debris columns (2700/2900/3100) are ~200px apart with clear island EDGES (x2560..2640 and x3160..3240) as standing refuges each beat, max_concurrent 1 (never a full-footing wall). (4) CREDIT -- a debris/void kill with no attacker = uncredited self-fall; a rival knocked off a cart / under a chunk within 6.0s is credited by the ring-out window. No environment scorer.\n\nGEOMETRY (symmetric void_is_floor about x2900): static trampoline islands A x0..720 top y1080, MID B x2560..3240 top y1080 (the debris deck), D x5080..5800 top y1080. Cart MV_L center (1640,980) and MV_R center (4160,980): moving_platform vehicle true, axis_deg 0, amplitude 200, w 380, h 48, period_s 4.6, phase 0.0, dwell_frac 0.14. DEBRIS over B: columns [2700,2900,3100], floor_y 1080, spawn_y 200, fall_speed 1400, chunk_radius 60, cadence 1.6, telegraph_lead 0.75, max_concurrent 1, start_delay 0.6. Bounds -560..6360 x, top -2090, bottom 1878 (>= 670px recovery sky under island bottoms y1208). VOID x-560 y1260 w6920 h618, reads as death via pit_void_rendering. Dusk palette (clouds on, horizon glow) = a twilight scrap highway.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; NO springs here so 395px is the true max bounce reach; normal_boost_max 760 crosses ~530px in <0.9s). Cart decks w380 (half-width 190) oscillate center +/-200:\n- GAP A->MV_L: island A right edge x720 to MV_L LEFT edge at closest approach (1640-200-190=1250) = 530px over void. > 527 and >> 395. NORMAL BOOST REQUIRED; ride MV_L's leftward drift to shorten the boosted hop but you still FLY it. Verb: FLY (+ TIME the drift).\n- GAP MV_L->B: MV_L right edge at closest (1640+200+190=2030) to B left edge (2560) = 530px over void. NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP B->MV_R: B right edge (3240) to MV_R left edge at closest (4160-200-190=3770) = 530px over void. NORMAL BOOST REQUIRED. Verb: FLY.\n- GAP MV_R->D: MV_R right edge at closest (4160+200+190=4550) to D left edge (5080) = 530px over void. NORMAL BOOST REQUIRED. Verb: FLY.\n- Every crossing (530px) exceeds the max bounce reach (395px trampoline, 527px spring) at the carts' CLOSEST approach, and there is NO spring on the map, so NO route exists without the jetpack; the carts move ride-surfaces closer/farther on a readable clock but never close a gap below the flight threshold (GI-2 no-strand: static A/B/D anchor the ends; carts oscillate a fixed bounded path, never leaving boost range of a neighbour). DODGE the debris on B: stand on the clear island edges during a column's 0.75s telegraph. Verb: DODGE (+ READ).\n\nSIGNATURE / DISTINCT: the first cart-ferry + falling-debris combo (convoy is carts-only; gauntlet_dropzone debris-only). One-sentence read: 'ride the carts across the chasm and dance the middle island's falling chunks.'",
+  "backdrop": "open_sky",
+  "clouds": true,
+  "horizon_glow": true,
+  "sky_top": "#141939",
+  "sky_bottom": "#120C10",
+  "bounds": {
+    "left": -560,
+    "right": 6360,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 720,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2560,
+      "y": 1080,
+      "w": 680,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 5080,
+      "y": 1080,
+      "w": 720,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -560,
+      "y": 1260,
+      "w": 6920,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "moving_platform",
+      "vehicle": true,
+      "center": {
+        "x": 1640,
+        "y": 980
+      },
+      "axis_deg": 0,
+      "amplitude": 200,
+      "w": 380,
+      "h": 48,
+      "period_s": 4.6,
+      "phase": 0.0,
+      "dwell_frac": 0.14
+    },
+    {
+      "type": "moving_platform",
+      "vehicle": true,
+      "center": {
+        "x": 4160,
+        "y": 980
+      },
+      "axis_deg": 0,
+      "amplitude": 200,
+      "w": 380,
+      "h": 48,
+      "period_s": 4.6,
+      "phase": 0.0,
+      "dwell_frac": 0.14
+    },
+    {
+      "type": "falling_debris",
+      "columns": [
+        2700,
+        2900,
+        3100
+      ],
+      "floor_y": 1080,
+      "spawn_y": 200,
+      "fall_speed": 1400,
+      "chunk_radius": 60,
+      "cadence": 1.6,
+      "telegraph_lead": 0.75,
+      "max_concurrent": 1,
+      "start_delay": 0.6
+    },
+    {
+      "type": "player_spawn",
+      "x": 240,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 480,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2600,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 5320,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 5560,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1640,
+      "y": 880
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2900,
+      "y": 880
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 4160,
+      "y": 880
+    }
+  ],
+  "backdrop_painting": "dusk_gold"
+}

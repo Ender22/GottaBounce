@@ -1,0 +1,127 @@
+{
+  "name": "Gravity Gauntlet",
+  "version": 1,
+  "theme": "grass",
+  "mode": "brawl",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "horizon_glow": false,
+  "design_intent": "MAYHEM MILE 19 (tier 3) — gravity well plus a lethal rotor. A central GRAVITY_SOURCE (moon, non-lethal bounce body, g 1000 inside radius 1500) bends every arc, while a single lethal spinning_hammer sweeps the RIGHT rim island -- the one island worth fighting over (it holds a powerup) is also the dangerous one. The well curves your approach to the hammer island and amplifies knockbacks toward the void. Read the pull AND the blade. Reuses shipped gravity_source (bumper core) + SpinningHammer -> head contact = kill(&ring_out); the moon never kills. kill_shape void_is_floor -> QA K1'.\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- only the hammer head kills by contact (kill(&ring_out)); the moon is a bumper, the void + bounds are the other shared killers. No new death path/scorer. (2) TELEGRAPHY -- the gravity_source draws its field-extent ring (radius 1500); the hammer is a single bold blade on a 4.0s period with a ~0.96s apex dwell + hazard-red swept arc. (3) FAIRNESS -- the well is symmetric about (2200,650); the ONE hammer over the Right island is the single asymmetry, and it is offset by fair access: spawns are on the three SAFE islands (Left/Top/Bottom), the hammer island is reached by flight only when you choose to contest its powerup, and the blade's apex dwell always returns a clear window. No spawn under the blade or inside the pull-decay death cone. (4) CREDIT -- a hammer/void death with no attacker = uncredited self-fall; a rival knocked into the blade / off the ring within 6.0s is credited. No environment scorer.\n\nGEOMETRY (radial diamond, symmetric well about x2200): moon gravity_source at (2200,650), radius 1500, g 1000, lethal_core_r 0, visual moon, body_r 120, tier bumper. Four trampoline islands (h120): LEFT x350..1050 top y600, RIGHT x3350..4050 top y600 (the HAMMER island), TOP x1850..2550 top y100, BOTTOM x1850..2550 top y1250. HAMMER over Right island: pivot (3700,0), arm_len 590, arc_deg 150, period_s 4.0, phase 0.0, radius 70, head_len 160, head_w 104, dwell_frac 0.24 (at bottom-swing the head sits ~10px above the Right deck at y590; toward apex it lifts high and out). Bounds left -250, right 4650, top -750, bottom 2030 (>= 660px recovery sky under the BOTTOM island bottom y1370; clear sky above TOP and above the hammer apex). Bottom VOID x-250 y1500 w4900 h530, wall_px 120, reads as death via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; the well bends arcs):\n- LEFT<->TOP / LEFT<->BOTTOM / TOP<->RIGHT / BOTTOM<->RIGHT (adjacent diamond hops, each ~650-710px diagonal with the well pulling back toward the moon): NORMAL BOOST REQUIRED; boost across the pull. Verb: FLY (+ read the curve).\n- Any island -> RIGHT hammer island: a flight-required hop INTO a swept deck -- time the blade's apex-dwell as you arrive. Verb: FLY (+ TIME).\n- TOP<->BOTTOM straight (past the moon, ~980px): the moon body blocks the straight line; arc a boosted route around it. Verb: FLY.\n- Zero-boost off any island decays toward the moon/void (never reaches a neighbour): flight is REQUIRED to hold an orbit or cross; the well only bends the required boost line, the hammer only times the Right-island fight -- neither creates a bounce path.\n\nSIGNATURE / DISTINCT: the only well + machine combo (moon_pit is well-only, hammer_arena hammer-only). One-sentence read: 'let the moon sling you toward the swinging blade island, grab its powerup, and smash rivals off the ring.'",
+  "sky_top": "#0B1133",
+  "sky_bottom": "#05040E",
+  "bounds": {
+    "left": -250,
+    "top": -750,
+    "right": 4650,
+    "bottom": 2030
+  },
+  "platforms": [
+    {
+      "x": 350,
+      "y": 600,
+      "w": 700,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3350,
+      "y": 600,
+      "w": 700,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1850,
+      "y": 100,
+      "w": 700,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1850,
+      "y": 1250,
+      "w": 700,
+      "h": 120,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -250,
+      "y": 1500,
+      "w": 4900,
+      "h": 530,
+      "wall_px": 120
+    },
+    {
+      "type": "gravity_source",
+      "x": 2200,
+      "y": 650,
+      "radius": 1500,
+      "g": 1000,
+      "lethal_core_r": 0,
+      "visual": "moon",
+      "body_r": 120,
+      "tier": "bumper"
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 3700,
+        "y": 0
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.0,
+      "phase": 0.0,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "player_spawn",
+      "x": 700,
+      "y": 520
+    },
+    {
+      "type": "player_spawn",
+      "x": 2050,
+      "y": 20
+    },
+    {
+      "type": "player_spawn",
+      "x": 2350,
+      "y": 20
+    },
+    {
+      "type": "player_spawn",
+      "x": 2050,
+      "y": 1170
+    },
+    {
+      "type": "player_spawn",
+      "x": 2350,
+      "y": 1170
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3700,
+      "y": 280
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1500,
+      "y": 650
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2200,
+      "y": 1050
+    }
+  ],
+  "backdrop_painting": "space_nebula"
+}

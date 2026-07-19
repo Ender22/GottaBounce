@@ -1,0 +1,159 @@
+{
+  "name": "Everything Yard",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 18 (tier 3) — the kitchen sink. One of every LETHAL family across a four-island / one-void run: a proximity MINE on A, a rotor HAMMER over B, a vertical PRESS on C, and a molten DEBRIS storm on D. Each island is a different single-hazard puzzle with a built-in refuge, staggered clear beats, symmetric-in-difficulty; the chaos is having to re-read the threat every time you boost to a new island. Reuses shipped Bomb + SpinningHammer + Crusher + FallingDebris, all -> kill(&ring_out). kill_shape void_is_floor -> QA K1'.\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- mine inner radius, hammer head, press head, and debris chunk all instakill via kill(&ring_out); no new death path/scorer. (2) TELEGRAPHY -- mine pulsing ring + 0.9s warning; hammer bold blade on a 4.0s period with a ~0.96s apex dwell; press ~1.6s open dwell + 0.6s windup flash; debris ground-shadow + reticle 0.75s before each chunk. Every hazard shows exactly where + when it is lethal. (3) FAIRNESS -- each island keeps a permanent/rotating refuge: A's edges (mine at centre, >= 300px from spawns), B's edges (single hammer over centre), C's left/right lanes (narrow head_w 150 press at centre), D's between-column bands (max_concurrent 1). No spawns on B or the C press lane; spawns sit in the clear bands of A/C/D. Threats are staggered so a player is never forced into two at once. (4) CREDIT -- any hazard/void kill with no attacker = uncredited self-fall; a rival knocked into any hazard within 6.0s is credited. No environment scorer.\n\nGEOMETRY (four-island void_is_floor): trampoline islands A x0..900 / B x1500..2400 / C x3000..3900 / D x4500..5400, all top y1080, 600px void gaps. MINE at A centre (450,1030): proximity, trigger_radius 170, kill_radius 150, blast_radius 300, telegraph_lead 0.9, recur 6.0. HAMMER over B: pivot (1950,480), arm_len 590, arc_deg 150, period_s 4.0, phase 0.0, radius 70, head_len 160, head_w 104, dwell_frac 0.24. Vertical anvil PRESS on C at centre (3450,1080): head_len 160, head_w 150, open_gap 520, closed_gap 40, period_s 2.8, phase 0.25, close_time 0.34, closed_time 0.2, retract_time 0.5, telegraph_lead 0.6. DEBRIS over D: columns [4800,5000,5200], floor_y 1080, spawn_y 200, fall_speed 1400, chunk_radius 60, cadence 1.6, telegraph_lead 0.75, max_concurrent 1, start_delay 0.6. Bounds -610..6010 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; normal_boost_max 760 crosses 600 in ~0.8s):\n- GAP A<->B / B<->C / C<->D (each island-edge gap = 600 over void): all > 527 and >> 395. NORMAL BOOST REQUIRED per hop; miss = fall. Verb: FLY.\n- DODGE per island: step off A's centre mine ring / time B's rotor apex-dwell / weave C's press lane on the open beat / stand between D's debris columns on the telegraph. Verb: DODGE (+ READ/TIME), a fresh read each island.\n- Zero-boost off any island reaches NO other surface across a 600px gap: flight is REQUIRED. No hazard creates a bounce path or makes a required crossing uncrossable -- each threatens only its own island's centre/lane, leaving refuges and the crossing lanes clear.\n\nSIGNATURE / DISTINCT: the only arena that stacks all four lethal families, one per island (gauntlet_pandemonium uses hammer + two mines; hazard_yard crusher + debris). One-sentence read: 'one of every trap -- mine, hammer, press, and falling chunks -- re-read each island as you boost across.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -610,
+    "right": 6010,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1500,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3000,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 4500,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 6620,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 450,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 1950,
+        "y": 480
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.0,
+      "phase": 0.0,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": {
+        "x": 3450,
+        "y": 1080
+      },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.25,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "falling_debris",
+      "columns": [
+        4800,
+        5000,
+        5200
+      ],
+      "floor_y": 1080,
+      "spawn_y": 200,
+      "fall_speed": 1400,
+      "chunk_radius": 60,
+      "cadence": 1.6,
+      "telegraph_lead": 0.75,
+      "max_concurrent": 1,
+      "start_delay": 0.6
+    },
+    {
+      "type": "player_spawn",
+      "x": 150,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 750,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3100,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3800,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 4550,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1200,
+      "y": 820
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2700,
+      "y": 820
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 4200,
+      "y": 820
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

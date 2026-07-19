@@ -1,0 +1,47 @@
+{
+  "name": "Foundry: Single Hammer",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: SINGLE HAMMER — THE FOUNDRY circuit's rotor ON-RAMP (tier 1; brawl_arena_expansion_2026-07-19 Foundry row 7). ONE big spinning smelt-hammer sweeps over the CENTER island B of the validated flagship three-island / one-void shape (the ember-palette sibling of the shipped hammer_arena). A single bold blade on a slow readable rotation with a long apex dwell = the clear beat; islands A/C are permanent refuges and B's edges sit below the arc. Single-family (hammer only), lowest Foundry tier.\n\nDOCTRINE FIT: (1) LETHAL — the blade head instakills on contact via kill(&ring_out); no shove/hitstun. (2) TELEGRAPHY — a slow ~4.5s rotation with arc_deg 150 (<360) so a >=120deg / ~1.08s clear window ALWAYS returns at each apex; at the bottom of the swing the head sits ~y1070 over B's center, toward the apexes it rises HIGH and out over the gaps (safe crossing altitude). (3) FAIRNESS — the blade never covers B's edges (below the arc) or islands A/C (permanent refuges); no player spawns under the blade (spawns on A/C). (4) CREDIT — a blade kill with no attacker = uncredited self-fall (killer=-1); a rival knocked into the blade within the 6.0s ring-out window is credited; no environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor): three flat trampoline islands over ONE full-width void: A x0..900 / B x1580..2480 (HAMMER, hub x2030) / C x3160..4060, all top y1080, separated by 680px void gaps. Bounds -610..4670 x, top -2090, bottom 1878 (>=650px recovery sky; outer edges 610px inside side blast lines). Molten open_sky (clouds off, horizon glow).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the hammer on B: cross/land on B's central strip only on the apex-dwell clear beat, else hug an edge (below the arc). The arc over the gaps is HIGH (above crossing altitude), so it never makes a required crossing uncrossable. Verb: DODGE (+ TIME).\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the hammer reshapes/times the fight on B.\n\nSIGNATURE / DISTINCT: the Foundry's solo-rotor read (foundry_smelter pairs it with a crusher; foundry_hammer_and_pour adds debris). One-line read: 'time the swing across the middle island and knock rivals into the blade.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    {
+      "type": "spinning_hammer",
+      "pivot": { "x": 2030, "y": 480 },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.5,
+      "phase": 0.0,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 3410, "y": 1000 },
+    { "type": "player_spawn", "x": 3760, "y": 1000 },
+    { "type": "player_spawn", "x": 450, "y": 700 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 760 },
+    { "type": "powerup_spawner", "x": 3610, "y": 900 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

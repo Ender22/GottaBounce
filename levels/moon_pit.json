@@ -1,0 +1,112 @@
+{
+  "name": "Moon Pit",
+  "version": 1,
+  "theme": "grass",
+  "mode": "brawl",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "horizon_glow": false,
+  "design_intent": "MAYHEM MILE 12 (tier 2) — the FIRST gravity well. A diamond of four trampoline islands rings a central GRAVITY_SOURCE dressed as a MOON (a round non-lethal BUMPER body, body_r 120) over a bottom void. The well (radial pull g 900 inside radius 1500) CURVES every boosted arc and every knockback: your flight lines bend toward the moon, and a dive can slingshot off its bumper surface. The moon never kills (bumper reflect, no refund on a dry-stunned hit); kills happen the classic way -- smash rivals off the outer islands / past the blast bounds into the void. kill_shape void_is_floor -> QA K1'. Distinct from every other Mayhem arena: it is the only well with a BOUNCE body core (black_hole_brawl uses a LETHAL core).\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- nothing here kills by contact; the moon is a bumper, the void + blast bounds are the shared killer, kills stay 'smashed off-screen' via kill(&ring_out). (2) TELEGRAPHY -- the gravity_source draws its own field-extent ring (radius 1500) so the pull region is always visible; the moon body is a solid painted sphere. (3) FAIRNESS -- strictly symmetric about (x2000,y650): four identical islands at N/S/E/W, identical distance (~1350) to the moon, identical pull; no side is a death seat. (4) CREDIT -- a void death with no attacker = uncredited self-fall; a rival smashed past the bounds within 6.0s is credited. No environment scorer.\n\nGEOMETRY (radial, symmetric about x2000): moon gravity_source at (2000,650), radius 1500, g 900, lethal_core_r 0, visual moon, body_r 120, tier bumper. Four trampoline islands: TOP x1600..2400 top y150, BOTTOM x1600..2400 top y1250, LEFT x350..1050 top y600, RIGHT x2950..3650 top y600 (all h120). Bounds left -250, right 4250, top -700, bottom 2030 (>= 660px recovery sky under the BOTTOM island bottom y1370; ~850px clear sky above the TOP island so an upward knock is a recovery, not an instant lid death). Bottom VOID x-250 y1500 w4500 h530, wall_px 120, reads as death via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; normal_boost_max 760; the well BENDS all of this):\n- LEFT<->TOP (island edges: LEFT right x1050 to TOP left x1600 = 550px horizontal AND a 450px climb, diagonal ~710px): > 527 and a climb near spring-apex. NORMAL BOOST REQUIRED; the moon's pull curves the arc, so you must boost INTO the well and let it sling you across. Verb: FLY (+ read the curve).\n- LEFT<->BOTTOM / RIGHT<->TOP / RIGHT<->BOTTOM: identical mirror diagonals (~710px). NORMAL BOOST REQUIRED. Verb: FLY.\n- TOP<->BOTTOM direct (x-overlapping but a ~980px vertical drop/climb straight past the moon): the moon body blocks the straight line -- you route AROUND it, always a boosted arc. Verb: FLY.\n- Zero-boost off any island (even with the well's pull) lands you SHORT of the next island and decays toward the moon/void: flight is REQUIRED to hold an orbit or cross. The well never closes a crossing below the flight threshold; it only bends the required boost line. No bounce path exists between islands.\n\nSIGNATURE / DISTINCT: the first curved-arc gravity brawl with a bounce-body core (a violent pinball moon). One-sentence read: 'boost across the well, let the moon sling your arc, and smash rivals off the rim islands.'",
+  "sky_top": "#0B1133",
+  "sky_bottom": "#05040E",
+  "bounds": {
+    "left": -250,
+    "top": -700,
+    "right": 4250,
+    "bottom": 2030
+  },
+  "platforms": [
+    {
+      "x": 1600,
+      "y": 150,
+      "w": 800,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1600,
+      "y": 1250,
+      "w": 800,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 350,
+      "y": 600,
+      "w": 700,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2950,
+      "y": 600,
+      "w": 700,
+      "h": 120,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -250,
+      "y": 1500,
+      "w": 4500,
+      "h": 530,
+      "wall_px": 120
+    },
+    {
+      "type": "gravity_source",
+      "x": 2000,
+      "y": 650,
+      "radius": 1500,
+      "g": 900,
+      "lethal_core_r": 0,
+      "visual": "moon",
+      "body_r": 120,
+      "tier": "bumper"
+    },
+    {
+      "type": "player_spawn",
+      "x": 700,
+      "y": 520
+    },
+    {
+      "type": "player_spawn",
+      "x": 3300,
+      "y": 520
+    },
+    {
+      "type": "player_spawn",
+      "x": 2000,
+      "y": 70
+    },
+    {
+      "type": "player_spawn",
+      "x": 1800,
+      "y": 1170
+    },
+    {
+      "type": "player_spawn",
+      "x": 2200,
+      "y": 1170
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1250,
+      "y": 400
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2750,
+      "y": 400
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2000,
+      "y": 1050
+    }
+  ],
+  "backdrop_painting": "space_nebula"
+}

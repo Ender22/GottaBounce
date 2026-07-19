@@ -1,0 +1,30 @@
+{
+  "name": "Bolt Yard",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "BOLT YARD — THE SCRAPWORKS tier-1 ASYMMETRIC on-ramp (brawl_arena_expansion_2026-07-19 §Scrapworks row 7; the scrap-skin sibling of the_cliff). One big scrap MESA on the left, then a scatter of two narrow PADS descending to the right over a full-width void, all separated by 580px gaps. An elevated far-ledge holds a contested powerup so the fight pulls rightward across the exposed pads. No hazards (tier-1). Kill identity = knock rivals OFF the mesa or a pad into the void. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nGEOMETRY (asymmetric, left-heavy): MESA x0..1400 top1080 (trampoline, w1400, the safe anchor) / PAD1 x1980..2660 top1080 (bubblegum, w680) / PAD2 x3240..3920 top1080 (trampoline, w680), separated by 580px void gaps (mesa->pad1 x1400..1980 = 580; pad1->pad2 x2660..3240 = 580). ONE elevated bubblegum FAR-LEDGE x3400..3760 top560 over pad2, 520px up (the far powerup perch). Bounds -610..4530 x, top -2090, bottom 1878 (mesa left edge 610px inside the side blast; 670px recovery sky under the surfaces). VOID READS AS DEATH via pit_void_rendering. Overcast grey open_sky = a bolt yard.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / bubblegum 180 / spring 480; ~395px trampoline drift / ~320 bubblegum / ~527 max spring drift; normal_boost_max 760 crosses 580px in <0.9s @ ~22 fuel):\n- GAP MESA<->PAD1 (x1400..x1980 = 580px over void): > 527 (max spring drift) and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP PAD1<->PAD2 (x2660..x3240 = 580px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- CLIMB to the FAR-LEDGE (top560): 520px above pad2 (1080). Trampoline apex 270 reaches only y810 (270px short). JETPACK CLIMB REQUIRED; an under-shot drops off pad2 into the void. Verb: FLY.\n- RECOVER: surface bottoms (1192-1208) to the bottom blast line (1878) = 670-686px of open sky (>= 650) -> a fuelled knock-off boosts back; a near-edge smash rings out. Verb: FLY.\n- Every gap (580px) exceeds a spring bounce's 527px reach and the ledge sits > 480px above pad2, so NO route across or up exists without the jetpack. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the asymmetric scrap mesa — a big safe left anchor vs a committed rightward run over shrinking pads to the far-ledge prize.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#8C877B",
+  "sky_bottom": "#14120F",
+  "bounds": { "left": -610, "right": 4530, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 1980, "y": 1080, "w": 680, "h": 112, "tier": "bubblegum" },
+    { "x": 3240, "y": 1080, "w": 680, "h": 128, "tier": "trampoline" },
+    { "x": 3400, "y": 560, "w": 360, "h": 96, "tier": "bubblegum" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5140, "h": 618, "wall_px": 120 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 700, "y": 1000 },
+    { "type": "player_spawn", "x": 1100, "y": 1000 },
+    { "type": "player_spawn", "x": 2320, "y": 1000 },
+    { "type": "player_spawn", "x": 3580, "y": 1000 },
+    { "type": "powerup_spawner", "x": 700, "y": 900 },
+    { "type": "powerup_spawner", "x": 2320, "y": 920 },
+    { "type": "powerup_spawner", "x": 3580, "y": 480 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

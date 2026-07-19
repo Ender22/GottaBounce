@@ -1,0 +1,75 @@
+{
+  "name": "Foundry: Inferno",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: INFERNO — THE FOUNDRY circuit's MULTI-HAZARD PEAK (tier 3; brawl_arena_expansion_2026-07-19 Foundry row 14). Three lethal families stack on the flagship three-island / one-void shape: a SPINNING HAMMER and molten FALLING DEBRIS both threaten island B, and a VERTICAL PRESS stamps island C — with clear beats STAGGERED (offset phases/cadence) so no two peak on the same instant. Island A is the permanent hazard-free refuge and anchor. The molten yard at its wildest; every crossing still leaves a clear beat and a refuge. Tier 3.\n\nDOCTRINE FIT: (A) HAMMER over B (hub x2030, phase 0.2): ~4.5s rotation, arc_deg 150 (<360 so a ~1.08s apex clear window returns), LETHAL head via kill(&ring_out); B's edges below the arc; apexes ride HIGH over the gaps. (B) DEBRIS over B (columns x1805/2255, cadence 1.6, max 1, telegraph 0.7, start_delay 1.0) staggered from the hammer's apex so the same instant is never both blade-down AND chunk-down at one spot. (C) PRESS on C (center x3610, phase 0.4): vertical anvil crusher, narrow head_w 160 -> C's edges (x3160..3530, x3690..4060) always clear; long open dwell + 0.6s telegraph before a ~0.34s slam. FAIRNESS: island A is a permanent refuge; NO hazard covers 100% of its island; the crossings between islands are never blocked; staggered clear beats; no player spawns under a blade/press/live column. CREDIT: any hazard/void kill with no attacker = uncredited self-fall (killer=-1); a rival knocked into any hazard within the 6.0s ring-out window is credited; no environment scorer.\n\nGEOMETRY (flagship void_is_floor): three flat trampoline islands over ONE full-width void: A x0..900 (REFUGE/spawns) / B x1580..2480 (HAMMER hub x2030 + DEBRIS) / C x3160..4060 (PRESS center x3610), all top y1080, separated by 680px void gaps. Bounds -610..4670 x, top -2090, bottom 1878 (>=650px recovery sky; outer edges 610px inside side blast lines). Molten open_sky (clouds off, horizon glow).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE on B (thread the hammer apex-beat AND the debris shadows — staggered so a clear window on B always exists); DODGE the press on C (shuffle to a clear edge on the beat / boost above the head). None makes a required gap crossing uncrossable (blade arc HIGH over gaps, debris on B's top, press over C's center). Verb: DODGE (+ TIME/READ).\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the three hazards reshape/time the on-island fight, never a bounce path across a gap.\n\nSIGNATURE / DISTINCT: the Foundry's kitchen-sink peak (three lethal families vs the earlier one/two). SPAWN NOTE: with B and C both hazarded and A the only clean island, four primary spawns cluster on/above A (hammer_arena/smelter precedent for hazard-heavy stages) plus one on C's far-left edge (x3220, clear of the press center); QA to confirm 4-player opens are fair from island A. One-line read: 'thread the swinging hammer and the molten rain on the middle deck, dodge the press on the right, and shove rivals into any of the three.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    {
+      "type": "spinning_hammer",
+      "pivot": { "x": 2030, "y": 480 },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.5,
+      "phase": 0.2,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "falling_debris",
+      "columns": [ 1805, 2255 ],
+      "floor_y": 1080,
+      "spawn_y": 200,
+      "fall_speed": 1400,
+      "chunk_radius": 60,
+      "cadence": 1.6,
+      "telegraph_lead": 0.7,
+      "max_concurrent": 1,
+      "start_delay": 1.0
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": { "x": 3610, "y": 1080 },
+      "head_len": 160,
+      "head_w": 160,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.4,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    { "type": "player_spawn", "x": 250, "y": 1000 },
+    { "type": "player_spawn", "x": 550, "y": 1000 },
+    { "type": "player_spawn", "x": 150, "y": 700 },
+    { "type": "player_spawn", "x": 450, "y": 700 },
+    { "type": "player_spawn", "x": 3220, "y": 1000 },
+    { "type": "powerup_spawner", "x": 400, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 760 },
+    { "type": "powerup_spawner", "x": 3300, "y": 900 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

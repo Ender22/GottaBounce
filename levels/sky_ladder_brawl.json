@@ -1,0 +1,32 @@
+{
+  "name": "Sky Ladder",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "SKY LADDER — THE HIGH WIRE #17 (tier 3, vertical ascent, open top, deep drop). Five spring-heavy tiers zigzag UP a narrow dusk shaft, each 520px above the last, over a DEEP void, with non-lethal bumper side walls that ricochet a wide shot back into the climb. NO lethal lid — the top is open, so the danger is entirely the long fall below. A pure verticality stage: the fight is the climb, and knocking a rival off any tier drops them the whole ladder. kill_shape = void_is_floor. Signature: the circuit's ascent shape without a lid (the_summit adds the lethal lid; the ridges/spires are horizontal). Feel = 'race up the zigzag ladder; knock them off a rung and they fall the whole sky.'\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270 / spring 480; drift ~527 spring MAX; normal_boost_max 760, super 2800 rises ~2450). Tiers zigzag left/right: T1 x-500..300 top1400 (trampoline base) / T2 x400..1000 top880 / T3 x-1000..-400 top360 / T4 x400..1000 top-160 / T5 x-700..100 top-680 (all spring), each ~520px above the last; bumper walls x-1280 and x1180 (h2150):\n- CLIMB T1->T2->T3->T4->T5: each rung is a 520px vertical climb to a tier offset ~100-700px horizontally (a zigzag boost up-and-over). Spring apex 480 falls 40px short of the 520 rise, and the target tier is offset sideways, so no bounce completes a rung. JETPACK CLIMB REQUIRED on every rung; an under-shot drops back down the shaft. Verb: FLY. (Rule B, >= 520.)\n- BUMPER WALLS: the two side walls are non-lethal reflectors (tier bumper, restitution ~0.86) that bounce an over-boosted climber back into the shaft and refund fuel — they shape the column, they never kill. The kill is the fall past the bottom.\n- RECOVER: T1 bottom 1528 -> bottom blast line 2328 = 800px of open sky (>= 650, Rule D); a knock off an upper tier is a long, hard recovery down the shaft. Verb: FLY.\n- OPEN TOP: bounds top -3330 (far above T5) so a straight-up super/knock simply arcs back — no lethal lid; up is safe, down kills. No bounce completes any rung, so the jetpack is required to move at all. Vertical distance IS the level.",
+  "backdrop": "open_sky",
+  "clouds": true,
+  "sky_top": "#3A3A72",
+  "sky_bottom": "#E7A867",
+  "bounds": { "left": -1300, "right": 1300, "top": -3330, "bottom": 2328 },
+  "platforms": [
+    { "x": -500,  "y": 1400, "w": 800, "h": 128, "tier": "trampoline" },
+    { "x": 400,   "y": 880,  "w": 600, "h": 64,  "tier": "spring" },
+    { "x": -1000, "y": 360,  "w": 600, "h": 64,  "tier": "spring" },
+    { "x": 400,   "y": -160, "w": 600, "h": 64,  "tier": "spring" },
+    { "x": -700,  "y": -680, "w": 800, "h": 64,  "tier": "spring" },
+    { "x": -1280, "y": -700, "w": 100, "h": 2150, "tier": "bumper" },
+    { "x": 1180,  "y": -700, "w": 100, "h": 2150, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": -1300, "y": 1540, "w": 2600, "h": 788, "wall_px": 120 },
+    { "type": "player_spawn", "x": -100, "y": 1320 },
+    { "type": "player_spawn", "x": 700,  "y": 800 },
+    { "type": "player_spawn", "x": -700, "y": 280 },
+    { "type": "player_spawn", "x": 700,  "y": -240 },
+    { "type": "player_spawn", "x": -300, "y": -760 },
+    { "type": "powerup_spawner", "x": -300, "y": -760 },
+    { "type": "powerup_spawner", "x": 700,  "y": 800 },
+    { "type": "powerup_spawner", "x": -700, "y": 280 }
+  ]
+}

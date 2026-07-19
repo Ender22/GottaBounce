@@ -1,0 +1,236 @@
+{
+  "name": "Pandemonium Prime",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 20 (tier 3, the WILD peak) — a collapsing box seeded with mines and topped by a rotor. The meltdown-box archetype (a full destructible floor + two wall columns that progressively ERODE outer-first on a telegraphed symmetric cascade until there is NO ground left) with TWO proximity MINES on the last-standing central tiers and a lethal HAMMER sweeping up top. As the floor dissolves, the safe footing shrinks toward the mined centre while the blade rules the air above -- pure last-one-flying chaos. Reuses shipped destructible_block (timed erode) + Bomb mines + SpinningHammer, all -> kill(&ring_out). kill_shape void_is_floor -> QA K1' (RELAXED: expect a high uncredited-self-fall share BY DESIGN on this collapse archetype).\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- falling into the exposed void (off-screen), mine inner radius, and hammer head all kill via kill(&ring_out); no new death path/scorer. (2) TELEGRAPHY -- every block shows growing CRACKS + a SHUDDER + a hazard-red flash for telegraph_s 1.0s BEFORE it vanishes (you see where the floor goes next); each mine draws a pulsing trigger ring + 0.9s warning ring; the hammer is a bold blade on a 4.0s period with a ~0.96s apex dwell. (3) FAIRNESS -- fair NOT because recoverable but because EVERYONE'S floor erodes on the SAME symmetric schedule (edge pair 3.0s -> 4.5s -> 6.0s -> centre pair 7.5s; walls 8.5s); mines sit symmetric about the centre (x900/x1500), each >= 300px from every spawn (outside the 170px trigger ring); the hammer pivots high (head parked ~210px above a standing player, lethal only when you bounce up into it) so spawns are safe at load. All erosion arms off EventBus.combat_started so the intro never erodes early. (4) CREDIT -- a void/mine/hammer death with no attacker = uncredited self-fall; a rival smashed off / onto a mine / into the blade within 6.0s is credited. No environment scorer.\n\nGEOMETRY (symmetric collapsing box about x1200, mirrors meltdown_box): floor = 8 destructible_block segments x0..2400 @ top1080, w300 h140, trampoline tier, group 'prime_floor', break_on timed, eroding OUTER-FIRST in symmetric pairs: (x0,x2100) 3.0s, (x300,x1800) 4.5s, (x600,x1500) 6.0s, centre (x900,x1200) 7.5s. Two trampoline WALL columns x-180 and x2400 (h680, group 'prime_wall') erode LAST at 8.5s. MINES on the central last-standing band at (900,1030) and (1500,1030): proximity, trigger_radius 170, kill_radius 150, blast_radius 300, telegraph_lead 0.9, recur 6.0. HAMMER up top: pivot (1200,150), arm_len 590, arc_deg 150, period_s 4.0, phase 0.25, radius 70, head_len 160, head_w 104, dwell_frac 0.24 (bottom-swing head ~y740, ~210px above a standing player's head -> lethal only when you bounce up). Bounds -640..3040 x, top -1600, bottom 1920 (~700px recovery sky under the floor bottom y1220). VOID x-500 y1240 w3560 h680, reads as death via pit_void_rendering. Dusty ember demolition palette.\n\nMOVEMENT-TOOL-PER-GAP / FLIGHT-REQUIRED (collapse archetype, same logic as meltdown_box): the box starts as intact footing, but by ~7.5s there is NO standable ground left -- flight becomes the ONLY way to survive, so boost is REQUIRED to outlast the collapse (a fuelled player boosts to stay aloft over the 700px of void as the floor goes; an empty tank falls off-screen). During the early bounce-fight the trampoline floor lets you gain height, but no bounce reaches a safe standing spot once the centre erodes -- you MUST fly. Verb: RECOVER/FLY (+ DODGE the mines and the top blade). No traversal gap to bounce-cheese; the disappearing floor + void + hazards are the killers.\n\nSIGNATURE / DISTINCT: the only collapse finale that combines eroding floor + mines + a hammer (meltdown_box is collapse-only). One-sentence read: 'the floor is vanishing under everyone -- stay airborne, dodge the mined centre and the top blade, be the last one flying.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -640,
+    "right": 3040,
+    "top": -1600,
+    "bottom": 1920
+  },
+  "platforms": [],
+  "objects": [
+    {
+      "type": "void",
+      "x": -500,
+      "y": 1240,
+      "w": 3560,
+      "h": 680,
+      "wall_px": 120
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 0,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 3.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 2100,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 3.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 300,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 4.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1800,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 4.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 600,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 6.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1500,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 6.0
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 900,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 7.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_floor",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 1200,
+      "y": 1080,
+      "w": 300,
+      "h": 140,
+      "tier": "trampoline",
+      "break_time": 7.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_wall",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": -180,
+      "y": 520,
+      "w": 180,
+      "h": 680,
+      "tier": "trampoline",
+      "break_time": 8.5
+    },
+    {
+      "type": "destructible_block",
+      "mode": "erode",
+      "group": "prime_wall",
+      "break_on": "timed",
+      "telegraph_s": 1.0,
+      "x": 2400,
+      "y": 520,
+      "w": 180,
+      "h": 680,
+      "tier": "trampoline",
+      "break_time": 8.5
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 900,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 1500,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 1200,
+        "y": 150
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.0,
+      "phase": 0.25,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "player_spawn",
+      "x": 150,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 600,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1200,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1800,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2250,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 500,
+      "y": 920
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1200,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1900,
+      "y": 920
+    }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

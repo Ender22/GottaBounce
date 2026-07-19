@@ -1,0 +1,142 @@
+{
+  "name": "Bumper Mines",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 11 (tier 2) — pinball meets landmines. The flagship three-island / one-void shape studded with FOUR non-lethal BUMPER obstacles (two tall gap posts + two floating cube bumpers) that ricochet careless arcs, plus ONE proximity LANDMINE on each SIDE island (A and C). The combo: get pinballed by a bumper and the mine is right there -- read both. Reuses static bumper-tier platforms (non-lethal reflect, refunds fuel) + the shipped Bomb landmines (inner-radius kill(&ring_out) + outer knockback). kill_shape void_is_floor -> QA K1'.\n\nDOCTRINE FIT (§2.0): (1) LETHAL/NON-LETHAL split -- bumpers NEVER kill (elastic reflect only); the two mines instakill inside kill_radius via kill(&ring_out) + a radial knockback. No new death path/scorer. (2) TELEGRAPHY -- bumpers are solid painted obstacles you read on sight; each mine shows a pulsing trigger ring and an expanding warning ring over telegraph_lead 0.9s before it blows. (3) FAIRNESS -- bumpers are placed SYMMETRICALLY about x2030 and never fully block a required crossing (they narrow lanes, not seal them); the two mines sit at the CENTRE of side islands A/C, symmetric, each >= 300px from every spawn (outside the 170px trigger ring). Island B is a permanent clear refuge. (4) CREDIT -- a mine kill with no attacker = uncredited self-fall; a rival pinballed/knocked onto a mine within 6.0s is credited by the ring-out window. No environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor): three trampoline islands A x0..900 / B x1580..2480 / C x3160..4060, all top y1080, 680px void gaps. Bumpers: two TALL girder POSTS (w100 h420) standing in the two void gaps at x1190..1290 (A<->B) and x2770..2870 (B<->C), tops at y620 -- pinball pillars you thread past mid-boost (they never seal the 680 gap, just add a ricochet body); two floating CUBE bumpers (130x130) flanking B at (1680,700) and (2350,700). MINES at A centre (450,1030) and C centre (3610,1030): proximity, trigger_radius 170, kill_radius 150, blast_radius 300, telegraph_lead 0.9, recur 6.0. Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering. Deep-space palette (stars on) = a scrap belt.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; normal_boost_max 760 crosses 680 in ~0.9-1.0s):\n- GAP A<->B (x900..1580 = 680 over void, with a bumper post mid-gap): > 527 and >> 395. NORMAL BOOST REQUIRED; the post is a non-lethal ricochet you thread past (touching it reflects + refunds fuel, never kills), miss the gap = fall. Verb: FLY.\n- GAP B<->C (x2480..3160 = 680, mirror post): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the mines on A/C: step outside the trigger ring / clear the 0.9s warning ring. Verb: DODGE (+ READ).\n- The cube bumpers over B redirect vertical fights but never seal footing; zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED. No bumper creates a bounce path across a gap (a reflect off a post still lands you short of 527px without boost).\n\nSIGNATURE / DISTINCT: the first level mixing pinball BUMPERS with lethal MINES (bumper_gauntlet is bumpers-only, minefield mines-only). One-sentence read: 'thread the pinball posts across the gaps and don't get ricocheted onto a side-island mine.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1580,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3160,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1190,
+      "y": 620,
+      "w": 100,
+      "h": 420,
+      "tier": "bumper"
+    },
+    {
+      "x": 2770,
+      "y": 620,
+      "w": 100,
+      "h": 420,
+      "tier": "bumper"
+    },
+    {
+      "x": 1680,
+      "y": 700,
+      "w": 130,
+      "h": 130,
+      "tier": "bumper"
+    },
+    {
+      "x": 2350,
+      "y": 700,
+      "w": 130,
+      "h": 130,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5280,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 450,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 3610,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "player_spawn",
+      "x": 150,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 750,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 2030,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3310,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3910,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 860
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2030,
+      "y": 760
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3610,
+      "y": 860
+    }
+  ],
+  "backdrop_painting": "space_nebula"
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Pinball Pit",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "PINBALL PIT — THE SCRAPWORKS tier-2 dense-bumper PINBALL stage (brawl_arena_expansion_2026-07-19 §Scrapworks row 8; the denser sibling of bumper_gauntlet). Three islands over a full-width void STUDDED with SIX free-standing NON-lethal BUMPER obstacles (two tall gap-guard posts + two flank blocks + two upper blocks), so nothing airborne flies straight. One elevated spring THRONE is the vertical prize. This is the SECOND static-bumper stage (after girder_gap's single post) — a full pinball table before the circuit moves to moving hazards. Kill identity = knock/carom rivals OFF into the void. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nBUMPER DOCTRINE: all six obstacles are tier=='bumper' (restitution 0.86, refund fuel), NON-lethal REFLECTORS, all kept > 560px inside the side blast lines (nearest bumper face x560, blast at x-610). They reshape airborne lines but are NEVER stepping stones: a zero-boost bounce-hop (max ~395px trampoline drift, falling) never completes a 680px crossing; a vertical post over a gap reflects the horizontal component and knocks a mistimed crosser back or into the void.\n\nGEOMETRY (symmetric about x=2030): three flat islands over ONE full-width void: A x0..900 top1080 (trampoline) / B x1580..2480 top1080 (bubblegum) / C x3160..4060 top1080 (trampoline), 680px void gaps. SIX bumpers: POST-L vertical x1220..1320 y620..1040 (over A<->B gap) / POST-R vertical x2740..2840 y620..1040 (over B<->C gap) / flank block-L x560..700 y620..760 (over A) / flank block-R x3360..3500 y620..760 (over C) / upper block-L x1700..1840 y380..520 / upper block-R x2220..2360 y380..520 (the high carom pair over B). ONE spring THRONE x3640..4020 top560 over island C (520px climb). Bounds -610..4670 x, top -2090, bottom 1878. VOID READS AS DEATH via pit_void_rendering. Overcast grey open_sky = a scrap pinball table.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline 270 / bubblegum 180 / spring 480; ~395px trampoline drift / ~527 max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; the guard post caroms a mistimed line off-axis. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- CLIMB to the high upper-block carom line (top380, ~700px above B) or the THRONE (top560, 520px above C): > 480 spring apex; a trampoline apex 270 from an island falls 300-400px short. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: island bottoms (1192-1208) to the bottom blast line (1878) = 670-686px of open sky (>= 650) -> a fuelled knock-off boosts back; a bumper in the fall path can kick a recovering player back over an island (lucky) or off-line into the void (unlucky). Verb: FLY.\n- Every 680px gap exceeds a spring bounce's 527px reach and the high line/throne sit > 480px above the islands, so NO route across or up exists without the jetpack. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the full scrap pinball table — six reflectors turn every boost into a ricochet gamble.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#8C877B",
+  "sky_bottom": "#14120F",
+  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "bubblegum" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1220, "y": 620, "w": 100, "h": 420, "tier": "bumper" },
+    { "x": 2740, "y": 620, "w": 100, "h": 420, "tier": "bumper" },
+    { "x": 560, "y": 620, "w": 140, "h": 140, "tier": "bumper" },
+    { "x": 3360, "y": 620, "w": 140, "h": 140, "tier": "bumper" },
+    { "x": 1700, "y": 380, "w": 140, "h": 140, "tier": "bumper" },
+    { "x": 2220, "y": 380, "w": 140, "h": 140, "tier": "bumper" },
+    { "x": 3640, "y": 560, "w": 380, "h": 48, "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 2030, "y": 1000 },
+    { "type": "player_spawn", "x": 3410, "y": 1000 },
+    { "type": "player_spawn", "x": 3760, "y": 1000 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 700 },
+    { "type": "powerup_spawner", "x": 3830, "y": 480 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

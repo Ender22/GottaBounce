@@ -1,0 +1,34 @@
+{
+  "name": "Swing Alley",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "SWING ALLEY — THE SCRAPWORKS tier-3 RHYTHM RUN (brawl_arena_expansion_2026-07-19 §Scrapworks row 15). Four islands over one full-width void, split by three 680px gaps, each guarded by a NON-lethal wrecking-ball PENDULUM on a staggered phase (0.0 / 0.33 / 0.66) — a rolling three-beat rhythm you must read to run the alley. A spring THRONE crowns the right. The balls are SHOVERS (<= 700px/s, no hitstun, never kill); the void is the killer. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%; >= 15% of void deaths hazard-assisted).\n\nHAZARD DOCTRINE (moving_hazard pendulum x3): each ball SHOVES a contacted body along the arm's motion direction, dwells ~0.8s up high at each apex (the clear beat), and dips into its gap centre over the void. STAGGERED phases (0.0/0.33/0.66) mean the three lanes peak their danger in sequence, so there is always at least one crossable gap — the alley is never fully locked. Balls are shovers, not stepping stones.\n\nGEOMETRY: four flat trampoline islands over ONE full-width void: A x0..900 top1080 / B x1580..2480 top1080 / C x3160..4060 top1080 / D x4740..5640 top1080, all separated by 680px void gaps. THREE pendulums, arm_len 700, arc_deg 150, period_s 3.4, radius 100, dwell_frac 0.24: HAZ1 pivot (1240,300) over the A<->B gap phase 0.0 / HAZ2 pivot (2820,300) over B<->C phase 0.33 / HAZ3 pivot (4400,300) over C<->D phase 0.66. Each ball's low dip centre (pivot.x,1000) reaches y1100 dead in its gap over the void; apexes park up high at ~(pivot.x +/- 676, 481). ONE spring THRONE x5160..5540 top560 over island D (520px climb). Bounds -610..6250 x, top -2090, bottom 1878 (island outer edges >= 610px inside the side blast; 670px recovery sky). VOID READS AS DEATH via pit_void_rendering. Overcast grey open_sky = a wrecking alley.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / spring 480; ~395px trampoline drift / ~527 max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAPS A<->B, B<->C, C<->D (each 680px over void, each a ball's lane): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. TIMING is load-bearing: cross each gap on its ball's apex dwell; the staggered phases mean the safe beat rolls down the alley. Verb: FLY (+ TIME).\n- CLIMB to the spring THRONE (top560): 520px above island D (1080); trampoline apex 270 reaches only y810 (270px short). JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER after a shove: the shove adds <= 700px/s with NO hitstun (full control), and island bottoms (1208) to the bottom blast line (1878) = 670px of open sky (>= 650) -> a fuelled shoved player boosts back (recovery gamble). Verb: FLY.\n- No ball creates a bounce path across a gap (a shove only ADDS speed toward the void); every 680px gap exceeds a spring bounce's 527px reach and the throne sits > 480px above the island, so NO route across or up exists without the jetpack. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the three-beat wrecking run — the scaled-up sibling of single_swing/wrecking_yard, a rhythm gauntlet where the safe window rolls along the alley.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#8C877B",
+  "sky_bottom": "#14120F",
+  "bounds": { "left": -610, "right": 6250, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 4740, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 5160, "y": 560, "w": 380, "h": 48, "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 6860, "h": 618, "wall_px": 120 },
+    { "type": "moving_hazard", "kind": "pendulum", "pivot": { "x": 1240, "y": 300 }, "arm_len": 700, "arc_deg": 150, "period_s": 3.4, "phase": 0.0, "radius": 100, "dwell_frac": 0.24 },
+    { "type": "moving_hazard", "kind": "pendulum", "pivot": { "x": 2820, "y": 300 }, "arm_len": 700, "arc_deg": 150, "period_s": 3.4, "phase": 0.33, "radius": 100, "dwell_frac": 0.24 },
+    { "type": "moving_hazard", "kind": "pendulum", "pivot": { "x": 4400, "y": 300 }, "arm_len": 700, "arc_deg": 150, "period_s": 3.4, "phase": 0.66, "radius": 100, "dwell_frac": 0.24 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 2030, "y": 1000 },
+    { "type": "player_spawn", "x": 3610, "y": 1000 },
+    { "type": "player_spawn", "x": 5190, "y": 1000 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 3610, "y": 900 },
+    { "type": "powerup_spawner", "x": 5350, "y": 480 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

@@ -11,45 +11,67 @@
 		"scrapworks": {
 			"display_name": "THE SCRAPWORKS",
 			"difficulty": 2,
-			"levels": ["bumper_gauntlet", "drop_chamber", "wrecking_yard", "the_ascent"]
+			"_comment": "20-arena ordered industrial arc (brawl_arena_expansion_2026-07-19.md): hazards introduced one family at a time (bumper -> drum -> non-lethal swing -> first lethal hammer/crusher -> carts).",
+			"levels": ["bumper_gauntlet", "drop_chamber", "wrecking_yard", "the_ascent", "scrap_flats", "girder_gap", "bolt_yard", "pinball_pit", "single_swing", "gantry_climb", "conveyor_run", "scrap_atoll", "first_hammer", "press_gate", "swing_alley", "hammer_and_swing", "crusher_row", "wrecking_towers", "moving_yard", "scrap_crusher_drum"]
 		},
 		"high_wire": {
 			"display_name": "THE HIGH WIRE",
 			"difficulty": 3,
-			"levels": ["atoll", "the_spine", "spires"]
+			"_comment": "18-arena ordered exposure arc (brawl_arena_expansion_2026-07-19.md): ridges/spires/radial/vertical, hazard-light — the fall is the danger. Capped at 18 (geometry-only variety saturates).",
+			"levels": ["atoll", "the_spine", "spires", "sky_stones", "catwalk", "wire_walk", "perch_line", "high_atoll", "stagger_spires", "zenith", "the_gauntlet_ridge", "twin_towers", "deep_spires", "pendulum_heights", "crosswind_pillars", "needle_ridge", "sky_ladder_brawl", "the_summit"]
 		},
 		"the_foundry": {
 			"display_name": "THE FOUNDRY",
 			"difficulty": 3,
-			"draw_count": 4,
+			"draw_count": 12,
 			"draw_mode": "shuffle",
-			"_comment": "Molten-factory gimmick circuit (v6_party_gimmicks_circuits.md §3.1 row 3). Signature mechanics: crusher + destructible_block + spinning_hammer + the COLLAPSING-ARENA finale, all validated Batch-1. First authored wave = 4 arenas on the flagship void_is_floor shape, tier-sorted into a mild->wild micro-arc each match (tier 1 press-row crusher on-ramp -> tier 2 destructible + multi-hazard -> tier 3 last-one-flying meltdown finale). FOLLOW-UP: grow the pool toward the v6 ~8-20 target (more crusher/hammer/destructible variants + a second collapsing layout). Unlock chain (top-level `order`): unlocks by WINNING high_wire OR the pity path (Settings progression, v6 §4).",
+			"_comment": "Molten-factory gimmick circuit — grown to 16 arenas (brawl_arena_expansion_2026-07-19.md): presses/crushers, destructibles/debris, spinning hammers, and 3 collapsing-arena finales. Each match shuffles + draws 12, tier-sorted mild->wild, so a session rarely repeats and gets a fresh set. Unlock chain: win high_wire OR the pity path.",
 			"pool": [
-				{ "id": "foundry_press_row", "tier": 1 },
-				{ "id": "foundry_crucible",  "tier": 2 },
-				{ "id": "foundry_smelter",   "tier": 2 },
-				{ "id": "foundry_meltdown",  "tier": 3 }
+				{ "id": "foundry_press_row",       "tier": 1 },
+				{ "id": "foundry_first_pour",      "tier": 1 },
+				{ "id": "foundry_droplets",        "tier": 1 },
+				{ "id": "foundry_single_hammer",   "tier": 1 },
+				{ "id": "foundry_slag_run",        "tier": 1 },
+				{ "id": "foundry_crucible",        "tier": 2 },
+				{ "id": "foundry_smelter",         "tier": 2 },
+				{ "id": "foundry_pour_line",       "tier": 2 },
+				{ "id": "foundry_press_gauntlet",  "tier": 2 },
+				{ "id": "foundry_hammer_and_pour", "tier": 2 },
+				{ "id": "foundry_crack_floor",     "tier": 2 },
+				{ "id": "foundry_press_and_crack", "tier": 3 },
+				{ "id": "foundry_inferno",         "tier": 3 },
+				{ "id": "foundry_meltdown",        "tier": 3 },
+				{ "id": "foundry_collapse_ring",   "tier": 3 },
+				{ "id": "foundry_cascade",         "tier": 3 }
 			]
 		},
 		"mayhem_mile": {
 			"display_name": "MAYHEM MILE",
 			"difficulty": 4,
-			"draw_count": 6,
+			"draw_count": 14,
 			"draw_mode": "shuffle",
-			"_comment": "The WILD gimmick-BRAWL circuit (v6). RANDOM-DRAW demo: a ~12-stage pool; each play shuffles + draws 6 + tier-sorts them into a mild->wild micro-arc, so every round is a fresh escalating set. tier 1 = single readable hazard on-ramp; tier 2 = a bigger single-family threat; tier 3 = multi-hazard chaos + the collapsing-arena finale. Every stage is a real BRAWL stage (off-screen-kill through-line, flight-required void gaps, symmetric telegraphed dodgeable hazards). The 8 gimmick stages are joined by 4 reused base/hazard stages to reach the ~10-12 pool.",
+			"_comment": "The WILD gimmick-BRAWL circuit — now 20 DEDICATED arenas (brawl_arena_expansion_2026-07-19.md): stopped borrowing wrecking_yard/bumper_gauntlet/drop_chamber/islands_void (owned by scrapworks/meadow now); added 12 new (mines, gravity wells, carts, multi-hazard, collapse finale). Each play shuffles + draws 14 tier-sorted mild->wild, so a session doesn't repeat and every match is a fresh escalating set.",
 			"pool": [
-				{ "id": "gauntlet_mine_lite", "tier": 1 },
-				{ "id": "hammer_arena", "tier": 1 },
-				{ "id": "wrecking_yard", "tier": 1 },
-				{ "id": "bumper_gauntlet", "tier": 1 },
-				{ "id": "gauntlet_twin_swing", "tier": 2 },
-				{ "id": "minefield", "tier": 2 },
-				{ "id": "gauntlet_dropzone", "tier": 2 },
-				{ "id": "hazard_yard", "tier": 2 },
-				{ "id": "drop_chamber", "tier": 2 },
+				{ "id": "gauntlet_mine_lite",   "tier": 1 },
+				{ "id": "hammer_arena",         "tier": 1 },
+				{ "id": "spark_yard",           "tier": 1 },
+				{ "id": "single_stomp",         "tier": 1 },
+				{ "id": "gauntlet_twin_swing",  "tier": 2 },
+				{ "id": "minefield",            "tier": 2 },
+				{ "id": "gauntlet_dropzone",    "tier": 2 },
+				{ "id": "hazard_yard",          "tier": 2 },
+				{ "id": "bumper_mines",         "tier": 2 },
+				{ "id": "moon_pit",             "tier": 2 },
+				{ "id": "swing_mines",          "tier": 2 },
+				{ "id": "cart_chaos",           "tier": 2 },
 				{ "id": "gauntlet_pandemonium", "tier": 3 },
-				{ "id": "meltdown_box", "tier": 3 },
-				{ "id": "islands_void", "tier": 1 }
+				{ "id": "meltdown_box",         "tier": 3 },
+				{ "id": "double_hammer",        "tier": 3 },
+				{ "id": "black_hole_brawl",     "tier": 3 },
+				{ "id": "press_and_mines",      "tier": 3 },
+				{ "id": "everything_yard",      "tier": 3 },
+				{ "id": "gravity_gauntlet",     "tier": 3 },
+				{ "id": "pandemonium_prime",    "tier": 3 }
 			]
 		}
 	}

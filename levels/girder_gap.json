@@ -1,0 +1,31 @@
+{
+  "name": "Girder Gap",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "GIRDER GAP — THE SCRAPWORKS tier-1 duel skeleton (brawl_arena_expansion_2026-07-19 §Scrapworks row 6). Two big trampoline DECKS over one full-width void, split by a single 680px pit, with ONE tall NON-lethal BUMPER GIRDER post standing in the gap so a boosted crossing can carom off-line. Two elevated bubblegum SHOULDERS give a vertical dimension. Introduces the STATIC BUMPER family in its simplest form (one post) before pinball_pit's denser field. Kill identity = knock rivals OFF a deck into the void. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nBUMPER DOCTRINE: the girder is a tier=='bumper' vertical post (restitution 0.86, refunds fuel), NON-lethal — it reflects the horizontal component of a body that hits it (a mistimed boost across the pit gets knocked back toward its deck or down into the void) but is NEVER a stepping stone: a zero-boost bounce-hop (max ~395px trampoline drift, falling) never completes the 680px crossing even with the post. The post is kept > 560px inside the side blast lines.\n\nGEOMETRY: LEFT deck x0..1400 top1080 / RIGHT deck x2080..3480 top1080 (both trampoline), split by a 680px void gap (edges x1400..x2080). ONE tall bumper GIRDER post x1690..1790 y620..1040 (h420) stands in the gap centre. Two bubblegum SHOULDERS: SH_L x200..600 top560 / SH_R x2880..3280 top560, each 520px above the decks (boost-only perches). Bounds -610..4090 x, top -2090, bottom 1878 (deck outer edges 610px inside the side blast; 670px recovery sky under the decks). VOID READS AS DEATH via pit_void_rendering. Overcast grey open_sky = a girder yard.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / bubblegum 180 / spring 480; ~395px trampoline drift / ~527 max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP L<->R (x1400..x2080 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. The girder post makes the boosted line CHAOTIC (carom off, re-aim) but never removes the boost need. Verb: FLY.\n- CLIMB to a bubblegum SHOULDER (top560): 520px above the deck top (1080). Trampoline apex 270 reaches only y810 (270px short). JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: deck bottoms (1208) to the bottom blast line (1878) = 670px of open sky (>= 650) -> a fuelled knock-off boosts back; the girder in the fall path can KICK a recovering player back over a deck (lucky) or off-line into the void (unlucky). Verb: FLY.\n- The 680px pit exceeds a spring bounce's 527px reach and the shoulders sit > 480px above the decks, so NO route across or up exists without the jetpack. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the single-post scrapworks pinball intro — one girder over one pit, the cleanest possible bumper lesson.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#8C877B",
+  "sky_bottom": "#14120F",
+  "bounds": { "left": -610, "right": 4090, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 2080, "y": 1080, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 1690, "y": 620, "w": 100, "h": 420, "tier": "bumper" },
+    { "x": 200, "y": 560, "w": 400, "h": 96, "tier": "bubblegum" },
+    { "x": 2880, "y": 560, "w": 400, "h": 96, "tier": "bubblegum" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 4700, "h": 618, "wall_px": 120 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 1000, "y": 1000 },
+    { "type": "player_spawn", "x": 2480, "y": 1000 },
+    { "type": "player_spawn", "x": 3180, "y": 1000 },
+    { "type": "player_spawn", "x": 400, "y": 480 },
+    { "type": "powerup_spawner", "x": 700, "y": 900 },
+    { "type": "powerup_spawner", "x": 3080, "y": 480 },
+    { "type": "powerup_spawner", "x": 2780, "y": 900 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

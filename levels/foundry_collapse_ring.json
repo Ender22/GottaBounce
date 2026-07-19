@@ -1,0 +1,38 @@
+{
+  "name": "Foundry: Collapse Ring",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: COLLAPSE RING — THE FOUNDRY circuit's RADIAL collapsing-arena finale (tier 3; brawl_arena_expansion_2026-07-19 Foundry row 15). A NEW collapse shape: a radial ring of destructible slag islands wraps around a central void WELL and erodes OUTER-IN — the outer base shelves melt first, then the mid shelves, then the upper perches, and finally the central throne, so the safe footing shrinks INWARD and UPWARD toward the center until everyone is airborne over the well. Last one still flying wins. Distinct from the linear finales (foundry_meltdown center-out, meltdown_box outer-in, foundry_cascade vertical): this is the radial one. Tier 3.\n\nFANTASY: 'the ring is melting inward — get pushed to the center and be the last one flying.' Fair NOT because it is recoverable but because EVERY island erodes on the SAME symmetric schedule (mirrored L/R pairs share a break_time) — no player keeps ground another loses; the central well is the shared killer, flight the shared escape.\n\nHOW IT'S BUILT (destructible_block only, no new mechanic): 7 destructible trampoline islands in a radial ring, erode outer-in in symmetric pairs: OUTER base BL/BR (top1120) break t3.5; MID shelves ML/MR (top560) break t5.5; UPPER perches TL/TR (top0) break t6.5; CENTRAL THRONE (top-520, over the well) break t8.5 (last). Every block telegraphs its break with growing CRACKS + a SHUDDER + a hazard-red flash for telegraph_s 1.0s BEFORE it vanishes, so you SEE the ring close and climb inward. KILL IDENTITY: falls into the exposed central well / off the outer rim = off-screen ring-out via kill(&ring_out); a rival who smashed you off within the 6.0s window is credited, a pure ran-out-of-ring fall is an uncredited self-fall (killer=-1). QA NOTE: expect a HIGH uncredited-self-fall share on this collapse archetype BY DESIGN (judge vs the meltdown note, not the standard >=88%).\n\nGEOMETRY (radial, centred x=0; central void WELL is the gap between the base shelves, x-1300..1300 = 2600px): OUTER base BL x-1900..-1300 top1120 / BR x1300..1900 top1120; MID ML x-1600..-1100 top560 / MR x1100..1600 top560; UPPER TL x-800..-300 top0 / TR x300..800 top0; THRONE x-200..200 top-520 (dead-centre over the well). ONE full-width void under the whole span (rim y1260). Bounds -2400..2400 x (mid/base outer edges ~500-600px inside the side blast lines = a fast outer-rim ring-out), top -3170 (throne top -520 minus 2650 clearance), bottom 1920 (>=672px recovery sky under the base). Molten open_sky (clouds off, horizon glow).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760; all islands trampoline so a bounce apex is only 270px):\n- WELL crossing BL<->BR (right edge x-1300 -> left edge x1300 = 2600px of open void): >> 527. NORMAL BOOST / SUPER REQUIRED; miss = fall into the central well. Verb: FLY.\n- CLIMB BL->ML (top1120 -> top560 = 560px up): > 480 spring apex and >> 270 trampoline. JETPACK CLIMB REQUIRED; an under-shot drops off the ring. Verb: FLY.\n- CLIMB ML->TL (top560 -> top0 = 560px up): JETPACK CLIMB REQUIRED. Verb: FLY.\n- CLIMB TL->THRONE (top0 -> top-520 = 520px up, over the open well): > 480 spring apex; a mis-aimed climb drops down the central column. JETPACK CLIMB REQUIRED. Verb: FLY.\n- TOP crossing TL<->TR (x-300..x300 = 600px over the well mouth): > 527. NORMAL BOOST REQUIRED. Verb: FLY. (right side mirrors left exactly.)\n- Every ring move is > 527 horizontal or > 480 vertical, and all surfaces are trampoline (apex 270), so zero-boost reaches NO neighbour: flight is REQUIRED to move at all. As the ring erodes outer-in the footing forces continuous flight; last one flying wins.\n\nSIGNATURE / DISTINCT: the only RADIAL collapse in the game. One-line read: 'the melting ring shoves everyone toward the center well — stay airborne and be the last one flying.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -2400,
+    "right": 2400,
+    "top": -3170,
+    "bottom": 1920
+  },
+  "platforms": [],
+  "objects": [
+    { "type": "void", "x": -2400, "y": 1260, "w": 4800, "h": 660, "wall_px": 120 },
+    { "type": "destructible_block", "mode": "erode", "group": "ring_base", "break_on": "timed", "telegraph_s": 1.0, "x": -1900, "y": 1120, "w": 600, "h": 128, "tier": "trampoline", "break_time": 3.5 },
+    { "type": "destructible_block", "mode": "erode", "group": "ring_base", "break_on": "timed", "telegraph_s": 1.0, "x": 1300, "y": 1120, "w": 600, "h": 128, "tier": "trampoline", "break_time": 3.5 },
+    { "type": "destructible_block", "mode": "erode", "group": "ring_mid", "break_on": "timed", "telegraph_s": 1.0, "x": -1600, "y": 560, "w": 500, "h": 112, "tier": "trampoline", "break_time": 5.5 },
+    { "type": "destructible_block", "mode": "erode", "group": "ring_mid", "break_on": "timed", "telegraph_s": 1.0, "x": 1100, "y": 560, "w": 500, "h": 112, "tier": "trampoline", "break_time": 5.5 },
+    { "type": "destructible_block", "mode": "erode", "group": "ring_top", "break_on": "timed", "telegraph_s": 1.0, "x": -800, "y": 0, "w": 500, "h": 96, "tier": "trampoline", "break_time": 6.5 },
+    { "type": "destructible_block", "mode": "erode", "group": "ring_top", "break_on": "timed", "telegraph_s": 1.0, "x": 300, "y": 0, "w": 500, "h": 96, "tier": "trampoline", "break_time": 6.5 },
+    { "type": "destructible_block", "mode": "erode", "group": "ring_throne", "break_on": "timed", "telegraph_s": 1.0, "x": -200, "y": -520, "w": 400, "h": 96, "tier": "trampoline", "break_time": 8.5 },
+    { "type": "player_spawn", "x": -1600, "y": 1040 },
+    { "type": "player_spawn", "x": 1600, "y": 1040 },
+    { "type": "player_spawn", "x": -1350, "y": 480 },
+    { "type": "player_spawn", "x": 1350, "y": 480 },
+    { "type": "player_spawn", "x": -550, "y": -80 },
+    { "type": "powerup_spawner", "x": 0, "y": -600 },
+    { "type": "powerup_spawner", "x": -1350, "y": 460 },
+    { "type": "powerup_spawner", "x": 1350, "y": 460 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

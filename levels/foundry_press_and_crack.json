@@ -1,0 +1,53 @@
+{
+  "name": "Foundry: Press and Crack",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: PRESS AND CRACK — THE FOUNDRY circuit's press+collapse pair (tier 3; brawl_arena_expansion_2026-07-19 Foundry row 13). A VERTICAL stamping press hammers the center island B while the RIGHT island C is a timed destructible cascade that erodes left-to-right and drops away entirely — so B is a permanent press-dodge deck and C is a shrinking collapse you get flushed off. Islands A and B (its edges) are permanent refuges, so the arena stays completable: the collapse of C reshapes the fight without stranding anyone. Two families (crusher + destructible collapse). Tier 3.\n\nDOCTRINE FIT: (A) PRESS on B (center x2030): vertical anvil crusher, LETHAL head via kill(&ring_out); long open dwell (head parked ~y740 high) then a windup SHUDDER + hazard-red FLASH for telegraph_lead 0.6s BEFORE a ~0.34s slam (period_s 2.8); narrow head_w 160 -> B's LEFT edge (x1580..1950) and RIGHT edge (x2110..2480) always clear; boost up above the parked head also clears a slam. (B) CASCADE on C (x3160..4060): three destructible slag blocks erode left-to-right (break_time 4.0/5.5/7.0) — each telegraphs growing CRACKS + a SHUDDER + a hazard flash for telegraph_s 1.0s BEFORE it vanishes; C is fully gone by ~7s and players are flushed to B/A. GI-1: islands A and B are PERMANENT (untouched by the collapse), so no crossing is ever stranded. FAIRNESS: no player spawns under the press or on C's first-to-go blocks; symmetric threat direction. CREDIT: a hazard/void kill with no attacker = uncredited self-fall (killer=-1); a rival knocked under the press or off collapsing C within the 6.0s ring-out window is credited.\n\nGEOMETRY (void_is_floor): A x0..900 top1080 (permanent REFUGE) / B x1580..2480 top1080 (permanent, PRESS center x2030) / C x3160..4060 top1080 (destructible CASCADE), separated by 680px void gaps. Bounds -610..4670 x, top -2090, bottom 1878 (>=650px recovery sky; outer edges 610px inside side blast lines). Molten open_sky (clouds off, horizon glow).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void, WIDENING as C's left blocks go): NORMAL BOOST REQUIRED at all times. Verb: FLY.\n- DODGE the press on B (shuffle to a clear edge on the beat / boost above the head); FLEE collapsing C on each block's 1.0s telegraph toward B/A. Neither reshaping removes a required landing (A and B are permanent). Verb: DODGE/FLY.\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the press times the fight on B, the cascade reshapes C — neither creates a bounce path across a gap.\n\nSIGNATURE / DISTINCT: the first Foundry stage pairing a live press with a SIDE-DECK collapse (foundry_crack_floor keeps all cores; this fully drops C). One-line read: 'dodge the pile-driver on the middle deck while the right island melts away — knock rivals under the press or off the crumbling edge.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": { "x": 2030, "y": 1080 },
+      "head_len": 160,
+      "head_w": 160,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.0,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    { "type": "destructible_block", "mode": "erode", "group": "pc_cascade", "break_on": "timed", "telegraph_s": 1.0, "x": 3160, "y": 1080, "w": 300, "h": 128, "tier": "trampoline", "break_time": 4.0 },
+    { "type": "destructible_block", "mode": "erode", "group": "pc_cascade", "break_on": "timed", "telegraph_s": 1.0, "x": 3460, "y": 1080, "w": 300, "h": 128, "tier": "trampoline", "break_time": 5.5 },
+    { "type": "destructible_block", "mode": "erode", "group": "pc_cascade", "break_on": "timed", "telegraph_s": 1.0, "x": 3760, "y": 1080, "w": 300, "h": 128, "tier": "trampoline", "break_time": 7.0 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 450, "y": 700 },
+    { "type": "player_spawn", "x": 1650, "y": 1000 },
+    { "type": "player_spawn", "x": 2410, "y": 1000 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 760 },
+    { "type": "powerup_spawner", "x": 3760, "y": 900 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

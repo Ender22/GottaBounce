@@ -1,0 +1,33 @@
+{
+  "name": "The Summit",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "dual_blast",
+  "design_intent": "THE SUMMIT — THE HIGH WIRE #18 (tier 3, lidded vertical finale — up AND down kill). The circuit's capstone: four tiers climb a narrow starfield shaft to a wide top deck sitting under a LOW lethal lid, over a deep void, walled by non-lethal bumpers. This is the only dual_blast stage in the High Wire — the top blast line is LOW enough that a boost/super/knock UPWARD off the summit deck kills on the lid, while a fall past the base still kills in the void. The finale tension: everyone climbs for the summit, but the summit is pinched between two death lines. kill_shape = dual_blast (walled shaft, lethal up-lid + down-void). Signature: the ascent shape with BOTH kill lines live (sky_ladder is open-top; the ridges/spires are single-void). Feel = 'fight to the summit and hold it — but a knock up hits the lid and a knock down is the abyss.'\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270 / spring 480; drift ~527 spring MAX; normal_boost_max 760, super 2800 rises ~2450). Tiers climb the shaft: T1 x-500..300 top1300 (trampoline base) / T2 x300..1000 top780 (spring) / T3 x-1000..-300 top260 (spring) / T4 x300..1000 top-260 (spring), each ~520px up; TOP DECK x-700..700 top-780 (trampoline, wide, w1400); bumper walls x-1280 and x1180:\n- CLIMB T1->T2->T3->T4->top deck: each rung is a ~500-520px vertical climb to a sideways-offset tier. The lower tiers are SPRING (apex 480, launching UP toward the next rung) but still fall ~40px short of the 520 rise and land sideways, so a boost is needed to complete each rung. JETPACK CLIMB REQUIRED; an under-shot drops down the shaft. Verb: FLY. (Rule B, >= 500.)\n- THE LID (dual_blast up-kill): the top deck is TRAMPOLINE (apex 270 -> reaches y-1050, safely under the lid at y-1180), so normal bouncing on the summit is safe; but a boost, super, or upward KNOCK off the deck crosses the y-1180 blast line and rings out UP. Holding the summit means staying between the lid above and the void below. Verb: DODGE (vertical).\n- BUMPER WALLS: non-lethal reflectors (tier bumper) keep the shaft tight and ricochet a wide climber back in; they never kill.\n- RECOVER: T1 bottom 1428 -> bottom blast line 2128 = 700px of recovery sky under the base (>= 650, Rule D); a knock off an upper tier falls the shaft. Down kills at the void, UP kills at the lid — both blast lines are load-bearing.\n- No bounce completes any 500-520px rung, so the jetpack is required to move at all. Vertical distance IS the level; the lid makes UP lethal too.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": { "left": -1300, "right": 1300, "top": -1180, "bottom": 2128 },
+  "platforms": [
+    { "x": -500,  "y": 1300, "w": 800,  "h": 128,  "tier": "trampoline" },
+    { "x": 300,   "y": 780,  "w": 700,  "h": 64,   "tier": "spring" },
+    { "x": -1000, "y": 260,  "w": 700,  "h": 64,   "tier": "spring" },
+    { "x": 300,   "y": -260, "w": 700,  "h": 64,   "tier": "spring" },
+    { "x": -700,  "y": -780, "w": 1400, "h": 64,   "tier": "trampoline" },
+    { "x": -1280, "y": -720, "w": 100,  "h": 2148, "tier": "bumper" },
+    { "x": 1180,  "y": -720, "w": 100,  "h": 2148, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": -1300, "y": 1440, "w": 2600, "h": 688, "wall_px": 120 },
+    { "type": "player_spawn", "x": -100, "y": 1220 },
+    { "type": "player_spawn", "x": 650,  "y": 700 },
+    { "type": "player_spawn", "x": -650, "y": 180 },
+    { "type": "player_spawn", "x": 650,  "y": -340 },
+    { "type": "player_spawn", "x": 0,    "y": -860 },
+    { "type": "powerup_spawner", "x": 0,    "y": -860 },
+    { "type": "powerup_spawner", "x": 650,  "y": 700 },
+    { "type": "powerup_spawner", "x": -650, "y": 180 }
+  ]
+}

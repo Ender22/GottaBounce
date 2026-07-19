@@ -1,0 +1,130 @@
+{
+  "name": "Black Hole Brawl",
+  "version": 1,
+  "theme": "grass",
+  "mode": "brawl",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "horizon_glow": false,
+  "design_intent": "MAYHEM MILE 16 (tier 3) — a lethal-core gravity well at the heart of a six-island ring. A strong central GRAVITY_SOURCE (black_hole, radial pull g 1100 inside radius 1600) with a LETHAL CORE (lethal_core_r 90): the middle of the arena is a killer. Six trampoline islands orbit it in a symmetric ring; the well bends every arc INWARD, so a lazy boost decays toward the core and every knockback is amplified toward the centre. Read the pull, hold your orbit, and smash rivals into the core or off the ring into the void. Reuses the shipped gravity_source (radial field + lethal core via the existing Hazard kill path) -> core contact = kill(&ring_out). kill_shape void_is_floor -> QA K1'.\n\nRISK NOTE (carried from singularity.json's live-measure): a lethal core CAN become a bot-suicide blender (screen-down-biased recovery orbit-decays into the middle -> many UNCREDITED core deaths). Mitigations here: (a) modest core (r 90) with the field ring drawn so the danger reads; (b) islands sit far out (~1500 from centre) with a wide safe orbit band; (c) g 1100 is firm but not a vortex; (d) six anchor islands give constant footing to break a decaying orbit. QA should watch uncredited-core-death share; if it dominates, drop lethal_core_r to 0 (a bumper core, like moon_pit) -- flagged, not assumed.\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- the core instakills on contact via kill(&ring_out); no new death path/scorer; the void + bounds are the other shared killers. (2) TELEGRAPHY -- the gravity_source draws its field-extent ring (radius 1600) AND the lethal core is a distinct black event-horizon disc you can always see and avoid. (3) FAIRNESS -- strictly symmetric: six identical islands hexagonally about (x2200,y650), equal pull, no death seat; the safe orbit band (island radius ~1500 vs core r 90) is huge. (4) CREDIT -- a core/void death with no attacker = uncredited self-fall; a rival smashed into the core / off the ring within 6.0s is credited. No environment scorer.\n\nGEOMETRY (radial hexagon, symmetric about x2200): gravity_source at (2200,650), radius 1600, g 1100, lethal_core_r 90, visual black_hole, body_r 0. Six trampoline islands (h120): LEFT x400..1000 top y600, RIGHT x3400..4000 top y600, TOP-LEFT x900..1500 top y-50, TOP-RIGHT x2900..3500 top y-50, BOT-LEFT x900..1500 top y1250, BOT-RIGHT x2900..3500 top y1250. Bounds left -200, right 4600, top -750, bottom 2030 (>= 660px recovery sky under the BOT islands bottom y1370; ~700px clear above the TOP islands). Bottom VOID x-200 y1500 w4800 h530, wall_px 120, reads as death via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; the well BENDS all arcs inward, so effective reach ACROSS the ring is even shorter):\n- Adjacent ring hops (e.g. LEFT x1000-edge to TOP-LEFT x900-edge = a ~650px climb from y600 to y-50 with x-overlap; LEFT to BOT-LEFT the mirror): each is a climb near/over spring-apex with the well pulling you back toward the core. NORMAL BOOST REQUIRED; you boost across the pull, not with it. Verb: FLY (+ fight the pull).\n- Cross-ring hops (TOP-LEFT x1500 to TOP-RIGHT x2900 = 1400px straight over the core): the lethal core blocks the straight line -- you MUST arc a boosted route around it. Verb: FLY (+ avoid core).\n- Zero-boost off any island decays INWARD toward the core/void (never reaches a neighbour): flight is REQUIRED to hold an orbit or cross; the well never closes a crossing below the flight threshold, it only bends the required boost line. No bounce path exists between islands.\n\nSIGNATURE / DISTINCT: the only Mayhem arena with a LETHAL gravity core (moon_pit's core is a bounce body). One-sentence read: 'hold your orbit on the ring, avoid the hungry core, and smash rivals into it or off into the void.'",
+  "sky_top": "#0B1030",
+  "sky_bottom": "#02030C",
+  "bounds": {
+    "left": -200,
+    "top": -750,
+    "right": 4600,
+    "bottom": 2030
+  },
+  "platforms": [
+    {
+      "x": 400,
+      "y": 600,
+      "w": 600,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3400,
+      "y": 600,
+      "w": 600,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 900,
+      "y": -50,
+      "w": 600,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2900,
+      "y": -50,
+      "w": 600,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 900,
+      "y": 1250,
+      "w": 600,
+      "h": 120,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2900,
+      "y": 1250,
+      "w": 600,
+      "h": 120,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -200,
+      "y": 1500,
+      "w": 4800,
+      "h": 530,
+      "wall_px": 120
+    },
+    {
+      "type": "gravity_source",
+      "x": 2200,
+      "y": 650,
+      "radius": 1600,
+      "g": 1100,
+      "lethal_core_r": 90,
+      "visual": "black_hole",
+      "body_r": 0
+    },
+    {
+      "type": "player_spawn",
+      "x": 700,
+      "y": 520
+    },
+    {
+      "type": "player_spawn",
+      "x": 3700,
+      "y": 520
+    },
+    {
+      "type": "player_spawn",
+      "x": 1200,
+      "y": -130
+    },
+    {
+      "type": "player_spawn",
+      "x": 3200,
+      "y": -130
+    },
+    {
+      "type": "player_spawn",
+      "x": 1200,
+      "y": 1170
+    },
+    {
+      "type": "player_spawn",
+      "x": 3200,
+      "y": 1170
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1500,
+      "y": 650
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2900,
+      "y": 650
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2200,
+      "y": 1050
+    }
+  ],
+  "backdrop_painting": "space_nebula"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "Catwalk",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "CATWALK — THE HIGH WIRE #5 (tier 1, one long thin ridge). A single 1400px razor-thin trampoline ridge (h56) hangs alone in a dusk sky over a deep void, flanked by TWO low spring recovery pads set 560px OUT past each ridge end (and ~380px lower). No elevated perches, no throne — the whole level is the exposed strip and the two committed re-entry pads. The calmest ridge in the circuit, but flight is required from the first second: spawns sit on the low pads, so reaching the catwalk means boosting the 560px gap up-and-in, and any knock off the thin ridge is a recovery gamble across that same gap. kill_shape = void_is_floor. Signature: the pure single-ridge exposure primer (the_spine is shorter with high perches + throne; wire_walk splits into two ridges). Feel = 'walk the wire in the open sky; one clean line, a long fall on either side.'\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270 / spring 480; drift ~395 trampoline / ~527 spring MAX; normal_boost_max 760 crosses 560px in <0.9s @ ~22 fuel; super 2800 clears all). Ridge trampoline x0..1400 top820; left spring pad x-840..-560 top1200; right spring pad x1960..2240 top1200:\n- REACH the ridge from a pad (or a pad from the ridge): ridge-end-to-pad = 560px of open void each side. 560 > 527 (max spring drift) and >> 395 (trampoline). NORMAL BOOST REQUIRED both directions; a spring bounce off a pad drifts at most ~527px and drops into the void. Verb: FLY. (Rule A.)\n- RECOVER after a knock off the thin ridge: ridge bottom 876 -> bottom blast line 1944 = 1068px of open sky over the void (>= 650, Rule D) -> a fuelled player boosts back onto the wire; a near-brink smash or a starved victim rings out. The pads sit only ~160px inside the side blast, so a knock OUTWARD off a pad is a fast, less-recoverable side/void ring-out. Verb: FLY.\n- The thin ridge gives no wide runway and the pads are only reachable by boost, so the jetpack is required to move at all. Horizontal distance is the entire level, not scenery.",
+  "backdrop": "open_sky",
+  "clouds": true,
+  "sky_top": "#3A3A72",
+  "sky_bottom": "#E7A867",
+  "bounds": { "left": -1000, "right": 2420, "top": -1830, "bottom": 1944 },
+  "platforms": [
+    { "x": 0,     "y": 820,  "w": 1400, "h": 56, "tier": "trampoline" },
+    { "x": -840,  "y": 1200, "w": 280,  "h": 44, "tier": "spring" },
+    { "x": 1960,  "y": 1200, "w": 280,  "h": 44, "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -1000, "y": 980, "w": 3420, "h": 964, "wall_px": 120 },
+    { "type": "player_spawn", "x": 300,  "y": 740 },
+    { "type": "player_spawn", "x": 700,  "y": 740 },
+    { "type": "player_spawn", "x": 1100, "y": 740 },
+    { "type": "player_spawn", "x": -700, "y": 1120 },
+    { "type": "player_spawn", "x": 2100, "y": 1120 },
+    { "type": "powerup_spawner", "x": 700,  "y": 560 },
+    { "type": "powerup_spawner", "x": -700, "y": 1040 },
+    { "type": "powerup_spawner", "x": 2100, "y": 1040 }
+  ]
+}

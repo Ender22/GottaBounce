@@ -1,0 +1,162 @@
+{
+  "name": "Press and Mines",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 17 (tier 3) — presses, mines and a pulse bomb at once. A three-island / one-void arena whose WIDE centre deck B carries TWO offset vertical stamping presses AND a periodic FUSE bomb between them, with a proximity LANDMINE on each flank island (A and C). Three lethal families stacked on a symmetric flagship: weave the presses, respect the centre pulse, and don't get knocked onto a flank mine. Reuses shipped Crusher (vertical anvil) + Bomb (fuse + proximity mines), all -> kill(&ring_out). kill_shape void_is_floor -> QA K1'.\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- press heads, the fuse blast core, and mine inner radii all instakill via kill(&ring_out); the only added force is the shipped radial knockback (no new death path/scorer). (2) TELEGRAPHY -- each press has a ~1.6s open dwell then a 0.6s windup flash before a fast slam; the fuse bomb counts a visible fuse + expanding ring (telegraph_lead 1.2s); each mine shows a pulsing trigger ring + 0.9s warning ring. (3) FAIRNESS -- the two presses are NARROW (head_w 150) on offset phase (0.0/0.5) so they never both slam at once; B's LEFT edge (x1500..1825), the CENTRE lane (x1975..2425, where the fuse bomb sits -- lethal only on its telegraphed pulse), and the RIGHT edge (x2575..2900) are the shifting refuges; flank mines sit at A/C centres, symmetric, >= 350px from every spawn. (4) CREDIT -- any hazard kill with no attacker = uncredited self-fall; a rival knocked under a press / into the blast / onto a mine within 6.0s is credited. No environment scorer.\n\nGEOMETRY (symmetric void_is_floor about x2200): trampoline islands A x0..900 top1080 / B x1500..2900 top1080 (WIDE deck w1400) / C x3500..4400 top1080, separated by 600px void gaps. Two vertical anvil CRUSHERS on B at center x1900 (phase 0.0) and x2500 (phase 0.5): head_len 160, head_w 150, open_gap 520, closed_gap 40, period_s 2.8, close_time 0.34, closed_time 0.2, retract_time 0.5, telegraph_lead 0.6. Central FUSE bomb at (2200,1030): fuse_s 3.0, recur 4.5, blast_radius 320, kill_radius 160, telegraph_lead 1.2. MINES at A centre (450,1030) and C centre (3950,1030): proximity, trigger_radius 170, kill_radius 150, blast_radius 300, telegraph_lead 0.9, recur 6.0. Bounds -610..5010 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; normal_boost_max 760 crosses 600 in ~0.8s):\n- GAP A<->B (island edges x900..1500 = 600 over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall. Verb: FLY.\n- GAP B<->C (x2900..3500 = 600 over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the presses on B: weave into a clear edge/centre lane on the 1.6s open beat, or boost above the parked heads. Verb: DODGE (+ TIME).\n- DODGE the centre pulse: clear the fuse bomb's expanding ring before it blows. DODGE the flank mines on A/C: keep off the trigger ring, especially after a knockback. Verb: DODGE (+ READ).\n- Zero-boost off any island reaches NO other surface across a 600px gap: flight is REQUIRED. No hazard creates a bounce path or makes a required crossing uncrossable -- the presses/bomb threaten only B's lanes (leaving edges + A/C clear), the mines sit at flank centres.\n\nSIGNATURE / DISTINCT: three lethal families (press + fuse + mines) on one deck (single_stomp is one press; spark_yard one bomb). One-sentence read: 'weave the pile-drivers, respect the centre pulse, and keep clear of the flank mines.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -610,
+    "right": 5010,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1500,
+      "y": 1080,
+      "w": 1400,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3500,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5620,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": {
+        "x": 1900,
+        "y": 1080
+      },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.0,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": {
+        "x": 2500,
+        "y": 1080
+      },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.5,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "bomb",
+      "trigger": "fuse",
+      "x": 2200,
+      "y": 1030,
+      "blast_radius": 320,
+      "kill_radius": 160,
+      "fuse_s": 3.0,
+      "telegraph_lead": 1.2,
+      "recur": 4.5
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 450,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "bomb",
+      "trigger": "proximity",
+      "x": 3950,
+      "y": 1030,
+      "blast_radius": 300,
+      "kill_radius": 150,
+      "trigger_radius": 170,
+      "telegraph_lead": 0.9,
+      "recur": 6.0
+    },
+    {
+      "type": "player_spawn",
+      "x": 120,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 780,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 1560,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3620,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 4280,
+      "y": 1000
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 1200,
+      "y": 820
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2200,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3700,
+      "y": 820
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

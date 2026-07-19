@@ -1,0 +1,121 @@
+{
+  "name": "Double Hammer",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 15 (tier 3) — two anti-phase rotors on one wide deck. A three-island / one-void arena whose WIDE centre deck B is stamped by TWO lethal spinning_hammers on offset phase (0.0/0.5) so a clear beat always alternates between them: the middle strip is the shifting refuge you shuffle along as the blades trade sweeps. Reuses the shipped SpinningHammer -> head contact = kill(&ring_out). kill_shape void_is_floor -> QA K1'.\n\nDOCTRINE FIT (§2.0): (1) LETHAL -- each head instakills on contact via kill(&ring_out); no impulse/hitstun/shove. (2) TELEGRAPHY -- two single bold blades on a slow readable period (4.0s), each painting a hazard-red swept arc with a ~0.96s apex DWELL (dwell_frac 0.24); arc_deg 150 (< 360) so a >= 120deg clear window always returns. (3) FAIRNESS -- the two hammers run OFFSET phase (0.0/0.5) so they are NEVER both mid-slam over the same spot at once: while blade 1 sweeps its half, blade 2 dwells high at its apex, and vice-versa -- a clear standing band always exists on B (the centre strip x~2200..2300 sees both blades only at mid-arc HEIGHT, above a standing player), plus islands A and C are permanent refuges. NO player spawns on island B (both blades live from load); all spawns on A/C incl. 1 elevated. (4) CREDIT -- a hammer kill with no attacker = uncredited self-fall; a rival knocked into a blade within 6.0s is credited by the ring-out window. No environment scorer.\n\nGEOMETRY (symmetric void_is_floor about x2250): trampoline islands A x0..900 top1080 / B x1600..2900 top1080 (WIDE deck w1300, the twin-rotor floor) / C x3600..4500 top1080, separated by 700px void gaps. Hammer 1 pivot (1950,480), Hammer 2 pivot (2550,480); both arm_len 590, arc_deg 150, period_s 4.0, radius 70, head_len 160, head_w 104, dwell_frac 0.24, phase 0.0 / 0.5. At bottom-swing each head sits at (pivot_x,1070) = body height over B; toward its apexes it lifts to ~y633 out over B's ends. Bounds -610..5110 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; normal_boost_max 760 crosses 700 in ~0.95s):\n- GAP A<->B (island edges x900..1600 = 700 over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall. Verb: FLY.\n- GAP B<->C (x2900..3600 = 700 over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the twin rotors on B: ride the alternating clear beat -- when blade 1 sweeps down, blade 2 is dwelling high (and its half is safe), so shuffle to the resting blade's side or hold the centre strip where both pass only at height; a mistimed step into a downswing = instant off-screen kill. Verb: DODGE (+ TIME).\n- Zero-boost off any island reaches NO other surface across a 700px gap: flight is REQUIRED. The hammers stay over B (their arcs lift high and out over the gaps at the crossing altitude only briefly), never sweep A/C, and never create a bounce path -- required crossings stay crossable, the fight on B is reshaped/timed.\n\nSIGNATURE / DISTINCT: TWO rotors on ONE wide deck trading beats (hammer_arena is one rotor; gauntlet_twin_swing puts one hammer over each GAP). One-sentence read: 'dance the middle deck between two swinging blades and knock rivals into one or off into the pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -610,
+    "right": 5110,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1600,
+      "y": 1080,
+      "w": 1300,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3600,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5720,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 1950,
+        "y": 480
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.0,
+      "phase": 0.0,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "spinning_hammer",
+      "pivot": {
+        "x": 2550,
+        "y": 480
+      },
+      "arm_len": 590,
+      "arc_deg": 150,
+      "period_s": 4.0,
+      "phase": 0.5,
+      "radius": 70,
+      "head_len": 160,
+      "head_w": 104,
+      "dwell_frac": 0.24
+    },
+    {
+      "type": "player_spawn",
+      "x": 150,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 750,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3750,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 4350,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 450,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2250,
+      "y": 760
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 4050,
+      "y": 900
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

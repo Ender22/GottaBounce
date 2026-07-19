@@ -1,0 +1,33 @@
+{
+  "name": "Gantry Climb",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "GANTRY CLIMB — THE SCRAPWORKS tier-2 VERTICAL scrap tower (brawl_arena_expansion_2026-07-19 §Scrapworks row 10; the open-top sibling of the_ascent). Four tiers zigzag UP a narrow shaft over a bottom void, sealed on the sides by NON-lethal BUMPER walls, but with an OPEN top (NO lethal lid) so the only killer is the void below — a pure recovery-gamble climb, not a dual-blast. Kill identity = knock rivals DOWN off a tier into the void; sideways knocks ricochet off the bumper walls back into the channel. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%; top kills rare, this is NOT the lidded ascent).\n\nGEOMETRY (a walled vertical shaft, inner faces x0..1600; four tiers zigzag up over ONE bottom void): T1 base trampoline x540..1060 top1400 (center 800) / T2 spring x150..610 top880 (center 380) / T3 spring x990..1450 top360 (center 1220) / T4 trampoline x300..1300 top-160 (center 800, the wide top deck, OPEN above). LEFT + RIGHT vertical BUMPER walls x-100..0 and x1600..1700, y-260..1620, seal the sides NON-lethally. ONE full-shaft-width bottom void (rim y1560). Bounds left -500 / right 2100 (outside the walls, failsafes), TOP -2650 (HIGH and open, top kills rare), bottom 2200 (672px recovery sky under the base). VOID READS AS DEATH via pit_void_rendering. Dusk-gold open_sky = a scrap gantry at dusk.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / spring apex 480 (the highest bounce); normal_boost_accel 4600 > gravity 1600 => sustained climb; super rises 2450px). The required traversal is entirely VERTICAL CLIMBS (each a 520px rise, > the 480 spring apex, with a horizontal offset = a diagonal boost arc):\n- CLIMB T1->T2: 520px UP (1400->880) AND ~420px horizontal (center 800->380). A trampoline bounce off T1 reaches only y1130 (270px short). JETPACK CLIMB REQUIRED; an under-shot drops into the void. Verb: FLY.\n- CLIMB T2->T3: 520px UP (880->360) AND ~840px horizontal (380->1220). A spring bounce off T2 reaches y400 (40px short AND far sideways). JETPACK CLIMB REQUIRED. Verb: FLY.\n- CLIMB T3->T4: 520px UP (360->-160) to the wide top deck. > 480 spring apex (spring off T3 reaches y-120, 40px short). JETPACK CLIMB REQUIRED; a mis-aimed climb drops back down the shaft. Verb: FLY.\n- RECOVER: knocked off a tier you fall toward the void; the base bottom (1528) to the bottom blast line (2200) = 672px of open sky (>= 650) -> a fuelled player boosts to catch a lower tier or arc back (recovery gamble); a sideways knock RICOCHETS off a bumper wall back into the channel (non-lethal). Verb: FLY.\n- Every tier-to-tier rise (520px) exceeds the 480px spring apex (the highest bounce), so zero-boost reaches NO tier above it; a bumper wall only redirects an airborne body horizontally, it never lifts you the 520px. NO climb without the jetpack. Vertical distance is the entire level, not scenery.\n\nSIGNATURE: the open-top scrap ascent — you climb the gantry on the jetpack, and the only death is the fall (no lethal lid), so it reads as pure recovery nerve inside the circuit's vertical slot.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#141939",
+  "sky_bottom": "#120C10",
+  "bounds": { "left": -500, "right": 2100, "top": -2650, "bottom": 2200 },
+  "platforms": [
+    { "x": 540, "y": 1400, "w": 520, "h": 128, "tier": "trampoline" },
+    { "x": 150, "y": 880, "w": 460, "h": 96, "tier": "spring" },
+    { "x": 990, "y": 360, "w": 460, "h": 96, "tier": "spring" },
+    { "x": 300, "y": -160, "w": 1000, "h": 96, "tier": "trampoline" },
+    { "x": -100, "y": -260, "w": 100, "h": 1880, "tier": "bumper" },
+    { "x": 1600, "y": -260, "w": 100, "h": 1880, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": 0, "y": 1560, "w": 1600, "h": 640, "wall_px": 120 },
+    { "type": "player_spawn", "x": 800, "y": 1320 },
+    { "type": "player_spawn", "x": 380, "y": 800 },
+    { "type": "player_spawn", "x": 1220, "y": 280 },
+    { "type": "player_spawn", "x": 500, "y": -240 },
+    { "type": "player_spawn", "x": 1100, "y": -240 },
+    { "type": "powerup_spawner", "x": 800, "y": -240 },
+    { "type": "powerup_spawner", "x": 380, "y": 740 },
+    { "type": "powerup_spawner", "x": 800, "y": 1300 }
+  ],
+  "backdrop_painting": "dusk_gold"
+}

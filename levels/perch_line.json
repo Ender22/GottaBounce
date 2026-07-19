@@ -1,0 +1,32 @@
+{
+  "name": "Perch Line",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "PERCH LINE — THE HIGH WIRE #7 (tier 2, five tiny perches). Five small bubblegum perches (600px wide) strung over a deep starfield void, separated by 600px gaps, with one central spring throne. No wide runways anywhere: every landing is a committed hop onto a narrow perch, so a launched player rarely re-lands cleanly. Raises the exposure past the ridges by shrinking the footing. kill_shape = void_is_floor. Signature: the narrow-footing committed-hop line (Sky Stones is wide decks; the spires add big vertical offsets). Feel = 'thread five stepping stones over the deep; every boost has to stick a tiny landing.'\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: bubblegum apex 180 / spring 480; drift ~320 bubblegum / ~527 spring MAX; normal_boost_max 760 crosses 600px in ~0.9s @ ~24 fuel; super 2800 clears all). Perches P1(0..600) P2(1200..1800) P3(2400..3000) P4(3600..4200) P5(4800..5400), all top y1000 bubblegum; throne spring x2520..2880 top460:\n- GAP P1<->P2<->P3<->P4<->P5: each perch-edge gap = 600px over the void. 600 > 527 (max spring drift) and >> 320 (bubblegum drift). NORMAL BOOST REQUIRED on every crossing; miss = fall into the deep void. Verb: FLY. (Rule A.)\n- CLIMB to the THRONE (top y460): 540px above the perch tops (1000), over the open P2<->P3 span. Bubblegum apex 180 reaches only y820 -> far short; an under-shot drops into the void. JETPACK CLIMB REQUIRED. Verb: FLY (+ SUPER earns it). (Rule B, >= 520.)\n- RECOVER: perch bottom 1096 -> bottom blast line 2000 = 904px of open sky (>= 650, Rule D) -> a fuelled knock-off boosts back to A perch, but the tiny tops make the landing a real gamble. Verb: FLY.\n- No bounce clears any 600px gap or the 540px throne climb, so the jetpack is required to move at all. Vertical AND horizontal distance are load-bearing, not scenery.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": { "left": -100, "right": 5500, "top": -2190, "bottom": 2000 },
+  "platforms": [
+    { "x": 0,    "y": 1000, "w": 600, "h": 96, "tier": "bubblegum" },
+    { "x": 1200, "y": 1000, "w": 600, "h": 96, "tier": "bubblegum" },
+    { "x": 2400, "y": 1000, "w": 600, "h": 96, "tier": "bubblegum" },
+    { "x": 3600, "y": 1000, "w": 600, "h": 96, "tier": "bubblegum" },
+    { "x": 4800, "y": 1000, "w": 600, "h": 96, "tier": "bubblegum" },
+    { "x": 2520, "y": 460,  "w": 360, "h": 48, "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -100, "y": 1140, "w": 5600, "h": 860, "wall_px": 120 },
+    { "type": "player_spawn", "x": 300,  "y": 920 },
+    { "type": "player_spawn", "x": 1500, "y": 920 },
+    { "type": "player_spawn", "x": 2700, "y": 920 },
+    { "type": "player_spawn", "x": 3900, "y": 920 },
+    { "type": "player_spawn", "x": 5100, "y": 920 },
+    { "type": "powerup_spawner", "x": 2700, "y": 380 },
+    { "type": "powerup_spawner", "x": 900,  "y": 900 },
+    { "type": "powerup_spawner", "x": 4500, "y": 900 }
+  ]
+}

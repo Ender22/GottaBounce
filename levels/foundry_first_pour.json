@@ -1,0 +1,51 @@
+{
+  "name": "Foundry: First Pour",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: FIRST POUR — THE FOUNDRY circuit's crusher ON-RAMP (tier 1; brawl_arena_expansion_2026-07-19 Foundry row 5). A single VERTICAL stamping press on the center island B of the validated flagship three-island / one-void shape (mirrors foundry_press_row but ONE press, not two, with a LONGER open dwell and a NARROW head = the gentlest possible introduction to the mechanic). The press hammers straight DOWN onto B on a slow readable rhythm; the safe beat is a long open dwell with the head parked HIGH, and B's LEFT edge, RIGHT edge and both flanking islands are permanent refuges. Single-family (crusher only), lowest Foundry tier.\n\nDOCTRINE FIT: (1) LETHAL — the descending head instakills on contact via kill(&ring_out); no shove/hitstun (same path as press_row). (2) TELEGRAPHY — a long ~2.3s OPEN DWELL (head parked at center ~y740, well above a standing player's head) then a windup SHUDDER + hazard-red FLASH for telegraph_lead 0.6s BEFORE a fast ~0.34s slam (period_s 3.4). (3) FAIRNESS — the head is NARROW (head_w 160 -> lethal band x~1950..2110); B's LEFT edge (x1580..1950) and RIGHT edge (x2110..2480) are ALWAYS clear standing refuges, and islands A/C are permanent hazard-free refuges. Boosting UP above the parked head also clears a slam. NO player spawns on B (spawns on A/C only). (4) CREDIT — a press kill with no attacker = uncredited self-fall (killer=-1); a rival who knocked the victim under the press within the 6.0s ring-out window is credited; the press never sets last_attacker.\n\nGEOMETRY (symmetric flagship void_is_floor): three flat trampoline islands over ONE full-width void: A x0..900 top1080 / B x1580..2480 top1080 (the PRESS, center x2030) / C x3160..4060 top1080, separated by 680px void gaps. Bounds -610..4670 x, top -2090, bottom 1878 (>=650px recovery sky; outer edges 610px inside side blast lines). Molten open_sky (clouds off, horizon glow) = a smelting works.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 (max spring drift) and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (island edges x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the press on B: shuffle to a clear edge on the long open beat, or boost up above the parked head; a mistimed stand under a slam = instant off-screen kill. Verb: DODGE (+ TIME).\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the press reshapes/times the fight on B, it never creates a bounce path across a gap and leaves the island edges + A/C clear.\n\nSIGNATURE / DISTINCT: the gentlest single-press on-ramp (foundry_press_row runs TWO offset presses; this is ONE with a longer dwell). One-line read: 'time one dash under the pile-driver, or knock a rival beneath it.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": { "x": 2030, "y": 1080 },
+      "head_len": 160,
+      "head_w": 160,
+      "open_gap": 540,
+      "closed_gap": 40,
+      "period_s": 3.4,
+      "phase": 0.0,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 3410, "y": 1000 },
+    { "type": "player_spawn", "x": 3760, "y": 1000 },
+    { "type": "player_spawn", "x": 450, "y": 700 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 760 },
+    { "type": "powerup_spawner", "x": 3610, "y": 900 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

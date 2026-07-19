@@ -1,0 +1,30 @@
+{
+  "name": "First Hammer",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FIRST HAMMER — THE SCRAPWORKS' FIRST LETHAL HAZARD (tier 2; brawl_arena_expansion_2026-07-19 §Scrapworks row 13). The validated flagship three-island / one-void shape with ONE spinning rotor HAMMER mounted over the CENTRE island — the circuit's introduction to a lethal machine after the static bumpers and non-lethal swings. The blade is LETHAL on contact (routes to the existing kill(&ring_out) pipeline, the same path spikes use; NOT a shove). Spawns are on islands A/C ONLY (never under the blade). Kill identity = dodge-or-die the blade, knock rivals into it or off into the void. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%).\n\nHAZARD DOCTRINE (spinning_hammer): (1) LETHAL on contact via kill(&ring_out); no invented scorer, never sets last_attacker (a kill with no attacker = uncredited self-fall; a knocker within the 6.0s ring-out window is credited). (2) TELEGRAPHY — a single bold blade on a slow readable rotation (period 4.5s), a hazard-red swept-arc guide, and a ~1.08s DWELL at each apex (dwell_frac 0.24) = the clear beat. (3) FAIRNESS — arc_deg 150 (< 360) so a >= 120deg clear window always returns; the swept arc is centred over island B, and islands A/C are ALWAYS clear (permanent refuge). No spawns under the blade.\n\nGEOMETRY (symmetric flagship): three flat trampoline islands over ONE full-width void: A x0..900 top1080 / B x1580..2480 top1080 (the HAMMER stage, center 2030) / C x3160..4060 top1080, 680px void gaps. HAMMER hub at pivot (2030,480), arm_len 590, arc_deg 150, period_s 4.5, phase 0.0, radius 70, head_len 160, head_w 104, dwell_frac 0.24. At the bottom of its swing the head center sits ~(2030,1070) at body height over B's central strip (LETHAL); toward the apexes it rises up and out to ~(2030 +/- 541, 625), above crossing altitude and clear of the island-B edges. Bounds -610..4670 x, top -2090, bottom 1878. VOID READS AS DEATH via pit_void_rendering. Overcast grey open_sky = an industrial yard.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / spring 480; ~395px trampoline drift / ~527 max spring drift; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (island edges x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the blade on B: cross on the apex-dwell clear beat (~1.08s); a mistimed step into the central strip at body height = instant off-screen kill. The blade's arc over the gaps is HIGH (above crossing altitude) and never covers A/C, so a safe line always exists and no required gap is made uncrossable. Verb: DODGE (+ TIME).\n- RECOVER: island bottoms (1192-1208) to the bottom blast line (1878) = 670-686px of open sky (>= 650) -> a fuelled knock-off boosts back. Verb: FLY.\n- Zero-boost from any island reaches NO other surface across a 680px gap (falls into the void): flight is REQUIRED; the blade reshapes/times the fight on B but never creates a bounce path across a gap. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the circuit's first machine that KILLS — one honest, slow, telegraphed rotor to teach dodge-timing before the double-hazard tail.",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#8C877B",
+  "sky_bottom": "#14120F",
+  "bounds": { "left": -610, "right": 4670, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    { "type": "spinning_hammer", "pivot": { "x": 2030, "y": 480 }, "arm_len": 590, "arc_deg": 150, "period_s": 4.5, "phase": 0.0, "radius": 70, "head_len": 160, "head_w": 104, "dwell_frac": 0.24 },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 480, "y": 1000 },
+    { "type": "player_spawn", "x": 3410, "y": 1000 },
+    { "type": "player_spawn", "x": 3760, "y": 1000 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 760 },
+    { "type": "powerup_spawner", "x": 3610, "y": 900 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

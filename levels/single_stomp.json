@@ -1,0 +1,115 @@
+{
+  "name": "Single Stomp",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "MAYHEM MILE 10 (tier 1 on-ramp) — ONE vertical stamping press on an open flagship deck. The validated three-island / one-void shape (mirrors hammer_arena / foundry_press_row) with a SINGLE vertical crusher pile-driving straight down onto the CENTRE island B. Deliberately a single readable hazard so it tier-sorts to the front of a Mayhem draw: time your dash across B between slams, knock rivals under the descending head or off into the void. Reuses the shipped Crusher (anvil, vertical) -> head contact = kill(&ring_out); kill_shape void_is_floor -> QA K1' (off-screen kills >= 88%).\n\nDOCTRINE FIT (§2.0) — ONE VERTICAL PRESS on island B (center x2030): anvil-mode crusher (top head travels DOWN, bottom anvil embedded at the floor). (1) LETHAL -- the head instakills on contact via kill(&ring_out); no impulse/hitstun/shove. (2) TELEGRAPHY -- a long ~1.7s OPEN DWELL with the head parked HIGH (the clear beat), then a windup SHUDDER + hazard-red FLASH on the closing face for telegraph_lead 0.6s BEFORE a fast ~0.34s slam (period_s 2.8). (3) FAIRNESS -- the press lane is NARROW (head_w 150 -> covers x~1955..2105); B's LEFT half (x1580..1955) and RIGHT half (x2105..2480) are ALWAYS clear standing refuges, and boosting UP above the parked head clears a slam. Islands A and C are permanent refuges. NO player spawns on island B (the parked-open head hangs in the idle-bounce apex band and is live from load); all spawns on A/C incl. 2 elevated. (4) CREDIT -- a press kill with no attacker = uncredited self-fall (killer=-1); a rival knocked under the head within kill_credit_window_ringout=6.0s is credited by the existing ring-out window. No environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor): three flat trampoline islands over ONE full-width void: A x0..900 / B x1580..2480 / C x3160..4060, all top y1080, 680px void gaps. Bounds -610..4670 x, top -2090, bottom 1878 (>= 650px recovery sky). VOID READS AS DEATH via pit_void_rendering.\n\nMOVEMENT-TOOL-PER-GAP (flight-required; trampoline apex 270 => ~395px drift; spring 480 => ~527px max drift; normal_boost_max 760 crosses 680 in ~0.9-1.0s):\n- GAP A<->B (x900..1580 = 680 over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall. Verb: FLY.\n- GAP B<->C (x2480..3160 = 680 over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the press on B: shuffle into a clear half on the 1.7s open beat or boost above the head; a mistimed stand under the descending head = instant off-screen kill. Verb: DODGE (+ TIME).\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the press reshapes/times the fight on B, never creates a bounce path or makes a required crossing uncrossable (it threatens only B's central lane, leaving edges + A/C clear).\n\nSIGNATURE / DISTINCT: a single vertical stomp on an OPEN deck (foundry_press_row runs TWO offset presses; this is the clean solo intro in the wild circuit). One-sentence read: 'time your dash under the pile-driver and knock rivals under it or off into the pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "sky_top": "#A8A192",
+  "sky_bottom": "#14120F",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1580,
+      "y": 1080,
+      "w": 900,
+      "h": 112,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3160,
+      "y": 1080,
+      "w": 900,
+      "h": 128,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -610,
+      "y": 1260,
+      "w": 5280,
+      "h": 618,
+      "wall_px": 120
+    },
+    {
+      "type": "crusher",
+      "axis": "vertical",
+      "anvil": true,
+      "center": {
+        "x": 2030,
+        "y": 1080
+      },
+      "head_len": 160,
+      "head_w": 150,
+      "open_gap": 520,
+      "closed_gap": 40,
+      "period_s": 2.8,
+      "phase": 0.0,
+      "close_time": 0.34,
+      "closed_time": 0.2,
+      "retract_time": 0.5,
+      "telegraph_lead": 0.6
+    },
+    {
+      "type": "player_spawn",
+      "x": 300,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 650,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3410,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 3760,
+      "y": 1000
+    },
+    {
+      "type": "player_spawn",
+      "x": 450,
+      "y": 700
+    },
+    {
+      "type": "player_spawn",
+      "x": 3610,
+      "y": 700
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 450,
+      "y": 900
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 2030,
+      "y": 760
+    },
+    {
+      "type": "powerup_spawner",
+      "x": 3610,
+      "y": 900
+    }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

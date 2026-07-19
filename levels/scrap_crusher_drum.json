@@ -1,0 +1,34 @@
+{
+  "name": "Scrap Crusher Drum",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "enclosed_hole",
+  "design_intent": "SCRAP CRUSHER DRUM — THE SCRAPWORKS tier-3 ENCLOSED-HOLE finale (brawl_arena_expansion_2026-07-19 §Scrapworks row 20; the drop_chamber shell + a press). An enclosed scrap 'arena drum': NON-lethal bumper walls up both sides + a bumper CEILING lid seal the box on three sides; the ONLY void exit is a ~680px HOLE in the centre of the bottom floor. Over that hole a single VERTICAL CRUSHER stamps down through the mid-level — knock a rival under the descending head and it splats/spikes them, or they drop the hole. kill_shape = enclosed_hole -> QA uses DC1 (~90%+ of credited kills are bottom/hole crossings; side+top bumper ring-outs ~0 by construction). Adds the crushing-press family to the drum shell as the circuit's closer.\n\nHAZARD DOCTRINE (crusher, vertical): LETHAL only when a body is squeezed in the closing band; contact routes to kill(&ring_out) (never sets last_attacker; untagged = uncredited self-fall, a knocker within 6.0s is credited). A long OPEN DWELL parks the head high (the clear beat), then a windup SHUDDER + hazard-red FLASH for telegraph_lead 0.6s BEFORE a fast ~0.34s slam (period 2.8s). The head lane is NARROW (head_w 150, x~225..375) directly over the hole mouth, so the shelf tops on either side and the two mid spring pads stay clear refuges. NO spawn under the head.\n\nGEOMETRY (drop_chamber shell): two bottom TRAMPOLINE floor-shelves (LEFT x-700..-40 top1080 / RIGHT x640..1340 top1080) flank a central HOLE x-40..640 = 680px open to the void. LEFT + RIGHT vertical BUMPER walls (inner faces x-700 / x1340) run ceiling-to-below-shelf, and a BUMPER CEILING lid spans the inner width at y-300..-200 -> a sealed drum, single exit = the hole. Two mid-height SPRING pads (LEFT x-540..-200 / RIGHT x820..1160, top y520), 560px above the shelves. ONE vertical CRUSHER centred over the hole: center (300,520), head_len 160, head_w 150, open_gap 520, closed_gap 40, period_s 2.8, phase 0.0, close_time 0.34, closed_time 0.2, retract_time 0.5, telegraph_lead 0.6 (it stamps in mid-air over the hole mouth between the two spring pads). Bounds -1280..1920 x, top -2950, bottom 1900 (generous, OUTSIDE the walls/lid — the bumpers stop any side/top ring-out first, so the only reachable kill line is the bottom under the hole). VOID READS AS DEATH via pit_void_rendering. Silo interior painting (enclosed) = a scrap drum.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / spring 480; ~395px trampoline drift / ~527 max spring drift; normal_boost_max 760 crosses 680px in <1s):\n- CROSS THE CENTRE HOLE (shelf-to-shelf): left shelf right edge x-40 to right shelf left edge x640 = 680px of open void. > 527 and >> 395. NORMAL BOOST REQUIRED; a bounce-hop drifts at most 395px and drops into the hole. Verb: FLY. The crusher stamps this exact crossing lane -> boost across on its open beat, or get caught over the hole. Verb: FLY (+ TIME).\n- CLIMB to a side SPRING pad (top520): 560px above the shelf (1080); trampoline apex 270 reaches only y810 (270px short). JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: the drop from the hole mouth (y1080) / shelf bottom (1208) to the bottom bound (1900) = 692-820px of open sky (>= 650) -> a fuelled player boosts back up out of the hole mouth (recovery gamble); a near-hole dead-on down-smash or a crusher splat sends them through. Verb: FLY.\n- The 680px hole exceeds a spring bounce's 527px reach and the pads sit 560px above the shelves (> the 480 spring apex), so NO route across or up the drum exists without the jetpack; the crusher times the hole crossing but never creates a bounce path. Vertical AND horizontal distance are load-bearing.\n\nSIGNATURE: the drum with a press over the drain — knock rivals under the stamp and they drop the hole; the circuit's sealed-box closer with its first crusher inside.",
+  "backdrop": "enclosed",
+  "interior_painting": "silo_cavern",
+  "sky_top": "#101F2A",
+  "sky_bottom": "#0A1720",
+  "bounds": { "left": -1280, "right": 1920, "top": -2950, "bottom": 1900 },
+  "platforms": [
+    { "x": -700, "y": 1080, "w": 660, "h": 128, "tier": "trampoline" },
+    { "x": 640, "y": 1080, "w": 700, "h": 128, "tier": "trampoline" },
+    { "x": -540, "y": 520, "w": 340, "h": 48, "tier": "spring" },
+    { "x": 820, "y": 520, "w": 340, "h": 48, "tier": "spring" },
+    { "x": -800, "y": -300, "w": 100, "h": 1508, "tier": "bumper" },
+    { "x": 1340, "y": -300, "w": 100, "h": 1508, "tier": "bumper" },
+    { "x": -800, "y": -300, "w": 2240, "h": 100, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": -40, "y": 1080, "w": 680, "h": 820, "wall_px": 120 },
+    { "type": "crusher", "axis": "vertical", "anvil": false, "center": { "x": 300, "y": 520 }, "head_len": 160, "head_w": 150, "open_gap": 520, "closed_gap": 40, "period_s": 2.8, "phase": 0.0, "close_time": 0.34, "closed_time": 0.2, "retract_time": 0.5, "telegraph_lead": 0.6 },
+    { "type": "player_spawn", "x": -600, "y": 1000 },
+    { "type": "player_spawn", "x": -500, "y": 1000 },
+    { "type": "player_spawn", "x": 1140, "y": 1000 },
+    { "type": "player_spawn", "x": -370, "y": 440 },
+    { "type": "player_spawn", "x": 990, "y": 440 },
+    { "type": "powerup_spawner", "x": -370, "y": 700 },
+    { "type": "powerup_spawner", "x": 990, "y": 700 },
+    { "type": "powerup_spawner", "x": 300, "y": 920 }
+  ],
+  "backdrop_painting": "overcast_quarry"
+}

@@ -1,0 +1,41 @@
+{
+  "name": "Foundry: Crack Floor",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: CRACK FLOOR — THE FOUNDRY circuit's LIVE-erosion brawl (tier 2; brawl_arena_expansion_2026-07-19 Foundry row 12). Each of the three islands starts as a full deck but its OUTER halves are destructible molten slag that ERODES away on a telegraphed timed schedule, so within ~5s each island shrinks to a narrow permanent CORE — footing is progressively lost and the fight climbs into the air (boost to survive). Unlike the collapse finales, this NEVER fully strands a player: a permanent trampoline core survives at each island's center (GI-1 safe by construction), so every required crossing always has a landing. Single-family (destructible) mid-intensity. Tier 2.\n\nDOCTRINE FIT (destructibles are SURFACES, not contact hazards — the void/fall is the killer): (1) each island = a permanent central trampoline CORE (w300) flanked by two destructible slag blocks (w300 each) that erode edges-first. (2) TELEGRAPHY — every slag block shows growing CRACKS + a SHUDDER + a hazard-red flash for telegraph_s 1.0s BEFORE it vanishes; you SEE the footing shrink and retreat toward the core. (3) FAIRNESS/GI-1 — all six flank blocks erode on the SAME symmetric schedule (break_time 5.0s); the three permanent cores + their 680px flight gaps are UNTOUCHED, so the arena can never reach a stranded/unwinnable state; spawns on the cores. (4) CREDIT — a fall into the void = uncredited self-fall (killer=-1); a rival smashed off just before/after a block breaks is credited within the 6.0s ring-out window.\n\nGEOMETRY (void_is_floor): three islands over ONE full-width void, each = LEFT slag (destructible) + CENTER core (permanent) + RIGHT slag (destructible), all top y1080, trampoline: A cores x300..600 (slag x0..300, x600..900) / B core x1880..2180 (slag x1580..1880, x2180..2480) / C core x3460..3760 (slag x3160..3460, x3760..4060). Full-island edges sit 680px apart over the void (pre-erosion); after erosion the cores stand alone. Bounds -610..4670 x, top -2090, bottom 1878 (>=650px recovery sky; outer edges 610px inside side blast lines). Molten open_sky (clouds off, horizon glow).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (full-island edges x900..x1580 = 680px over void, WIDENING to ~1280px core-to-core as the slag erodes): > 527 and >> 395 at all times. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px, widening similarly): NORMAL BOOST REQUIRED. Verb: FLY.\n- SURVIVE the erosion: as the slag flanks vanish, footing shrinks to the cores and the fight forces more air time; retreat toward a core on each block's 1.0s telegraph. The erosion NEVER removes a required landing (the cores are permanent) and never creates a bounce path across a gap. Verb: DODGE/FLY.\n- Zero-boost off any core reaches NO other surface across the gap: flight is REQUIRED; the erosion reshapes the fight, the permanent cores keep every crossing completable.\n\nSIGNATURE / DISTINCT: the Foundry's live-shrinking brawl that stays completable (foundry_meltdown/cascade/collapse_ring fully erode as finales; this keeps permanent cores). One-line read: 'the slag melts out from under you — hold the shrinking cores and knock rivals into the widening pit.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    { "x": 300, "y": 1080, "w": 300, "h": 128, "tier": "trampoline" },
+    { "x": 1880, "y": 1080, "w": 300, "h": 112, "tier": "trampoline" },
+    { "x": 3460, "y": 1080, "w": 300, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    { "type": "destructible_block", "mode": "erode", "group": "crack_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 0, "y": 1080, "w": 300, "h": 128, "tier": "trampoline", "break_time": 5.0 },
+    { "type": "destructible_block", "mode": "erode", "group": "crack_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 600, "y": 1080, "w": 300, "h": 128, "tier": "trampoline", "break_time": 5.0 },
+    { "type": "destructible_block", "mode": "erode", "group": "crack_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 1580, "y": 1080, "w": 300, "h": 112, "tier": "trampoline", "break_time": 5.0 },
+    { "type": "destructible_block", "mode": "erode", "group": "crack_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 2180, "y": 1080, "w": 300, "h": 112, "tier": "trampoline", "break_time": 5.0 },
+    { "type": "destructible_block", "mode": "erode", "group": "crack_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 3160, "y": 1080, "w": 300, "h": 128, "tier": "trampoline", "break_time": 5.0 },
+    { "type": "destructible_block", "mode": "erode", "group": "crack_floor", "break_on": "timed", "telegraph_s": 1.0, "x": 3760, "y": 1080, "w": 300, "h": 128, "tier": "trampoline", "break_time": 5.0 },
+    { "type": "player_spawn", "x": 450, "y": 1000 },
+    { "type": "player_spawn", "x": 2030, "y": 1000 },
+    { "type": "player_spawn", "x": 3610, "y": 1000 },
+    { "type": "player_spawn", "x": 450, "y": 700 },
+    { "type": "player_spawn", "x": 3610, "y": 700 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 900 },
+    { "type": "powerup_spawner", "x": 3610, "y": 900 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

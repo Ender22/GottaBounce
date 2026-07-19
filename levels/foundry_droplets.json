@@ -1,0 +1,47 @@
+{
+  "name": "Foundry: Droplets",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "FOUNDRY: DROPLETS — THE FOUNDRY circuit's molten-DEBRIS ON-RAMP (tier 1; brawl_arena_expansion_2026-07-19 Foundry row 6). A gentle introduction to lethal falling_debris on the validated flagship three-island / one-void shape: molten droplets rain on the CENTER island B across three spread columns at a LAZY cadence (1.8s, max_concurrent 1) so there is never a wall of chunks — read the ground shadow and step off. Islands A/C are permanent debris-free refuges. Single-family (debris only), lowest Foundry tier.\n\nDOCTRINE FIT: (1) LETHAL — a chunk overlap instakills via kill(&ring_out); chunks despawn on landing with a dust puff (no shove). (2) TELEGRAPHY — a growing ground shadow + pulsing hazard-red reticle mark each impact column for telegraph_lead 0.7s BEFORE the chunk exists. (3) FAIRNESS — cadence 1.8s with max_concurrent 1 (only ONE chunk in flight at a time), 3 columns spread across B (x1805/2030/2255) with B's edges (x1580..1700, x2360..2480) always clear, so a safe standing spot always exists; islands A/C are permanent refuges; symmetric. (4) CREDIT — a chunk kill with no attacker = uncredited self-fall (killer=-1); a rival knocked under a marked column within the 6.0s ring-out window is credited; no environment scorer.\n\nGEOMETRY (symmetric flagship void_is_floor): three flat trampoline islands over ONE full-width void: A x0..900 / B x1580..2480 / C x3160..4060, all top y1080, separated by 680px void gaps. Bounds -610..4670 x, top -2090, bottom 1878 (>=650px recovery sky; outer edges 610px inside side blast lines). Molten open_sky (clouds off, horizon glow).\n\nMOVEMENT-TOOL-PER-GAP (flight-required; Tuning: trampoline apex 270px => ~395px zero-boost drift; max spring drift ~527px; normal_boost_max 760 crosses 680px in ~0.9-1.0s):\n- GAP A<->B (x900..x1580 = 680px over void): > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP B<->C (x2480..x3160 = 680px over void): identical. NORMAL BOOST REQUIRED. Verb: FLY.\n- DODGE the droplets: step off a marked column during its 0.7s telegraph; with max 1 chunk and 3 spread columns the gaps and B's edges are always safe. Verb: DODGE (+ READ). The debris falls on B's top (not the crossing lane) and never makes a required gap crossing uncrossable.\n- Zero-boost off any island reaches NO other surface across a 680px gap: flight is REQUIRED; the debris reshapes/times the on-island fight, it never carries you across.\n\nSIGNATURE / DISTINCT: the calmest debris read in the Foundry (foundry_pour_line doubles it across two islands; foundry_inferno stacks it with a hammer). One-line read: 'watch the molten shadows on the middle island and shove rivals under a droplet.'",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -610,
+    "right": 4670,
+    "top": -2090,
+    "bottom": 1878
+  },
+  "platforms": [
+    { "x": 0, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "trampoline" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -610, "y": 1260, "w": 5280, "h": 618, "wall_px": 120 },
+    {
+      "type": "falling_debris",
+      "columns": [ 1805, 2030, 2255 ],
+      "floor_y": 1080,
+      "spawn_y": 200,
+      "fall_speed": 1400,
+      "chunk_radius": 60,
+      "cadence": 1.8,
+      "telegraph_lead": 0.7,
+      "max_concurrent": 1,
+      "start_delay": 0.7
+    },
+    { "type": "player_spawn", "x": 300, "y": 1000 },
+    { "type": "player_spawn", "x": 650, "y": 1000 },
+    { "type": "player_spawn", "x": 3410, "y": 1000 },
+    { "type": "player_spawn", "x": 3760, "y": 1000 },
+    { "type": "player_spawn", "x": 450, "y": 700 },
+    { "type": "powerup_spawner", "x": 450, "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 900 },
+    { "type": "powerup_spawner", "x": 3610, "y": 900 }
+  ],
+  "backdrop_painting": "ember_foundry"
+}

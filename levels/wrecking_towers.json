@@ -1,0 +1,34 @@
+{
+  "name": "Wrecking Towers",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "design_intent": "WRECKING TOWERS — THE SCRAPWORKS tier-3 VERTICAL swing shaft (brawl_arena_expansion_2026-07-19 §Scrapworks row 18). A narrow walled shaft (bumper sides, OPEN top, void bottom) climbed up four zigzag tiers, with ONE NON-lethal wrecking-ball PENDULUM sweeping the mid-channel so the climb is forced into motion. The circuit's vertical slot done at tier-3: gantry_climb PLUS a swing. The ball is a SHOVER (<= 700px/s, no hitstun, never kills); the void below is the killer; sideways knocks ricochet off the bumper walls. kill_shape = void_is_floor -> QA uses K1' (off-screen kills >= 88%; top kills rare, this is an OPEN-top shaft, not a lidded ascent).\n\nHAZARD DOCTRINE (moving_hazard pendulum): the ball SHOVES a contacted body along the arm's motion direction and dwells ~0.8s at each apex (the clear beat); it sweeps the mid-channel between the climbing tiers, so a mistimed climb is flung toward a bumper wall (ricochet, survivable) or down toward the void. It is a shover, not a climbing aid.\n\nGEOMETRY (a walled vertical shaft, inner faces x0..1600; four tiers zigzag up over ONE bottom void): T1 base trampoline x540..1060 top1400 (center 800) / T2 spring x150..610 top880 (center 380) / T3 spring x990..1450 top360 (center 1220) / T4 trampoline x300..1300 top-160 (center 800, the wide top deck, OPEN above). LEFT + RIGHT vertical BUMPER walls x-100..0 and x1600..1700, y-260..1620, seal the sides NON-lethally. ONE pendulum anchored at pivot (800,-260), arm_len 700, arc_deg 150, period_s 3.4, radius 90, dwell_frac 0.24, phase 0.0: bottom of swing centre (800,440), apexes at ~(800 +/- 676, 79) — it sweeps side to side through the mid-channel around the T2/T3 climb altitude. ONE full-shaft-width bottom void (rim y1560). Bounds left -500 / right 2100 (outside the walls, failsafes), TOP -2650 (HIGH and open, top kills rare), bottom 2200 (672px recovery sky under the base). VOID READS AS DEATH via pit_void_rendering. Dusk-gold open_sky = a scrap tower at dusk.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning: trampoline apex 270 / spring apex 480 (the highest bounce); normal_boost_accel 4600 > gravity 1600 => sustained climb). The required traversal is VERTICAL CLIMBS (each a 520px rise > the 480 spring apex, with a horizontal offset = a diagonal boost arc):\n- CLIMB T1->T2: 520px UP (1400->880) AND ~420px horizontal. Trampoline bounce off T1 reaches only y1130 (270px short). JETPACK CLIMB REQUIRED; an under-shot drops into the void. Verb: FLY.\n- CLIMB T2->T3: 520px UP (880->360) AND ~840px horizontal. Spring bounce off T2 reaches y400 (40px short AND far sideways). JETPACK CLIMB REQUIRED; the swinging ball forces the timing of this mid-channel climb. Verb: FLY (+ TIME).\n- CLIMB T3->T4: 520px UP (360->-160) to the wide top deck. > 480 spring apex. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: knocked/shoved off a tier you fall toward the void; the base bottom (1528) to the bottom blast line (2200) = 672px of open sky (>= 650) -> a fuelled player boosts to catch a lower tier; a sideways shove RICOCHETS off a bumper wall back into the channel (non-lethal). Verb: FLY.\n- Every tier-to-tier rise (520px) exceeds the 480px spring apex, so zero-boost reaches NO tier above it; the ball only shoves (never lifts you) and a bumper wall only redirects horizontally. NO climb without the jetpack. Vertical distance is the entire level.\n\nSIGNATURE: the vertical wrecking shaft — the circuit's tier-3 climb, a moving ball turning the ascent into a timed weave (distinct from gantry_climb's calm open tower).",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "horizon_glow": true,
+  "sky_top": "#141939",
+  "sky_bottom": "#120C10",
+  "bounds": { "left": -500, "right": 2100, "top": -2650, "bottom": 2200 },
+  "platforms": [
+    { "x": 540, "y": 1400, "w": 520, "h": 128, "tier": "trampoline" },
+    { "x": 150, "y": 880, "w": 460, "h": 96, "tier": "spring" },
+    { "x": 990, "y": 360, "w": 460, "h": 96, "tier": "spring" },
+    { "x": 300, "y": -160, "w": 1000, "h": 96, "tier": "trampoline" },
+    { "x": -100, "y": -260, "w": 100, "h": 1880, "tier": "bumper" },
+    { "x": 1600, "y": -260, "w": 100, "h": 1880, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": 0, "y": 1560, "w": 1600, "h": 640, "wall_px": 120 },
+    { "type": "moving_hazard", "kind": "pendulum", "pivot": { "x": 800, "y": -260 }, "arm_len": 700, "arc_deg": 150, "period_s": 3.4, "phase": 0.0, "radius": 90, "dwell_frac": 0.24 },
+    { "type": "player_spawn", "x": 800, "y": 1320 },
+    { "type": "player_spawn", "x": 380, "y": 800 },
+    { "type": "player_spawn", "x": 1220, "y": 280 },
+    { "type": "player_spawn", "x": 500, "y": -240 },
+    { "type": "player_spawn", "x": 1100, "y": -240 },
+    { "type": "powerup_spawner", "x": 800, "y": -240 },
+    { "type": "powerup_spawner", "x": 380, "y": 740 },
+    { "type": "powerup_spawner", "x": 800, "y": 1300 }
+  ],
+  "backdrop_painting": "dusk_gold"
+}
