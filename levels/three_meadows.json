@@ -1,0 +1,30 @@
+{
+  "name": "Three Meadows",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #8 — a clean symmetric three-island run over one void, using the wider 680px gap (the standard brawl leap) and one central bubblegum perch. The mirror layout makes it the fair, readable baseline of the circuit: no side is a death seat, and the two 680px gaps teach the committed leap length players meet everywhere later.\n\nGEOMETRY: A (trampoline x0..1080 top1080) / B (trampoline x1760..2840 top1080) / C (trampoline x3520..4600 top1080), two 680px void gaps (A->B x1080..1760, B->C x2840..3520). One central bubblegum PERCH (x2140..2460 top560 h48) hovers 520px above B. Full-width lethal void (rim y1260); bounds -560..5160, ~560px side runway; bottom y1920 = 712px recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~527 spring max; normal_boost_max 760 crosses a 680px gap in ~0.9-1.0s @ ~26 fuel, bounce refunds +20; super 2800 clears all):\n- GAP A->B and B->C: each 680px over void. >> 527 max spring drift and >> 395 trampoline drift. NORMAL BOOST REQUIRED both ways; miss = fall into the void. Verb: FLY.\n- CLIMB to the PERCH (top560): 520px above B (1080). Trampoline apex 270 reaches y810 -> 270px short. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: island bottom (1208) to bottom blast (1920) = 712px recovery sky (>= 650). Verb: FLY.\n- Both gaps exceed a spring bounce's reach and the perch sits above spring apex, so flight is required. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -560, "right": 5160, "top": -2090, "bottom": 1920 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 1080, "h": 128, "tier": "trampoline" },
+    { "x": 1760, "y": 1080, "w": 1080, "h": 128, "tier": "trampoline" },
+    { "x": 3520, "y": 1080, "w": 1080, "h": 128, "tier": "trampoline" },
+    { "x": 2140, "y": 560,  "w": 320,  "h": 48,  "tier": "bubblegum" }
+  ],
+  "objects": [
+    { "type": "void", "x": -560, "y": 1260, "w": 5720, "h": 660, "wall_px": 120 },
+    { "type": "player_spawn", "x": 350,  "y": 980 },
+    { "type": "player_spawn", "x": 750,  "y": 980 },
+    { "type": "player_spawn", "x": 2300, "y": 980 },
+    { "type": "player_spawn", "x": 3900, "y": 980 },
+    { "type": "player_spawn", "x": 4300, "y": 980 },
+    { "type": "powerup_spawner", "x": 2300, "y": 440 },
+    { "type": "powerup_spawner", "x": 540,  "y": 880 },
+    { "type": "powerup_spawner", "x": 4060, "y": 880 }
+  ]
+}

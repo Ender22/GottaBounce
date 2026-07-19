@@ -1,0 +1,30 @@
+{
+  "name": "Bluff Line",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#6FA8D6",
+  "sky_bottom": "#DCEBF0",
+  "design_intent": "MEADOW MILE #12 — an asymmetric bluff: one big trampoline MESA on the left (a near-safe farm) and TWO smaller bubblegum/trampoline pads stepping right over the void to a far ledge that bears the prize powerup, with a contested spring throne over the first gap. The asymmetry is the hook — hold the safe mesa or commit rightward over the void to fight for the far prize. 580px gaps, no hazard.\n\nGEOMETRY: MESA (trampoline x0..1600 top1080) / GAP1 580px (x1600..2180) / PAD1 (bubblegum x2180..2860 top1020) / GAP2 580px (x2860..3440) / FAR LEDGE (trampoline x3440..4120 top1060, bears the prize). One spring THRONE (x2320..2680 top500 h48) hangs 520px above PAD1 and offset over GAP1. Full-width lethal void (rim y1260); bounds are ASYMMETRIC by intent: left -600 (mesa gets ~600px advantaged runway), right 4620 (~500px past the far ledge = the exposed side). Bottom y1920 leaves 712-780px recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~320 bubblegum / ~527 spring max; normal_boost_max 760 crosses a 580px gap in <0.9s @ ~24 fuel; super 2800 clears all):\n- GAP1 mesa->PAD1: x1600..x2180 = 580px over void. > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- GAP2 PAD1->FAR LEDGE: x2860..x3440 = 580px over void. > 527. NORMAL BOOST REQUIRED; the prize is only won by committing rightward over the void. Verb: FLY.\n- CLIMB to the THRONE (top500): 520px above PAD1 (1020) AND offset over GAP1. Best pad bounce (bubblegum 180) reaches y840 -> 340px short even before the offset; under-shot drops into the void. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: mesa/pad/ledge bottoms (1132-1208) to bottom blast (1920) = 712-788px recovery sky (>= 650); a knock off a 680px pad or the far ledge is a shorter, less-recoverable ring-out than off the wide mesa (the asymmetry IS the risk gradient). Verb: FLY.\n- Both gaps exceed a spring bounce's reach and the throne sits above spring apex, so flight is required. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -600, "right": 4620, "top": -2150, "bottom": 1920 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 1600, "h": 128, "tier": "trampoline" },
+    { "x": 2180, "y": 1020, "w": 680,  "h": 112, "tier": "bubblegum" },
+    { "x": 3440, "y": 1060, "w": 680,  "h": 120, "tier": "trampoline" },
+    { "x": 2320, "y": 500,  "w": 360,  "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -600, "y": 1260, "w": 5220, "h": 660, "wall_px": 120 },
+    { "type": "player_spawn", "x": 400,  "y": 980 },
+    { "type": "player_spawn", "x": 900,  "y": 980 },
+    { "type": "player_spawn", "x": 2520, "y": 920 },
+    { "type": "player_spawn", "x": 3780, "y": 960 },
+    { "type": "player_spawn", "x": 2500, "y": 400 },
+    { "type": "powerup_spawner", "x": 3780, "y": 940 },
+    { "type": "powerup_spawner", "x": 2500, "y": 340 },
+    { "type": "powerup_spawner", "x": 600,  "y": 880 }
+  ]
+}

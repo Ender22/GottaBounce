@@ -1,0 +1,31 @@
+{
+  "name": "Windmill Meadow",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #16 — the circuit's first MOVER: the proven 4670w three-island / 680px-gap flagship skeleton, with ONE NON-LETHAL pendulum (a lazy hay swing) sweeping the A<->B gap. The pendulum never kills (moving_hazard = a directional shove capped at ~700px/s, no hitstun); the void is the only killer. It just knocks a crossing player off their line, so timing the boost around the swing is the new wrinkle before the jump into the hazard circuits. One spring throne over C.\n\nGEOMETRY: A (trampoline x0..900 top1080) / B (bubblegum x1580..2480 top1080) / C (trampoline x3160..4060 top1080), two 680px void gaps (A->B x900..1580, B->C x2480..3160). One spring THRONE (x3640..4020 top560 h48) hovers 520px above C. ONE non-lethal pendulum (pivot x1240 y300, arm 700, arc 150 deg, period 3.4, dwell .24) sweeps low over the A->B gap. Full-width lethal void (rim y1260); bounds -600..4670, ~600px side runway; bottom y1878 leaves ~670px recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~320 bubblegum / ~527 spring max; normal_boost_max 760 crosses a 680px gap in ~0.9-1.0s @ ~26 fuel, bounce refunds +20; super 2800 clears all):\n- GAP A->B (with the swing) and B->C: each 680px over void. >> 527 max spring drift and >> 395/320 drift. NORMAL BOOST REQUIRED both ways; the pendulum shoves a mistimed crossing off-line into the void. Verb: FLY.\n- CLIMB to the THRONE (top560): 520px above C (1080). Trampoline apex 270 reaches y810 -> 270px short. JETPACK CLIMB REQUIRED; SUPER earns it. Verb: FLY.\n- RECOVER: island bottom (1192-1208) to bottom blast (1878) = ~670-686px recovery sky (>= 650). Verb: FLY.\n- Both gaps exceed a spring bounce's reach and the throne sits above spring apex; the pendulum is a shove, not a lethal hazard, so flight is still required and the void is still the only killer. Vertical AND horizontal distance are load-bearing.\n\nBACKDROP NOTE: the plan lists an optional new meadow_bloom painting; ships JSON-ONLY today on meadow_day (blue sky + clouds + hills), the art is a later polish swap.",
+  "bounds": { "left": -600, "right": 4670, "top": -2090, "bottom": 1878 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "bubblegum" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 3640, "y": 560,  "w": 380, "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -600, "y": 1260, "w": 5270, "h": 618, "wall_px": 120 },
+    { "type": "moving_hazard", "kind": "pendulum", "pivot": { "x": 1240, "y": 300 }, "arm_len": 700, "arc_deg": 150, "period_s": 3.4, "phase": 0.0, "radius": 100, "dwell_frac": 0.24 },
+    { "type": "player_spawn", "x": 300,  "y": 1000 },
+    { "type": "player_spawn", "x": 700,  "y": 1000 },
+    { "type": "player_spawn", "x": 2030, "y": 1000 },
+    { "type": "player_spawn", "x": 3400, "y": 1000 },
+    { "type": "player_spawn", "x": 3830, "y": 1000 },
+    { "type": "powerup_spawner", "x": 450,  "y": 900 },
+    { "type": "powerup_spawner", "x": 2030, "y": 900 },
+    { "type": "powerup_spawner", "x": 3830, "y": 480 }
+  ]
+}

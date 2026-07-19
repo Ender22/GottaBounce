@@ -1,0 +1,30 @@
+{
+  "name": "Meadow Spine",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #14 — a calm spine-lite: one thin trampoline ridge with a spring perch 600px out at each end and a central spring throne above, over a SHALLOW void (the meadow's forgiving take on the High Wire ridge). Exposure without a bottomless drop — the recovery gamble is real but the void is shallow, so it teaches edge play gently.\n\nGEOMETRY (centred x=0): central RIDGE (trampoline x0..1200 top880 h72). Two spring PERCHES flank it at ridge height 600px out — LEFT (x-880..-600) 600px from the ridge's left end (x0), RIGHT (x1800..2080) 600px from the ridge's right end (x1200). One central spring THRONE (x430..770 top360 h48) hangs 520px above the ridge. Full-width SHALLOW lethal void (rim y960); bounds -1300..2380 keep the perch outer edges ~300-420px inside the side blast (spine-lite exposure); bottom y1620 leaves 668px recovery sky under the ridge.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~527 spring max; normal_boost_max 760 crosses a 620px gap in <0.9s @ ~24 fuel; super 2800 clears all):\n- REACH a PERCH: ridge end to perch = 600px of open void. > 527 max spring drift and >> 395 trampoline ridge drift. NORMAL BOOST REQUIRED; miss = fall into the void. Verb: FLY.\n- RETURN from a perch: the perch spring launches 480px up but the 600px gap back still exceeds the 527 spring drift, so leaving a perch also needs a boost — flight both directions. Verb: FLY.\n- CLIMB to the THRONE (top360): 520px above the ridge (880). Trampoline apex 270 reaches y610 -> 250px short. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: ridge bottom (952) to bottom blast (1620) = 668px recovery sky (>= 650, shallow but still a gamble); the thin ridge gives little runway so a launched player rarely re-lands (high kill-per-exchange). Verb: FLY.\n- Both perch gaps exceed a spring bounce's reach and the throne sits above spring apex, so flight is required. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -1300, "right": 2380, "top": -2290, "bottom": 1620 },
+  "platforms": [
+    { "x": 0,    "y": 880, "w": 1200, "h": 72, "tier": "trampoline" },
+    { "x": -880, "y": 880, "w": 280,  "h": 44, "tier": "spring" },
+    { "x": 1800, "y": 880, "w": 280,  "h": 44, "tier": "spring" },
+    { "x": 430,  "y": 360, "w": 340,  "h": 44, "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -1300, "y": 960, "w": 3680, "h": 660, "wall_px": 120 },
+    { "type": "player_spawn", "x": 200,  "y": 800 },
+    { "type": "player_spawn", "x": 600,  "y": 800 },
+    { "type": "player_spawn", "x": 1000, "y": 800 },
+    { "type": "player_spawn", "x": -740, "y": 800 },
+    { "type": "player_spawn", "x": 1940, "y": 800 },
+    { "type": "powerup_spawner", "x": 600,  "y": 540 },
+    { "type": "powerup_spawner", "x": -740, "y": 700 },
+    { "type": "powerup_spawner", "x": 1940, "y": 700 }
+  ]
+}

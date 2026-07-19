@@ -1,0 +1,33 @@
+{
+  "name": "Daisy Ring",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #9 — the circuit's first RADIAL shape (atoll-lite): four rim islands wrap a central void WELL, with two elevated bubblegum side-shelves (+520) and one low central spring throne over the well. Combat wraps around the ring instead of running along a line; every rim overlooks the same maw, so a boost across the well is the signature play. Calm, symmetric, no hazard.\n\nGEOMETRY (centred x=0): BASE-LEFT (trampoline x-1150..-320 top1120) / BASE-RIGHT (trampoline x320..1150 top1120) flank the WELL (gap x-320..320 = 640px, open to the void). TOP-LEFT rim (bubblegum x-1150..-320 top600, +520 above base) / TOP-RIGHT rim (bubblegum x320..1150 top600) form the ring's upper arc over a 640px top-well gap. Two mid SIDE-SHELVES out at the sides (bubblegum x-2000..-1460 / x1460..2000, top600, +520 above base). One low central THRONE (spring x-180..180 top860 h48) hovers over the well mouth, +260 above base but offset over the 640px well so it is a boosted-arc prize. Full-width lethal void (rim y1260); bounds -2540..2540 keep side-shelf outer edges ~540px inside the side blast; bottom y1960 = 712px recovery under base, deep column under the throne.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~320 bubblegum / ~527 spring max; normal_boost_max 760 crosses 640 in <1s @ ~26 fuel; super 2800 clears all). Traversal WRAPS; every neighbour move is flight-required:\n- WELL crossing BASE-LEFT<->BASE-RIGHT: x-320..x320 = 640px over the well. > 527 and >> 395. NORMAL BOOST REQUIRED; miss = fall into the well. Verb: FLY.\n- TOP-WELL crossing TOP-LEFT<->TOP-RIGHT: 640px over the well mouth. > 527. NORMAL BOOST REQUIRED. Verb: FLY.\n- CLIMB BASE->TOP rim or BASE->SIDE-SHELF: 520px vertical (1120->600). Trampoline apex 270 reaches y850 -> 250px short. JETPACK CLIMB REQUIRED. Verb: FLY.\n- REACH the central THRONE: hovers over the OPEN 640px well; only a boosted arc lands it, an under-shot drops straight down the column. Verb: FLY.\n- RECOVER: base bottom (1248) to bottom blast (1960) = 712px recovery sky (>= 650); a fall into the well drops down the column and a fuelled player boosts back out. Verb: FLY.\n- No bounce route wraps the ring or reaches the throne, so flight is required to move at all. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -2540, "right": 2540, "top": -2050, "bottom": 1960 },
+  "platforms": [
+    { "x": -1150, "y": 1120, "w": 830, "h": 128, "tier": "trampoline" },
+    { "x": 320,   "y": 1120, "w": 830, "h": 128, "tier": "trampoline" },
+    { "x": -1150, "y": 600,  "w": 830, "h": 112, "tier": "bubblegum" },
+    { "x": 320,   "y": 600,  "w": 830, "h": 112, "tier": "bubblegum" },
+    { "x": -2000, "y": 600,  "w": 540, "h": 112, "tier": "bubblegum" },
+    { "x": 1460,  "y": 600,  "w": 540, "h": 112, "tier": "bubblegum" },
+    { "x": -180,  "y": 860,  "w": 360, "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -2540, "y": 1260, "w": 5080, "h": 700, "wall_px": 120 },
+    { "type": "player_spawn", "x": -750,  "y": 1040 },
+    { "type": "player_spawn", "x": 750,   "y": 1040 },
+    { "type": "player_spawn", "x": -750,  "y": 520 },
+    { "type": "player_spawn", "x": 750,   "y": 520 },
+    { "type": "player_spawn", "x": 0,     "y": 780 },
+    { "type": "powerup_spawner", "x": 0,     "y": 700 },
+    { "type": "powerup_spawner", "x": -1720, "y": 500 },
+    { "type": "powerup_spawner", "x": 1720,  "y": 500 }
+  ]
+}

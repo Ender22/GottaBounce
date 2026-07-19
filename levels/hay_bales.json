@@ -1,0 +1,33 @@
+{
+  "name": "Hay Bales",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #17 — a pinball meadow: the flagship three-island skeleton studded with free-standing NON-LETHAL bumper hay-bales in open air plus one tall bumper post over a gap. Bumpers reflect you (x0.86, refund fuel) and never kill — they turn a boosted crossing into a ricochet you can ride or fight against, a playful chaos beat with the void still the only killer. 680px gaps.\n\nGEOMETRY: A (trampoline x0..900 top1080) / B (bubblegum x1580..2480 top1080) / C (trampoline x3160..4060 top1080), two 680px void gaps. Bumper HAY-BALES float in open air: over A (x560..720 top760), a high centre bale (x1980..2140 top420), over C (x3360..3520 top760); one TALL bumper POST (x1220..1320 top620 h420) stands over the A->B gap. Full-width lethal void (rim y1260); bounds -600..4660, ~600px side runway; bottom y1980 leaves ~772px recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~320 bubblegum / ~527 spring max; normal_boost_max 760 crosses a 680px gap in ~0.9-1.0s @ ~26 fuel; bumper reflect x0.86 refunds fuel; super 2800 clears all):\n- GAP A->B (with the tall post) and B->C: each 680px over void. >> 527 max spring drift and >> 395/320 drift. NORMAL BOOST REQUIRED both ways; a bumper ricochet can knock a crossing off-line into the void. Verb: FLY.\n- The free-standing bales sit 320-660px above the islands in open air; reaching or ricocheting off them is a boosted-air play, never a bounce route. Verb: FLY.\n- RECOVER: island bottom (1192-1208) to bottom blast (1980) = ~772-788px recovery sky (>= 650); a bumper refunds fuel, aiding the recovery gamble. Verb: FLY.\n- Both gaps exceed a spring bounce's reach; the bumpers are non-lethal reflectors so flight is still required and the void is still the only killer. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -600, "right": 4660, "top": -2230, "bottom": 1980 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 1580, "y": 1080, "w": 900, "h": 112, "tier": "bubblegum" },
+    { "x": 3160, "y": 1080, "w": 900, "h": 128, "tier": "trampoline" },
+    { "x": 560,  "y": 760,  "w": 160, "h": 160, "tier": "bumper" },
+    { "x": 1980, "y": 420,  "w": 160, "h": 160, "tier": "bumper" },
+    { "x": 3360, "y": 760,  "w": 160, "h": 160, "tier": "bumper" },
+    { "x": 1220, "y": 620,  "w": 100, "h": 420, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": -600, "y": 1260, "w": 5260, "h": 720, "wall_px": 120 },
+    { "type": "player_spawn", "x": 300,  "y": 1000 },
+    { "type": "player_spawn", "x": 800,  "y": 1000 },
+    { "type": "player_spawn", "x": 2030, "y": 1000 },
+    { "type": "player_spawn", "x": 3300, "y": 1000 },
+    { "type": "player_spawn", "x": 3830, "y": 1000 },
+    { "type": "powerup_spawner", "x": 450,  "y": 940 },
+    { "type": "powerup_spawner", "x": 2030, "y": 880 },
+    { "type": "powerup_spawner", "x": 3830, "y": 940 }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "Meadow Carousel",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #20 — the tail-end mover finale: two big static trampoline islands separated by a WIDE 1500px chasm, bridged by ONE slow NON-LETHAL moving hay-cart deck that shuttles across it, plus a central spring throne. The cart carries riders (it never kills; a rider carried off-stage dies to the void, not the deck). Fighting on and around the moving deck is the send-off skill before the industrial circuits. Their gap is far wider than any bounce; the cart is the safe route, a super the risky alt.\n\nGEOMETRY: LEFT island (trampoline x0..1400 top1080) / RIGHT island (trampoline x2900..4300 top1080), a WIDE 1500px void chasm (x1400..2900) between them. ONE moving_platform hay-cart (vehicle:false, w420 h56, centre x2150 y1080, axis 0 deg, amplitude 640, period 5.0, dwell .14) shuttles the chasm x1510..2790, coming ~110px from each island edge at the ends of its travel. One central spring THRONE (x1970..2330 top560 h48) hovers 520px above the islands over the cart lane. Full-width lethal void (rim y1260); bounds -560..4860, ~560px side runway; bottom y1920 = 712px recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~527 spring max; normal_boost_max 760 crosses ~680 in ~1s; super 2800 clears all, dumps tank):\n- CROSS the 1500px chasm: far beyond any bounce (max spring drift 527) and beyond a single normal-boost hop -> RIDE THE CART (hop onto it ~110px off an island edge, ride, hop off ~110px from the far edge) OR spend a full SUPER as a risky one-shot. NORMAL BOOST/SUPER REQUIRED; miss = fall into the void. Verb: FLY.\n- REACH the CART at mid-lane: the deck sits over open void, so mounting/dismounting it is a boosted-air play, never a bounce. Verb: FLY.\n- CLIMB to the THRONE (top560): 520px above the islands (1080). Trampoline apex 270 reaches y810 -> 270px short. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: island bottom (1208) to bottom blast (1920) = 712px recovery sky (>= 650); ride the cart off-stage or get carried past a lip and you fall (the deck never kills, the void does). Verb: FLY.\n- The chasm dwarfs a spring bounce's reach and the throne sits above spring apex, so flight (or the cart) is required to cross or climb. Vertical AND horizontal distance are load-bearing.\n\nBACKDROP NOTE: the plan lists an optional new meadow_bloom painting; ships JSON-ONLY today on meadow_day (blue sky + clouds + hills), the art is a later polish swap.",
+  "bounds": { "left": -560, "right": 4860, "top": -2090, "bottom": 1920 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 2900, "y": 1080, "w": 1400, "h": 128, "tier": "trampoline" },
+    { "x": 1970, "y": 560,  "w": 360,  "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -560, "y": 1260, "w": 5420, "h": 660, "wall_px": 120 },
+    { "type": "moving_platform", "vehicle": false, "center": { "x": 2150, "y": 1080 }, "axis_deg": 0, "amplitude": 640, "w": 420, "h": 56, "period_s": 5.0, "phase": 0.0, "dwell_frac": 0.14 },
+    { "type": "player_spawn", "x": 350,  "y": 980 },
+    { "type": "player_spawn", "x": 900,  "y": 980 },
+    { "type": "player_spawn", "x": 3350, "y": 980 },
+    { "type": "player_spawn", "x": 3900, "y": 980 },
+    { "type": "player_spawn", "x": 2150, "y": 440 },
+    { "type": "powerup_spawner", "x": 2150, "y": 380 },
+    { "type": "powerup_spawner", "x": 700,  "y": 880 },
+    { "type": "powerup_spawner", "x": 3700, "y": 880 }
+  ]
+}

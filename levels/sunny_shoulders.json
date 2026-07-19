@@ -1,0 +1,31 @@
+{
+  "name": "Sunny Shoulders",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #7 — two wide trampoline floors over a single 580px pit, dressed with boost-only high ground: a bubblegum SHOULDER over each floor (+520) and a contested spring THRONE over the pit (+560). Introduces vertical play on a forgiving base — the fight is over whether to hold the floors or grab the throne, but every up-move needs the jetpack.\n\nGEOMETRY: LEFT floor (trampoline x0..1510 top1080) / RIGHT floor (trampoline x2090..3600 top1080) flank ONE 580px void pit (x1510..2090). Two bubblegum SHOULDERS (left x400..720 / right x2880..3200, both top560, +520 above floor). One spring THRONE (x1620..1980 top520 h48) hangs over the pit, +560 above the floors. Full-width lethal void (rim y1260); bounds -540..4140, ~540px side runway; bottom y1920 = 712px recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~527 spring max; normal_boost_max 760 crosses 580 in <0.9s; super 2800 clears all, dumps tank):\n- GAP left<->right floor: x1510..x2090 = 580px over void. > 527 max spring drift and >> 395 trampoline drift. NORMAL BOOST REQUIRED; miss = fall into the pit. Verb: FLY.\n- CLIMB to a SHOULDER (top560): 520px above the floor (1080). Trampoline apex 270 reaches y810 -> 270px short. JETPACK CLIMB REQUIRED. Verb: FLY.\n- CLIMB to the THRONE (top520): 560px above the floors AND offset over the pit (a diagonal boosted arc). Best floor bounce (270) reaches y810 -> 290px short even before the horizontal offset; under-shot drops into the pit. JETPACK CLIMB REQUIRED; SUPER earns it fast. Verb: FLY.\n- RECOVER: floor bottom (1208) to bottom blast (1920) = 712px recovery sky (>= 650). Verb: FLY.\n- No bounce crosses the pit or reaches a shoulder/throne, so flight is required to move up or across. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -540, "right": 4140, "top": -2130, "bottom": 1920 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 1510, "h": 128, "tier": "trampoline" },
+    { "x": 2090, "y": 1080, "w": 1510, "h": 128, "tier": "trampoline" },
+    { "x": 400,  "y": 560,  "w": 320,  "h": 48,  "tier": "bubblegum" },
+    { "x": 2880, "y": 560,  "w": 320,  "h": 48,  "tier": "bubblegum" },
+    { "x": 1620, "y": 520,  "w": 360,  "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -540, "y": 1260, "w": 4680, "h": 660, "wall_px": 120 },
+    { "type": "player_spawn", "x": 400,  "y": 980 },
+    { "type": "player_spawn", "x": 1100, "y": 980 },
+    { "type": "player_spawn", "x": 2500, "y": 980 },
+    { "type": "player_spawn", "x": 3200, "y": 980 },
+    { "type": "player_spawn", "x": 1800, "y": 400 },
+    { "type": "powerup_spawner", "x": 1800, "y": 340 },
+    { "type": "powerup_spawner", "x": 750,  "y": 840 },
+    { "type": "powerup_spawner", "x": 2850, "y": 840 }
+  ]
+}

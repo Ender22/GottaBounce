@@ -1,0 +1,31 @@
+{
+  "name": "River Split",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#6FA8D6",
+  "sky_bottom": "#DCEBF0",
+  "design_intent": "MEADOW MILE #19 — two long trampoline banks with a narrow contested centre isle stranded between them over TWO voids (two 'rivers'), capped by two spring thrones over the gaps. The banks are safe farms; the small centre isle is a hot seat with a chasm on each side, and the two thrones pull players out over the water. 620px gaps, symmetric, no hazard.\n\nGEOMETRY: LEFT BANK (trampoline x0..1500 top1080) / CENTRE isle (bubblegum x2120..2740 top1080) / RIGHT BANK (trampoline x3360..4860 top1080), two 620px void gaps (left x1500..2120, right x2740..3360). Two spring THRONES (left x1780..2120 top560, right x3020..3360 top560, both h48) hang 520px above the banks/centre, each offset over a gap. Full-width lethal void (rim y1260); bounds -560..5420, ~560px side runway; bottom y1920 = 712px recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~320 bubblegum / ~527 spring max; normal_boost_max 760 crosses a 620px gap in ~0.9s @ ~26 fuel; super 2800 clears all):\n- GAP bank<->centre (two x 620px over void): each > 527 max spring drift and >> 395/320 drift. NORMAL BOOST REQUIRED both ways; miss = fall into a river. Verb: FLY.\n- REACH the CENTRE isle: only by boosting over one of the two 620px gaps (no bounce route) — holding it is exposed with a chasm each side. Verb: FLY.\n- CLIMB to a THRONE (top560): 520px above the banks (1080) AND offset over a gap. Trampoline apex 270 reaches y810 -> 270px short before the offset; under-shot drops into a river. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: bank/centre bottom (1192-1208) to bottom blast (1920) = ~712px recovery sky (>= 650); the small centre isle gives little runway (hot seat). Verb: FLY.\n- Both gaps exceed a spring bounce's reach and the thrones sit above spring apex, so flight is required. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -560, "right": 5420, "top": -2090, "bottom": 1920 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 1500, "h": 128, "tier": "trampoline" },
+    { "x": 2120, "y": 1080, "w": 620,  "h": 112, "tier": "bubblegum" },
+    { "x": 3360, "y": 1080, "w": 1500, "h": 128, "tier": "trampoline" },
+    { "x": 1780, "y": 560,  "w": 340,  "h": 48,  "tier": "spring" },
+    { "x": 3020, "y": 560,  "w": 340,  "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -560, "y": 1260, "w": 5980, "h": 660, "wall_px": 120 },
+    { "type": "player_spawn", "x": 400,  "y": 980 },
+    { "type": "player_spawn", "x": 1000, "y": 980 },
+    { "type": "player_spawn", "x": 2430, "y": 980 },
+    { "type": "player_spawn", "x": 3900, "y": 980 },
+    { "type": "player_spawn", "x": 4500, "y": 980 },
+    { "type": "powerup_spawner", "x": 1780, "y": 440 },
+    { "type": "powerup_spawner", "x": 3020, "y": 440 },
+    { "type": "powerup_spawner", "x": 2430, "y": 880 }
+  ]
+}

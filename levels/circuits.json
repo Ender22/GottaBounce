@@ -5,7 +5,8 @@
 		"meadow_mile": {
 			"display_name": "MEADOW MILE",
 			"difficulty": 1,
-			"levels": ["grassy_expanse", "islands_void", "the_cliff", "twin_chasms"]
+			"_comment": "20-arena ordered on-ramp (brawl_arena_expansion_2026-07-19.md). 4 originals + 16 new grass floating-island arenas in a mild->wild curated arc; a first-to-10 session (~10-15 rounds) never repeats.",
+			"levels": ["grassy_expanse", "islands_void", "the_cliff", "twin_chasms", "meadow_first_hop", "clover_steps", "sunny_shoulders", "three_meadows", "daisy_ring", "long_meadow", "hill_and_dale", "bluff_line", "two_hills", "meadow_spine", "stepping_bloom", "windmill_meadow", "hay_bales", "high_pasture", "river_split", "meadow_carousel"]
 		},
 		"scrapworks": {
 			"display_name": "THE SCRAPWORKS",

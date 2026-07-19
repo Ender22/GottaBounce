@@ -1,0 +1,32 @@
+{
+  "name": "Stepping Bloom",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #15 — five small committed pads (680px each) over a DEEP void with 600px gaps and mild height jitter, plus one central spring throne. The peak of the calm tier: little landing runway means every crossing is a real commit and a whiff is a long fall, but there is no hazard — just nerve and fuel over the deepest meadow void.\n\nGEOMETRY: P1 (trampoline x0..680 top1080) / P2 (bubblegum x1280..1960 top1000) / P3 (trampoline x2560..3240 top1120) / P4 (bubblegum x3760..4440 top1020) / P5 (trampoline x4960..5640 top1080), four 600px void gaps with a mild up/down jitter. One central spring THRONE (x2720..3080 top560 h48) hovers 520px above P3. Full-width DEEP lethal void (rim y1260); bounds -560..6200, ~560px side runway; bottom y2000 leaves 760-868px of deep recovery sky.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; zero-boost drift ~395 tramp / ~320 bubblegum / ~527 spring max; normal_boost_max 760 crosses a 600px gap in ~0.9s @ ~25 fuel, bounce refunds +20; super 2800 clears all):\n- GAPS P1..P5 (four x 600px over deep void): each > 527 max spring drift and >> 395/320 drift; the small 680px pads give little landing margin so a mistimed boost falls. NORMAL BOOST REQUIRED at every gap; miss = a long fall into the void. Verb: FLY.\n- CLIMB to the THRONE (top560): 520px above P3 (1120)... trampoline apex 270 from P3 reaches y850 -> 290px short. JETPACK CLIMB REQUIRED. Verb: FLY.\n- RECOVER: pad bottoms (1112-1240) to bottom blast (2000) = 760-888px of deep recovery sky (>= 650) -> a fuelled knock-off has a long boost-back gamble; a near-brink smash spikes past the rim. Verb: FLY.\n- Every gap exceeds a spring bounce's reach and the throne sits above spring apex, so flight is required to move across or up. Vertical AND horizontal distance are load-bearing.",
+  "bounds": { "left": -560, "right": 6200, "top": -2090, "bottom": 2000 },
+  "platforms": [
+    { "x": 0,    "y": 1080, "w": 680, "h": 120, "tier": "trampoline" },
+    { "x": 1280, "y": 1000, "w": 680, "h": 112, "tier": "bubblegum" },
+    { "x": 2560, "y": 1120, "w": 680, "h": 120, "tier": "trampoline" },
+    { "x": 3760, "y": 1020, "w": 680, "h": 112, "tier": "bubblegum" },
+    { "x": 4960, "y": 1080, "w": 680, "h": 120, "tier": "trampoline" },
+    { "x": 2720, "y": 560,  "w": 360, "h": 48,  "tier": "spring" }
+  ],
+  "objects": [
+    { "type": "void", "x": -560, "y": 1260, "w": 6760, "h": 740, "wall_px": 120 },
+    { "type": "player_spawn", "x": 340,  "y": 980 },
+    { "type": "player_spawn", "x": 1620, "y": 900 },
+    { "type": "player_spawn", "x": 2900, "y": 1020 },
+    { "type": "player_spawn", "x": 4100, "y": 920 },
+    { "type": "player_spawn", "x": 5300, "y": 980 },
+    { "type": "powerup_spawner", "x": 2900, "y": 440 },
+    { "type": "powerup_spawner", "x": 1620, "y": 800 },
+    { "type": "powerup_spawner", "x": 4100, "y": 820 }
+  ]
+}

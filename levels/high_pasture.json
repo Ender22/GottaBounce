@@ -1,0 +1,31 @@
+{
+  "name": "High Pasture",
+  "version": 1,
+  "theme": "grass",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
+  "clouds": true,
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
+  "design_intent": "MEADOW MILE #18 — the calm ascent: a compact walled-ish tower whose three tiers zigzag UP (trampoline base -> spring mid -> spring top) with 520px climbs over a deep void, flanked by non-lethal bumper side walls and an OPEN top (no lethal lid — the meadow never traps you). Teaches pure vertical jetpack climbing before the Scrapworks/High Wire vertical shafts, with the void as the only killer.\n\nGEOMETRY: BASE (trampoline x820..1580 top1200 h128) sits low-centre. MID (spring x180..880 top680 h48) is up-and-left, +520 above the base. TOP (spring x1660..2360 top160 h48) is up-and-right, +520 above the mid. Non-lethal bumper SIDE WALLS (left x-140..-40 / right x2480..2580, top-300 h1700) keep the fight inboard without killing. No lid — the top is open sky. Full-width lethal void below (rim y1360); bounds -240..2680, bottom y1980 leaves ~652px recovery under the base, a deep drop from the upper tiers.\n\nMOVEMENT (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; normal_boost_max 760; super 2800 clears all, rises ~2450 straight up):\n- CLIMB BASE->MID: 520px vertical (1200->680), MID offset up-and-left. Trampoline apex 270 from the base reaches y930 -> 250px short. JETPACK CLIMB REQUIRED; an under-shot drops off the base into the void. Verb: FLY.\n- CLIMB MID->TOP: 520px vertical (680->160), TOP offset up-and-right. Spring apex 480 from MID reaches y200 -> 40px short AND horizontally offset, so even the spring cannot land it without boost steering. JETPACK CLIMB REQUIRED. Verb: FLY.\n- The bumper walls reflect (x0.86, refund fuel), never kill; a knock outward bounces back inboard rather than out, keeping the fight in the shaft while the void below stays the killer. Verb: FLY.\n- RECOVER: base bottom (1328) to bottom blast (1980) = 652px recovery sky (>= 650); a fall from the upper tiers is a long deep drop with a fuelled boost-back gamble. Verb: FLY.\n- Every tier sits 520px above the one below (> the 480 spring apex), so the jetpack is the only way up. Vertical distance is load-bearing, not scenery.",
+  "bounds": { "left": -240, "right": 2680, "top": -2490, "bottom": 1980 },
+  "platforms": [
+    { "x": 820,  "y": 1200, "w": 760, "h": 128,  "tier": "trampoline" },
+    { "x": 180,  "y": 680,  "w": 700, "h": 48,   "tier": "spring" },
+    { "x": 1660, "y": 160,  "w": 700, "h": 48,   "tier": "spring" },
+    { "x": -140, "y": -300, "w": 100, "h": 1700, "tier": "bumper" },
+    { "x": 2480, "y": -300, "w": 100, "h": 1700, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": -240, "y": 1360, "w": 2920, "h": 620, "wall_px": 120 },
+    { "type": "player_spawn", "x": 1000, "y": 1100 },
+    { "type": "player_spawn", "x": 1400, "y": 1100 },
+    { "type": "player_spawn", "x": 530,  "y": 580 },
+    { "type": "player_spawn", "x": 2010, "y": 60 },
+    { "type": "player_spawn", "x": 1200, "y": 1100 },
+    { "type": "powerup_spawner", "x": 2010, "y": 20 },
+    { "type": "powerup_spawner", "x": 530,  "y": 540 },
+    { "type": "powerup_spawner", "x": 1200, "y": 1080 }
+  ]
+}
