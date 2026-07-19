@@ -4,6 +4,22 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**FLOATING ISLANDS — void gradient KILLED (2026-07-19, fc9d9da — owner flagged the ugly dark-green void
+~5x):** paint_void's abyss (sage-green->black fill + fake dirt-cliffs + AO + motes + on-rim kill-line) now
+draws NOTHING. Platforms FLOAT over the painted sky; a fall is a ring-out at bounds.bottom (physics
+unchanged — just no drawn pit). Grass platform BODIES fill their FULL collider height with a SEAMLESS TILED
+EARTH island (new assets/world/earth_tile.png, generated NO-style-ref so no seam; UV-tiled via Polygon2D so
+rock scale is resolution-independent) + chocolate outline + rounded bottom; grass fringe strip still caps the
+top. Rendered-verified: n2_pinhole (the flagged shot — now floating grass-earth islands over blue sky+hills),
+n2_wall_climb (tall), spires (space theme floats over the nebula painting; themed bodies unchanged for now —
+a TALL themed platform would still gap, follow-up). DROPSHOT mode-card art shipped (mode_dropshot.png, teal
+Bouncer spiking a beach ball; ModeSelect shows it, not the "D" glyph — all 4 mode cards now have dioramas).
+TRIALS: all 16 new courses now SHIP — the 3 QA-failed ones fixed + driven-verified (pad-in-climb/goal bugs +
+the ~29deg floor-ball launch limit; commit aa4ae8e+course fixes). UI end-screen BUTTONS rendered-validated
+(Sports "RED WINS!" shows real REMATCH/CHANGE SETUP/QUIT, focus-navigable). STILL OPEN: trials per-player fuel
+HUD (TrialsHUD reads players[0] only -> needs the corner PlayerCards like brawl/sports); tall THEMED platforms
+(space/foundry) could still gap (grass-only earth body today); brawl arena content (~20/circuit) not started.
+
 **UI CONTROLLER-ONLY CLEANUP (2026-07-19, e32eb94 — owner: "real games give a rematch BUTTON, not text"):**
 audit at docs/briefs/ui_professionalism_audit_2026-07-19.md. SPORTS+TRIALS match-end now use REAL focusable
 button rows (REMATCH/PLAY AGAIN · CHANGE SETUP · QUIT TO MENU) mirroring VictoryScreen — replaced the
