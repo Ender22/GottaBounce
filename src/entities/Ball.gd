@@ -42,6 +42,10 @@ const MASK_PLAYERS := 1 << 0         # the sensing area detects Player bodies
 # child inherits the body's spin and the seam visibly ROLLS (desired) — no per-frame rotate needed. ---
 const BALL_TEX: Texture2D = preload("res://assets/objects/ball.png")
 const BALL_TEX_DIAM := 665.0         # circular-body diameter in image px (opaque bbox width)
+# DROPSHOT bespoke sprite (owner item 5 follow-up): a classic red/white/blue/yellow beach ball,
+# replacing the warm-tinted soccer ball. Image 709x689; circular body spans ~705px (opaque bbox).
+const BEACH_TEX: Texture2D = preload("res://assets/objects/ball_beach.png")
+const BEACH_TEX_DIAM := 705.0        # circular-body diameter in image px (opaque bbox width)
 
 # --- variant config (owner 2026-07-18 item 5, DROPSHOT): per-instance overrides, defaulted to the
 # soccer constants above. SportsMode sets these via configure_dropshot() BEFORE add_child (so _ready
@@ -51,7 +55,8 @@ var radius: float = BALL_RADIUS
 var restitution: float = BALL_RESTITUTION
 var gravity_mult: float = 1.0        # fraction of field gravity (DROPSHOT floaty beach ball < 1)
 var max_speed: float = BALL_MAX_SPEED
-var tint: Color = Color.WHITE       # BallGloss modulate (DROPSHOT = warm beach tint)
+var tint: Color = Color.WHITE       # BallGloss modulate (soccer = white; DROPSHOT uses the bespoke sprite untinted)
+var use_beach_tex: bool = false     # DROPSHOT draws BEACH_TEX (bespoke beach ball) instead of BALL_TEX
 
 var _sense_area: Area2D
 var _touch_cd: Dictionary = {}       # player instance_id -> seconds of cooldown remaining
@@ -63,7 +68,8 @@ func configure_dropshot() -> void:
 	restitution = Tuning.dropshot_ball_restitution
 	gravity_mult = Tuning.dropshot_ball_gravity_mult
 	max_speed = Tuning.dropshot_ball_max_speed
-	tint = Color(1.0, 0.88, 0.62)   # sunny beach-ball warm-up (art variant is a follow-up)
+	tint = Color.WHITE              # the bespoke beach-ball sprite carries its own colours (no warm-up needed)
+	use_beach_tex = true
 
 func _ready() -> void:
 	add_to_group("sports_ball")
@@ -163,11 +169,15 @@ class BallGloss:
 	extends Node2D
 	func _draw() -> void:
 		var r: float = Ball.BALL_RADIUS
+		var beach := false
 		var host := get_parent()
 		if host is Ball:
 			r = (host as Ball).radius
-		var scale_u := (2.0 * r) / Ball.BALL_TEX_DIAM
-		var tw := float(Ball.BALL_TEX.get_width()) * scale_u
-		var th := float(Ball.BALL_TEX.get_height()) * scale_u
+			beach = (host as Ball).use_beach_tex
+		var tex: Texture2D = Ball.BEACH_TEX if beach else Ball.BALL_TEX
+		var diam: float = Ball.BEACH_TEX_DIAM if beach else Ball.BALL_TEX_DIAM
+		var scale_u := (2.0 * r) / diam
+		var tw := float(tex.get_width()) * scale_u
+		var th := float(tex.get_height()) * scale_u
 		# centred on the origin (image centre ~= ball-circle centre); the transform handles the roll.
-		draw_texture_rect(Ball.BALL_TEX, Rect2(Vector2(-tw * 0.5, -th * 0.5), Vector2(tw, th)), false)
+		draw_texture_rect(tex, Rect2(Vector2(-tw * 0.5, -th * 0.5), Vector2(tw, th)), false)

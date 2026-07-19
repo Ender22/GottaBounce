@@ -1,38 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://src/ui/PlayerCard.gd" id="1_pcard"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
-
-[sub_resource type="StyleBoxFlat" id="sb_skull_dome"]
-bg_color = Color(0.97, 0.96, 0.93, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 13
-corner_radius_top_right = 13
-corner_radius_bottom_right = 9
-corner_radius_bottom_left = 9
-
-[sub_resource type="StyleBoxFlat" id="sb_skull_eye"]
-bg_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="sb_skull_jaw"]
-bg_color = Color(0.97, 0.96, 0.93, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+[ext_resource type="Texture2D" path="res://assets/ui/skull.png" id="3_skull"]
 
 [node name="PlayerCard" type="Panel"]
 custom_minimum_size = Vector2(240, 100)
@@ -80,7 +50,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="Skull" type="Control" parent="Margin/VBox/IdentityRow/HeadSlot"]
+[node name="Skull" type="TextureRect" parent="Margin/VBox/IdentityRow/HeadSlot"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -89,42 +59,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-
-[node name="Dome" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
-layout_mode = 0
-offset_left = 6.0
-offset_top = 2.0
-offset_right = 34.0
-offset_bottom = 28.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_skull_dome")
-
-[node name="EyeL" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
-layout_mode = 0
-offset_left = 12.0
-offset_top = 11.0
-offset_right = 19.0
-offset_bottom = 18.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_skull_eye")
-
-[node name="EyeR" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
-layout_mode = 0
-offset_left = 21.0
-offset_top = 11.0
-offset_right = 28.0
-offset_bottom = 18.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_skull_eye")
-
-[node name="Jaw" type="Panel" parent="Margin/VBox/IdentityRow/HeadSlot/Skull"]
-layout_mode = 0
-offset_left = 12.0
-offset_top = 26.0
-offset_right = 28.0
-offset_bottom = 37.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_skull_jaw")
+texture = ExtResource("3_skull")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="NameLabel" type="Label" parent="Margin/VBox/IdentityRow"]
 layout_mode = 2
