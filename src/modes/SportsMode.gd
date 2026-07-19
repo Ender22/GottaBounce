@@ -53,6 +53,13 @@ const BOT_APPROACH_OFFSET := 150.0     # how far BEHIND the ball (away from enem
 const BOT_ON_BALL_DIST := 240.0        # within this of the ball -> stop lining up, drive THROUGH it goalward
 const BOT_DRIVE_THROUGH := 220.0       # how far PAST the ball (toward goal) to aim when driving through
 
+# --- team-play geometry (bot ball-crowding fix 2026-07-19): ONLY the teammate nearest the ball chases
+# it; the rest hold a goal-side COVER position so a team never stacks two bodies on one ball (which read
+# as one blob fighting itself). Also mode-owned WHERE-to-go, not fenced feel. ---
+const SUPPORT_HOLD_FRAC := 0.42        # supporter sits this fraction from OWN goal toward the ball (goal-side cover)
+const SUPPORT_SPREAD := 240.0          # lateral offset per extra supporter so multiple supporters don't stack
+const SUPPORT_COURT_MARGIN := 170.0    # keep the cover point this far inside the court walls
+
 # --- identity / presentation ---
 func id() -> StringName:
 	return &"sports"
@@ -292,6 +299,12 @@ func bot_objective(runner, bot_player) -> Variant:
 	if enemy_goal == Vector2.INF:
 		return null
 	var ball_pos: Vector2 = _ball.global_position
+	# TEAM PLAY (crowding fix): only the teammate NEAREST the ball chases it; supporters hold a goal-side
+	# cover point on their own half. Rank counts human teammates too (distance-to-ball, index tiebreak),
+	# so a bot yields the ball to a nearer human instead of piling on.
+	var rank: int = _ball_chase_rank(runner, idx, my_team, ball_pos)
+	if rank > 0:
+		return _support_point(runner, my_team, ball_pos, rank)
 	var to_goal: Vector2 = enemy_goal - ball_pos
 	if to_goal.length() < 1.0:
 		return ball_pos
@@ -324,6 +337,51 @@ func _enemy_goal_center(runner, my_team: int) -> Vector2:
 		if int(z.team) != my_team:
 			return z.global_position
 	return Vector2.INF
+
+## The world-centre of MY team's goal (the one this team defends), or Vector2.INF if none.
+func _own_goal_center(runner, my_team: int) -> Vector2:
+	for z in runner.get_tree().get_nodes_in_group("goal_zone"):
+		if int(z.team) == my_team:
+			return z.global_position
+	return Vector2.INF
+
+## How many of this bot's living teammates are CLOSER to the ball than it is (distance, index tiebreak).
+## 0 == this bot is the designated ball-chaser; >0 == a supporter (holds a cover position instead of
+## crowding the ball). Human teammates are counted, so a bot defers the ball to a nearer human.
+func _ball_chase_rank(runner, idx: int, my_team: int, ball_pos: Vector2) -> int:
+	var mine = runner.players[idx]
+	if not is_instance_valid(mine):
+		return 0
+	var my_d: float = mine.global_position.distance_to(ball_pos)
+	var rank := 0
+	for j in range(runner.players.size()):
+		if j == idx or j >= _teams.size() or int(_teams[j]) != my_team:
+			continue
+		var p = runner.players[j]
+		if not is_instance_valid(p) or p.is_dead():
+			continue
+		var jd: float = p.global_position.distance_to(ball_pos)
+		if jd < my_d or (jd == my_d and j < idx):
+			rank += 1
+	return rank
+
+## A supporter's hold point: goal-side of the ball on this team's own half (ready to intercept a return),
+## laterally spread by rank so multiple supporters don't stack, clamped inside the court walls.
+func _support_point(runner, my_team: int, ball_pos: Vector2, rank: int) -> Vector2:
+	var own_goal: Vector2 = _own_goal_center(runner, my_team)
+	if own_goal == Vector2.INF:
+		own_goal = runner.bounds.get_center()
+	var cover: Vector2 = own_goal.lerp(ball_pos, SUPPORT_HOLD_FRAC)
+	var axis: Vector2 = ball_pos - own_goal
+	if axis.length() > 1.0:
+		var perp := Vector2(-axis.y, axis.x).normalized()
+		var side: float = 1.0 if (rank % 2 == 1) else -1.0
+		var mag: float = float((rank + 1) / 2) * SUPPORT_SPREAD
+		cover += perp * side * mag
+	var box: Rect2 = runner.bounds.grow(-SUPPORT_COURT_MARGIN)
+	return box.get_center() if box.size.x <= 0.0 else Vector2(
+		clampf(cover.x, box.position.x, box.end.x),
+		clampf(cover.y, box.position.y, box.end.y))
 
 func match_end_banner(_runner) -> Dictionary:
 	var win_team: int = 0 if int(_team_scores[0]) > int(_team_scores[1]) else 1
