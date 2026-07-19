@@ -4,6 +4,23 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**SPORTS SPLIT -> ROCKETBALL + DROPSHOT (2026-07-19, a061502 + 89ee253 — owner menu rework):** CHOOSE
+YOUR GAME reordered to TRIALS, BRAWL, ROCKETBALL, DROPSHOT (the old single SPORTS card split by sport).
+Both sports cards run SportsMode (PartyMatch registry maps rocketball+dropshot->SportsMode); the mode id
+locks the sport + filters the court select — ROCKETBALL = 8 soccer courts, DROPSHOT = 3 dropshot courts.
+Courts carry a "sport" field; SportsMode.is_sports_mode()/sport_for_mode() replace the scattered
+mode_id==&"sports" checks. +2 dropshot courts (CORAL COVE wide, THE DOME tight; rendered-validated),
+dropshot_beach renamed SUNSET BEACH. DROPSHOT SERVE reworked (owner): after each point the ball waits
+FROZEN dead-centre above the net through the countdown, then on GO (new GameMode.on_combat_start hook from
+_bounce_go) launches toward the team that scored LAST (scorers make the first touch) — rendered-verified.
+FIRST BLOOD banner suppressed in sports (owner: killing isn't the point). MenuCard titles auto-shrink
+(ROCKETBALL fit). All rendered-verified (mode-select 4 cards, both court filters, dropshot serve). PENDING:
+DROPSHOT mode-card art (mode_dropshot.png — card shows "D" glyph until then; ChatGPT was rate-limiting);
+dropshot court-select cards use fallback gradient plates (need ThumbBaker bakes). TRIALS EXPANSION DESIGN
+landed (docs/briefs/trials_expansion_2026-07-19.md: circuits 2-5 -> 8 courses each, +16, ALL JSON-only,
+0 new art, 0 required mechanics) — awaiting greenlight to build+QA. BRAWL rework queued (rename PICK YOUR
+PEAK -> CHOOSE BATTLEGROUND, random-rotation last, drop the arena shelf; then ~20-arena/circuit content).
+
 **BOT TEAM-PLAY + ART BACKLOG (2026-07-19, 6df3aa3 + 6c231f2 — "continue bot brains + art backlog"):**
 (1) DROPSHOT bots no longer crowd the ball — SportsMode.bot_objective now designates the teammate
 NEAREST the ball as the chaser; the rest hold a goal-side cover point on their own half
