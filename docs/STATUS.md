@@ -4,6 +4,19 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**BRAWL ARENA EXPANSION — all 5 circuits to ~20 (2026-07-19, db26383 Meadow + d30ac75 the rest — owner:
+"each circuit needs ~20 dedicated arenas"):** DESIGN docs/briefs/brawl_arena_expansion_2026-07-19.md
+(71 new arenas, 69 JSON-only, 0 new code). BUILT + WIRED via 5 level-designer agents: MEADOW 4->20 (pilot,
+rendered-verified — floating grass islands over meadow_day), SCRAPWORKS 4->20 (ordered; hazards one family at
+a time), HIGH WIRE 3->18 (ordered; ridges/spires/radial/vertical, hazard-light), FOUNDRY 4->16 (draw pool,
+draw_count 12; presses/crushers/debris/collapse), MAYHEM 8->20 (draw pool, draw_count 14; dropped 4 borrowed
+arenas, added mines/gravity-wells/carts/multi-hazard). circuits.json wired; all 94 slots resolve. QA RENDER PASS
+over the 55 non-Meadow arenas RUNNING (load + floating-islands + fair spawns + hazard fairness + flagged risks:
+black_hole_brawl lethal-core suicide, double_hammer no-refuge deck, the 3 collapse finales' survivable arc,
+multi-hazard spawn clustering) — fixes to follow. OWNER NOTE: ~55 fresh arenas want a human fun/playtest pass;
+auto-QA only confirms they load/frame/aren't-broken. Props on windmill/carousel/hay use the chrome skin (optional
+meadow_bloom art). NEXT ART: super-aim pose x6 (goat-gated).
+
 **FLOATING ISLANDS — void gradient KILLED (2026-07-19, fc9d9da — owner flagged the ugly dark-green void
 ~5x):** paint_void's abyss (sage-green->black fill + fake dirt-cliffs + AO + motes + on-rim kill-line) now
 draws NOTHING. Platforms FLOAT over the painted sky; a fall is a ring-out at bounds.bottom (physics
