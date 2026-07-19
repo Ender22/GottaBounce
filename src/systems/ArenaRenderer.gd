@@ -70,6 +70,17 @@ const SLAB_MAX_H := 48.0       # h <= 48 -> mat only, no body
 const SLAB_MAT_BLEED := 12.0   # mat-only slabs: mat height = collider height + this
 const BODY_BLEED_TOP := 12.0   # grass fringe above the collider top (~10-14 px)
 const BODY_BLEED_SIDE := 8.0   # caps past the collider sides
+
+# --- FLOATING-ISLANDS world rework (owner 2026-07-19: "kill the ugly void gradient — platforms float").
+# A platform BODY is now a full-height rounded-bottom island of SEAMLESS TILED EARTH with a chocolate
+# outline, floating over the painted sky (paint_void draws nothing now). The earth is UV-tiled so its
+# repeat size is independent of the texture's pixel resolution. Grass levels keep their grass-fringe
+# strip at the top OVER the earth; the earth fills the rest of the collider height. ---
+const EARTH_TEX := preload("res://assets/world/earth_tile.png")
+const EARTH_TILE_WORLD := 300.0                    # world px per earth-tile repeat (rock scale)
+const BODY_OUTLINE := Color(0.231, 0.141, 0.106)   # chocolate #3B241B (touchable-object outline)
+const BODY_OUTLINE_PX := 7.0
+const BODY_CORNER_R := 20.0                        # rounded floating-island bottom
 const WALL_FACE_BLEED := 8.0   # wall art past the collider on its face sides
 const MAX_VIEW := Vector2(4800.0, 2700.0)   # view size at max zoom-out (+margin)
 
@@ -755,7 +766,16 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 	var mat_h: float
 	var mat_top: float
 	if h > SLAB_MAX_H:
-		# themed 3-slice body, art height snapped to canonical H64/H128 (vertical stretch is banned)
+		# FLOATING-ISLAND earth body (owner 2026-07-19): fill the FULL collider height with tiled earth so
+		# a tall platform is one solid island (grass levels only for now — themed bodies keep their strip).
+		# The grass-fringe strip is still drawn on TOP for the grassy edge; the earth fills below it.
+		if _body_is_grass:
+			var earth_w := w + BODY_BLEED_SIDE * 2.0
+			var earth_h := h + BODY_BLEED_TOP
+			var earth := _earth_body(earth_w, earth_h)
+			earth.position = Vector2(0.0, top - BODY_BLEED_TOP + earth_h * 0.5)
+			art.add_child(earth)
+		# themed 3-slice body / grass fringe strip, art height snapped to canonical H64/H128
 		var art_h := _canonical_height(h) + BODY_BLEED_TOP
 		var art_w := w + BODY_BLEED_SIDE * 2.0
 		var body_art := _platform_body(art_w, art_h)
@@ -789,6 +809,28 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 
 func _canonical_height(h: float) -> float:
 	return 64.0 if absf(h - 64.0) <= absf(h - 128.0) else 128.0
+
+## Floating-island body (owner 2026-07-19): a full-height rounded-bottom rect of SEAMLESS TILED EARTH
+## with a chocolate outline, so a tall platform reads as one solid earth island floating in the sky
+## (no more capped strip + dark void gradient below it). Centred on the origin; caller positions it so
+## the top sits under the mat. UV-tiled via a Polygon2D so the on-screen rock size == EARTH_TILE_WORLD
+## regardless of the texture's pixel resolution.
+func _earth_body(w: float, h: float, tint: Color = Color.WHITE) -> Node2D:
+	var root := Node2D.new()
+	# chocolate outline: a slightly larger rounded rect behind the earth
+	var outline := _rounded_rect_poly(w + BODY_OUTLINE_PX * 2.0, h + BODY_OUTLINE_PX * 2.0,
+		BODY_CORNER_R + BODY_OUTLINE_PX, BODY_OUTLINE)
+	root.add_child(outline)
+	# earth fill: rounded rect textured with the tiling earth; per-vertex UV = pos / tile-world so it repeats
+	var earth := _rounded_rect_poly(w, h, BODY_CORNER_R, tint)
+	earth.texture = EARTH_TEX
+	earth.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	var uv := PackedVector2Array()
+	for p in earth.polygon:
+		uv.append((p as Vector2) / EARTH_TILE_WORLD)
+	earth.uv = uv
+	root.add_child(earth)
+	return root
 
 ## Themed body art (§A). GRASS: whole-sprite hero (has mid-span flowers) if within ±20% aspect, else
 ## the grass 3-slice body. THEMED: 3-slice the resolved themed strip (22/56/22), warm-tinted for dusk;
@@ -938,6 +980,11 @@ func paint_void(v: Dictionary, platforms: Array = []) -> void:
 	if w <= 0.0 or depth <= 0.0:
 		_warn_once("void", "ArenaRenderer.paint_void: void with w/h <= 0 — skipped")
 		return
+	# FLOATING ISLANDS (owner 2026-07-19): the abyss is GONE. Platforms float over the painted sky; a fall
+	# off any platform is a ring-out (physics unchanged — bounds.bottom) with no drawn pit. This kills the
+	# ugly sage-green void gradient + fake dirt-cliffs the owner flagged ~5x. The whole 3a-3e block below
+	# (fill / deep extension / dirt walls / under-lip AO / motes / on-rim kill-line) is disabled.
+	return
 	var bottom_y := rim_y + depth
 	var root := Node2D.new()
 	root.name = "Void"

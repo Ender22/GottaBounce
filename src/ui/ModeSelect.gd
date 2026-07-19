@@ -26,6 +26,7 @@ const MODE_ART := {
 	"brawl": preload("res://assets/ui/modes/mode_brawl.png"),
 	"trials": preload("res://assets/ui/modes/mode_trials.png"),
 	"rocketball": preload("res://assets/ui/modes/mode_sports.png"),
+	"dropshot": preload("res://assets/ui/modes/mode_dropshot.png"),
 }
 
 @onready var _row: HBoxContainer = $CardRow
