@@ -4,16 +4,16 @@ extends CanvasLayer
 ## Brawl match. Rides the intro/countdown quiet time, holds 4s into COMBAT, then fades.
 ## Charm beat: pressing a listed button press-bounces its chip (the strip answers you).
 ## Early-out: the first use_powerup press in combat fades it immediately (lesson learned).
-## Keyboard variant auto-selected when no pad is connected. Adds 0.0s to match pacing.
+## Controller-only: always renders the drawn pad glyph (no keyboard variant). Adds 0.0s to match pacing.
 
 const COMBAT_LINGER := 4.0
 const FADE_TIME := 0.4
-# chip: label / gameplay action (for the press-bounce) / pad glyph / keyboard glyph
+# chip: label / gameplay action (for the press-bounce) / pad glyph
 const CHIPS := [
-	{"label": "MOVE", "action": "", "pad": "stick", "kb": "WASD"},
-	{"label": "FLY", "action": "boost", "pad": "A", "kb": "SPACE"},
-	{"label": "SUPER SMASH", "action": "super", "pad": "X", "kb": "K"},
-	{"label": "POWERUP", "action": "use_powerup", "pad": "B", "kb": "L"},
+	{"label": "MOVE", "action": "", "pad": "stick"},
+	{"label": "FLY", "action": "boost", "pad": "A"},
+	{"label": "SUPER SMASH", "action": "super", "pad": "X"},
+	{"label": "POWERUP", "action": "use_powerup", "pad": "B"},
 ]
 
 @onready var _strip: HBoxContainer = $Root/Strip
@@ -35,7 +35,6 @@ func present() -> void:
 	for c in _strip.get_children():
 		c.queue_free()
 	_chip_nodes.clear()
-	var pad: bool = Input.get_connected_joypads().size() > 0
 	# cream chip plate (HintStrip language). NOTE: StepChip is a Button variation — a PanelContainer
 	# ignores it silently, so the stylebox is set directly.
 	var chip_sb := StyleBoxFlat.new()
@@ -53,7 +52,7 @@ func present() -> void:
 		box.add_theme_constant_override("separation", 12)
 		chip.add_child(box)
 		var glyph := PadGlyph.new()
-		glyph.setup(str(spec["pad"]) if pad else str(spec["kb"]))
+		glyph.setup(str(spec["pad"]))
 		box.add_child(glyph)
 		var lbl := Label.new()
 		lbl.theme_type_variation = &"CardTag"

@@ -26,7 +26,6 @@ var _top_busy := false
 @onready var _match_panel: PanelContainer = $Root/CenterC/MatchPanel
 @onready var _match_text: Label = $Root/CenterC/MatchPanel/MatchBox/MatchText
 @onready var _match_sub: Label = $Root/CenterC/MatchPanel/MatchBox/MatchSub
-@onready var _match_prompt: Label = $Root/CenterC/MatchPanel/MatchBox/MatchPrompt
 
 func setup(players: Array, colors: Array, skins: Array) -> void:
 	_players = players
@@ -87,15 +86,16 @@ func hide_center() -> void:
 	_center_prompt.visible = false
 	_match_panel.visible = false
 
-## MATCH_END (lethality spec §7): banner + scoreline + prompt on the chunky backing panel
+## MATCH_END (lethality spec §7): banner + scoreline on the chunky backing panel
 ## (MatchPanel in MatchHUD.tscn, MatchEndPanel theme variation) — legible over ANY frozen chaos.
+## BRAWL routes match-end to VictoryScreen (with real focusable buttons); this panel is the
+## Sports/Trials backing that PartyMatch tops with show_match_buttons.
 ## The panel outline takes the winner's color.
 func show_match_end(text: String, color: Color, scoreline: String) -> void:
 	hide_center()
 	_match_text.text = text
 	_match_text.add_theme_color_override("font_color", color)
 	_match_sub.text = scoreline
-	_match_prompt.visible = false
 	var sb := _match_panel.get_theme_stylebox("panel")
 	if sb is StyleBoxFlat:
 		var sb2: StyleBoxFlat = sb.duplicate()
@@ -108,10 +108,6 @@ func show_match_end(text: String, color: Color, scoreline: String) -> void:
 	_match_panel.scale = Vector2(0.3, 0.3)
 	var tw := create_tween()
 	tw.tween_property(_match_panel, "scale", Vector2.ONE, POP_IN).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-func show_match_prompt(text: String) -> void:
-	_match_prompt.text = text
-	_match_prompt.visible = true
 
 ## TOP-BAND banner (upper 15%, mid-combat — never blocks the fight). One at a time; later
 ## banners queue (max 2, oldest dropped — spec §3).

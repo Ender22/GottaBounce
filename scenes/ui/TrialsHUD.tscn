@@ -241,10 +241,3 @@ layout_mode = 2
 theme_type_variation = &"BannerSub"
 text = ""
 horizontal_alignment = 1
-
-[node name="MatchPrompt" type="Label" parent="Root/CenterC/MatchPanel/MatchBox"]
-visible = false
-layout_mode = 2
-theme_type_variation = &"BannerPrompt"
-text = ""
-horizontal_alignment = 1

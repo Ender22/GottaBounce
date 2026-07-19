@@ -406,7 +406,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		accept_event()
 		_go_arena()
 		return
-	if e is InputEventKey and (e as InputEventKey).pressed and (e as InputEventKey).keycode == KEY_R:
+	if e.is_action_pressed("menu_random"):   # pad Y (controller-only; was keyboard KEY_R)
 		_random_pick()
 
 func _random_pick() -> void:

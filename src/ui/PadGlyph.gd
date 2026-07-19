@@ -2,9 +2,9 @@ class_name PadGlyph
 extends Control
 ## Drawn controller-button glyph chip (match_ceremony brief §0). A 44px circle per Xbox color
 ## convention (A green / B red / X blue / Y yellow), white letter with chocolate outline; the
-## stick variant is a cream circle with a chocolate cross. Keyboard fallback = cream rounded
-## rect sized to its text ("SPACE", "K", "L", "WASD"). Pure _draw + one Label — ZERO art files,
-## like NameTag. Reused by ControlsLegend (and future prompt rows).
+## stick variant is a cream circle with a chocolate cross. Controller-only: A/B/X/Y + "stick" are
+## the only glyphs (no keyboard chip). Pure _draw + one Label — ZERO art files, like NameTag.
+## Reused by ControlsLegend (and future prompt rows).
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const CREAM := Color(1.0, 1.0, 1.0, 0.97)
@@ -13,13 +13,12 @@ const FACE_COLORS := {
 }
 const SIZE := 44.0
 
-var _glyph := "A"      # "A"/"B"/"X"/"Y" | "stick" | keyboard text ("SPACE", "WASD", ...)
+var _glyph := "A"      # "A"/"B"/"X"/"Y" | "stick"
 var _label: Label = null
 
 func setup(glyph: String) -> void:
 	_glyph = glyph
 	var is_pad_letter: bool = FACE_COLORS.has(_glyph)
-	var is_stick: bool = _glyph == "stick"
 	if _label == null:
 		_label = Label.new()
 		_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -32,18 +31,10 @@ func setup(glyph: String) -> void:
 		_label.add_theme_color_override("font_color", Color.WHITE)
 		_label.add_theme_color_override("font_outline_color", CHOCO)
 		_label.add_theme_constant_override("outline_size", 6)
-		custom_minimum_size = Vector2(SIZE, SIZE)
-	elif is_stick:
-		_label.text = ""
-		custom_minimum_size = Vector2(SIZE, SIZE)
 	else:
-		# keyboard chip: chocolate text on cream, width grows to fit
-		_label.text = _glyph
-		_label.add_theme_font_size_override("font_size", 20)
-		_label.add_theme_color_override("font_color", CHOCO)
-		_label.add_theme_constant_override("outline_size", 0)
-		var w: float = maxf(SIZE, 24.0 + 13.0 * float(_glyph.length()))
-		custom_minimum_size = Vector2(w, SIZE)
+		# "stick" (or any non-letter): the cross is drawn in _draw, no label text
+		_label.text = ""
+	custom_minimum_size = Vector2(SIZE, SIZE)
 	queue_redraw()
 
 func _draw() -> void:
@@ -52,18 +43,10 @@ func _draw() -> void:
 	if FACE_COLORS.has(_glyph):
 		draw_circle(c, r, FACE_COLORS[_glyph])
 		draw_arc(c, r, 0.0, TAU, 40, CHOCO, 4.0, true)
-	elif _glyph == "stick":
+	else:
+		# "stick" (the only non-letter glyph): cream circle with a chocolate ⊕ cross (the "move" read)
 		draw_circle(c, r, CREAM)
 		draw_arc(c, r, 0.0, TAU, 40, CHOCO, 4.0, true)
-		# chocolate ⊕ cross (the "move" read)
 		var a := r * 0.52
 		draw_line(c - Vector2(a, 0), c + Vector2(a, 0), CHOCO, 5.0)
 		draw_line(c - Vector2(0, a), c + Vector2(0, a), CHOCO, 5.0)
-	else:
-		# keyboard rounded-rect chip
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = CREAM
-		sb.border_color = CHOCO
-		sb.set_border_width_all(4)
-		sb.set_corner_radius_all(12)
-		draw_style_box(sb, Rect2(Vector2.ZERO, size))

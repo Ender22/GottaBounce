@@ -226,6 +226,10 @@ func _ready() -> void:
 	_hud = _mode.hud_scene().instantiate()
 	add_child(_hud)
 	_hud.setup(players, PLAYER_COLORS, _skins())
+	# Sports/Trials match-end: the HUD owns a real focusable REMATCH/SETUP/QUIT row (VictoryScreen bar).
+	# Connect ONCE at HUD creation so a rematch (same HUD instance) never stacks duplicate handlers.
+	if _hud.has_signal("match_button_pressed"):
+		_hud.match_button_pressed.connect(_on_match_button)
 
 	# between-stage score screen (BRAWL opt-in; hidden until the first SCOREBOARD state)
 	if _mode.wants_scoreboard():
@@ -943,12 +947,35 @@ func _tick_match_end(delta: float) -> void:
 		return
 	if not _prompt_shown:
 		_prompt_shown = true
-		_hud.show_match_prompt("A / ENTER — REMATCH      B / ESC — QUIT")
-	if Input.is_action_just_pressed(&"menu_accept"):
-		_start_match()
-	elif Input.is_action_just_pressed(&"menu_back"):
-		# match-end QUIT returns to the shell MainMenu (v1_frontend_shell §9 C9), NOT app-quit
-		get_tree().change_scene_to_file(SHELL_SCENE)
+		# Real focusable button row (VictoryScreen bar) — the HUD owns the row's input from here;
+		# _on_match_button (wired once at HUD creation) turns a press into the actual action.
+		_hud.show_match_buttons(_match_end_specs())
+
+## Sports/Trials match-end button spec. TRIALS is co-op completion -> PLAY AGAIN; versus modes ->
+## REMATCH. QUIT TO MENU is always LAST (the safe menu_back target). Handlers mirror VictoryScreen.
+func _match_end_specs() -> Array:
+	var first := {"text": "REMATCH", "id": &"rematch"}
+	if _config != null and _config.mode_id == &"trials":
+		first = {"text": "PLAY AGAIN", "id": &"rematch"}
+	return [
+		first,
+		{"text": "CHANGE SETUP", "id": &"setup"},
+		{"text": "QUIT TO MENU", "id": &"menu"},
+	]
+
+## Row-button activation (Sports/Trials). Reuses the exact handlers behind the old key hints:
+## rematch = _start_match; setup = resume-setup + shell; menu = shell (v1_frontend_shell §9 C9).
+func _on_match_button(id: StringName) -> void:
+	if state != "MATCH_END":
+		return
+	match id:
+		&"rematch":
+			_start_match()
+		&"setup":
+			GameConfig.resume_setup = true
+			get_tree().change_scene_to_file(SHELL_SCENE)
+		&"menu":
+			get_tree().change_scene_to_file(SHELL_SCENE)
 
 ## menu_back during a live match opens the PauseMenu overlay (v1_frontend_shell §5 C8). MATCH_END is
 ## handled by _tick_match_end (its menu_back = QUIT-to-menu), so ignore it here.

@@ -7,13 +7,17 @@ extends CanvasLayer
 ## COLLECT "TOKENS n/m", PRECISION "PADS n/m") gives the win rule at a glance. The fuel gauge is kept.
 ##
 ## Fills the SAME method surface PartyMatch calls on a HUD (setup / reset_scores / hide_center / set_dead
-## / show_center / animate_scores / show_top / show_match_end / show_match_prompt) so the runner drives it
+## / show_center / animate_scores / show_top / show_match_end / show_match_buttons) so the runner drives it
 ## unchanged; the score-oriented ones are no-ops. Live readouts poll the runner + active TrialsMode.
+
+## Emitted when the player activates a match-end row button (id from the spec fed to show_match_buttons).
+signal match_button_pressed(id)
 
 const POP_IN := 0.15
 const POP_OUT := 0.2
 const MAX_PIPS := 4
 const PIP_DONE := Color(1.0, 0.86, 0.3, 1.0)   # gold lock when a pip is complete (over the skin fill)
+const MATCH_BTN_MIN := Vector2(300, 84)
 
 var _runner   # PartyMatch (untyped so mode/state member access is dynamic — no runner class edit)
 var _center_tw: Tween
@@ -33,9 +37,16 @@ var _skin_colors: Array = []   # per-participant skin color (from setup), drives
 @onready var _center_prompt: Label = $Root/CenterC/CenterBox/CenterPrompt
 @onready var _top_label: Label = $Root/TopBand/TopCenter/TopBanner
 @onready var _match_panel: PanelContainer = $Root/CenterC/MatchPanel
+@onready var _match_box: VBoxContainer = $Root/CenterC/MatchPanel/MatchBox
 @onready var _match_text: Label = $Root/CenterC/MatchPanel/MatchBox/MatchText
 @onready var _match_sub: Label = $Root/CenterC/MatchPanel/MatchBox/MatchSub
-@onready var _match_prompt: Label = $Root/CenterC/MatchPanel/MatchBox/MatchPrompt
+
+# --- match-end focus button row (VictoryScreen focus model, mirrored) ---
+var _match_btns: Array = []       # [Button] left->right; last = the safe menu_back target
+var _match_focus := 0
+var _match_armed := false
+var _match_pulse: Tween
+var _match_row: HBoxContainer = null
 
 var _pips: Array = []   # [{root: Panel, fill: Panel}]
 
@@ -78,6 +89,8 @@ func animate_scores(_new_scores: Array) -> void:
 
 # ------------------------------------------------------------------ live readouts
 func _process(_delta: float) -> void:
+	if _match_armed:
+		_match_input()
 	if _runner == null:
 		return
 	var mode = _runner._mode
@@ -220,10 +233,10 @@ func hide_center() -> void:
 # ------------------------------------------------------------------ MATCH END (set summary panel)
 func show_match_end(text: String, color: Color, subline: String) -> void:
 	hide_center()
+	_clear_match_buttons()
 	_match_text.text = text
 	_match_text.add_theme_color_override("font_color", color)
 	_match_sub.text = subline
-	_match_prompt.visible = false
 	var sb := _match_panel.get_theme_stylebox("panel")
 	if sb is StyleBoxFlat:
 		var sb2: StyleBoxFlat = (sb as StyleBoxFlat).duplicate()
@@ -237,9 +250,96 @@ func show_match_end(text: String, color: Color, subline: String) -> void:
 	var tw := create_tween()
 	tw.tween_property(_match_panel, "scale", Vector2.ONE, POP_IN).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-func show_match_prompt(text: String) -> void:
-	_match_prompt.text = text
-	_match_prompt.visible = true
+# ------------------------------------------------------------------ MATCH END button row (VictoryScreen bar)
+## Build a real focusable button row inside the MatchPanel — the actionable end-state, NOT a caption.
+## specs = [{ "text": String, "id": StringName }, ...]; first button takes default focus + the primary
+## style, the LAST button is the safe menu_back target. Mirrors VictoryScreen's focus juice exactly.
+## PartyMatch calls this once, after its PROMPT_GUARD arm lock, and wires match_button_pressed.
+func show_match_buttons(specs: Array) -> void:
+	_clear_match_buttons()
+	_match_focus = 0
+	_match_armed = false
+	for i in range(specs.size()):
+		var spec: Dictionary = specs[i]
+		var b := Button.new()
+		b.text = "  %s  " % str(spec.get("text", ""))
+		b.focus_mode = Control.FOCUS_NONE   # manual focus (VictoryScreen model) — no built-in nav
+		b.custom_minimum_size = MATCH_BTN_MIN
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		b.theme_type_variation = &"ShellBtnPrimary" if i == 0 else &"ShellBtn"
+		b.set_meta("id", spec.get("id", &""))
+		var idx := i
+		b.pressed.connect(func() -> void:
+			if _match_armed:
+				_activate_match(idx))
+		_match_row.add_child(b)
+		_match_btns.append(b)
+	await get_tree().process_frame
+	if _match_row == null:
+		return
+	for b: Button in _match_btns:
+		b.pivot_offset = b.size * 0.5
+	_match_row.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(_match_row, "modulate:a", 1.0, 0.2)
+	_arm_match()
+
+func _clear_match_buttons() -> void:
+	_match_armed = false
+	if _match_pulse != null and _match_pulse.is_valid():
+		_match_pulse.kill()
+	if _match_row != null and is_instance_valid(_match_row):
+		_match_row.queue_free()
+	_match_btns.clear()
+	_match_row = HBoxContainer.new()
+	_match_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_match_row.add_theme_constant_override("separation", 30)
+	_match_box.add_child(_match_row)
+
+func _arm_match() -> void:
+	_match_armed = true
+	_set_match_focus(0)
+
+func _match_input() -> void:
+	if _match_btns.is_empty():
+		return
+	if Input.is_action_just_pressed(&"ui_left"):
+		_set_match_focus((_match_focus + _match_btns.size() - 1) % _match_btns.size())
+	elif Input.is_action_just_pressed(&"ui_right"):
+		_set_match_focus((_match_focus + 1) % _match_btns.size())
+	elif Input.is_action_just_pressed(&"menu_accept") or Input.is_action_just_pressed(&"ui_accept"):
+		_activate_match(_match_focus)
+	elif Input.is_action_just_pressed(&"menu_back"):
+		# first back = focus the safe QUIT option (last); second back = take it (VictoryScreen rule)
+		var qi := _match_btns.size() - 1
+		if _match_focus == qi:
+			_activate_match(qi)
+		else:
+			_set_match_focus(qi)
+
+func _set_match_focus(i: int) -> void:
+	_match_focus = i
+	if _match_pulse != null and _match_pulse.is_valid():
+		_match_pulse.kill()
+	for j in range(_match_btns.size()):
+		var b: Button = _match_btns[j]
+		var focused: bool = j == i
+		b.modulate.a = 1.0 if focused else 0.85
+		var tw := create_tween()
+		tw.tween_property(b, "scale", Vector2(1.12, 1.12) if focused else Vector2.ONE, 0.12) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var fb: Button = _match_btns[i]
+	_match_pulse = create_tween()
+	_match_pulse.set_loops()
+	_match_pulse.tween_property(fb, "scale", Vector2(1.075, 1.075), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_match_pulse.tween_property(fb, "scale", Vector2(1.12, 1.12), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func _activate_match(i: int) -> void:
+	if not _match_armed or i < 0 or i >= _match_btns.size():
+		return
+	_match_armed = false   # one activation per row life — repeated accepts can't double-fire
+	AudioManager.play_sfx("ui_click")
+	match_button_pressed.emit(_match_btns[i].get_meta("id"))
 
 # ------------------------------------------------------------------ TOP banner (transient — part of the surface)
 func show_top(text: String, color: Color, hold: float) -> void:
