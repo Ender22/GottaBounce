@@ -16,9 +16,14 @@ a TALL themed platform would still gap, follow-up). DROPSHOT mode-card art shipp
 Bouncer spiking a beach ball; ModeSelect shows it, not the "D" glyph — all 4 mode cards now have dioramas).
 TRIALS: all 16 new courses now SHIP — the 3 QA-failed ones fixed + driven-verified (pad-in-climb/goal bugs +
 the ~29deg floor-ball launch limit; commit aa4ae8e+course fixes). UI end-screen BUTTONS rendered-validated
-(Sports "RED WINS!" shows real REMATCH/CHANGE SETUP/QUIT, focus-navigable). STILL OPEN: trials per-player fuel
-HUD (TrialsHUD reads players[0] only -> needs the corner PlayerCards like brawl/sports); tall THEMED platforms
-(space/foundry) could still gap (grass-only earth body today); brawl arena content (~20/circuit) not started.
+(Sports "RED WINS!" shows real REMATCH/CHANGE SETUP/QUIT, focus-navigable). TRIALS per-player fuel HUD SHIPPED (4039a70): co-op trials
+now shows one corner PlayerCard per player (fuel gauge), not a single shared centre bar — rendered-verified 2P.
+Thumbnails ALL re-baked via ThumbBaker (56262e6): every arena/court thumb now shows the floating-islands look,
+and the 3 DROPSHOT courts got real thumbnails (were fallback plates). STILL OPEN: brawl arena content (~20
+dedicated/circuit — DESIGN agent running now, docs/briefs/brawl_arena_expansion_2026-07-19.md); tall THEMED
+platforms could still gap (grass-only earth body today; rare — no current themed level has tall platforms);
+brawl grass arenas without a backdrop_painting show a plain sky (not the meadow painting) — a consistency
+follow-up; super-aim pose x6 (art, goat-gated).
 
 **UI CONTROLLER-ONLY CLEANUP (2026-07-19, e32eb94 — owner: "real games give a rematch BUTTON, not text"):**
 audit at docs/briefs/ui_professionalism_audit_2026-07-19.md. SPORTS+TRIALS match-end now use REAL focusable
