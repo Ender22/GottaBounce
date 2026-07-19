@@ -16,6 +16,12 @@ signal match_button_pressed(id)
 const POP_IN := 0.15
 const POP_OUT := 0.2
 const MAX_PIPS := 4
+# Per-player fuel cards (owner 2026-07-19): co-op trials must show fuel PER PLAYER, same as brawl/sports —
+# not one shared centre bar. Corner-anchored PlayerCards (identity + fuel gauge; score pips already removed).
+const PLAYER_CARD := preload("res://scenes/ui/PlayerCard.tscn")
+const CARD_W := 240.0
+const CARD_H := 100.0
+const CARD_MARGIN := 24.0
 const PIP_DONE := Color(1.0, 0.86, 0.3, 1.0)   # gold lock when a pip is complete (over the skin fill)
 const MATCH_BTN_MIN := Vector2(300, 84)
 
@@ -28,8 +34,8 @@ var _skin_colors: Array = []   # per-participant skin color (from setup), drives
 @onready var _home_label: Label = $Root/HomePanel/HomeBox/HomeLabel
 @onready var _sub_label: Label = $Root/HomePanel/HomeBox/SubLabel
 @onready var _pips_row: HBoxContainer = $Root/HomePanel/HomeBox/PipsRow
-@onready var _fuel_fill: Panel = $Root/FuelWrap/FuelBg/FuelFill
-@onready var _fuel_bg: Panel = $Root/FuelWrap/FuelBg
+@onready var _fuel_wrap: Control = $Root/FuelWrap
+@onready var _root: Control = $Root
 
 @onready var _center_box: VBoxContainer = $Root/CenterC/CenterBox
 @onready var _center_text: Label = $Root/CenterC/CenterBox/CenterText
@@ -49,6 +55,7 @@ var _match_pulse: Tween
 var _match_row: HBoxContainer = null
 
 var _pips: Array = []   # [{root: Panel, fill: Panel}]
+var _cards: Array = []  # per-player PlayerCard corner cards (fuel gauges)
 
 func _ready() -> void:
 	_runner = get_parent()
@@ -75,8 +82,37 @@ func _pip_fill_style(c: Color) -> StyleBoxFlat:
 	return sb
 
 # ------------------------------------------------------------------ runner-called HUD surface
-func setup(_players: Array, colors: Array, _skins: Array) -> void:
+func setup(players: Array, colors: Array, skins: Array) -> void:
 	_skin_colors = colors.duplicate()
+	# PER-PLAYER fuel: one corner PlayerCard per participant, replacing the single shared bar. Solo -> one
+	# card top-left; co-op -> the same 4-corner layout brawl/sports use, so 2P trials reads identically.
+	if is_instance_valid(_fuel_wrap):
+		_fuel_wrap.visible = false
+	for c in _cards:
+		if is_instance_valid(c):
+			c.queue_free()
+	_cards.clear()
+	for i in range(mini(players.size(), 4)):
+		var card: Control = PLAYER_CARD.instantiate()
+		_root.add_child(card)
+		_place_corner(card, i)
+		var col: Color = colors[i] if i < colors.size() else Color.WHITE
+		var skin: String = str(skins[i]) if i < skins.size() else "pink"
+		card.setup(i, col, skin)
+		_cards.append(card)
+
+## Anchor a card to corner 0=top-left / 1=top-right / 2=bottom-left / 3=bottom-right (matches MatchHUD).
+func _place_corner(card: Control, corner: int) -> void:
+	var right: bool = corner == 1 or corner == 3
+	var bottom: bool = corner == 2 or corner == 3
+	card.anchor_left = 1.0 if right else 0.0
+	card.anchor_right = card.anchor_left
+	card.anchor_top = 1.0 if bottom else 0.0
+	card.anchor_bottom = card.anchor_top
+	card.offset_left = (-CARD_MARGIN - CARD_W) if right else CARD_MARGIN
+	card.offset_right = card.offset_left + CARD_W
+	card.offset_top = (-CARD_MARGIN - CARD_H) if bottom else CARD_MARGIN
+	card.offset_bottom = card.offset_top + CARD_H
 
 func reset_scores() -> void:
 	pass   # no score pips in TRIALS
@@ -189,15 +225,16 @@ func _update_sub(mode, otype: String) -> void:
 			_sub_label.text = ""   # REACH_GOAL: the home tracker alone
 
 func _update_fuel() -> void:
-	var ratio := 0.0
+	# drive each participant's corner card from their own player (per-player fuel, not one shared bar)
 	var players: Array = _runner.players
-	if players.size() > 0 and is_instance_valid(players[0]):
-		ratio = float(players[0].get_fuel_ratio())
-	var pad := 6.0
-	var fw: float = maxf(0.0, _fuel_bg.size.x - pad * 2.0)
-	var fh: float = maxf(0.0, _fuel_bg.size.y - pad * 2.0)
-	_fuel_fill.position = Vector2(pad, pad)
-	_fuel_fill.size = Vector2(fw * clampf(ratio, 0.0, 1.0), fh)
+	for i in range(_cards.size()):
+		var card: Control = _cards[i]
+		if not is_instance_valid(card):
+			continue
+		if i < players.size() and is_instance_valid(players[i]):
+			var p = players[i]
+			card.set_fuel(p.get_fuel_ratio(), p.fuel_locked)
+			card.set_powerup(p.held_powerup)
 
 # ------------------------------------------------------------------ CENTER banner (frozen / pre-round)
 func show_center(text: String, color: Color, hold: float, sub := "") -> void:
