@@ -1,0 +1,41 @@
+{
+  "name": "CORAL COVE",
+  "version": 1,
+  "theme": "reef",
+  "sport": "dropshot",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "interior_painting": "arena_stadium",
+  "design_intent": "DROPSHOT variation — CORAL COVE, the WIDE long-rally court (sibling of dropshot_beach). Same STRUCTURE as beach: an enclosed symmetric court split by a solid centre NET; the floor is a row of ball-only destructible DROP_TILES; two hidden under-floor goal_zone strips team-tagged to the DEFENDING half score when the floaty beach ball breaks through. Only the geometry/theme changed vs beach: a WIDER court (half-court 1260px vs beach 1110) and MORE, slightly narrower tiles (12 tiles of 210 vs beach's 10 of 222) so rallies run longer before they reach the wall. Teal/turquoise reef palette (distinct from beach's #1d6fae/#ffca7a).\n\nFANTASY-FIT (GAME_ESSENCE): the NET keeps beach's owner-tuned height — it rises 490px above the floor (y860..1350) leaving a 650px top gap; trampoline apex is ~270px so crossing to attack still favours boost (Verb: FLY) but the floaty ball lofts over the gap readily (owner 2026-07-18: never make the net taller than beach). Half-court width 1260px > 527px max spring drift, so pressing the ball to the far tiles REQUIRES flight — the wider court leans harder on the jetpack than beach does, which is the point of the variation. Hitting the ball is the existing bounce/drive contact physics; a super still doubles the strike (the power spike).\n\nGEOMETRY: bounds 0..3100 x 0..1600. Interior x290..2810 (width 2520; half-court 1260). Ceiling bumper x200..2900 at y130..210. Side walls bumper x200..290 / x2810..2900 down to y1350. NET: bumper column x1535..1565 (centre 1550), y860..1350 (490px tall; the 650px top gap is fly-over). FLOOR: 12 drop_tiles of 210x100 at y1350 spanning x290..2810 (6 per half; the x1550 tile seam sits exactly under the net so no tile straddles the halves); two solid bumper caps seal the wall feet (x200..290, x2810..2900). UNDER-FLOOR: two hidden goal_zone strips y1455..1585 (team 0 left centre x920 / team 1 right centre x2180, each 1260 wide, mouth up). Hole clearance: tile 210 vs beach-ball diameter 168.",
+  "sky_top": "#0e7c8c",
+  "sky_bottom": "#8ff0dc",
+  "bounds": { "left": 0, "right": 3100, "top": 0, "bottom": 1600 },
+  "platforms": [
+    { "x": 200,  "y": 130,  "w": 2700, "h": 80,   "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 1140, "tier": "bumper" },
+    { "x": 2810, "y": 210,  "w": 90,   "h": 1140, "tier": "bumper" },
+    { "x": 1535, "y": 860,  "w": 30,   "h": 490,  "tier": "bumper" },
+    { "x": 200,  "y": 1350, "w": 90,   "h": 100,  "tier": "bumper" },
+    { "x": 2810, "y": 1350, "w": 90,   "h": 100,  "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "drop_tile", "x": 290,  "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 500,  "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 710,  "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 920,  "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 1130, "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 1340, "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 1550, "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 1760, "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 1970, "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 2180, "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 2390, "y": 1350, "w": 210, "h": 100 },
+    { "type": "drop_tile", "x": 2600, "y": 1350, "w": 210, "h": 100 },
+    { "type": "goal_zone", "x": 920,  "y": 1520, "w": 1260, "h": 130, "team": 0, "mouth": "up", "style": "hidden" },
+    { "type": "goal_zone", "x": 2180, "y": 1520, "w": 1260, "h": 130, "team": 1, "mouth": "up", "style": "hidden" },
+    { "type": "player_spawn", "x": 520,  "y": 1150 },
+    { "type": "player_spawn", "x": 800,  "y": 1000 },
+    { "type": "player_spawn", "x": 2580, "y": 1150 },
+    { "type": "player_spawn", "x": 2300, "y": 1000 }
+  ]
+}

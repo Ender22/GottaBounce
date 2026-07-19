@@ -42,6 +42,30 @@ func set_card(data: Dictionary) -> void:
 
 func set_name_text(t: String) -> void:
 	_name.text = t
+	# Auto-shrink long titles (e.g. ROCKETBALL) so they never spill past the card edges. Base size stays
+	# for short names. Measured against the CARD width (the label itself grows to its text, so it can't
+	# report overflow). Fit on deferred (after first layout) and on any later card resize.
+	_name.remove_theme_font_size_override("font_size")
+	if not resized.is_connected(_fit_name_font):
+		resized.connect(_fit_name_font)
+	call_deferred("_fit_name_font")
+
+func _fit_name_font() -> void:
+	if not is_instance_valid(_name):
+		return
+	var base: int = _name.get_theme_font_size("font_size")
+	var f: Font = _name.get_theme_font("font")
+	if f == null or base <= 0:
+		return
+	var avail: float = size.x - 44.0   # card interior minus horizontal padding
+	if avail <= 1.0:
+		return
+	# measure at the BASE size (ignore any prior override) so the fit is idempotent across re-layouts
+	var w: float = f.get_string_size(_name.text, HORIZONTAL_ALIGNMENT_CENTER, -1, base).x
+	if w > avail:
+		_name.add_theme_font_size_override("font_size", maxi(22, int(floor(base * avail / w))))
+	else:
+		_name.remove_theme_font_size_override("font_size")
 
 func set_tag_text(t: String) -> void:
 	_tag.text = t

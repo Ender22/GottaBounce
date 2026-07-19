@@ -5,21 +5,27 @@ extends MenuScreen
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
 
+# Owner 2026-07-19: SPORTS split into two top-level cards — ROCKETBALL (soccer) + DROPSHOT (volleyball) —
+# and reordered to TRIALS, BRAWL, ROCKETBALL, DROPSHOT. Both sports cards run SportsMode (PartyMatch
+# registry); the mode id locks the sport and filters the court select.
 const MODES := [
-	{"id": "brawl", "name": "BRAWL", "tag": "Last one flying wins.",
-		"color": Color("#ff5fa8"), "glyph": "B", "soon": false},
 	{"id": "trials", "name": "TRIALS", "tag": "Fly the line. Land it, and you're home.",
 		"color": Color("#4aa8ff"), "glyph": "T", "soon": false},
-	{"id": "sports", "name": "SPORTS", "tag": "Headbutt the ball, not each other. (Okay, each other too.)",
-		"color": Color("#ff7a2d"), "glyph": "S", "soon": false},
+	{"id": "brawl", "name": "BRAWL", "tag": "Last one flying wins.",
+		"color": Color("#ff5fa8"), "glyph": "B", "soon": false},
+	{"id": "rocketball", "name": "ROCKETBALL", "tag": "Headbutt the ball, not each other. (Okay, each other too.)",
+		"color": Color("#ff7a2d"), "glyph": "R", "soon": false},
+	{"id": "dropshot", "name": "DROPSHOT", "tag": "Spike it over. Don't let it drop.",
+		"color": Color("#22b3c9"), "glyph": "D", "soon": false},
 ]
 
 # Glossy-Toybox action dioramas per mode (frontend_visual_polish.md §1c). Drops into the MenuCard
-# Art slot; set_art() auto-hides the placeholder Glyph letter.
+# Art slot; set_art() auto-hides the placeholder Glyph letter. ROCKETBALL reuses the soccer diorama;
+# DROPSHOT has its own (existence-guarded: a missing card falls back to the glyph letter).
 const MODE_ART := {
 	"brawl": preload("res://assets/ui/modes/mode_brawl.png"),
 	"trials": preload("res://assets/ui/modes/mode_trials.png"),
-	"sports": preload("res://assets/ui/modes/mode_sports.png"),
+	"rocketball": preload("res://assets/ui/modes/mode_sports.png"),
 }
 
 @onready var _row: HBoxContainer = $CardRow

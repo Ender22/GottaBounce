@@ -1,0 +1,37 @@
+{
+  "name": "THE DOME",
+  "version": 1,
+  "theme": "dome",
+  "sport": "dropshot",
+  "kill_shape": "sports_court",
+  "backdrop": "enclosed",
+  "interior_painting": "arena_stadium",
+  "design_intent": "DROPSHOT variation — THE DOME, the TIGHT fast-exchange court (sibling of dropshot_beach). Same STRUCTURE as beach: an enclosed symmetric court split by a solid centre NET; the floor is a row of ball-only destructible DROP_TILES; two hidden under-floor goal_zone strips team-tagged to the DEFENDING half score when the floaty beach ball breaks through. Only the geometry/theme changed vs beach: a NARROWER court (half-court 960px vs beach 1110) and FEWER, WIDER tiles (8 tiles of 240 vs beach's 10 of 222) so the ball reaches a tile in fewer touches and points come fast. Cool indoor-dome palette (deep indigo to steel blue), distinct from beach.\n\nFANTASY-FIT (GAME_ESSENCE): the NET keeps beach's owner-tuned height — it rises 490px above the floor (y860..1350) leaving a 650px top gap; trampoline apex is ~270px so crossing to attack still favours boost (Verb: FLY) but the floaty ball lofts over the gap readily (owner 2026-07-18: never make the net taller than beach). Half-court width 960px > 527px max spring drift, so even on this tighter court pressing the ball to the far tiles still REQUIRES flight (the fantasy holds at the low end of the allowed 900-1300 band). Hitting the ball is the existing bounce/drive contact physics; a super still doubles the strike (the power spike).\n\nGEOMETRY: bounds 0..2500 x 0..1600. Interior x290..2210 (width 1920; half-court 960). Ceiling bumper x200..2300 at y130..210. Side walls bumper x200..290 / x2210..2300 down to y1350. NET: bumper column x1235..1265 (centre 1250), y860..1350 (490px tall; the 650px top gap is fly-over). FLOOR: 8 drop_tiles of 240x100 at y1350 spanning x290..2210 (4 per half; the x1250 tile seam sits exactly under the net so no tile straddles the halves); two solid bumper caps seal the wall feet (x200..290, x2210..2300). UNDER-FLOOR: two hidden goal_zone strips y1455..1585 (team 0 left centre x770 / team 1 right centre x1730, each 960 wide, mouth up). Hole clearance: tile 240 vs beach-ball diameter 168.",
+  "sky_top": "#232a52",
+  "sky_bottom": "#4c5f96",
+  "bounds": { "left": 0, "right": 2500, "top": 0, "bottom": 1600 },
+  "platforms": [
+    { "x": 200,  "y": 130,  "w": 2100, "h": 80,   "tier": "bumper" },
+    { "x": 200,  "y": 210,  "w": 90,   "h": 1140, "tier": "bumper" },
+    { "x": 2210, "y": 210,  "w": 90,   "h": 1140, "tier": "bumper" },
+    { "x": 1235, "y": 860,  "w": 30,   "h": 490,  "tier": "bumper" },
+    { "x": 200,  "y": 1350, "w": 90,   "h": 100,  "tier": "bumper" },
+    { "x": 2210, "y": 1350, "w": 90,   "h": 100,  "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "drop_tile", "x": 290,  "y": 1350, "w": 240, "h": 100 },
+    { "type": "drop_tile", "x": 530,  "y": 1350, "w": 240, "h": 100 },
+    { "type": "drop_tile", "x": 770,  "y": 1350, "w": 240, "h": 100 },
+    { "type": "drop_tile", "x": 1010, "y": 1350, "w": 240, "h": 100 },
+    { "type": "drop_tile", "x": 1250, "y": 1350, "w": 240, "h": 100 },
+    { "type": "drop_tile", "x": 1490, "y": 1350, "w": 240, "h": 100 },
+    { "type": "drop_tile", "x": 1730, "y": 1350, "w": 240, "h": 100 },
+    { "type": "drop_tile", "x": 1970, "y": 1350, "w": 240, "h": 100 },
+    { "type": "goal_zone", "x": 770,  "y": 1520, "w": 960, "h": 130, "team": 0, "mouth": "up", "style": "hidden" },
+    { "type": "goal_zone", "x": 1730, "y": 1520, "w": 960, "h": 130, "team": 1, "mouth": "up", "style": "hidden" },
+    { "type": "player_spawn", "x": 480,  "y": 1150 },
+    { "type": "player_spawn", "x": 720,  "y": 1000 },
+    { "type": "player_spawn", "x": 2020, "y": 1150 },
+    { "type": "player_spawn", "x": 1780, "y": 1000 }
+  ]
+}

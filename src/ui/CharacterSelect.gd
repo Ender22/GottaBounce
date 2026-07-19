@@ -61,7 +61,7 @@ var _spinning := false
 
 func _ready() -> void:
 	_trials = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"trials"
-	_sports = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"sports"
+	_sports = GameConfig.match_config != null and SportsMode.is_sports_mode(GameConfig.match_config.mode_id)
 	# build the 2x3 hero grid
 	for i in range(HEROES.size()):
 		var h: Dictionary = HEROES[i]
@@ -384,7 +384,8 @@ func _go_arena() -> void:
 		# Then the court select (ArenaSelect in sports guise) assigns the court and launches.
 		# SportsMode overrides skins by team colorway; goal cap = Tuning.sports_goal_target.
 		var cfg: MatchConfig = GameConfig.match_config
-		cfg.mode_id = &"sports"
+		# keep the specific SPORTS-family id chosen at ModeSelect (rocketball / dropshot / legacy sports) —
+		# never force it back to a generic "sports" or the court filter + labels lose which sport this is.
 		cfg.human_count = _humans_now()
 		var total: int = _sports_total
 		if cfg.human_count > total:

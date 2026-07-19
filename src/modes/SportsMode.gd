@@ -60,12 +60,40 @@ const SUPPORT_HOLD_FRAC := 0.42        # supporter sits this fraction from OWN g
 const SUPPORT_SPREAD := 240.0          # lateral offset per extra supporter so multiple supporters don't stack
 const SUPPORT_COURT_MARGIN := 170.0    # keep the cover point this far inside the court walls
 
+# --- DROPSHOT serve geometry (owner 2026-07-19): after each point the ball waits FROZEN in the middle,
+# above the net, then on GO launches toward the team that scored last (pressure to make the first touch). ---
+const DROPSHOT_SERVE_HEIGHT_FRAC := 0.34   # serve-point Y as a fraction of bounds height (top gap, above the net)
+const DROPSHOT_SERVE_SPEED_X := 620.0      # horizontal serve speed toward the last scorer's half
+const DROPSHOT_SERVE_SPEED_DOWN := 240.0   # gentle downward arc so the floaty ball descends onto that half
+
 # --- identity / presentation ---
+# The SPORTS machinery backs THREE top-level mode cards (owner 2026-07-19 split): "rocketball" (the
+# soccer sport) and "dropshot" (the volleyball sport) are separate CHOOSE YOUR GAME entries, plus the
+# legacy "sports" id (kept for back-compat / any old deep-link). All three run this same SportsMode; the
+# COURT determines the physics (_read_sport off the JSON), the MODE id determines menu filtering + labels.
+const MODE_KEYS: Array[StringName] = [&"sports", &"rocketball", &"dropshot"]
+var _mode_key: StringName = &"sports"
+
+## True if this mode_id is one of the SPORTS-family cards (used wherever code special-cased == &"sports").
+static func is_sports_mode(mid: StringName) -> bool:
+	return mid == &"sports" or mid == &"rocketball" or mid == &"dropshot"
+
+## Which SPORT a mode card locks to: rocketball -> soccer, dropshot -> dropshot, legacy sports -> "" (mixed,
+## no filter). Used by the court-select to show only the matching courts.
+static func sport_for_mode(mid: StringName) -> String:
+	match mid:
+		&"rocketball": return "soccer"
+		&"dropshot": return "dropshot"
+		_: return ""
+
 func id() -> StringName:
-	return &"sports"
+	return _mode_key
 
 func display_name() -> String:
-	return "SPORTS"
+	match _mode_key:
+		&"rocketball": return "ROCKETBALL"
+		&"dropshot": return "DROPSHOT"
+		_: return "SPORTS"
 
 func hud_scene() -> PackedScene:
 	return HUD_SCENE
@@ -86,6 +114,8 @@ func configure(runner, config: MatchConfig) -> void:
 	runner.lives_per_player = 99
 	runner.match_target_kills = 999999
 	_goal_cap = maxi(1, Tuning.sports_goal_target)
+	if config != null and config.mode_id in MODE_KEYS:
+		_mode_key = config.mode_id
 	# Defensive arena resolution (CD robustness fix): SPORTS is an ENCLOSED-court mode; if it ever loads a
 	# non-enclosed / missing level the ball falls through the world forever. Default to the sports court
 	# whenever the configured path is empty, whitespace, or points at a file that does not exist.
@@ -234,6 +264,22 @@ func next_level_path(_runner) -> String:
 func on_stage_ready(runner) -> void:
 	_place_teams(runner)
 	_spawn_ball(runner)
+
+## GO! (dropshot only): unfreeze the ball held above the net and serve it toward the LAST SCORER's half,
+## so the team that just scored must make the first touch (owner 2026-07-19 pressure inversion). Before
+## the first point (no scorer) the side alternates by stage parity so neither team owns the opener.
+func on_combat_start(runner) -> void:
+	if _sport != "dropshot" or not is_instance_valid(_ball):
+		return
+	var serve_team: int = _last_scoring_team if _last_scoring_team >= 0 else int(runner.stage_index) % 2
+	var side: float = -1.0 if serve_team == 0 else 1.0   # team 0 defends the LEFT half, team 1 the RIGHT
+	_ball.freeze = false
+	_ball.linear_velocity = Vector2(side * DROPSHOT_SERVE_SPEED_X, DROPSHOT_SERVE_SPEED_DOWN)
+
+## DROPSHOT serve point: dead-centre of the court, up in the top gap ABOVE the net peak (owner 2026-07-19).
+func _dropshot_serve_point(runner) -> Vector2:
+	var b: Rect2 = runner.bounds
+	return Vector2(b.get_center().x, b.position.y + b.size.y * DROPSHOT_SERVE_HEIGHT_FRAC)
 
 ## True when any goal_zone in the group has latched `scored` (a ball crossed a goal line). NOT
 ## last-one-standing; a smash/knockback never satisfies this.
@@ -422,8 +468,15 @@ func _spawn_ball(runner) -> void:
 	if _sport == "dropshot":
 		_ball.configure_dropshot()   # floaty beach ball (Tuning dropshot_* block) — set BEFORE add_child
 	runner._level_root.add_child(_ball)
-	_ball.global_position = _kickoff_center(runner)
 	_ball.linear_velocity = Vector2.ZERO
+	if _sport == "dropshot":
+		# DROPSHOT (owner 2026-07-19): the ball waits in the MIDDLE, ABOVE the net, FROZEN through the
+		# countdown; on GO (on_combat_start) it launches toward the team that scored last, so the pressure
+		# to make the first touch is on the scorers.
+		_ball.global_position = _dropshot_serve_point(runner)
+		_ball.freeze = true
+	else:
+		_ball.global_position = _kickoff_center(runner)
 
 ## Snap each player to a mirrored end by team: team 0 -> the LEFT spawns, team 1 -> the RIGHT spawns.
 ## The runner's _spawn_at uses a fixed spawns[i % n] mapping that CANNOT satisfy both 1v1 and 2v2 team

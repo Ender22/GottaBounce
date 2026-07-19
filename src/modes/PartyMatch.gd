@@ -56,7 +56,9 @@ const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 const MODE_REGISTRY := {
 	&"brawl": preload("res://src/modes/BrawlMode.gd"),
 	&"trials": preload("res://src/modes/TrialsMode.gd"),
-	&"sports": preload("res://src/modes/SportsMode.gd"),
+	&"sports": preload("res://src/modes/SportsMode.gd"),      # legacy id (back-compat)
+	&"rocketball": preload("res://src/modes/SportsMode.gd"),  # the soccer sport (owner 2026-07-19 split)
+	&"dropshot": preload("res://src/modes/SportsMode.gd"),    # the volleyball sport
 }
 # Front-end shell hooks (v1_frontend_shell §5): pause overlay + return-to-menu on quit.
 const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
@@ -268,7 +270,7 @@ func _spawn_player(i: int, desc: Dictionary) -> void:
 	# v11 cosmetic flair (§2.3): the equipped item rides the human P1 entity ONLY, and is suppressed
 	# whole-mode in SPORTS (team-read is sacred). Set before add_child so Player._ready can apply it.
 	# Pure presentation — Player re-parameterizes existing VFX channels, never physics/Tuning.
-	if i == 0 and bool(desc.get("human", false)) and _config != null and _config.mode_id != &"sports":
+	if i == 0 and bool(desc.get("human", false)) and _config != null and not SportsMode.is_sports_mode(_config.mode_id):
 		p.flair = Settings.equipped_flair_item()
 	add_child(p)
 	p.global_position = _spawn_at(i)
@@ -504,6 +506,7 @@ func _bounce_go() -> void:
 	if _legend != null:
 		_legend.on_combat_started()   # legend lingers 4s into combat, then fades (brief §2)
 	EventBus.combat_started.emit()   # audio: "BOUNCE!" starting gun
+	_mode.on_combat_start(self)      # DROPSHOT serves the held ball toward the last scorer on GO
 	get_tree().create_timer(NAME_TAG_LINGER).timeout.connect(_fade_name_tags)
 
 func _tick_combat(delta: float, rdelta: float) -> void:
@@ -620,7 +623,10 @@ func _on_killed(victim, cause, attacker) -> void:
 	# attackers still score ("beyond the grave"); being killed is never -1. Score is CUMULATIVE kills.
 	var ai: int = players.find(attacker) if attacker != null else -1
 	_mode.on_kill(self, ai, idx, cause)
-	if ai >= 0 and ai != idx and not _first_blood_fired:
+	# FIRST BLOOD is a BRAWL kill-race moment — never in SPORTS (rocketball/dropshot), where knocking
+	# a rival out of bounds is incidental, not the point (owner 2026-07-19: "killing each other is not the point").
+	if ai >= 0 and ai != idx and not _first_blood_fired \
+			and not (_config != null and SportsMode.is_sports_mode(_config.mode_id)):
 		_first_blood_fired = true
 		_hud.show_top("FIRST BLOOD!", PLAYER_COLORS[ai], 1.0)
 		EventBus.first_blood.emit(ai)   # audio: announcer
@@ -924,7 +930,7 @@ func _record_kill_bank() -> void:
 ## (bumps sports_matches; a HUMAN win bumps sports_wins -> the chaos-finale gate). No-op for every
 ## non-SPORTS mode (they never touch Sports progression). Mirrors _record_progression.
 func _record_sports_progression(widx: int) -> void:
-	if _config == null or _config.mode_id != &"sports":
+	if _config == null or not SportsMode.is_sports_mode(_config.mode_id):
 		return
 	var human_won: bool = widx >= 0 and widx < _config.human_count
 	Settings.record_sports_result(human_won)

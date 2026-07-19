@@ -61,6 +61,12 @@ func wave_spawn_plan(_runner) -> Array:
 func on_stage_ready(_runner) -> void:
 	pass
 
+## Called by PartyMatch._bounce_go the instant the stage leaves COUNTDOWN and enters COMBAT (the "GO!").
+## Lets a mode kick off a stage-scoped action that must wait for the starting gun (DROPSHOT serves the
+## held ball toward the last scorer here). Default no-op -> every other mode is byte-for-byte unchanged.
+func on_combat_start(_runner) -> void:
+	pass
+
 ## Between-stage SCORE SCREEN opt-in (owner 2026-07-16). When true, the runner inserts a SCOREBOARD
 ## state after the STAGE_END freeze (skippable, auto-advancing) before loading the next level.
 ## Default false -> TRIALS/SPORTS keep their exact current stage flow (byte-for-byte parity).

@@ -154,7 +154,7 @@ func _thumb_for(a: Dictionary) -> Texture2D:
 
 # ------------------------------------------------------------------ build
 func _ready() -> void:
-	_sports = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"sports"
+	_sports = GameConfig.match_config != null and SportsMode.is_sports_mode(GameConfig.match_config.mode_id)
 	_trials = GameConfig.match_config != null and GameConfig.match_config.mode_id == &"trials"
 	if _sports:
 		_build_sports()
@@ -284,12 +284,21 @@ func _load_court_cards() -> Array:
 	var courts: Variant = (parsed as Dictionary).get("courts", [])
 	if typeof(courts) != TYPE_ARRAY:
 		return out
+	# Owner 2026-07-19 split: ROCKETBALL shows only "soccer" courts, DROPSHOT only "dropshot" courts;
+	# the legacy "sports" id (or an unknown) returns "" -> no filter (every court). A court with no
+	# "sport" field defaults to soccer (matches the pre-split library where only dropshot was tagged).
+	var want_sport := ""
+	if GameConfig.match_config != null:
+		want_sport = SportsMode.sport_for_mode(GameConfig.match_config.mode_id)
 	for c in (courts as Array):
 		if typeof(c) != TYPE_DICTIONARY:
 			continue
 		var cd: Dictionary = c as Dictionary
 		var cid := str(cd.get("id", ""))
 		if cid == "":
+			continue
+		var court_sport := str(cd.get("sport", "soccer"))
+		if want_sport != "" and court_sport != want_sport:
 			continue
 		var tier: int = int(cd.get("tier", 1))
 		var unlocked: bool = Settings.is_court_unlocked(cid)
