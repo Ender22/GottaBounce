@@ -4,6 +4,17 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**UI CONTROLLER-ONLY CLEANUP (2026-07-19, e32eb94 — owner: "real games give a rematch BUTTON, not text"):**
+audit at docs/briefs/ui_professionalism_audit_2026-07-19.md. SPORTS+TRIALS match-end now use REAL focusable
+button rows (REMATCH/PLAY AGAIN · CHANGE SETUP · QUIT TO MENU) mirroring VictoryScreen — replaced the
+"A/ENTER — REMATCH  B/ESC — QUIT" caption + raw input polling (new HUD show_match_buttons/match_button_pressed
+API; dead MatchPrompt removed from all 3 HUDs). ALL keyboard refs stripped (ScoreScreen->"A|CONTINUE" glyph,
+ControlsLegend/PadGlyph kb-chip paths deleted). Random keyboard-R-only -> new menu_random on the Y button.
+Parse-clean; RENDERED VALIDATION PENDING (game held by trials QA). WORLD-ART REWORK CONFIRMED + PENDING (owner:
+kill the ugly void gradient — floating islands + a seamless tiled-earth body for tall platforms; paint_void
+abyss ripped out; needs an earth-tile art gen (ChatGPT) + game to build/validate). Trials per-player fuel HUD
+(replace the one shared bar) folds into that pass. Chrome currently FROZEN (blocks earth tile + dropshot card).
+
 **SPORTS SPLIT -> ROCKETBALL + DROPSHOT (2026-07-19, a061502 + 89ee253 — owner menu rework):** CHOOSE
 YOUR GAME reordered to TRIALS, BRAWL, ROCKETBALL, DROPSHOT (the old single SPORTS card split by sport).
 Both sports cards run SportsMode (PartyMatch registry maps rocketball+dropshot->SportsMode); the mode id
