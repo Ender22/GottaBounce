@@ -170,28 +170,28 @@ func _ready() -> void:
 		_pending_celebrate = Settings.take_pending_unlock()
 
 func _build_brawl() -> void:
-	# SHELF A — ways to play: RANDOM ROTATION first (default focus, the fun default), then the
-	# circuits in circuits.json order (§3.3).
-	var shelf_a_data: Array = [RANDOM]
-	shelf_a_data.append_array(_load_circuit_cards())
+	# Owner 2026-07-19: BRAWL now picks a CIRCUIT only — the single-arena shelf is gone, and RANDOM
+	# ROTATION moved to the END (it's the fallback, not the default). Title reads CHOOSE BATTLEGROUND.
+	var title := get_node_or_null("Header/Title")
+	if title is Label:
+		(title as Label).text = "CHOOSE BATTLEGROUND"
+	# ONE centered shelf (matches the sports/trials layout); no arena pool shelf.
+	_shelf_b.visible = false
+	_shelf_a.offset_top = 326.0
+	_shelf_a.offset_bottom = 761.0
+	# circuits in circuits.json order, then RANDOM ROTATION last.
+	var shelf_a_data: Array = _load_circuit_cards()
+	shelf_a_data.append(RANDOM)
 	(_shelf_a as Object).call("set_label", "WAYS TO PLAY")
 	(_shelf_a as Object).call("set_separation", 36)
 	for a in shelf_a_data:
 		_a_cards.append(_make_card(a, _shelf_a, 0))
-	# SHELF B — the single-arena pool (count suffix in the label, §3.2).
-	(_shelf_b as Object).call("set_label", "ARENAS  %d" % ARENAS.size())
-	(_shelf_b as Object).call("set_separation", 32)
-	for a in ARENAS:
-		_b_cards.append(_make_card(a, _shelf_b, 1))
 	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
-	(_shelf_b as Object).call("set_counter", 0, _b_cards.size())
 	_shelf_a.connect("wheel_moved", _on_wheel.bind(0))
-	_shelf_b.connect("wheel_moved", _on_wheel.bind(1))
 
 	# focus wiring: left/right along the shelf, no wrap (§3.5 — ends point to self so Godot never
 	# auto-picks a spatial neighbour; the edge press becomes a rail nudge, see _on_card_gui).
 	_wire_rail(_a_cards)
-	_wire_rail(_b_cards)
 
 ## SPORTS court select (§3.8): the SAME scene, retitled "PICK YOUR COURT", with ONE shelf
 ## ("COURTS", Shelf-A-size cards, centered vertically in the content band). Everything comes
