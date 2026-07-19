@@ -4,6 +4,23 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**BOT TEAM-PLAY + ART BACKLOG (2026-07-19, 6df3aa3 + 6c231f2 — "continue bot brains + art backlog"):**
+(1) DROPSHOT bots no longer crowd the ball — SportsMode.bot_objective now designates the teammate
+NEAREST the ball as the chaser; the rest hold a goal-side cover point on their own half
+(_ball_chase_rank / _support_point / _own_goal_center; rank counts human teammates so a bot yields).
+QA (2v2 L3 all-bot, rendered): teammate separation ~600px on a 1110px half-court, both-on-ball
+crowding ~1.2%, scoring preserved (6-goal cap), motion-health clean (0 head-bangs). (2) ART: the last
+two trials crests — crest_trials_orbit (ringed periwinkle planet + orbiting moon + jetpack blob) &
+crest_trials_varied ("whole toolbox" burst) — complete the PICK YOUR CIRCUIT shelf (QA-verified on the
+shelf). (3) ART: skull.png replaces the 4 code-drawn grey Panels on the dead-player HUD card (Skull node
+-> TextureRect; QA-verified crisp on dimmed dead cards). (4) ART: ball_beach.png — bespoke red/white/
+blue/yellow beach ball for DROPSHOT, replacing the warm-tinted soccer ball (Ball.gd BEACH_TEX +
+use_beach_tex, tint dropped); rendered-verified on Dropshot Beach. STILL OPEN (art): super-aim pose x6
+(aim reuses idle; large character-consistency batch, partly goat-gated); dropshot court-select CARD
+(needs an offline ThumbBaker bake of the court, not a ChatGPT gen); real FONT (owner font pick + download
+approval). STILL OPEN (bots): head-bang undersides in ORBITAL arenas (radial frame skips the ascent-
+detour; ~10/match residual, not a slice-2 blocker); bots don't use cannons/keys in trials.
+
 **MATCH CEREMONY SHIPPED (2026-07-18, b4e76dd — owner picked "ceremony & charm" as next):** per
 `docs/briefs/match_ceremony_2026-07-18.md`: (1) STAGE INTRO CARD ("STAGE N" ribbon + arena name +
 gold underline) rides the existing intro/countdown window — 0.0s added, exits on the "3" beat,
