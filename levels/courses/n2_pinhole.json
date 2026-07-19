@@ -1,0 +1,25 @@
+{
+  "name": "One Clean Thread",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "N2 circuit (hard navigation) NEW course, slot 1/8 (gentle opener, diff 1): LEARN TO FLY THROUGH A HOLE. One wall, one generous 300px porthole, no keys, no long void -- the whole circuit's core verb (line up, feather boost, commit through an aperture) taught in isolation with ZERO stacking. A 92px player through a 300px mouth = 104px clearance per side (forgiving on purpose).\n\nMOVEMENT MATH (current Tuning): trampoline apex 270, zero-boost drift reach ~395px (trampoline) / ~527px (spring); boost cap 760 px/s at 28.6 fuel/s (~26.6px/fuel); pad touch +20 fuel; super impulse 2800 => apex ~2450px above launch.\n\nFLIGHT-REQUIRED PROOF (per gap):\n GAP A (start pad -> mouth): start pad top y=1000, pad right edge x=720; mouth spans y 500..800 (center 650, 350px above the pad top) at wall face x=1300. Horizontal span pad-edge(720)->wall-face(1300) = 580px > 527 spring drift >> 395 trampoline drift, and the mouth center is 350px up. A passive trampoline bounce apexes at y=730 and drifts only ~395px to x~1115 -- it neither holds the mouth height across the span nor clears the wall; it drops into the void (y=1300) well short of x=1300. The mouth can ONLY be reached by aimed boost flight.\n GAP B (mouth -> goal): wall exit face x=1420, goal pad left edge x=2040 = 620px > 527 spring drift. Void below the whole span (y=1300). Must be FLOWN; a bounce off nothing exists here (no footing between wall and goal), so flight is structurally required.\n\nFUEL BUDGET: trivial for a diff-1 opener -- total powered distance start->mouth->goal ~= 1250px ~= 47 fuel from a full tank (multi-bounce the start pad to bank 100; each touch +20). Ends with >50 fuel to spare; a miss falls to the void line -> free respawn at start_gate (no penalty), so the teach is pressure-free.\n\nOVERFLY FENCE: the wall's top segment runs to the ceiling (y=-1800), so there is no over-the-top band. Highest reachable footing = pads at y=1000; a vertical super from a pad apexes at 1000-2450 = -1450, which is 350px BELOW the ceiling (-1800) -- safe headroom, no ring-out on intended play. The wall bottom segment runs 800..1500, crossing the void line (1300), so there is no under-the-wall gap either.\n\nBOUNDS: explicit -- left -700, top -1800 (>=300 above the -1450 pad-super apex), right 3100 (goal pad right edge 2400 + 700), bottom 1900 (void line 1300 is the killer).",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "FLY THROUGH THE HOLE",
+  "bounds": { "left": -700, "top": -1800, "right": 3100, "bottom": 1900 },
+  "platforms": [
+    { "x": 400, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+
+    { "x": 1300, "y": -1800, "w": 120, "h": 2300, "tier": "bumper" },
+    { "x": 1300, "y": 800, "w": 120, "h": 700, "tier": "bumper" },
+
+    { "x": 2040, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -700, "y": 1300, "w": 3800, "h": 600, "wall_px": 120 },
+    { "type": "start_gate", "x": 560, "y": 900 },
+    { "type": "goal_gate", "x": 2220, "y": 860, "w": 240, "h": 320 }
+  ]
+}

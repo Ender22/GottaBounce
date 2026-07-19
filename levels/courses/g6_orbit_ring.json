@@ -1,0 +1,78 @@
+{
+  "name": "Full Moon",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "design_intent": "ORBIT circuit, slot 2 (diff 2). Lesson: SUSTAINED RADIAL NAVIGATION -- turn moonwalk's single arc into a full orbit habit. Builds directly on g6_moonwalk (planet-is-floor): one moon (body_r 200, field r 1000, g 1300, visual moon) centered at (960,200); six COLLECT_ALL tokens ring it evenly at radius 340 from center (~140px off the 200px surface), so you must ride the curved floor ALL THE WAY AROUND the planetoid to sweep them up. Objective = COLLECT_ALL (all six group 'trials_pickup' latched 'collected'); the tokens ARE the goal (t_token_dash pattern -- no goal_gate).\n\nFLIGHT-REQUIRED / movement-tool-per-gap: tokens sit at 60-degree spacing (arc chord between adjacent tokens ~340px along a radius-340 ring, but the FAR-SIDE tokens are >1500px of straight-line distance across the moon). No single bounce can reach the far hemisphere: a trampoline apex off the surface is 270px and stays deep inside the r1000 field (200+270 << 1000), so a passive bounce always re-attaches to the SAME face -- to bring a far token into reach you must FLY around the limb (feather boost tangentially, let radial gravity hold you to the floor). Each surface touch refunds +20 fuel, so a full loop is fuel-positive; the only way to lose is to boost radially OUT past r1000 into global-down space and fall out the bottom bound = free respawn at the north-pole start_gate. Bounds frame the whole r1000 field with ~640px side margin.",
+  "hint": "ORBIT THE WHOLE MOON — SWEEP EVERY TOKEN",
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -640,
+    "top": -1300,
+    "right": 2560,
+    "bottom": 1900
+  },
+  "objective": {
+    "type": "COLLECT_ALL"
+  },
+  "platforms": [],
+  "objects": [
+    {
+      "type": "gravity_source",
+      "x": 960,
+      "y": 200,
+      "radius": 1000,
+      "g": 1300,
+      "body_r": 200,
+      "tier": "trampoline",
+      "visual": "moon"
+    },
+    {
+      "type": "start_gate",
+      "x": 960,
+      "y": -60
+    },
+    {
+      "type": "pickup",
+      "x": 1130,
+      "y": -94,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 1300,
+      "y": 200,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 1130,
+      "y": 494,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 790,
+      "y": 494,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 620,
+      "y": 200,
+      "r": 52
+    },
+    {
+      "type": "pickup",
+      "x": 790,
+      "y": -94,
+      "r": 52
+    }
+  ],
+  "backdrop_painting": "space_nebula"
+}

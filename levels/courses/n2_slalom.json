@@ -1,0 +1,36 @@
+{
+  "name": "S-Bend",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "N2 circuit (hard navigation) NEW course, slot 4/8 (diff 3): THREAD A ZIG-ZAG OF STAGGERED NEEDLES. Builds on n2_pinhole/n2_needle_thread by combining threading with AIR-DRIFT MOMENTUM CONTROL -- four full-height bumper walls each pierced by one 200px mouth, the mouths ALTERNATING high/low so you must kill sideways speed and re-aim vertically between every hole instead of flying one straight line. A 92px player through a 200px mouth = 54px clearance per side. One mid-run trampoline refuel pad (between walls 2 and 3) is the only bank stop; walls refund nothing.\n\nMOVEMENT MATH (current Tuning): trampoline apex 270, zero-boost drift ~395px (trampoline) / ~527px (spring); boost cap 760 px/s at 28.6 fuel/s (~26.6px/fuel); pad touch +20 fuel; super => apex ~2450px above launch.\n\nMOUTHS (center heights, alternating): M1 y=550 (spans 450..650) at wall1 x=900; M2 y=950 (850..1050) at wall2 x=1700; M3 y=500 (400..600) at wall3 x=2500; M4 y=900 (800..1000) at wall4 x=3300.\n\nFLIGHT-REQUIRED PROOF -- VERTICAL offsets (each forces a boosted re-aim, none bounce-reachable from the prior mouth's exit): start pad top(1000)->M1(550) = 450px; M1(550)->M2(950) = 400px; M2(950)->M3(500) = 450px; M3(500)->M4(900) = 400px. Every offset > trampoline apex 270, so a passive bounce can never line up the next hole.\n FLIGHT-REQUIRED PROOF -- HORIZONTAL spans (exit face -> next face, all > 527 spring drift >> 395 trampoline drift, void y=1300 below every span): start pad edge(320)->wall1 face(900)=580; wall1 exit(1020)->wall2 face(1700)=680; wall2 exit(1820)->wall3 face(2500)=680; wall3 exit(2620)->wall4 face(3300)=680; wall4 exit(3420)->goal pad edge(3960)=540. No span is bounce-crossable; each segment is controlled boost + a deliberate drift-kill to re-center on the offset mouth.\n\nFUEL BUDGET: two refuel stops -- the start pad (multi-bounce to 100) and the mid pad at x=2080,y=1150 (between walls 2 and 3). Leg 1 (start -> thread W1 -> W2 -> descend to mid pad): ~28 (climb+cross to M1) + ~26 (W1->W2, a gravity-assisted descent so mostly the 680px horizontal) + ~13 (drop to mid pad) ~= 67 fuel; ends ~33, then multi-bounce the mid pad back to 100. Leg 2 (mid pad -> thread W3 -> W4 -> goal): climb 650 to M3 + 680 cross + descend to M4 + 540 to goal ~= 55 fuel from a refilled tank. Both legs sit inside one tank with margin; a fall = void line (1300) -> free respawn at start_gate, travel-time cost only.\n\nOVERFLY FENCE: every wall's top segment runs to the ceiling (y=-1800); no over-the-top band. Highest footing = pads at y=1000; a vertical super from a pad apexes -1450, 350px below the ceiling (safe). Wall bottom segments all run to y=1500 (past the void line 1300); no under-wall gap.\n\nBOUNDS: explicit -- left -700, top -1800, right 5020 (goal pad right edge 4320 + 700), bottom 1900.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "KILL YOUR SPEED — RE-AIM EACH HOLE",
+  "bounds": { "left": -700, "top": -1800, "right": 5020, "bottom": 1900 },
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+
+    { "x": 900, "y": -1800, "w": 120, "h": 2250, "tier": "bumper" },
+    { "x": 900, "y": 650, "w": 120, "h": 850, "tier": "bumper" },
+
+    { "x": 1700, "y": -1800, "w": 120, "h": 2650, "tier": "bumper" },
+    { "x": 1700, "y": 1050, "w": 120, "h": 450, "tier": "bumper" },
+
+    { "x": 2080, "y": 1150, "w": 140, "h": 40, "tier": "trampoline" },
+
+    { "x": 2500, "y": -1800, "w": 120, "h": 2200, "tier": "bumper" },
+    { "x": 2500, "y": 600, "w": 120, "h": 900, "tier": "bumper" },
+
+    { "x": 3300, "y": -1800, "w": 120, "h": 2600, "tier": "bumper" },
+    { "x": 3300, "y": 1000, "w": 120, "h": 500, "tier": "bumper" },
+
+    { "x": 3960, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -700, "y": 1300, "w": 5720, "h": 600, "wall_px": 120 },
+    { "type": "start_gate", "x": 160, "y": 900 },
+    { "type": "goal_gate", "x": 4140, "y": 860, "w": 240, "h": 320 }
+  ]
+}

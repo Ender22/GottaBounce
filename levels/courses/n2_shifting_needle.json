@@ -1,0 +1,32 @@
+{
+  "name": "Moving Target",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "N2 circuit (hard navigation) NEW course, slot 7/8 (diff 4): THREAD A NEEDLE WHOSE GAP OPENS AND SHUTS, THEN GRAB THE KEY BEHIND IT. Combines threading (from n2_pinhole/needle_thread) with TIMING and the key/door verb (from n2_locksmith). A bumper-tier moving_platform gate rides in the mouth of a fixed wall: when the gate is at a travel extreme the aperture is OPEN, when it passes through center it SEALS. Wait for the open beat, fly through, collect the key just past the gap, unlock the goal door.\n\nDEVIATION FROM BRIEF (deliberate, for provable completability): the brief sketched the gate oscillating HORIZONTALLY (axis_deg 0) across a 320px opening. On geometric analysis a horizontal gate has NO instant where the approach lane, the hole, AND the exit corridor are simultaneously clear at mouth-height (the deck always occupies one of the three) -- a race condition that is not cleanly completable. This build instead oscillates the gate VERTICALLY (axis_deg 90) inside the mouth: the deck is a moving PLUG that fills the mouth when centered and retracts up (into the solid upper wall) / down (into the solid lower wall) at its extremes, leaving the mouth fully clear at each dwell. Approach and exit lanes are ALWAYS clear (the deck only ever occupies the mouth or the wall body), so there are two clean threading windows per 3.5s cycle. This preserves the 'thread it on the beat' hook while guaranteeing a completable window. RISK/FALLBACK (100% JSON-ONLY, per brief): if QA's rendered pass shows the bumper moving-deck's collision behaves badly, replace the moving_platform with a fixed 160px static needle mouth (a Master-Vault-grade squeeze) at the same wall, keeping the key + door -- losing only the timing twist. NOTE completability does NOT depend on the deck's side-bounce: the mouth is 320px (228px clearance per side vs 92px player) and is passable whenever the deck is retracted, so even a degraded deck collision leaves the course completable (the deck never kills -- MovingPlatform doctrine).\n\nMOVEMENT MATH (current Tuning): trampoline apex 270, zero-boost drift ~395px (trampoline) / ~527px (spring); boost cap 760 px/s at 28.6 fuel/s (~26.6px/fuel); pad touch +20 fuel; super => apex ~2450px above launch.\n\nGATE: moving_platform (tier bumper, w=140, h=360) centered at x=1460, oscillating on axis_deg 90 (vertical), amplitude 340, period 3.5s, dwell_frac 0.15. Center y=500 => deck spans y 320..680 = SEALS the 340..660 mouth. Up extreme center y=160 => deck -20..340 (retracted into the upper wall) => mouth open below. Down extreme center y=840 => deck 660..1020 (retracted into the lower wall) => mouth open above. Two open dwells per cycle.\n\nFLIGHT-REQUIRED PROOF (per gap):\n GAP A (start pad -> approach pad): start pad right edge x=320 -> approach pad left edge x=900 = 580px > 527 spring drift, void below (y=1300). Flown, not bounced.\n GAP B (approach pad -> thread the mouth): mouth spans y 340..660 (bottom 660, 340px above the approach pad top y=1000). A passive trampoline bounce from the approach pad apexes at y=730 -- 70px BELOW the mouth bottom (660) -- and drifts ~395px, so it can neither reach the mouth height nor hold it across the wall; boosted, aimed flight only. The player banks fuel on the approach pad (x=900..1100, clear of the gate's x-footprint 1390..1530) while reading the beat, then commits on an open dwell.\n GAP C (mouth -> key -> refuel pad): key at x=1700,y=500 sits on the exit side of the wall (past face x=1520), so collecting it REQUIRES threading the mouth; then descend to the refuel pad at x=1980,y=1050. Both clear of the gate's x-footprint.\n GAP D (refuel pad -> key_door -> goal): refuel pad right edge x=2140 -> door plane x=2500 = 360px through the now-open door, then door face x=2620 -> goal pad left edge x=3100 = 480..600px of void span > 527 spring drift. The door (d1) only opens once the single key is collected, forcing the thread-then-fetch order.\n\nFUEL BUDGET: two refuel banks -- start pad and the mid refuel pad (x=1980). The approach pad (x=900) is ALSO a trampoline, so the player refuels there (+20/touch) while waiting for the beat rather than hovering (no fuel bleed on the wait). Leg to the refuel pad (approach -> thread -> key -> pad) ~= 44 fuel from a full tank; leg refuel pad -> door -> goal ~= 40 fuel from a refill. Comfortable single-tank legs; a fall or a mistimed clip on the sealed gate = void line (1300) -> free respawn at start_gate, and any collected key STAYS collected, so a miss costs travel time only.\n\nOVERFLY/UNDER FENCE: the wall's top segment runs to the ceiling (y=-1800) and its bottom segment to y=1500 (past void 1300); the key_door d1 spans y -2100..1500 (300px past the ceiling to past the void line), so there is no over-the-top or under-the-wall bypass. Highest footing = pads at y=1000; a vertical super from a pad apexes -1450, 350px below the ceiling (safe). Door d1 has exactly one matching key -- never zero.\n\nBOUNDS: explicit -- left -700, top -1800, right 4200 (goal_gate center 3460 + 700ish), bottom 1900.",
+  "sky_top": "#26527d",
+  "sky_bottom": "#b0d8f0",
+  "hint": "WAIT FOR THE OPENING — THEN GO",
+  "bounds": { "left": -700, "top": -1800, "right": 4200, "bottom": 1900 },
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
+
+    { "x": 900, "y": 1000, "w": 200, "h": 40, "tier": "trampoline" },
+
+    { "x": 1400, "y": -1800, "w": 120, "h": 2140, "tier": "bumper" },
+    { "x": 1400, "y": 660, "w": 120, "h": 840, "tier": "bumper" },
+
+    { "x": 1980, "y": 1050, "w": 160, "h": 40, "tier": "trampoline" },
+
+    { "x": 3100, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -700, "y": 1300, "w": 4900, "h": 600, "wall_px": 120 },
+    { "type": "start_gate", "x": 160, "y": 900 },
+    { "type": "moving_platform", "tier": "bumper", "w": 140, "h": 360, "center": { "x": 1460, "y": 500 }, "axis_deg": 90, "amplitude": 340, "period_s": 3.5, "dwell_frac": 0.15, "phase": 0.0 },
+    { "type": "key", "x": 1700, "y": 500, "r": 46, "door": "d1" },
+    { "type": "key_door", "x": 2500, "y": -2100, "w": 120, "h": 3600, "door": "d1" },
+    { "type": "goal_gate", "x": 3280, "y": 860, "w": 240, "h": 320 }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "name": "Trapdoor",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "S3 SOCCER TRIALS #7 (proposed slot 7, trials_expansion_2026-07-19) -- the DROPSHOT verb, repurposed for solo trials. The goal is UNDER the floor: the ball rests in a bumper-railed well on top of a drop_tile (x1340-1560, y1100-1200); a HIDDEN goal_zone strip (x1340-1560, y1240-1400, mouth up) sits directly beneath. The player flies ABOVE the ball and DRIVES IT DOWNWARD onto the tile -- first counted hit CRACKS it, second BREAKS it open (a hole), and the ball then falls through into the buried goal. Teaches the vertical scoring strike (dive the ball down), a new axis vs the flat/loft/bank courses.\n\nDERIVED SHOT (Ball._drive_from dv=(500+0.9*speed)/0.6, restitution 0.85; drop_tile is a trampoline-tier surface; gravity 1600; DropTile.HIT_SPEED_MIN 240, counts a hit only on the UP-rebound): the ball sits at (1450,1040) on the tile. The player flies over the well and drives the ball straight down; it strikes the tile and REBOUNDS UP off the trampoline tier at ~900+ px/s (sqrt(2*1600*270) ~= 929, well over the 240 min) -> HIT 1 = crack (owner rule: the breaking contact still bounces the ball, the hit is counted on the rebound). Gravity returns it; the next tile contact rebounds up again -> HIT 2 = the hole opens as the ball departs UP (tile collider disabled). The ball then DESCENDS into the now-open hole (a descending ball can never trigger a break -- break-and-fall-through in one contact is impossible by design) and passes its center through the hidden goal_zone (y1240-1400) => SCORE. Hole clearance: broken tile is 220px wide vs ball diameter 120 -- clean pass. The bumper rails (x1200-1320 left, x1580-1700 right) keep every rebound over the tile so the sequence completes in the well; a stray drive that pops the ball out of the well falls to the void => free respawn (reset_settle 2.8), unlimited tries.\n\nNO-AUTO-SCORE GUARD: a RESTING ball never erodes a tile (DropTile only counts an UP-rebound > 240 px/s; a ball at v=0 sitting on the tile does nothing) and the buried goal is sealed by the intact tile floor, so the goal can never latch without the player supplying repeated DOWNWARD strikes. There is no gravity-only path from the spawn rest into the under-floor zone.\n\nFLIGHT-REQUIRED (player, GAME_ESSENCE): the well is guarded by 720px-tall bumper rails (top y500) that the player must FLY OVER from the start deck (rail top y500 sits 500px above the spawn deck y1000 >> trampoline apex 270 -- a passive bounce cannot enter the well), and the scoring verb itself is a DOWNWARD flight strike: the player must climb ABOVE the ball each time and drive it down, which a flat bounce or ground push can never do. Deck marshmallow, rails bumper, void below/at the edges kills (a fall = free respawn). Spawn (450,1000) on the left deck, no hazards -- diff-4 from the novel vertical timing, not danger.\n\nRISK (per trials_expansion_2026-07-19 + LevelLoader P8): drop_tile + a trials PHYSICS_PUZZLE goal_zone is SPORTS (DROPSHOT) plumbing reused in a SOLO trials context. Both halves are individually shipped & supported (DropTile senses the ball layer and breaks on an up-rebound; goal_zone latches ball_in_goal in trials, as the other s3_* courses prove), but this exact COMBINATION is unvalidated -- the rendered completability pass must confirm (a) the trials ball cracks/breaks the tile on downward drives and (b) the hidden under-floor goal_zone latches ball_in_goal when the ball falls through. FALLBACK (100% JSON, if the rendered test fails): drop the drop_tile, leave the x1340-1560 span as an OPEN pit in the deck, and make the buried goal_zone VISIBLE (remove style:hidden) so the course becomes a 'dunk the ball down through the open mouth' downward-strike puzzle (rails unchanged, ball rested on a small marshmallow center nub beside the pit). This keeps the vertical-strike teach and is fully JSON-ONLY; the flag is a validation ask, not a code ask.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "SMASH IT DOWN - BREAK THROUGH THE FLOOR",
+  "bounds": {
+    "left": -300,
+    "top": -700,
+    "right": 2400,
+    "bottom": 1700
+  },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    {
+      "x": 200,
+      "y": 1100,
+      "w": 900,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 1200,
+      "y": 500,
+      "w": 120,
+      "h": 720,
+      "tier": "bumper"
+    },
+    {
+      "x": 1580,
+      "y": 500,
+      "w": 120,
+      "h": 720,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -300,
+      "y": 1500,
+      "w": 3000,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 450,
+      "y": 1000
+    },
+    {
+      "type": "drop_tile",
+      "x": 1340,
+      "y": 1100,
+      "w": 220,
+      "h": 100,
+      "tier": "trampoline"
+    },
+    {
+      "type": "ball",
+      "x": 1450,
+      "y": 1040
+    },
+    {
+      "type": "goal_zone",
+      "x": 1450,
+      "y": 1320,
+      "w": 220,
+      "h": 160,
+      "team": 0,
+      "mouth": "up",
+      "style": "hidden"
+    }
+  ]
+}

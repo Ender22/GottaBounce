@@ -1,0 +1,33 @@
+{
+  "name": "Chain Dive",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "PHYSICS-LAB circuit 4, NEW course (slot 3 of 8, diff 2). Extracts demolition_day's sub-puzzle A (the chain-dive tower) into its OWN course so the dive rhythm is learned in isolation before it is one of three simultaneous demands. A vertical shaft of five break_on 'smash' hp1 crates: dive in, and each crate's break-bounce sets up the next hit. Reach-goal — the goal_gate sits at the bottom of the shaft, reachable only once the column is eaten away.\n\nVERIFIED CHAIN-DIVE RHYTHM (DestructibleBlock.gd + Tuning): crates are trampoline-tier SURFACES that break_on 'smash' (super_active OR contact >= 900px/s; boost's 760 cap can never smash them). Dive from ~y280 onto the top crate (top y560): impact = sqrt(2*1600*280) = 947px/s >= 900 -> smash. The crate registers the hit, BOUNCES you (trampoline apex 270) as it plays its 0.28s crack telegraph, then vanishes. Your re-fall from apex (~y290) onto the next crate (top y670) = 380px fall = sqrt(2*1600*380) = 1103px/s -> smash again. The tower eats itself top-down on one dive rhythm; every subsequent hit clears 900 with margin. Each block owns an INDEPENDENT 0.3s hit_cd, so the PANIC ALTERNATIVE also works: one downward SUPER (2800px/s, super_active) hammered down the 540px column registers on each block's own detector. Two bumper side-walls (x1180-1300 and x1600-1720, y350-1400) keep you centred in the 300px shaft so the bounce chain stays vertical.\n\nGEOMETRY: five crates x1310-1590 (w280 in the 300px interior), y 560/670/780/890/1000 (10px seams, column y560-1100). Shaft mouth (wall tops y350 -> top crate y560) is a 210px funnel that guides the entry dive. Trampoline floor pad x1300-1720 (top y1250) with goal_gate center (1450,1180) w220 h200 below the cleared column — you land on it after the last crate breaks.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight required):\n- Start ledge top y450 -> shaft mouth: ~350px horizontal hop (>trampoline drift ~395? no — but the mouth is 100px ABOVE the ledge and must be entered from above the wall tops y350) -> a BOOST hop up-and-over the wall tops is required; a passive bounce off the ledge (apex 270) cannot both clear the wall top AND drop into the 300px mouth.\n- The descent: every crate is break_on 'smash' and counts toward clearing the shaft; boost 760 < 900 -> a DIVE (>=253px fall) or a SUPER is mandatory for each. There is no non-flight way down.\n- Recovery: a mistimed bounce that drifts out of the shaft falls past the ledge into the void = free respawn; the broken crates STAY broken (in-run persistence), so a re-drop resumes the chain.\n- No standable ground: the start ledge and shaft floor bounce; the walls are bumper.\n\nFUEL BUDGET: spawn 100. The set-up hop + first dive apex ~0.7s boost (~20 fuel); the dive chain itself costs nothing (the crate bounces sustain the rhythm). The super alternative dumps the tank but needs only 5 to fire; the start ledge refunds +20 per touch. No softlock.\n\nFAIRNESS: every crate telegraphs 0.28s of cracks; no crate is footing you depend on (start ledge + shaft floor always remain); the void is the only killer; spawn (720,350) is over the start ledge, clear of the shaft. Explicit bounds: top -1400 for the dive set-up + super headroom; the derived side-cap would be wrong for this tall, narrow layout.",
+  "hint": "DIVE THE TOP CRATE — RIDE EACH BREAK-BOUNCE DOWN",
+  "sky_top": "#39322c",
+  "sky_bottom": "#b9a789",
+  "bounds": {
+    "left": -300,
+    "top": -1400,
+    "right": 2400,
+    "bottom": 2000
+  },
+  "platforms": [
+    { "x": 500, "y": 450, "w": 450, "h": 128, "tier": "trampoline" },
+    { "x": 1180, "y": 350, "w": 120, "h": 1050, "tier": "bumper" },
+    { "x": 1600, "y": 350, "w": 120, "h": 1050, "tier": "bumper" },
+    { "x": 1300, "y": 1250, "w": 420, "h": 120, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -300, "y": 1500, "w": 2700, "h": 500, "wall_px": 120 },
+    { "type": "start_gate", "x": 720, "y": 350 },
+    { "type": "destructible_block", "x": 1310, "y": 560, "w": 280, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "destructible_block", "x": 1310, "y": 670, "w": 280, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "destructible_block", "x": 1310, "y": 780, "w": 280, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "destructible_block", "x": 1310, "y": 890, "w": 280, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "destructible_block", "x": 1310, "y": 1000, "w": 280, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "goal_gate", "x": 1450, "y": 1180, "w": 220, "h": 200 }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Double Barrel",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "PHYSICS-LAB circuit 4, NEW course (slot 6 of 8, diff 4). Escalates swing_shot (one oscillating cannon) into TWO sequential timed barrels on deliberately different periods so the two sweeps drift and never sync. Load cannon A on a forgiving phase to drop into a WIDE catch basin, climb to re-load cannon B, then read B's steep-phase window to clear a tall bumper tower and reach the goal plateau. No new mechanic — doubled timing pressure, mirroring swing_shot's proven ballistics.\n\nBALLISTIC DERIVATION (gravity 1600, impulse 2600, muzzle offset = barrel_len 190 + 40 = 230 along the barrel; angle -m => v=(2600cos m, -2600sin m)):\nCANNON A pivot (700,600), sweeps -70..-45 on a 2.8s period. Landing X on the basin top (y1000) by phase, solving 800t^2 - 2600sin(m)*t - drop = 0 (drop = 1000 - (600 - 230sin m)):\n  m45 -> x~5587 | m55 -> x~5171 | m60 -> x~4793 | m65 -> x~4303 | m70 -> x~3704.\nThe catch basin (MARSHMALLOW, the deadest tier so the landing skip is smallest) spans x3600-5350 (w1750) -> the ENTIRE -70..-45 sweep lands in-basin; only a hard overshoot (toward -45) drifts to the x5350 bumper backstop, which rebounds it back onto the basin (restitution 0.86). Cannon A is deliberately forgiving: the difficulty is doing it TWICE and reading B, not pixel-landing A.\nCANNON B pivot (4800,750), mounted 250px above the basin (marshmallow apex 120 << 250 -> BOOST required to load), sweeps -66..-54 on a 3.1s period (co-prime-ish vs A's 2.8 so the phases never lock). The TALL TOWER (bumper x5700-5900, top y-400, down to the void lip) is the read: arc height at x5700 by phase -> m54 (shallow): y-288 = SPLAT into the tower face (top y-400 is above it); m60: y-512 = clears by 112; m66 (steep): y-804 = clears by 404. So the LOW third of B's sweep splats and the read is 'load B as the barrel swings STEEP'. Clearing shots (m~59-66) then land on the goal plateau (trampoline x8200-9300, top y1000): m60 -> x~8815, m63 -> x~8500, m66 -> x~8227 — all on the plateau; a plateau-right bumper backstop (x9300) rebounds any long shot. goal_gate center (8700,860) w240 h320 sits on the mid-arc; you ring out on the fly-through or land on the trampoline and boost-hop to it.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight required):\n- Start pad top y1000 -> cannon A capture (r70 @ 700,600): 400px climb (>trampoline apex 270) -> BOOST to load.\n- Start -> catch basin: ~3000px of open void (start pad ends x600, basin starts x3600) > one tank's ~2660px of powered flight, and far past any bounce drift (~527) -> the CANNON is the only crossing verb.\n- Basin top y1000 -> cannon B capture (r70 @ 4800,750): 250px climb off a marshmallow (apex 120) -> BOOST to load.\n- Basin -> goal plateau: ~2850px void (basin ends 5350, plateau starts 8200) AND a tall bumper tower dead in the line -> only cannon B's over-the-tower arc reaches it.\nNo leg is bounce-reachable; two legs are cannon-only. Flight loads both barrels; the barrels do the crossings; the SKILL is timing each load on the right phase.\n\nFUEL BUDGET: spawn 100. Load A ~0.9s boost (~26 fuel); cannon flight is free; land in the basin (+20 marshmallow touch). Climb to B ~0.9s (~26) minus the basin refund. Cannon B flight free; land on the plateau (+20) and a short goal hop (~12). Worst case reaches the plateau with 40+ fuel; the course never dries the tank. Any short/long landing or a tower splat falls to the void = free respawn at the start_gate.\n\nFAIRNESS: both cannons draw their full aim-fan telegraph (Cannon.gd) and a loaded-fuse ring for the 0.9s hold; the tower and both backstops are bumpers (splats/overshoots bounce off, never kill); the basin is 1750px wide and the plateau 1100px (never a cannon-mouth pixel landing). Explicit bounds: top -2000 clears cannon A's max-phase apex (-1481 at m70) with margin; the derived side-cap would strangle a ~9500px course.",
+  "hint": "LOAD EACH BARREL AS IT SWINGS STEEP",
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -600,
+    "top": -2000,
+    "right": 9900,
+    "bottom": 1950
+  },
+  "platforms": [
+    { "x": 200, "y": 1000, "w": 400, "h": 128, "tier": "trampoline" },
+    { "x": 3600, "y": 1000, "w": 1750, "h": 120, "tier": "marshmallow" },
+    { "x": 5350, "y": 660, "w": 120, "h": 640, "tier": "bumper" },
+    { "x": 5700, "y": -400, "w": 200, "h": 1700, "tier": "bumper" },
+    { "x": 8200, "y": 1000, "w": 1100, "h": 128, "tier": "trampoline" },
+    { "x": 9300, "y": 620, "w": 120, "h": 680, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": -500, "y": 1300, "w": 10400, "h": 650, "wall_px": 120 },
+    { "type": "start_gate", "x": 400, "y": 900 },
+    { "type": "cannon", "x": 700, "y": 600, "angle_min": -70, "angle_max": -45, "period_s": 2.8, "impulse": 2600, "hold_s": 0.9 },
+    { "type": "cannon", "x": 4800, "y": 750, "angle_min": -66, "angle_max": -54, "period_s": 3.1, "impulse": 2600, "hold_s": 0.9 },
+    { "type": "goal_gate", "x": 8700, "y": 860, "w": 240, "h": 320 }
+  ],
+  "backdrop_painting": "space_nebula",
+  "painting_tint": "#C4D2E8",
+  "backdrop": "open_sky",
+  "clouds": false
+}

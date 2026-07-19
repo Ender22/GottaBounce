@@ -1,0 +1,29 @@
+{
+  "name": "First Break",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "PHYSICS-LAB circuit 4, NEW course (slot 2 of 8, diff 2). Fixes the school->demolition cliff by teaching the destructible + the two smash verbs ALONE, before demolition_day stacks three break-mechanics at once. ONE break_on 'smash' hp1 crate roofs a sealed goal chamber that can only be entered from directly above through the crate slot — the crate is the single door, so the run cannot finish without breaking it.\n\nVERIFIED MECHANIC (DestructibleBlock.gd): break_on 'smash' costs 1hp only when the contact is is_super_active OR contact speed >= Tuning.smash_impact_min (900px/s). Plain boost caps at 760px/s (INV-1) < 900, so a boost ram or a soft landing on the crate does NOTHING but bounce off it (the crate is a trampoline-tier SURFACE). The two — and only two — demolition charges are taught here: (a) THE DIVE — climb above the slot and free-fall: impact = sqrt(2*1600*fall); a 253px fall hits exactly 900, and this course gives ~450px of clean fall room (dive release ~y300 onto crate top y750 = 450px -> sqrt(2*1600*450)=1200px/s), or (b) a downward SUPER (2800px/s, super_active grants smash license regardless of speed, min 5 fuel). After a 0.28s crack telegraph the crate vanishes; you drop through the 260px slot onto the goal_gate below.\n\nTHE SEALED CHAMBER (verified geometry): left bumper wall x1600-1720 (y650-1150), right bumper wall x1980-2100 (y650-1150), trampoline floor pad x1600-2100 (top y1150). The crate (x1720-1980, y750-850) plugs the 260px slot between the wall tops; a 100px mouth (y650-750) funnels the dive. There is NO side or bottom seam — the crate is the only aperture. goal_gate center (1850,1000) w200 h260 sits inside the 260x300 chamber; you land on it once the crate is gone. Player ~92px into a 260px slot = 84px clearance/side (generous for a diff-2 dive).\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight required):\n- Start pad top y1000 -> above the slot (dive release ~y300 over x1850): ~700px climb (>trampoline apex 270, >spring apex 480) AND ~1400px horizontal (>>spring drift ~527) -> NORMAL BOOST is the only way to set up the dive; a bounce cannot reach the slot mouth.\n- The break itself: boost 760 < 900 gate -> a smash-grade FLIGHT VERB (a committed dive = a controlled flight exit, or a super) is mandatory. There is no non-flight way past the crate.\n- No standable ground: the start pad and the chamber floor both bounce; the walls are bumper. A miss falls to the void = free respawn at the start_gate; the crate STAYS broken across respawns (in-run persistence), so a second attempt drops straight in.\n\nFUEL BUDGET: spawn 100. Climb-and-position to the dive apex ~1.4s of boost (~40 fuel); the dive itself costs nothing. The super alternative dumps the tank but needs only 5 to fire and the start pad refunds +20 per touch, so neither route can softlock. A soft landing on the crate bounces you clear (trampoline tier) with no penalty — try again.\n\nFAIRNESS: the crate telegraphs 0.28s of cracks before it vanishes; it is nobody's footing (the start + chamber pads always remain); the void spans the whole floor; spawn (220,900) is over the start pad, clear of the crate. Explicit bounds: top -1500 gives climb headroom over the slot; the derived side-cap would be wrong for a 2100px-wide sealed-chamber layout.",
+  "hint": "CLIMB ABOVE THE CRATE — DIVE TO SMASH IT IN",
+  "sky_top": "#4a3d33",
+  "sky_bottom": "#cbb894",
+  "bounds": {
+    "left": -600,
+    "top": -1500,
+    "right": 2800,
+    "bottom": 1900
+  },
+  "platforms": [
+    { "x": 0, "y": 1000, "w": 450, "h": 128, "tier": "trampoline" },
+    { "x": 1600, "y": 650, "w": 120, "h": 500, "tier": "bumper" },
+    { "x": 1980, "y": 650, "w": 120, "h": 500, "tier": "bumper" },
+    { "x": 1600, "y": 1150, "w": 500, "h": 120, "tier": "trampoline" }
+  ],
+  "objects": [
+    { "type": "void", "x": -500, "y": 1300, "w": 3300, "h": 600, "wall_px": 120 },
+    { "type": "start_gate", "x": 220, "y": 900 },
+    { "type": "destructible_block", "x": 1720, "y": 750, "w": 260, "h": 100, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "goal_gate", "x": 1850, "y": 1000, "w": 200, "h": 260 }
+  ]
+}

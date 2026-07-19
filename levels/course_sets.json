@@ -23,10 +23,13 @@
       "tagline": "Thread it. Unlock it.",
       "color": "#4ad0a8",
       "courses": [
-        "res://levels/courses/n2_wall_climb.json",
+        "res://levels/courses/n2_pinhole.json",
         "res://levels/courses/n2_needle_thread.json",
+        "res://levels/courses/n2_wall_climb.json",
+        "res://levels/courses/n2_slalom.json",
         "res://levels/courses/n2_refuel_ridge.json",
         "res://levels/courses/n2_locksmith.json",
+        "res://levels/courses/n2_shifting_needle.json",
         "res://levels/courses/n2_master_vault.json"
       ]
     },
@@ -37,7 +40,11 @@
       "courses": [
         "res://levels/courses/s3_tap_in.json",
         "res://levels/courses/s3_top_corner.json",
+        "res://levels/courses/s3_long_ball.json",
         "res://levels/courses/s3_wall_pass.json",
+        "res://levels/courses/s3_keyhole.json",
+        "res://levels/courses/s3_pinball_alley.json",
+        "res://levels/courses/s3_trapdoor.json",
         "res://levels/courses/s3_hazard_striker.json"
       ]
     },
@@ -47,8 +54,12 @@
       "color": "#a15fff",
       "courses": [
         "res://levels/courses/p4_cannon_school.json",
+        "res://levels/courses/p4_first_break.json",
+        "res://levels/courses/p4_demolition_drop.json",
         "res://levels/courses/p4_demolition_day.json",
         "res://levels/courses/p4_swing_shot.json",
+        "res://levels/courses/p4_double_barrel.json",
+        "res://levels/courses/p4_breach.json",
         "res://levels/courses/p4_chain_reaction.json"
       ]
     },
@@ -58,8 +69,13 @@
       "color": "#7a9cff",
       "courses": [
         "res://levels/courses/g6_moonwalk.json",
+        "res://levels/courses/g6_orbit_ring.json",
+        "res://levels/courses/g6_liftoff.json",
         "res://levels/courses/g6_slingshot.json",
-        "res://levels/courses/g6_binary_run.json"
+        "res://levels/courses/g6_dead_star.json",
+        "res://levels/courses/g6_gravity_chain.json",
+        "res://levels/courses/g6_binary_run.json",
+        "res://levels/courses/g6_solar_tour.json"
       ]
     },
     "varied": {

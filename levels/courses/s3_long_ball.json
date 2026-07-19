@@ -1,0 +1,73 @@
+{
+  "name": "The Long Ball",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "S3 SOCCER TRIALS #3 (proposed slot 3, trials_expansion_2026-07-19) -- the POWER course. Same player-driven shoulder-drive as s3_tap_in but the goal is a WHOLE PITCH away (goal center x2900, ball x900 => ~2000px of pitch), across a 400px mid-field void gap (x2000-2400). The teach: only a full-commit boost drive -- or a super power-drive -- carries the ball the distance; a lazy touch dies short. Introduces the SUPER as the power club before the angle/thread courses stack on precision.\n\nDERIVED SHOT (Ball._drive_from: dv=(500+0.9*player_speed)/0.6, ball speed cap 2400, super x2, restitution 0.85, floor 500 => min 833 px/s; gravity 1600; boost 760): a boost-speed drive at the natural ~20deg (fly right, strike just under the ball's equator) gives 1973 px/s => vx 1854, vy -675 (matches s3_tap_in's derivation). From ball (900,1040): the ball CLEARS the 400px void (at gap start x2000, t=0.593s, center y=921 -- flying ~180px above the deck; at deck-B start x2400, t=0.809s, center y=1017, still airborne over the deck) and descends through the goal band: its center crosses deck height y1100 at t=0.925s, x~2615 -- inside the goal_zone (x2550-3250, y520-1140) => SCORE. A committed dive-and-boost run-up (~1000 px/s -> 2333 drive) or a super (capped 2400) overshoots to the bumper backstop (x3300-3440) and rebounds LEFT (x0.85) back into the deep 700px-wide zone => also SCORE (backstop makes power forgiving, never punishing).\n\nWHY A LAZY TOUCH FAILS (power guard): the WEAKEST touch is the 833 px/s floor. A near-flat 833 lazy tap from (900,1040) lands center-to-deck at t=0.379s, x~1211 -- it never even reaches the gap at x2000; it dribbles on deck A, settles, and TrialsMode auto-resets (reset_settle_s 2.8). A moderate ~1200 px/s drive lands ~x1514, still short of the gap. Only a genuine full-boost/super commit clears the 400px void and reaches the far goal, which is exactly the POWER lesson. Any ball that limps into the gap x2000-2400 falls to the void => OOB => free respawn.\n\nNO-AUTO-SCORE GUARD: the 400px void gap (x2000-2400) sits between the ball's rest position and the far goal. A resting ball (v=0, below BALL_LAUNCH_SPEED 220) simply sits on deck A; it has no impulse source, cannot roll 1100px and fly a 400px gap, so the goal can never latch without the player supplying a powerful launch.\n\nFLIGHT-REQUIRED (player, GAME_ESSENCE): the player spawns at (450,1000) on deck A and must FLY to the ball (500px) and commit a full-boost approach -- a flat bounce cannot generate boost-speed contact, and the 400px gap between decks (>527px is not required here since the PLAYER never needs to cross it; the ball does, via power) means a player who chases a flubbed ball east falls into the same void => free respawn. Deck marshmallow (bounces), backstop bumper, void below kills. No hazards -- safe, average-player-clearable well inside 90s of tries.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "HIT IT HARD - DRIVE THE LENGTH OF THE PITCH",
+  "bounds": {
+    "left": -300,
+    "top": -1000,
+    "right": 3800,
+    "bottom": 1700
+  },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    {
+      "x": 200,
+      "y": 1100,
+      "w": 1800,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 2400,
+      "y": 1100,
+      "w": 900,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 3300,
+      "y": 450,
+      "w": 140,
+      "h": 770,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -300,
+      "y": 1400,
+      "w": 4100,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 450,
+      "y": 1000
+    },
+    {
+      "type": "ball",
+      "x": 900,
+      "y": 1040
+    },
+    {
+      "type": "goal_zone",
+      "x": 2900,
+      "y": 830,
+      "w": 700,
+      "h": 620,
+      "team": 0
+    }
+  ]
+}

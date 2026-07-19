@@ -1,0 +1,94 @@
+{
+  "name": "Keyhole",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "S3 SOCCER TRIALS #5 (proposed slot 5, trials_expansion_2026-07-19) -- the THREAD course: Needle & Key comes to the pitch. A tall bumper wall (x1440-1560) seals the goal pocket behind it; the ONLY way through is a single 180px horizontal slot (y850-1030, center 940). Ball radius 60 (diameter 120) => 30px clearance top and bottom -- a clean, well-aimed medium drive threads it; too high, too low, or too hard-off-angle smacks bumper and rebounds. Combines s3_long_ball's power with precise aim.\n\nDERIVED SHOT (Ball._drive_from dv=(500+0.9*speed)/0.6, cap 2400, restitution 0.85; gravity 1600; boost 760): ball rests at (900,1040) on deck A (top 1100). A boost-speed drive at ~15deg (fly right, strike just under the equator) gives 1973 px/s => vx 1906, vy -511. At the wall face x1440 (dx=540), t=0.283s, ball CENTER y = 1040 - 511*0.283 + 800*0.080 = 1040 - 145 + 64 = 959 -- inside the 970-910 pass window (ball center must be 970..910 so its 60px radius stays inside the y850-1030 slot). It threads the slot and carries into the pocket, crossing the goal_zone left edge x1610 at center ~955 (inside the zone x1610-2010, y720-1080) => SCORE. The AIM WINDOW is roughly 11-18deg at full boost: too flat (~5deg, vy -172) arrives center ~1058 and smacks the LOWER wall (slot bottom 1030); too steep (~25deg, vy -834) arrives center ~872 and smacks the UPPER wall (slot top 850) -- both rebound off the bumper (restitution 0.85) back over deck A. A too-fast SUPER drive (2400) caroms off the slot lip and is self-limiting (overshoots high or rebounds), so a controlled NORMAL boost drive is the intended tool. Misses settle or fly OOB and auto-reset (2.8s), unlimited tries.\n\nWHY A ROLLING/SLOW BALL FAILS (thread guard): the slot is LIFTED above the resting ball. A ball rolling at deck height (center 1040, spans 980-1100) meets the wall with its whole body BELOW the slot (slot bottom 1030; ball top 980 < 1030) -- it smacks the LOWER wall (x1440, y1030-1220) and stops. Only a driven ball lofted ~100px to center ~940 lines up with the slot. A super lobbed clean OVER the upper wall (clear y300) drops behind it onto the pocket CEILING (bumper x1560-2220, y620-700) and is rejected. So every non-threaded path is walled off.\n\nNO-AUTO-SCORE GUARD: the full-height bumper wall (upper x1440,y300-850 + lower x1440,y1030-1220) is a hard barrier between the ball's rest position and the pocket; a resting ball (v=0 < BALL_LAUNCH_SPEED 220) sits on deck A and cannot self-thread. The player must supply an aimed drive.\n\nFLIGHT-REQUIRED (player, GAME_ESSENCE): spawn (450,1000) on deck A, 450px from the ball; the player must FLY into the ball with a controlled ~flat-to-15deg boost drive (a passive bounce cannot make a boost-speed aimed contact). Deck marshmallow, wall/ceiling/back-wall bumper, void below kills; a player who follows a flubbed ball into the slot line just falls to void => free respawn. Precision, not danger -- a diff-3 read.",
+  "sky_top": "#2e6cb0",
+  "sky_bottom": "#bfe6ff",
+  "hint": "THREAD THE BALL THROUGH THE SLOT",
+  "bounds": {
+    "left": -300,
+    "top": -700,
+    "right": 2500,
+    "bottom": 1700
+  },
+  "objective": {
+    "type": "PHYSICS_PUZZLE",
+    "win": "ball_in_goal",
+    "reset_settle_s": 2.8
+  },
+  "platforms": [
+    {
+      "x": 200,
+      "y": 1100,
+      "w": 1240,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 1440,
+      "y": 300,
+      "w": 120,
+      "h": 550,
+      "tier": "bumper"
+    },
+    {
+      "x": 1440,
+      "y": 1030,
+      "w": 120,
+      "h": 190,
+      "tier": "bumper"
+    },
+    {
+      "x": 1560,
+      "y": 1100,
+      "w": 520,
+      "h": 120,
+      "tier": "marshmallow"
+    },
+    {
+      "x": 1560,
+      "y": 620,
+      "w": 660,
+      "h": 80,
+      "tier": "bumper"
+    },
+    {
+      "x": 2080,
+      "y": 400,
+      "w": 140,
+      "h": 820,
+      "tier": "bumper"
+    }
+  ],
+  "objects": [
+    {
+      "type": "void",
+      "x": -300,
+      "y": 1400,
+      "w": 2900,
+      "h": 300,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 450,
+      "y": 1000
+    },
+    {
+      "type": "ball",
+      "x": 900,
+      "y": 1040
+    },
+    {
+      "type": "goal_zone",
+      "x": 1810,
+      "y": 900,
+      "w": 400,
+      "h": 360,
+      "team": 0
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Wrecking Ball",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "design_intent": "PHYSICS-LAB circuit 4, NEW course (slot 7 of 8, diff 4). Combines the two lab threads — RIDE + BREAK — into one move: get FIRED into a smash wall and BE the demolition charge. This isolates chain_reaction's capstone idea (impact-as-tool) before the finale stacks a bomb field on top. A fixed cannon launches the player at 2600px/s straight into a stack of break_on 'smash' hp1 crates that seals the only corridor to the goal; the impact (2443px/s at contact >> the 900px/s smash gate) punches a hole you then fly through.\n\nVERIFIED IMPACT (Cannon.gd + DestructibleBlock.gd): the cannon is FIXED at -20deg (angle_min==angle_max, no timing read this course). Pivot (700,700); muzzle = pivot + 230*(cos20,-sin20) = (916,621); launch v = (2600cos20, -2600sin20) = (2443,-889). Time to the wall face x2200: dt = (2200-916)/2443 = 0.526s; arc height there y = 621 - 889*0.526 + 800*0.526^2 = 374; contact speed = sqrt(2443^2 + (-47)^2) = 2443px/s. That lands on the MIDDLE crate (crate B, y300-450) at ~2443px/s >> 900 -> a guaranteed smash. Plain boost caps at 760 < 900 (INV-1) and can NEVER break a smash crate, so the cannon (or a super — see below) is the only tool. Because the crate is solid through its 0.28s crack telegraph, the honest sequence (verified against chain_reaction's roof) is TWO strokes: the first cannon ride SMASHES crate B and bounces you back off it (trampoline restitution) as it cracks; 0.28s later it vanishes leaving a 150px hole; the crate STAYS broken across a respawn/reload (in-run persistence), so the SECOND ride sails the identical -20 arc clean through the open hole (at x2200 the arc is y374, dead-centre of the y300-450 hole; player ~92px in a 150px gap = 29px/side = a genuine thread) and on into the goal_gate. At x2950 the arc is y436, inside goal_gate (2830-3070, y330-670) -> the ring latches on the fly-through before the far bumper backstop (x3350) even catches the overshoot. The flanking crates A (y150-300) and C (y450-600) stay intact, so the result reads as a punched HOLE in a wall, not a cleared shelf.\nSUPER ALTERNATIVE (like demolition_day): a player may instead boost across to the wall and SUPER crate B (super_active grants smash license at any speed); still a two-stroke break-then-pass, still 100% a flight verb. Boost alone can never do it.\n\nSEALED WALL (verified geometry, no over/under cheese): the barrier at x2200-2400 runs from the bounds ceiling to the void — bumper top cap y-900..150, three smash crates y150..600, bumper base y600..1300 (into the void lip). Flying OVER means climbing from the start pad (y1050) to y<-900 (~1950px) then crossing ~1500px = ~3450px > one tank's ~2660px, with no refuel pads up there -> impossible. Under the base is the void. The crate hole is the only way past.\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (flight required):\n- Start pad top y1050 -> cannon capture (r70 @ 700,700): 350px climb (>trampoline apex 270) -> BOOST to load.\n- Start -> wall: ~1550px over the void, and the wall blocks the low line -> the cannon RIDE (or a boost-then-super approach) is the crossing; a bounce (drift ~527) is hopeless.\n- The wall: a smash-grade impact (cannon 2443 or a super) is mandatory; boost 760 < 900 gate cannot break it -> a FLIGHT verb, always.\n- Hole -> goal: the winning second ride threads the 150px breach and rings the goal_gate on the fly; a stray overshoot hits the x3350 bumper backstop and rebounds onto the goal pad (trampoline x2650-3350) instead of voiding.\nNo leg is bounce-crossable and the wall is impassable without a smash impact.\n\nFUEL BUDGET: spawn 100. Load the cannon ~0.8s boost (~23 fuel); both rides are free. The super route costs a tank dump but needs only 5 to fire and the start + goal pads refund +20 per touch. A bounce-back into the void, a mistimed recovery, or a short landing = free respawn at the start_gate; the wall stays broken, so the run never re-tolls the breach.\n\nFAIRNESS: the crates telegraph 0.28s of cracks before vanishing; the wall top cap, base, and far backstop are bumpers (never lethal — the void stays the only killer); the fixed barrel means zero timing luck (that is double_barrel's job); spawn (420,950) is over the start pad, 1500px clear of the wall. Explicit bounds: top -1500 clears the flat -20 arc (apex only ~y374) with room; the derived side-cap would be wrong for this walled corridor.",
+  "hint": "RIDE THE CANNON — PUNCH A HOLE THROUGH THE WALL",
+  "sky_top": "#181412",
+  "sky_bottom": "#080504",
+  "bounds": {
+    "left": -600,
+    "top": -1500,
+    "right": 4000,
+    "bottom": 1950
+  },
+  "platforms": [
+    { "x": 200, "y": 1050, "w": 450, "h": 128, "tier": "trampoline" },
+    { "x": 2200, "y": -900, "w": 200, "h": 1050, "tier": "bumper" },
+    { "x": 2200, "y": 600, "w": 200, "h": 700, "tier": "bumper" },
+    { "x": 2650, "y": 650, "w": 700, "h": 128, "tier": "trampoline" },
+    { "x": 3350, "y": 300, "w": 120, "h": 1000, "tier": "bumper" }
+  ],
+  "objects": [
+    { "type": "void", "x": -500, "y": 1300, "w": 4900, "h": 650, "wall_px": 120 },
+    { "type": "start_gate", "x": 420, "y": 950 },
+    { "type": "cannon", "x": 700, "y": 700, "angle_min": -20, "angle_max": -20, "period_s": 2.4, "impulse": 2600, "hold_s": 0.8 },
+    { "type": "destructible_block", "x": 2200, "y": 150, "w": 200, "h": 150, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "destructible_block", "x": 2200, "y": 300, "w": 200, "h": 150, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "destructible_block", "x": 2200, "y": 450, "w": 200, "h": 150, "tier": "trampoline", "break_on": "smash", "hp": 1 },
+    { "type": "goal_gate", "x": 2950, "y": 500, "w": 240, "h": 340 }
+  ],
+  "backdrop_painting": "ember_foundry",
+  "backdrop": "open_sky",
+  "clouds": false
+}

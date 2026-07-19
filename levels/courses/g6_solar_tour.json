@@ -1,0 +1,74 @@
+{
+  "name": "Grand Tour",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "design_intent": "ORBIT circuit, slot 8 CAPSTONE (diff 5). Lesson: THE WHOLE GRAVITY TOOLBOX -- land-on (moon), sling-past-danger (lethal black hole), and world-hop (neutral gap), synthesized. Three bodies across the frame: Moon A (moon, body_r 180, field r800, g1350) lower-left at (0,1000) with start_gate on its north pole (0,760); black hole B (visual black_hole, field r1100, g1100, lethal_core_r 120, body_r 0 so the drawn black disc == the 120 kill radius) upper-middle at (2100,-300); Moon C (moon, body_r 180, field r800, g1350) right at (4600,200) with the goal ring past its far-east rim, center (5500,0), on a trampoline pad. Neutral global-down gaps separate all three fields.\n\nROUTE (combines every prior lesson): (1) bounce around Moon A to its EAST face to build a line (moonwalk); (2) escape A's well up-right and HOP the ~570px neutral gap into B's field (binary_run's led gap-hop -- global down pulls screen-down mid-flight, lead 'up'); (3) sling PAST black hole B, staying wide of the 120 lethal core (dead_star's respect-the-core), letting the pull fling you right; (4) HOP the ~650px neutral gap into Moon C's field; (5) round C to its east face and exit right to the goal ring.\n\nFLIGHT-REQUIRED / movement-tool-per-gap: EVERY world-to-world leg exceeds bounce reach. Escaping Moon A means climbing from surface (radius 180) out past the r800 field edge = 620px, and spring apex is only 480 -- a passive bounce can never even leave a moon's field, so boost is required to start each hop. The A->B neutral gap is 570px and the B->C gap is 650px (both > 527px spring air-drift), so neither is bounce-crossable; each must be FLOWN (led boost + the sling's momentum). One of the two hops is a LETHAL sling (core kills at 120). Total span is ~6300px across three wells -- no straight boost line completes it. Misses fall out the bottom bound = free respawn at Moon A's pole. Bounds frame all three fields (x -800..5500, y -1400..1800) with margin and a top that clears a super apex from any footing.",
+  "hint": "TOUR THREE WORLDS — LAND, SLING PAST THE KILLER, HOP HOME",
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -1700,
+    "top": -2200,
+    "right": 6300,
+    "bottom": 2600
+  },
+  "platforms": [
+    {
+      "x": 5380,
+      "y": 160,
+      "w": 240,
+      "h": 50,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "gravity_source",
+      "x": 0,
+      "y": 1000,
+      "radius": 800,
+      "g": 1350,
+      "body_r": 180,
+      "tier": "trampoline",
+      "visual": "moon"
+    },
+    {
+      "type": "gravity_source",
+      "x": 2100,
+      "y": -300,
+      "radius": 1100,
+      "g": 1100,
+      "body_r": 0,
+      "lethal_core_r": 120,
+      "visual": "black_hole"
+    },
+    {
+      "type": "gravity_source",
+      "x": 4600,
+      "y": 200,
+      "radius": 800,
+      "g": 1350,
+      "body_r": 180,
+      "tier": "trampoline",
+      "visual": "moon"
+    },
+    {
+      "type": "start_gate",
+      "x": 0,
+      "y": 760
+    },
+    {
+      "type": "goal_gate",
+      "x": 5500,
+      "y": 0,
+      "w": 320,
+      "h": 320
+    }
+  ],
+  "backdrop_painting": "space_nebula"
+}

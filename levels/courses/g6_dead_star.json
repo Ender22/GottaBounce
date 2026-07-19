@@ -1,0 +1,61 @@
+{
+  "name": "Dead Star",
+  "version": 1,
+  "theme": "grass",
+  "mode": "trials",
+  "kill_shape": "void_is_floor",
+  "backdrop": "open_sky",
+  "clouds": false,
+  "stars": true,
+  "design_intent": "ORBIT circuit, slot 5 (diff 4). Lesson: RESPECT THE CORE -- the slingshot verb (g6_slingshot) but now the well can KILL. A black-hole gravity_source (field r 1200, g 1100, visual black_hole) at (1100,300) carries a real instakill core via lethal_core_r 130 (the existing Hazard path). Start pad (trampoline) far LEFT at center x=-430, just OUTSIDE the field's left edge (-100); the goal ring hangs HIGH on the far-right rim, center (2600,-740), on a small trampoline landing pad. The whole-route line to the goal passes right by the core: a timid straight dive spirals down the pull into the black disc = death (free respawn). The safe solve is a WIDE sling -- enter with tangential speed/angle so the pull curves you AROUND the core, then release your boost on the outswing up to the goal.\n\nTELEGRAPHY: body_r is 0 (no solid bumper body -- you never bounce off this one, you avoid it), so GravitySource draws the true-black event-horizon disc at exactly lethal_core_r=130 and the faint field-extent ring at r1200 shows where the pull begins. The black circle IS the kill radius (1:1), the hot accretion swirl frames it -- the danger reads honestly.\n\nFLIGHT-REQUIRED / movement-tool-per-gap: the start-to-goal crossing is ~3000px (x -430 to 2600, y +80 to -740). One boost tank flies ~2660px and a straight boost line drives you INTO the core anyway, so you cannot power straight across -- you MUST use the well (sling) to make the distance, and the well now bites. Enter fast/tangential (boost to build the entry vector), ride the curve wide of the 130 core, release on the outswing. Miss into the core, or fall short of the rim past the field into global-down = free respawn at the start pad. Bounds mirror g6_slingshot (side ~1100+ margin, top clears the outswing apex).",
+  "hint": "SLING WIDE — THE BLACK CORE KILLS, DON'T DIVE IN",
+  "sky_top": "#0B1133",
+  "sky_bottom": "#010310",
+  "bounds": {
+    "left": -1500,
+    "top": -1700,
+    "right": 3700,
+    "bottom": 2300
+  },
+  "platforms": [
+    {
+      "x": -600,
+      "y": 180,
+      "w": 340,
+      "h": 60,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2480,
+      "y": -560,
+      "w": 240,
+      "h": 50,
+      "tier": "trampoline"
+    }
+  ],
+  "objects": [
+    {
+      "type": "gravity_source",
+      "x": 1100,
+      "y": 300,
+      "radius": 1200,
+      "g": 1100,
+      "body_r": 0,
+      "lethal_core_r": 130,
+      "visual": "black_hole"
+    },
+    {
+      "type": "start_gate",
+      "x": -430,
+      "y": 80
+    },
+    {
+      "type": "goal_gate",
+      "x": 2600,
+      "y": -740,
+      "w": 340,
+      "h": 340
+    }
+  ],
+  "backdrop_painting": "space_nebula"
+}
