@@ -282,6 +282,31 @@ func pads_total() -> int:
 func pads_landed(runner) -> int:
 	return _flagged_count(runner, "trials_target", "landed")
 
+## Camera focus points (owner 2026-07-19): the default player-cluster camera zoomed so tight the
+## player couldn't SEE the trial goal ("I don't know where to send the ball"). For the point-target
+## objective types, the goal joins the frame: REACH_GOAL -> every goal_gate; PHYSICS_PUZZLE -> every
+## goal_zone + the live ball; PRECISION_LAND -> every un-landed pad. DESTROY_ALL / COLLECT_ALL /
+## SURVIVE stay default (their objectives are scattered across the whole course — framing them all
+## would just be a permanent full-course zoom-out).
+func camera_focus_points(runner) -> Array:
+	var pts: Array = []
+	match _objective_type():
+		OBJ_REACH:
+			for g in runner.get_tree().get_nodes_in_group("goal_gate"):
+				pts.append((g as Node2D).global_position)
+		OBJ_PUZZLE:
+			for z in runner.get_tree().get_nodes_in_group("goal_zone"):
+				pts.append((z as Node2D).global_position)
+			if is_instance_valid(_ball):
+				pts.append((_ball as Node2D).global_position)
+		OBJ_PRECISION:
+			for t in runner.get_tree().get_nodes_in_group("trials_target"):
+				if not bool(t.get("landed")):
+					pts.append((t as Node2D).global_position)
+		_:
+			pass
+	return pts
+
 # --- per-type clear tests ---
 
 ## True once player p has entered ANY goal_gate (sticky, per-player).

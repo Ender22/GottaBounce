@@ -2,6 +2,23 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-07-19** SMASH KNOCKBACK +25% AT EVERY DAMAGE LEVEL (owner ruling: "make the impact — how far
+  you get knocked when someone super boosts into you — 25% stronger, for each damage level").
+  `dmg_launch_mult` [1.0, 1.33, 1.66] → **[1.25, 1.66, 2.08]**, superseding the kill-zone v3 §12.3
+  values. This is the sanctioned single-knob path (multiplier applied AFTER the smash_impulse_max
+  clamp, BEFORE max_speed — no other lethality constant moves; hitstun triad untouched). WATCH ITEM:
+  Lv0 fights now launch 25% harder, so expect shorter rounds / more ring-outs — if the next brawl QA
+  pass shows rounds one-shotting, the first knob DOWN is this array (owner re-ruling), never hitstun.
+  Reopen only on owner reversal or a failed lethality-pacing QA pass.
+
+- **2026-07-19** TRIALS CAMERA FRAMES THE OBJECTIVE (owner: "consider the trial goal for the camera —
+  right now it's too zoomed in so I don't know where to send the ball"). New additive GameMode seam
+  `camera_focus_points()` — extra world points the cluster framing must contain, clamped to
+  camera_bounds like players. TRIALS returns: REACH_GOAL → goal gates; PHYSICS_PUZZLE → goal zones +
+  live ball; PRECISION_LAND → un-landed pads. DESTROY_ALL/COLLECT_ALL/SURVIVE deliberately stay
+  default (scattered objectives would force a permanent full-course zoom-out). Default [] keeps every
+  other mode's framing byte-for-byte.
+
 - **2026-07-16** BETWEEN-STAGE SCORE SCREEN (owner ruling: "they show a brief score screen between levels
   before the next level is loaded, let's do that" — Duck Game intermission / TowerFall tally lineage,
   research in the task record). BRAWL-only via `GameMode.wants_scoreboard()` (TRIALS/SPORTS byte-for-byte

@@ -116,9 +116,11 @@ var smash_sting_min_impulse: float = 1500.0  # supers/chains sting; Star (900) &
 # --- Damage system (kill-zone recovery spec v3 §12 — REPLACES the compounding sting) ---
 # A qualifying smash (impulse >= smash_sting_min_impulse, same gate as sting) escalates the victim's
 # transient damage_level 0->1->2 (caps at 2) and re-arms an 8s full-heal timer. A damaged victim's
-# launch is multiplied (index by damage_level): Lv0 x1.0 / Lv1 x1.33 / Lv2 x1.66, applied AFTER the
+# launch is multiplied (index by damage_level): Lv0 x1.25 / Lv1 x1.66 / Lv2 x2.08, applied AFTER the
 # smash_impulse_max clamp and BEFORE the max_speed limit. Read ON THE BODY (red pulse), never a HUD.
-var dmg_launch_mult: Array[float] = [1.0, 1.33, 1.66]  # §12.3: launch multiplier indexed by damage_level
+# OWNER 2026-07-19: every level +25% over the v3 spec values [1.0, 1.33, 1.66] — smash knockback
+# ("how far you get knocked when someone super boosts into you") reads too soft.
+var dmg_launch_mult: Array[float] = [1.25, 1.66, 2.08]  # §12.3: launch multiplier indexed by damage_level
 var dmg_heal_time: float = 8.0               # §12.5: seconds with no qualifying hit -> full heal to Lv0
 var dmg_pulse_slow_hz: float = 1.5           # §12.4: Lv1 red-pulse frequency
 var dmg_pulse_fast_hz: float = 4.0           # §12.4: Lv2 red-pulse frequency

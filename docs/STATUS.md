@@ -4,6 +4,24 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**OWNER BATCH 2026-07-19 (4 asks, all shipped + rendered-verified):**
+1. **Title layout** — Backdrop bobbers rearranged per owner ("big, at the sides, facing each other"):
+   3 BIG goats per side (240/290/340px, sizes step down the column), left column native-right-facing,
+   right column `flip_h` to face inward. Rendered-verified (tools/out/owner19_title.png) — reads like a
+   real party-game title now.
+2. **THE DOME net MOVES** — the dropshot_dome net bumper is now a `moving_platform` (vertical,
+   amplitude 110, period 7s, dwell 0.1): top gap breathes 540..760px around beach's 650 average; at
+   max-rise a 110px slot opens under the net (players fit, the 168px ball does not). Zero new code —
+   reused the v6 MovingPlatform with tier:"bumper". Burst-verified in a live bot match
+   (tools/out/owner19_dome/). Note: net now renders as the steel moving-platform column, not themed
+   bumper art — art-director pass optional follow-up.
+3. **Knockback +25%/damage level** — `dmg_launch_mult` [1.25, 1.66, 2.08] (owner ruling; DECISIONS
+   2026-07-19). WATCH: pacing QA pass recommended — if brawl rounds one-shot, this array is the knob.
+4. **TRIALS camera frames the goal** — new `GameMode.camera_focus_points()` seam (see DECISIONS
+   2026-07-19): trials cluster framing now also contains goal gates / goal zones + ball / un-landed
+   pads. Rendered-verified on s3_top_corner (owner's exact complaint shot): goal grid + player + ball
+   all in frame (tools/out/owner19_trials_cam.png). Other modes byte-for-byte (default []).
+
 **BRAWL ARENA EXPANSION — all 5 circuits to ~20 (2026-07-19, db26383 Meadow + d30ac75 the rest — owner:
 "each circuit needs ~20 dedicated arenas"):** DESIGN docs/briefs/brawl_arena_expansion_2026-07-19.md
 (71 new arenas, 69 JSON-only, 0 new code). BUILT + WIRED via 5 level-designer agents: MEADOW 4->20 (pilot,

@@ -7,14 +7,19 @@ extends Control
 const BG_PATH := "res://assets/ui/title_bg.png"
 const SPRITE_DIR := "res://assets/characters/bouncer_%s_idle.png"
 
-# per-bobber: skin, center (design-space 1920x1080), box size, depth alpha
+# per-bobber: skin, center (design-space 1920x1080), box size, depth alpha, flip (face LEFT).
+# OWNER 2026-07-19 layout: the Herd flanks the title — 3 BIG on each SIDE, both columns facing
+# INWARD toward the logo/menu (native art faces RIGHT, so the right column flips). Sizes step up
+# top->bottom on each side so the columns read as a crowd with depth, not a grid.
 const BOBBERS := [
-	{"skin": "green",  "pos": Vector2(300, 430),  "box": 150.0, "a": 0.82},
-	{"skin": "purple", "pos": Vector2(1520, 180), "box": 120.0, "a": 0.72},
-	{"skin": "yellow", "pos": Vector2(1650, 400), "box": 160.0, "a": 0.85},
-	{"skin": "orange", "pos": Vector2(1180, 560), "box": 170.0, "a": 0.9},
-	{"skin": "pink",   "pos": Vector2(470, 800),  "box": 300.0, "a": 1.0},
-	{"skin": "blue",   "pos": Vector2(1440, 800), "box": 300.0, "a": 1.0},
+	# left column — faces right (native)
+	{"skin": "green",  "pos": Vector2(250, 230), "box": 240.0, "a": 0.85},
+	{"skin": "purple", "pos": Vector2(310, 540), "box": 290.0, "a": 0.93},
+	{"skin": "pink",   "pos": Vector2(240, 855), "box": 340.0, "a": 1.0},
+	# right column — flipped to face left (inward)
+	{"skin": "yellow", "pos": Vector2(1670, 230), "box": 240.0, "a": 0.85, "flip": true},
+	{"skin": "orange", "pos": Vector2(1610, 540), "box": 290.0, "a": 0.93, "flip": true},
+	{"skin": "blue",   "pos": Vector2(1680, 855), "box": 340.0, "a": 1.0,  "flip": true},
 ]
 
 func _ready() -> void:
@@ -53,6 +58,7 @@ func _build_bobber(b: Dictionary) -> void:
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.custom_minimum_size = Vector2(box, box)
 	tr.size = Vector2(box, box)
+	tr.flip_h = bool(b.get("flip", false))
 	var pos: Vector2 = b["pos"]
 	tr.position = pos - Vector2(box, box) * 0.5
 	tr.pivot_offset = Vector2(box, box) * 0.5

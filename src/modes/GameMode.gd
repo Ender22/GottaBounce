@@ -110,3 +110,10 @@ func bot_objective(_runner, _bot_player) -> Variant:
 ## so both goal mouths + the ball stay on screen throughout a rally.
 func camera_framing(_runner) -> Variant:
 	return null
+
+## Additive seam (owner 2026-07-19 trials camera): a mode may return extra world Vector2 points the
+## default cluster framing must ALSO keep on screen (e.g. a trial's goal, so the player can SEE where
+## to send the ball). Points are clamped to camera_bounds like player positions. Default [] ->
+## _update_camera frames players only, byte-for-byte as before.
+func camera_focus_points(_runner) -> Array:
+	return []

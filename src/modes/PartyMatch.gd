@@ -1129,6 +1129,13 @@ func _update_camera() -> void:
 		var cp: Vector2 = (p.global_position as Vector2).clamp(camera_bounds.position, camera_bounds.end)
 		mn = mn.min(cp)
 		mx = mx.max(cp)
+	# Mode focus points (owner 2026-07-19): a mode may add world points the frame must also contain —
+	# TRIALS returns the objective (goal gate / goal zone + ball / un-landed pads) so the player can
+	# always see the target. Clamped like player positions; [] leaves the framing byte-for-byte.
+	for fp in _mode.camera_focus_points(self):
+		var cfp: Vector2 = (fp as Vector2).clamp(camera_bounds.position, camera_bounds.end)
+		mn = mn.min(cfp)
+		mx = mx.max(cfp)
 	var centroid := (mn + mx) * 0.5          # midpoint of extremes, X and Y (rule 3)
 	var ext := (mx - mn) * 0.5 + CAM_MARGIN  # breathing room (rule 4 aesthetics, not a bias)
 
