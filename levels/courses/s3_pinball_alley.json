@@ -4,7 +4,7 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "S3 SOCCER TRIALS #6 (proposed slot 6, trials_expansion_2026-07-19) -- the CAROM course (escalates s3_wall_pass's single bank to a double bank). The goal is tucked in the bottom-right corner pocket (zone x1980-2300, y800-1100); the direct line is sealed by a tall bumper BAFFLE (x1300-1420, y600-1220). The intended solve is a committed lofted drive OVER the baffle that reads TWO live bumper cushions -- the chamber CEILING (bank 1, redirects down) and the BACK WALL (bank 2, redirects left) -- funneling the ball down into the corner. Restitution 0.85 keeps the caroms lively.\n\nDERIVED BANK (Ball._drive_from dv=(500+0.9*speed)/0.6, restitution 0.85; gravity 1600; boost 760): ball rests at (800,1040). To pass OVER the baffle (top y600) the ball must be lofted to center < 540 at x1300 (ball bottom above the baffle top). A full-boost drive at ~55deg (strike well under the ball, flying up-right) gives 1973 px/s => vx 1132, vy -1616: at the baffle x1300 (dx=500), t=0.442s, center y = 1040 - 1616*0.442 + 800*0.195 = 482 -- ball bottom 542 CLEARS the baffle top (600). It keeps rising into the chamber and meets the bumper CEILING (x1420-2320, y300-400): at x1420, t=0.548s, center y~394, ball top ~334 inside the ceiling band => BANK 1 down. It descends right and strikes the BACK WALL (x2320-2460) => BANK 2 leftward (x0.85), dropping into the corner pocket (goal_zone x1980-2300, y800-1100), where the inner left lip (bumper x1900-1960, y980-1220) traps it. SCORE.\n\nWHY THE DIRECT/WEAK LINES FAIL (carom guard): a flat or shallow drive hits the baffle FACE (x1300, y600-1220) and rebounds LEFT over deck A -- the direct pitch-level line is fully walled. A weak lofted drive that fails to clear the baffle top (600) also rebounds. And a soft over-the-top touch bleeds too much energy to the two 0.85 cushions and stalls, dropping into the void gap (deck A ends x1300; the pocket floor deck B starts x1420) => OOB => reset. So only a POWERFUL, well-read loft supplies the energy for two live caroms into the corner. A super caps the ball at 2400 and tends to overshoot the ceiling/back-wall geometry high, so a committed normal boost loft is the tool; misses settle or fly OOB and auto-reset (2.8s), unlimited tries.\n\nNO-AUTO-SCORE GUARD: the baffle (x1300-1420, standing from y600 to the void line) sits directly between the ball's rest position and the goal chamber; a resting ball (v=0 < BALL_LAUNCH_SPEED 220) has no impulse source and cannot loft itself over a 500px-high lip, so the corner goal can never latch without a player-supplied power drive.\n\nFLIGHT-REQUIRED (player, GAME_ESSENCE): spawn (400,1000), 400px from the ball; the player must FLY into the ball with a committed high-angle boost drive (a passive bounce cannot generate the ~55deg power loft that clears the baffle). Deck marshmallow, baffle/ceiling/back-wall/lip all bumper, void below the approach kills -- a player chasing a flubbed ball into the gap falls => free respawn. NOTE FOR THE RENDERED PASS: the two-cushion carom is the tight-margin element (baffle clearance ~58px at the ideal 55deg full-boost loft; both banks scale with extra approach speed from a short dive run-up) -- validate the ball funnels into the corner and does not escape back left over the lip. Diff-4 read.",
+  "design_intent": "S3 SOCCER TRIALS #6 (proposed slot 6, trials_expansion_2026-07-19) -- the CAROM course (escalates s3_wall_pass's single bank to a double bank). The goal is tucked in the bottom-right corner pocket (zone x1980-2300, y800-1100); the direct line is sealed by a bumper BAFFLE (x1300-1420, y960-1220). The intended solve is a committed lofted drive OVER the baffle that reads TWO live bumper cushions -- the chamber CEILING (bank 1, redirects down) and the BACK WALL (bank 2, redirects left) -- funneling the ball down into the corner. Restitution 0.85 keeps the caroms lively.\n\nDERIVED BANK (Ball._drive_from mag=(500+0.9*speed)/mass0.6, restitution 0.85; gravity 1600; boost 760): ball rests ON deck A at (800,1040). QA-FIX 2026-07-19 (RENDERED): the original geometry demanded a ~55deg loft to clear a y600 baffle, but a player CANNOT uppercut a floor-resting ball that steeply -- the ball sits ON the deck, so a boosting player rising into it strikes its SIDE (away-vector ~horizontal); the measured MAX reliable player launch off this grounded ball is only ~29deg (steeper aims make the player rise OVER the ball and whiff). The old course was thus impossible (proven in-engine). RESHAPE: baffle top 600->960 (a committed ~24-29deg loft -- the achievable steep band -- clears it; a flat/weak <=20deg shot still SLAMS the baffle face and rebounds left, direct-line guard intact); the bumper CEILING was extended left to x1300 (over the baffle, presenting a flat UNDERSIDE instead of the old x1420 bottom-left corner that just kicked shots back) and dropped to y620-720 so a ~26deg loft's apex (~y756) banks off it (BANK 1 down); the ball then carries right, strikes the BACK WALL (x2320-2460, BANK 2 leftward x0.85), and drops into the corner pocket (goal_zone widened to x1750-2300, y800-1100) where the inner left lip (bumper x1900-1960, y980-1220) traps it. SCORE. VERIFIED 2026-07-19: a real boost-driven loft (player flying up-right at ~26deg into the ball) banks into the pocket and latches the goal 4/4; flat drives rebound off the baffle and never score.\n\nWHY THE DIRECT/WEAK LINES FAIL (carom guard): a flat or shallow drive hits the baffle FACE (x1300, y960-1220) and rebounds LEFT over deck A -- the direct pitch-level line is fully walled. A weak lofted drive that fails to clear the baffle top (960) also rebounds. And a soft over-the-top touch bleeds too much energy to the two 0.85 cushions and stalls, dropping into the void gap (deck A ends x1300; the pocket floor deck B starts x1420) => OOB => reset. So only a POWERFUL, well-read loft supplies the energy for two live caroms into the corner. A super caps the ball at 2400 and tends to overshoot the ceiling/back-wall geometry high, so a committed normal boost loft is the tool; misses settle or fly OOB and auto-reset (2.8s), unlimited tries.\n\nNO-AUTO-SCORE GUARD: the baffle (x1300-1420, standing from y960 to the void line) sits directly between the ball's rest position and the goal chamber; a resting ball (v=0 < BALL_LAUNCH_SPEED 220) has no impulse source and cannot loft itself over the baffle lip, so the corner goal can never latch without a player-supplied power drive.\n\nFLIGHT-REQUIRED (player, GAME_ESSENCE): spawn (400,1000), 400px from the ball; the player must FLY into the ball with a committed up-right boost drive (a passive bounce cannot generate the ~26deg power loft that clears the baffle). Deck marshmallow, baffle/ceiling/back-wall/lip all bumper, void below the approach kills -- a player chasing a flubbed ball into the gap falls => free respawn. NOTE FOR THE RENDERED PASS: the two-cushion carom is the tight-margin element (a committed ~24-29deg loft clears the y960 baffle by ~20-70px; both banks scale with extra approach speed from a short dive run-up) -- validate the ball funnels into the corner and does not escape back left over the lip. Diff-4 read.",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
   "hint": "NO DIRECT LINE - BANK IT INTO THE CORNER",
@@ -29,9 +29,9 @@
     },
     {
       "x": 1300,
-      "y": 600,
+      "y": 960,
       "w": 120,
-      "h": 620,
+      "h": 260,
       "tier": "bumper"
     },
     {
@@ -42,9 +42,9 @@
       "tier": "marshmallow"
     },
     {
-      "x": 1420,
-      "y": 300,
-      "w": 900,
+      "x": 1300,
+      "y": 620,
+      "w": 1020,
       "h": 100,
       "tier": "bumper"
     },
@@ -84,9 +84,9 @@
     },
     {
       "type": "goal_zone",
-      "x": 2140,
+      "x": 2025,
       "y": 950,
-      "w": 320,
+      "w": 550,
       "h": 300,
       "team": 0
     }

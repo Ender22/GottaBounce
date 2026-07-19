@@ -7,7 +7,7 @@
   "backdrop": "open_sky",
   "clouds": false,
   "stars": true,
-  "design_intent": "ORBIT circuit, slot 8 CAPSTONE (diff 5). Lesson: THE WHOLE GRAVITY TOOLBOX -- land-on (moon), sling-past-danger (lethal black hole), and world-hop (neutral gap), synthesized. Three bodies across the frame: Moon A (moon, body_r 180, field r800, g1350) lower-left at (0,1000) with start_gate on its north pole (0,760); black hole B (visual black_hole, field r1100, g1100, lethal_core_r 120, body_r 0 so the drawn black disc == the 120 kill radius) upper-middle at (2100,-300); Moon C (moon, body_r 180, field r800, g1350) right at (4600,200) with the goal ring past its far-east rim, center (5500,0), on a trampoline pad. Neutral global-down gaps separate all three fields.\n\nROUTE (combines every prior lesson): (1) bounce around Moon A to its EAST face to build a line (moonwalk); (2) escape A's well up-right and HOP the ~570px neutral gap into B's field (binary_run's led gap-hop -- global down pulls screen-down mid-flight, lead 'up'); (3) sling PAST black hole B, staying wide of the 120 lethal core (dead_star's respect-the-core), letting the pull fling you right; (4) HOP the ~650px neutral gap into Moon C's field; (5) round C to its east face and exit right to the goal ring.\n\nFLIGHT-REQUIRED / movement-tool-per-gap: EVERY world-to-world leg exceeds bounce reach. Escaping Moon A means climbing from surface (radius 180) out past the r800 field edge = 620px, and spring apex is only 480 -- a passive bounce can never even leave a moon's field, so boost is required to start each hop. The A->B neutral gap is 570px and the B->C gap is 650px (both > 527px spring air-drift), so neither is bounce-crossable; each must be FLOWN (led boost + the sling's momentum). One of the two hops is a LETHAL sling (core kills at 120). Total span is ~6300px across three wells -- no straight boost line completes it. Misses fall out the bottom bound = free respawn at Moon A's pole. Bounds frame all three fields (x -800..5500, y -1400..1800) with margin and a top that clears a super apex from any footing.",
+  "design_intent": "ORBIT circuit, slot 8 CAPSTONE (diff 5). Lesson: THE WHOLE GRAVITY TOOLBOX -- land-on (moon), sling-past-danger (lethal black hole), and world-hop (neutral gap), synthesized. Three bodies across the frame: Moon A (moon, body_r 180, field r800, g1350) lower-left at (0,1000) with start_gate on its north pole (0,760); black hole B (visual black_hole, field r1100, g1100, lethal_core_r 120, body_r 0 so the drawn black disc == the 120 kill radius) upper-middle at (2100,-300); Moon C (moon, body_r 180, field r800, g1050) right at (4600,200) with the goal ring on its far-east exit line, center (5450,60), on a trampoline pad just below it. QA-FIX 2026-07-19: the capstone's final leg was flagged unreachable, but the true barrier was NOT the well (a moon well is escapable by sustained boost -- the g6_liftoff sibling proved this) -- it was the pad, which used to sit at x5380-5620/y160-210 SPANNING the goal mouth so any from-below approach bounced off it, and the goal box sat a touch too far past the rim. Fix: Moon C g 1350->1050 (softer final sling, still brutal), goal (5500,0)->(5450,60) pulled onto the east-exit line so its box overlaps the field edge, and the pad moved DOWN to x5310-5590/y225-275 (footing below the goal, out of the entry lane -- it now CATCHES a low right-approach and bounces it UP into the ring). VERIFIED 2026-07-19: escaping Moon C's SE up-right latches the ring at ~(5296,116). Neutral global-down gaps separate all three fields.\n\nROUTE (combines every prior lesson): (1) bounce around Moon A to its EAST face to build a line (moonwalk); (2) escape A's well up-right and HOP the ~570px neutral gap into B's field (binary_run's led gap-hop -- global down pulls screen-down mid-flight, lead 'up'); (3) sling PAST black hole B, staying wide of the 120 lethal core (dead_star's respect-the-core), letting the pull fling you right; (4) HOP the ~650px neutral gap into Moon C's field; (5) round C to its east face and exit right to the goal ring.\n\nFLIGHT-REQUIRED / movement-tool-per-gap: EVERY world-to-world leg exceeds bounce reach. Escaping Moon A means climbing from surface (radius 180) out past the r800 field edge = 620px, and spring apex is only 480 -- a passive bounce can never even leave a moon's field, so boost is required to start each hop. The A->B neutral gap is 570px and the B->C gap is 650px (both > 527px spring air-drift), so neither is bounce-crossable; each must be FLOWN (led boost + the sling's momentum). One of the two hops is a LETHAL sling (core kills at 120). Total span is ~6300px across three wells -- no straight boost line completes it. Misses fall out the bottom bound = free respawn at Moon A's pole. Bounds frame all three fields (x -800..5500, y -1400..1800) with margin and a top that clears a super apex from any footing.",
   "hint": "TOUR THREE WORLDS — LAND, SLING PAST THE KILLER, HOP HOME",
   "sky_top": "#0B1133",
   "sky_bottom": "#010310",
@@ -19,9 +19,9 @@
   },
   "platforms": [
     {
-      "x": 5380,
-      "y": 160,
-      "w": 240,
+      "x": 5310,
+      "y": 225,
+      "w": 280,
       "h": 50,
       "tier": "trampoline"
     }
@@ -52,7 +52,7 @@
       "x": 4600,
       "y": 200,
       "radius": 800,
-      "g": 1350,
+      "g": 1050,
       "body_r": 180,
       "tier": "trampoline",
       "visual": "moon"
@@ -64,8 +64,8 @@
     },
     {
       "type": "goal_gate",
-      "x": 5500,
-      "y": 0,
+      "x": 5450,
+      "y": 60,
       "w": 320,
       "h": 320
     }

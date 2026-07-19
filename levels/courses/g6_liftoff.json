@@ -7,7 +7,7 @@
   "backdrop": "open_sky",
   "clouds": false,
   "stars": true,
-  "design_intent": "ORBIT circuit, slot 3 (diff 3). Lesson: ESCAPE VELOCITY -- boost AGAINST radial gravity to break out of the well. One moon (body_r 200, field r 900, g 1350, visual moon) centered at (960,400); the north-pole surface sits at y=200 and the field edge straight up is at y=-500. The goal_gate + a small trampoline landing pad hang ABOVE the field edge, centered at y=-760 (gate spans y -910..-610), i.e. ~110-260px OUTSIDE the pull. You spawn on the pole (start_gate 960,140) and must climb straight out of the well.\n\nFLIGHT-REQUIRED / movement-tool-per-gap: the surface-to-goal climb is 200 -> -610 = 810px of straight-up travel, and 700px of that is INSIDE the r900 field fighting a 1350 pull. A passive bounce cannot escape: trampoline apex 270 reaches only y=-70 (deep inside the field) and spring apex 480 reaches y=-280 (still ~220px short of the field edge at -500), so ANY un-boosted bounce decays back to the moon. Only a sustained radial boost (boost_gravity_scale 0.8 while thrusting grants climb authority; ~26.6px per fuel) carries you through the field boundary and up to the pad -- the purest 'flight, not bounce' gate in the circuit. A climb that runs out short falls safely back to the moon (retry, fuel refunds on landing); overshooting sideways past the field into global-down drops out the bottom bound = free respawn. Bounds top -1600 clears a super apex from the pad footing; ~660px side margins.",
+  "design_intent": "ORBIT circuit, slot 3 (diff 3). Lesson: ESCAPE VELOCITY -- boost AGAINST radial gravity to break out of the well. One moon (body_r 200, field r 900, g 1350, visual moon) centered at (960,400); the north-pole surface sits at y=200 and the field edge straight up is at y=-500. The goal_gate is a fly-INTO box floating just OUTSIDE the pull, centered at y=-720 (gate spans y -870..-570), its bottom lip (-570) ~70px past the field edge; a small trampoline landing pad caps the top of the goal at y -910..-870 (it USED to sit at y-600..-560 directly above the pole spawn, which SOLID-BLOCKED the straight-up climb from below and made the goal unreachable -- QA-FIX 2026-07-19: the pad was the barrier, not the field edge; moved it above the goal so the climb threads straight into the gate). You spawn on the pole (start_gate 960,140) and must climb straight out of the well.\n\nFLIGHT-REQUIRED / movement-tool-per-gap: the surface-to-goal climb is 200 -> -570 = 770px of straight-up travel, ~700px of it INSIDE the r900 field fighting a 1350 pull. A passive bounce cannot escape: trampoline apex 270 reaches only y=-70 (deep inside the field) and spring apex 480 reaches y=-280 (still ~220px short of the field edge at -500), so ANY un-boosted bounce decays back to the moon. Only a sustained radial boost (boost_gravity_scale 0.8 while thrusting grants climb authority; net ~760px/s climb) carries you through the field boundary and into the gate -- the purest 'flight, not bounce' gate in the circuit. VERIFIED 2026-07-19: a naive straight-up boost from spawn latches the gate at y-580 with ~75 fuel left. A climb that runs out short falls safely back to the moon (retry, fuel refunds on landing); overshooting sideways past the field into global-down drops out the bottom bound = free respawn. Bounds top -1600 clears a super apex from the pad footing; ~660px side margins.",
   "hint": "BOOST STRAIGHT UP — ESCAPE THE PULL TO THE PAD",
   "sky_top": "#0B1133",
   "sky_bottom": "#010310",
@@ -20,7 +20,7 @@
   "platforms": [
     {
       "x": 810,
-      "y": -600,
+      "y": -910,
       "w": 300,
       "h": 40,
       "tier": "trampoline"
@@ -45,8 +45,8 @@
     {
       "type": "goal_gate",
       "x": 960,
-      "y": -760,
-      "w": 300,
+      "y": -720,
+      "w": 320,
       "h": 300
     }
   ],
