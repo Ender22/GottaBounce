@@ -24,6 +24,12 @@ const RING_TEX := preload("res://assets/fx/ko_blast_ring.png")
 const SOFT_TEX := preload("res://assets/fx/puff_soft.png")
 const ART_CONTENT_W := 1024.0   # ghost_puff.png content width (canvas 1216, 96 px pad each side; derived layers share it)
 const SIDE_TOL := 10.0          # px: how far a body may already be inside an edge and still count as coming from that side
+# WK-37c BLOCKED marker (consts here while WK-128 owns Tuning.gd): a puff press whose cloud would overlap a platform
+# shows this cloud's dotted outline at full size, red, blinking + a "no" head-shake, then it's gone. Never solid.
+const BLOCKED_TIME := 0.5       # s on screen
+const BLOCKED_BLINK_HZ := 8.0   # outline blink rate
+const BLOCKED_SHAKE_PX := 10.0  # world px horizontal "no" shake amplitude (decays to 0)
+const BLOCKED_SHAKE_HZ := 9.0
 
 var runner                      # PartyMatch (read-only + the players' standard bounce calls)
 var director                    # GhostDirector (contact / pop callbacks)
@@ -34,6 +40,7 @@ var t := 0.0                    # s since the press
 var phase := "telegraph"        # telegraph | solid | fade | gone
 var popped_by := ""             # "" | super | stun | hush | bounds | stage
 var record: Dictionary = {}     # the director's telemetry row for this puff (contacts appended here)
+var blocked := false            # WK-37c: presentation-only "blocked here" marker (set before add_child)
 
 var _body: Sprite2D
 var _stroke: Sprite2D
@@ -75,6 +82,10 @@ func _ready() -> void:
 	add_child(_dash)
 	_stroke.visible = false
 	_body.visible = false
+	if blocked:
+		phase = "blocked"
+		_dash.scale = Vector2(k, k)
+		return
 	_apply_phase_visuals(0.0)
 
 func rect() -> Rect2:
@@ -87,6 +98,9 @@ func _physics_process(delta: float) -> void:
 	if phase == "gone":
 		return
 	t += delta
+	if phase == "blocked":
+		_tick_blocked()
+		return
 	var tel: float = Tuning.ghost_puff_telegraph
 	var life: float = Tuning.ghost_puff_life
 	var fade: float = Tuning.ghost_puff_fade
@@ -232,6 +246,16 @@ func _apply_phase_visuals(delta: float) -> void:
 			if phase == "fade":
 				var f: float = clampf((t - tel - Tuning.ghost_puff_life) / maxf(Tuning.ghost_puff_fade, 0.01), 0.0, 1.0)
 				_vis.modulate.a = 1.0 - f
+
+## Blocked marker: blink + decaying head-shake, then free. No contacts, no director callbacks, no telemetry.
+func _tick_blocked() -> void:
+	if t >= BLOCKED_TIME:
+		phase = "gone"
+		queue_free()
+		return
+	var k: float = 1.0 - t / BLOCKED_TIME
+	_dash.position.x = sin(t * TAU * BLOCKED_SHAKE_HZ) * BLOCKED_SHAKE_PX * k
+	_dash.modulate.a = (1.0 if fmod(t * BLOCKED_BLINK_HZ, 1.0) < 0.6 else 0.35) * clampf(k * 3.0, 0.0, 1.0)
 
 func _ease_out_back(x: float) -> float:
 	var c1 := 1.70158

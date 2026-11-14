@@ -13,6 +13,16 @@ extends RefCounted
 ## FIGHTING brain (and is owned by another work item); ghosts never touch it.
 ## Kept free of class_name (loaded by path from GhostDirector — no class-cache dependency).
 
+# WK-37c T11 (consts here while WK-128 owns Tuning.gd): weight of the separation push while chasing a puff placement.
+# 1.5 let two bots chasing one target settle ~90 px apart; at 4.0 the push wins inside ~200 px (radius 280).
+const CHASE_SEP_WEIGHT := 4.0
+# WK-37c bleat cadence (WK-53a found ~4.3 s between one bot ghost's bleats; spec §6 ambient mean 8 s + a 50 % reaction
+# per KO). Ambient intervals are BLEAT_MIN_GAP + Exp(mean - BLEAT_MIN_GAP), so the ambient mean is exactly
+# bot_ghost_bleat_mean_interval with no near-double bleats. ANY bleat (ambient or reactive) restarts the ambient clock:
+# a reaction REPLACES the next ambient bleat instead of adding to it. A reaction is skipped inside BLEAT_MIN_GAP of
+# this ghost's last bleat, so a KO burst is one bleat, not a chorus from every bot ghost every time.
+const BLEAT_MIN_GAP := 3.0
+
 var ghost                    # GhostGoat
 var director                 # GhostDirector
 var runner                   # PartyMatch
@@ -32,6 +42,7 @@ var _press := false          # one-tick puff press (edge)
 var _intent := InputIntent.new()
 var _rng := RandomNumberGenerator.new()
 var _bleat_now := false
+var _since_bleat := 999.0    # s since this ghost's last bleat
 
 func _init(g, dir, run, died_at: Vector2) -> void:
 	ghost = g
@@ -50,9 +61,12 @@ func dispose() -> void:
 		KillPipeline.killed.disconnect(_on_killed)
 
 func _exp_interval() -> float:
-	return -log(maxf(1e-4, _rng.randf())) * Tuning.bot_ghost_bleat_mean_interval
+	var tail: float = maxf(0.1, Tuning.bot_ghost_bleat_mean_interval - BLEAT_MIN_GAP)
+	return BLEAT_MIN_GAP + -log(maxf(1e-4, _rng.randf())) * tail
 
 func _on_killed(_victim, _cause, _attacker) -> void:
+	if ghost == null or not is_instance_valid(ghost) or ghost.frozen or _react_t >= 0.0:
+		return
 	if _rng.randf() < Tuning.bot_ghost_react_bleat_p:
 		_react_t = _rng.randf_range(0.3, 0.8)
 
@@ -68,14 +82,17 @@ func poll() -> InputIntent:
 		return it
 	var dt: float = 1.0 / float(Engine.physics_ticks_per_second)
 	# --- bleats ---
+	_since_bleat += dt
 	_bleat_t -= dt
 	if _bleat_t <= 0.0:
-		_bleat_t = _exp_interval()
 		it.taunt = true
 	if _react_t >= 0.0:
 		_react_t -= dt
-		if _react_t < 0.0:
+		if _react_t < 0.0 and _since_bleat >= BLEAT_MIN_GAP:
 			it.taunt = true
+	if it.taunt:
+		_since_bleat = 0.0
+		_bleat_t = _exp_interval()   # any bleat restarts the ambient clock (a reaction replaces, never adds)
 	# --- puff decision ---
 	var living: Array = director.living_players()
 	# start flying to the placement a little BEFORE the cooldown ends, so the chase doesn't stretch the 14 s cycle
@@ -113,7 +130,7 @@ func poll() -> InputIntent:
 				it.aim = director.separation_push(ghost).limit_length(1.0)   # on the spot early: wait (but never stack)
 			else:
 				# full float speed toward the placement (no hurry); two ghosts chasing one target still keep apart
-				it.aim = (to.normalized() + director.separation_push(ghost) * 1.5).limit_length(1.0)
+				it.aim = (to.normalized() + director.separation_push(ghost) * CHASE_SEP_WEIGHT).limit_length(1.0)
 			return it
 	# --- float to a hover spot ---
 	_repick_t -= dt
@@ -141,7 +158,7 @@ func _target_used(t) -> void:
 	director.note_bot_target(ghost, t)
 
 ## Hover spot: bot_ghost_hover_dist from the living centroid toward where this bot died (+-40 deg jitter), clamped into
-## the view inset, at least bot_ghost_spacing from every other ghost (best of 8 tries).
+## the view inset, at least director.pick_spacing() from every other ghost (best of 16 tries).
 func _pick_hover(living: Array) -> Vector2:
 	var c := Vector2.ZERO
 	if living.is_empty():
@@ -162,7 +179,7 @@ func _pick_hover(living: Array) -> Vector2:
 		var ang: float = _rng.randf_range(-0.7, 0.7) if k < 8 else _rng.randf_range(-PI, PI)
 		var cand: Vector2 = director.clamp_to_view(c + base.rotated(ang) * Tuning.bot_ghost_hover_dist)
 		var d: float = director.nearest_other_ghost_dist(ghost, cand)
-		if d >= Tuning.bot_ghost_spacing:
+		if d >= director.pick_spacing():   # spacing + margin: a spot AT 200 px is a fail the moment anyone drifts
 			return cand
 		if d > best_d:
 			best_d = d
@@ -171,7 +188,7 @@ func _pick_hover(living: Array) -> Vector2:
 
 ## Our hover spot is within bot_ghost_spacing of another ghost (or its spot).
 func nearest_hover_conflict() -> bool:
-	return director.nearest_other_ghost_dist(ghost, hover) < Tuning.bot_ghost_spacing
+	return director.nearest_other_ghost_dist(ghost, hover) < director.pick_spacing()
 
 ## QA: is the ghost resting at its hover spot (stuck detection ignores a ghost that has arrived)?
 func at_hover() -> bool:

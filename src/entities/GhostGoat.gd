@@ -21,6 +21,27 @@ const BALL_CENTER := Vector2(0.57, 0.51)   # Player.SPRITE_BALL_CENTER (fraction
 const BODY_RADIUS := 44.0             # Player.BODY_RADIUS
 const FACING_DEADZONE := 0.15         # s velocity.x must hold a new sign before the ghost turns (brief §2)
 const TAIL_FOLLOW := 8.0              # /s spring-follow of the tail lean (reads as cloth, not a rigid stick)
+# --- WK-37c wide-camera readability (consts here while WK-128 owns Tuning.gd; move to the Tuning ghost block later) ---
+# The rim is a screen-space OUTLINE band (ghost.gdshader flat_mode) instead of a x1.08 copy: constant px at any zoom.
+const RIM_QUAD_PAD := 1.30            # rim quad vs the art (idle art is trimmed to its edges; room for the band)
+const RIM_PX := 2.5                   # pale band, px at 1080p (brief §2: "~2-3 screen px all round")
+const RIM_PX_WIDE := 3.5              # ... on the widest camera
+const RIM_GAIN := 2.0                 # band alpha = root alpha x this (0.40 -> 0.80): the edge is the findable part
+const DEEP_PX := 1.0                  # thin outer line in the ghost's deep hue, px at 1080p (contrast on bright skies)
+const DEEP_GAIN := 0.8                # its alpha vs the band
+# Wide-camera compensation: zero at zoom >= WIDE_ZOOM_FULL (the brief's reference 0.46, so T9's 0.40 / 0.25 hold
+# there), full at WIDE_ZOOM_MAX and below. Ghosts stay below living goats on every channel (alpha < 0.6, scale < 1).
+const WIDE_ZOOM_FULL := 0.46
+const WIDE_EASE := 2.0                # /s the wide factor eases at (0 -> 1 over 0.5 s)
+const MAX_VIS_STEP := 1.0 / 30.0      # s: cap on the real-time step the visuals advance per frame (see _process)
+const WIDE_ZOOM_MAX := 0.30
+const WIDE_ALPHA_MULT := 1.3          # 0.40 -> 0.52 / 0.25 -> 0.325 at the widest
+const WIDE_SCALE := 0.95              # ghost body scale at the widest (living = 1.0; ghost_scale 0.85 otherwise)
+const FLATTEN := 0.40                 # body colour pulled toward the flat ghost hue (quiets the baked jetpack/detail)
+const FLATTEN_WIDE := 0.65            # ... on the widest camera (a ~25 px ghost reads as one clean colour shape)
+const OFF_HUE_FLATTEN := 0.85         # saturated off-hue pixels (the baked jetpack) pulled to the ghost hue
+const FILL_SAT := 0.3                 # flat-fill target -> this far toward the SATURATED living colour (a 40 % fill
+const FILL_SAT_WIDE := 0.75           # over a complementary backdrop greys out; hue = identity, brief §3.1) ... widest
 
 var idx := -1
 var skin := "pink"
@@ -57,6 +78,8 @@ var _prev_super := false
 var _alpha := 0.0
 var _alpha_target := 0.40
 var _hidden_orbit := true
+var _wide_applied := -1.0
+var _wide := 0.0
 
 func setup(i: int, skin_id: String, col: Color, is_human: bool, prov, dir) -> void:
 	idx = i
@@ -94,9 +117,14 @@ func _ready() -> void:
 	# rim / halo layer (E2): same texture, flat rim colour, x1.08, same hem cut
 	_rim = Sprite2D.new()
 	_rim.texture = tex
-	_rim.offset = off
-	_rim.scale = Vector2(k, k) * Tuning.ghost_rim_scale
+	_rim.offset = off / RIM_QUAD_PAD           # padded quad, content remapped back onto the body (shader quad_pad)
+	_rim.scale = Vector2(k, k) * RIM_QUAD_PAD
 	_rim.material = _mat(rim_col, deep_col, true, true, false, 0.0)
+	var rm := _rim.material as ShaderMaterial
+	rm.set_shader_parameter("quad_pad", RIM_QUAD_PAD)
+	rm.set_shader_parameter("rim_gain", RIM_GAIN)
+	rm.set_shader_parameter("deep_gain", DEEP_GAIN)
+	_apply_rim_px(0.0)
 	_body_root.add_child(_rim)
 	# body (E1/E3): the goat through ghost.gdshader
 	_body = Sprite2D.new()
@@ -104,8 +132,10 @@ func _ready() -> void:
 	_body.offset = off
 	_body.scale = Vector2(k, k)
 	_body.material = _mat(rim_col, deep_col, false, true, false, 0.0)
+	(_body.material as ShaderMaterial).set_shader_parameter("off_hue_flatten", OFF_HUE_FLATTEN)
 	_body_root.add_child(_body)
 	(_body.material as ShaderMaterial).set_shader_parameter("skin_col", ghost_body_col)
+	_apply_rim_px(0.0)
 	# puff-ready mini cloud (E8) — outside the alpha root so it stays readable (it IS the "you can puff" cue)
 	_orbit = Sprite2D.new()
 	_orbit.texture = PUFF_TEX
@@ -126,6 +156,7 @@ func _ready() -> void:
 	tw.tween_property(self, "scale", Vector2.ONE, Tuning.ghost_pop_in_time * 0.3)
 	_spawn_puffs(Color(1, 1, 1, 0.8), 10, 1.0)
 	_body_root.scale = Vector2.ONE * Tuning.ghost_scale
+	_wide = wide_factor()   # start at the current camera's compensation (eased from here on)
 
 func _mat(rim_col: Color, deep_col: Color, flat: bool, hem: bool, grey: bool, wave: float) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
@@ -145,6 +176,27 @@ func _ghostify(c: Color) -> Color:
 	var l: float = c.r * 0.299 + c.g * 0.587 + c.b * 0.114
 	var g := Color(l, l, l).lerp(c, 0.85)
 	return g.lerp(Color.WHITE, 0.20)
+
+## WK-37c: 0 at zoom >= WIDE_ZOOM_FULL .. 1 at WIDE_ZOOM_MAX (how much wide-camera compensation applies).
+func wide_factor() -> float:
+	var z: float = WIDE_ZOOM_FULL
+	if director != null and director.has_method("cam_zoom"):
+		z = float(director.cam_zoom())
+	return clampf((WIDE_ZOOM_FULL - z) / (WIDE_ZOOM_FULL - WIDE_ZOOM_MAX), 0.0, 1.0)
+
+## Rim band + deep line widths in FRAMEBUFFER px (fwidth works in real pixels; the design px are 1080p logical).
+func _apply_rim_px(w: float) -> void:
+	if _rim == null:
+		return
+	var win := get_window()
+	var fb_k: float = float(win.size.y) / 1080.0 if win != null and win.size.y > 0 else 1.0
+	var rm := _rim.material as ShaderMaterial
+	rm.set_shader_parameter("rim_px", lerpf(RIM_PX, RIM_PX_WIDE, w) * fb_k)
+	rm.set_shader_parameter("deep_px", DEEP_PX * fb_k)
+	if _body != null:
+		var bm := _body.material as ShaderMaterial
+		bm.set_shader_parameter("flatten", lerpf(FLATTEN, FLATTEN_WIDE, w))
+		bm.set_shader_parameter("skin_col", _ghostify(color).lerp(color, lerpf(FILL_SAT, FILL_SAT_WIDE, w)))
 
 ## QA (spec T9): the alpha the ghost is drawn at (root modulate.a).
 func ghost_alpha_now() -> float:
@@ -214,6 +266,9 @@ func set_orbit_visible(on: bool) -> void:
 ## Visuals every rendered frame (bob, facing, tail lag, alpha ease, orbit).
 func _process(delta: float) -> void:
 	var d: float = delta / maxf(Engine.time_scale, 0.05) if Engine.time_scale < 1.0 else delta
+	# WK-37c: un-scaling by a near-zero time_scale (KO slow-mo / hit-stop) made d a huge step = one-frame alpha snaps
+	# (0.42 -> 0.09 at STAGE_END, 0 -> 0.40 pop-ins in the WK-93 recordings; brief R2). Cap the real step per frame.
+	d = minf(d, MAX_VIS_STEP)
 	var a_goal: float = 0.0 if frozen else _alpha_target
 	if frozen:
 		_alpha = move_toward(_alpha, 0.0, d / maxf(Tuning.round_end_freeze * 0.6, 0.1) * Tuning.ghost_alpha)
@@ -222,7 +277,12 @@ func _process(delta: float) -> void:
 		if _alpha < Tuning.ghost_alpha_near and a_goal >= Tuning.ghost_alpha_near:
 			rate = Tuning.ghost_alpha / maxf(Tuning.ghost_pop_in_time, 0.05)   # pop-in fade
 		_alpha = move_toward(_alpha, a_goal, rate * d)
-	_vis.modulate.a = _alpha
+	_wide = move_toward(_wide, wide_factor(), WIDE_EASE * d)   # eased: a zoom jump (stage start) never snaps alpha
+	var wide: float = _wide
+	_vis.modulate.a = _alpha * lerpf(1.0, WIDE_ALPHA_MULT, wide)
+	if absf(wide - _wide_applied) > 0.01:
+		_wide_applied = wide
+		_apply_rim_px(wide)
 	# bob (visual only, the body root) — glide + bob, never squash, never bounce
 	var bob: float = 0.0 if frozen else sin(age * TAU * Tuning.ghost_bob_hz + _phase) * Tuning.ghost_bob_amp
 	_body_root.position = Vector2(0.0, bob)
@@ -237,7 +297,7 @@ func _process(delta: float) -> void:
 			_facing_pending_t = 0.0
 	else:
 		_facing_pending_t = 0.0
-	_body_root.scale = Vector2(float(_facing), 1.0) * Tuning.ghost_scale
+	_body_root.scale = Vector2(float(_facing), 1.0) * lerpf(Tuning.ghost_scale, maxf(WIDE_SCALE, Tuning.ghost_scale), wide)
 	# tail: leans opposite velocity.x (in world terms) + a sway at the bob rate, spring-followed (lags the bob)
 	var lean: float = deg_to_rad(Tuning.ghost_tail_lean_deg) * clampf(vel.x / maxf(Tuning.ghost_max_speed, 1.0), -1.0, 1.0)
 	var sway: float = deg_to_rad(Tuning.ghost_tail_sway_deg) * sin(age * TAU * Tuning.ghost_bob_hz + _phase - 0.9)

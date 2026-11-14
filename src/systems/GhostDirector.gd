@@ -23,6 +23,15 @@ const GHOST_BOT_SCRIPT := preload("res://src/core/GhostBot.gd")
 const WORD_SCENE := preload("res://scenes/ui/WordBurst.tscn")
 const LEGEND_SCENE := preload("res://scenes/ui/GhostLegend.tscn")
 const HUSH_TEXT := "MATCH POINT · GHOSTS HUSH"
+# --- WK-37c (consts here while WK-128 owns Tuning.gd; move to the Tuning ghost block later) ---
+# T11 stacking: the old push faded to 0 AT bot_ghost_spacing (and a 0.05 dead-zone cut it at ~190 px), so two bot
+# ghosts settled ~190 px apart = a fail every frame. The push now reaches past the target and the hover / spawn
+# picks keep a margin over it.
+const SEP_RADIUS_MULT := 1.4          # separation push active out to spacing x this (280 px)
+const PICK_SPACING_MULT := 1.3        # hover spots / spawn spots keep spacing x this (260 px) from other ghosts
+const SPAWN_SPREAD_STEP := 130.0      # px: spawn spread search ring step (8 directions x 5 rings)
+# Dud feedback: a ghost whose cloud is blocked by a platform sees the would-be cloud outline flash red + shake.
+const BLOCKED_COLOR := Color("#ff4a3d")
 
 var runner                        # PartyMatch
 var mode: int = 0                 # MatchConfig.Ghosts.ON / BAA_ONLY
@@ -46,6 +55,7 @@ var _st := {}
 var _ghost_rows := {}             # idx -> row dict (spec §8.2 `ghosts[]`)
 var _pairs_frames := 0
 var _pairs_ok := 0
+var blocked_fx_count := 0         # QA: blocked-puff markers shown (WK-37c)
 
 func setup(runner_ref, ghosts_mode: int) -> void:
 	runner = runner_ref
@@ -63,7 +73,23 @@ func setup(runner_ref, ghosts_mode: int) -> void:
 	EventBus.bounced.connect(_on_bounced)
 	KillPipeline.killed.connect(_on_any_killed)
 
+## WK-37c (WK-34 follow-up): the pause plate hides the HUD cards + controls legend for the whole pause
+## (PartyMatch.set_match_overlays_hidden). The ghost layer's screen-space overlays (the "GHOST! FLOAT · PUFF · BAA"
+## legend by a card, any frozen "BAAA!" bubble) follow suit. SceneTree.process_frame still fires while paused, so this
+## needs no PROCESS_MODE_ALWAYS node; the overlays' own tweens are paused with the tree and resume where they were.
+func _ready() -> void:
+	if not get_tree().process_frame.is_connected(_sync_pause_overlays):
+		get_tree().process_frame.connect(_sync_pause_overlays)
+
+func _sync_pause_overlays() -> void:
+	if _ui != null and is_instance_valid(_ui):
+		var show: bool = not get_tree().paused
+		if _ui.visible != show:
+			_ui.visible = show
+
 func _exit_tree() -> void:
+	if get_tree() != null and get_tree().process_frame.is_connected(_sync_pause_overlays):
+		get_tree().process_frame.disconnect(_sync_pause_overlays)
 	if EventBus.bounced.is_connected(_on_bounced):
 		EventBus.bounced.disconnect(_on_bounced)
 	if KillPipeline.killed.is_connected(_on_any_killed):
@@ -252,6 +278,13 @@ func ghost_motion() -> Array:
 
 # ------------------------------------------------------------------ view helpers (camera -> world)
 
+## Current camera zoom (1.0 without a camera) — GhostGoat's wide-camera readability compensation reads it.
+func cam_zoom() -> float:
+	var cam = runner._camera if runner != null else null
+	if cam == null or not is_instance_valid(cam):
+		return 1.0
+	return maxf(cam.zoom.x, 0.01)
+
 ## The camera's visible world rect (actual, smoothed camera — what the player sees).
 func view_rect() -> Rect2:
 	var cam = runner._camera
@@ -276,6 +309,10 @@ func clamp_to_view(p: Vector2) -> Vector2:
 		return p
 	return Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y))
 
+## Spacing (with margin) a hover / spawn spot keeps from other ghosts and their hover spots.
+func pick_spacing() -> float:
+	return Tuning.bot_ghost_spacing * PICK_SPACING_MULT
+
 func nearest_other_ghost_dist(me, p: Vector2) -> float:
 	var best := INF
 	for g in ghosts.values():
@@ -287,9 +324,12 @@ func nearest_other_ghost_dist(me, p: Vector2) -> float:
 			best = minf(best, p.distance_to(b.hover))
 	return best
 
-## Soft separation steer (bots): away from any ghost closer than bot_ghost_spacing.
+## Soft separation steer (bots): away from any ghost closer than bot_ghost_spacing x SEP_RADIUS_MULT (the push still
+## has bite AT the spacing target, so the equilibrium sits above it). A push into the view-inset edge the ghost is pinned
+## against slides along that edge instead (two ghosts swept by a panning camera onto one edge used to stay stacked).
 func separation_push(me) -> Vector2:
 	var push := Vector2.ZERO
+	var rad: float = Tuning.bot_ghost_spacing * SEP_RADIUS_MULT
 	for g in ghosts.values():
 		if g == me or not is_instance_valid(g):
 			continue
@@ -297,9 +337,49 @@ func separation_push(me) -> Vector2:
 		var l: float = d.length()
 		if l < 1.0:
 			d = Vector2.from_angle(float(me.idx) * 2.4)   # exactly stacked (same death spot): a per-player tie-break
-		if l < Tuning.bot_ghost_spacing:
-			push += (d / maxf(l, 1.0)) * (1.0 - l / Tuning.bot_ghost_spacing)
-	return push
+			l = 1.0
+		if l < rad:
+			push += (d / l) * (1.0 - l / rad)
+	if push.length() < 0.001:
+		return push
+	var r := view_inset_rect()
+	if r.size.x <= 0.0 or r.size.y <= 0.0:
+		return push
+	var p: Vector2 = me.global_position
+	var out := push
+	var tie: float = 1.0 if int(me.idx) % 2 == 0 else -1.0
+	if (p.x <= r.position.x + 2.0 and out.x < 0.0) or (p.x >= r.end.x - 2.0 and out.x > 0.0):
+		var sy: float = signf(out.y) if absf(out.y) > 0.05 else tie
+		if (p.y <= r.position.y + 2.0 and sy < 0.0) or (p.y >= r.end.y - 2.0 and sy > 0.0):
+			sy = -sy   # corner: slide the other way
+		out = Vector2(0.0, out.y + sy * absf(out.x))
+	elif (p.y <= r.position.y + 2.0 and out.y < 0.0) or (p.y >= r.end.y - 2.0 and out.y > 0.0):
+		var sx: float = signf(out.x) if absf(out.x) > 0.05 else tie
+		if (p.x <= r.position.x + 2.0 and sx < 0.0) or (p.x >= r.end.x - 2.0 and sx > 0.0):
+			sx = -sx
+		out = Vector2(out.x + sx * absf(out.y), 0.0)
+	return out
+
+## Spawn spot: the death position clamped into the view inset, spread to >= spacing x PICK_SPACING_MULT from every
+## other ghost (two players rung out at one spot, or swept onto the same edge point by the clamp, used to start
+## stacked). Smallest displacement wins; falls back to the roomiest candidate. Always inside the inset (T1).
+func _spread_spawn(me, want: Vector2) -> Vector2:
+	var need: float = pick_spacing()
+	var best := want
+	var best_d: float = nearest_other_ghost_dist(me, want)
+	if best_d >= need:
+		return want
+	for ring in range(1, 6):
+		for k in range(8):
+			var dir := Vector2.from_angle(float(k) * TAU / 8.0 + float(ring) * 0.39)
+			var cand: Vector2 = clamp_to_view(want + dir * SPAWN_SPREAD_STEP * float(ring))
+			var d: float = nearest_other_ghost_dist(me, cand)
+			if d >= need:
+				return cand
+			if d > best_d:
+				best_d = d
+				best = cand
+	return best
 
 func note_bot_target(g, target) -> void:
 	_bot_targets[g] = target
@@ -390,7 +470,7 @@ func _spawn_ghost(i: int, p, death_pos: Vector2) -> void:
 		prov = p.provider   # same player index, same device (INV-8)
 	g.setup(i, str(p.skin), runner.player_color(i), human, prov, self)
 	_ghost_layer.add_child(g)
-	g.global_position = clamp_to_view(death_pos)
+	g.global_position = _spread_spawn(g, clamp_to_view(death_pos))
 	if not human:
 		g.provider = GHOST_BOT_SCRIPT.new(g, self, runner, death_pos)
 	g.next_puff_t = _clock + Tuning.ghost_puff_arm_delay
@@ -464,10 +544,13 @@ func _try_puff(g) -> void:
 		row["duds"] = int(row.get("duds", 0)) + 1
 		g.dud_fx()
 		return
-	var center: Variant = _cloud_spawn_center(g.global_position + Tuning.ghost_puff_spawn_offset)
+	var want: Vector2 = g.global_position + Tuning.ghost_puff_spawn_offset
+	var center: Variant = _cloud_spawn_center(want)
 	if center == null:
 		row["duds"] = int(row.get("duds", 0)) + 1
+		row["blocked_duds"] = int(row.get("blocked_duds", 0)) + 1
 		g.dud_fx()
+		_blocked_fx(g, want)
 		return
 	var c = PUFF_SCRIPT.new()
 	c.setup(runner, self, int(g.idx), g.color)
@@ -512,6 +595,22 @@ func _cloud_spawn_center(want: Vector2) -> Variant:
 			return p
 		dy += step
 	return null
+
+## WK-37c dud feedback: the cloud outline the ghost asked for flashes red and shakes "no" right where it would have gone
+## (over the platform that blocks it), so the dud reads as "blocked here", not "broken". Never solid, no charge spent,
+## not in `clouds` (no contacts, no telemetry, no director callbacks).
+func _blocked_fx(g, want: Vector2) -> void:
+	var c = PUFF_SCRIPT.new()
+	c.setup(runner, null, int(g.idx), BLOCKED_COLOR)
+	c.blocked = true
+	_cloud_layer.add_child(c)
+	var r := view_rect()
+	var half: Vector2 = Tuning.ghost_puff_size * 0.5
+	if r.size.x > 2.0 * half.x and r.size.y > 2.0 * half.y:
+		want = Vector2(clampf(want.x, r.position.x + half.x, r.end.x - half.x),
+			clampf(want.y, r.position.y + half.y, r.end.y - half.y))
+	c.global_position = want
+	blocked_fx_count += 1
 
 ## QA ONLY (gbplay eval / headless harness): spawn a cloud for player `owner_idx` at `pos`, bypassing the ghost
 ## charge rules (the cloud itself follows every contact rule). Never called by gameplay code.
@@ -590,9 +689,26 @@ func _try_bleat(g) -> void:
 	row["bleats"] = int(row.get("bleats", 0)) + 1
 	var w = WORD_SCENE.instantiate()
 	_ui.add_child(w)
-	w.present(g, runner._camera, g.color, Tuning.ghost_word_alpha)
-	# WK-53 hook: AudioManager plays the ghost-variant bleat sample ("bleat_ghost_*") when it exists. No placeholder.
+	w.present(g, runner._camera, g.color, Tuning.ghost_word_alpha, living_screen_rects)
+	# WK-53a: AudioManager listens and plays the ghost-variant bleat sample (assets/sfx/bleat_ghost_<hero>.ogg).
 	EventBus.bleated.emit(int(g.idx), true)
+
+## WK-37c: living goats' rects in canvas (1080p logical) px, for the "BAAA!" bubble to steer clear of (it draws on a
+## CanvasLayer above every goat, so it must never sit on a living one).
+func living_screen_rects() -> Array:
+	var out: Array = []
+	var cam = runner._camera if runner != null else null
+	if cam == null or not is_instance_valid(cam):
+		return out
+	var z: float = maxf(cam.zoom.x, 0.01)
+	var vp: Vector2 = get_viewport_rect().size
+	var cc: Vector2 = cam.get_screen_center_position()
+	for p in living_players():
+		var sp: Vector2 = ((p.global_position as Vector2) - cc) * z + vp * 0.5
+		var rad: Variant = p.get("_radius")
+		var h: float = (float(rad) if rad != null else 44.0) * z * 1.35 + 10.0   # body + horns/flame, + a little air
+		out.append(Rect2(sp - Vector2(h, h), Vector2(h, h) * 2.0))
+	return out
 
 # ------------------------------------------------------------------ HUD + legend
 

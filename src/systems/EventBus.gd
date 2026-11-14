@@ -53,6 +53,7 @@ signal drop_tile_hit(tile, broken)
 # SportsMode._credit_goal + Tuning.sports_own_goal_*). Assist/names via SportsMode.last_goal().
 signal goal_scored(team, scorer, own_goal)
 # WK-37b ghost goats — a taunt/bleat happened. player_idx = PartyMatch player index; ghost = true for an eliminated
-# player's ghost (the "ghostly" variant: +3 semitones + echo/low-pass, AudioManager.last_sfx "bleat_ghost_*"). NO subscriber
-# yet: the sample is WK-53 (no placeholder beep — "a fake sound is worse than none"). The "BAAA!" word puff is already drawn.
+# player's ghost (the "ghostly" variant: +3 semitones + echo/low-pass, AudioManager.last_sfx "bleat_ghost_*").
+# Subscriber: AudioManager (WK-53a) plays the per-hero bleat sample (assets/sfx/bleat_<hero>.ogg / bleat_ghost_<hero>.ogg).
+# The "BAAA!" word puff is drawn by the emitter (GhostDirector._try_bleat for ghosts).
 signal bleated(player_idx, ghost)
