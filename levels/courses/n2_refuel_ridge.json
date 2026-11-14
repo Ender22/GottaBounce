@@ -4,14 +4,14 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "N2 circuit (hard navigation, owner 2026-07-16) course 3/5: SUPER-PRECISION JUMP REFILLS. A 6280px void crossing -- 2.4x one full tank of powered flight (~2660px) -- where the ONLY fuel is the +20-per-touch refund on six TINY 120px trampoline pads. Hit every pad and the ledger closes; skip one and you fall short. The skill is landing a 92px ball on a 120px target at speed, seven times.\n\nMOVEMENT MATH (current Tuning): tank 100 = 3.5s at 28.6 fuel/s; boost cap 760 px/s => ~26.6px/fuel, full tank ~2660px. Trampoline apex 270, zero-boost drift reach ~395px (trampoline) / ~527px (spring). Pad TOUCH refunds +20 fuel; a deliberate double-bounce on a pad = two touches = +40 (that is the banking tech for safety margin).\n\nFLIGHT-REQUIRED PROOF: all six inter-pad gaps are 680px and the final gap is 800px -- every one exceeds even the 527px spring drift ceiling (these are trampolines, reach ~395), so a zero-boost bounce lands in the void every single time. Total run 6280px >> 2660px one-tank flight, so no single-burn line exists either: refuel touches are structurally mandatory.\n\nFUEL LEDGER (single-touch line): hop cost ~ (680/760 s + spin-up) x 28.6 ~= 28.5 fuel; refund +20 per pad => net -8.5 per hop x 6 hops = -51; final 800px gap ~= 33 fuel. 100 - 51 - 33 = ~16 fuel remaining at the goal. COMPLETABLE with margin, and double-bouncing any pad banks +20 more. MISS-A-PAD PROOF: skipping one pad merges two gaps into 1480px (~58 fuel) and forfeits its +20 -- ledger goes ~25 fuel negative before the goal => the run dies. Every pad must be touched, which is the whole course.\n\nHeights undulate 920-1020 (a ridge, not a runway) so each approach needs a fresh aim solution. A missed pad = void fall = free respawn at start_gate; the course punishes with restart-of-crossing time only.\n\nBOUNDS: explicit -- top -1900 (a vertical super from the highest pad, y=920, apexes at 920-2450 = -1530; ceiling sits 370px above that), bottom 1950, sides -700/7000. Void line y=1350 under the whole ridge.",
+  "design_intent": "N2 circuit (hard navigation, owner 2026-07-16) course 3/5: SUPER-PRECISION JUMP REFILLS. A 6280px void crossing -- 2.4x one full tank of powered flight (~2660px) -- where the ONLY fuel is the +20-per-touch refund on six TINY 120px trampoline pads. Hit every pad and the ledger closes; skip one and you fall short. The skill is landing a 92px ball on a 120px target at speed, seven times.\n\nMOVEMENT MATH (current Tuning): tank 100 = 3.5s at 28.6 fuel/s; boost cap 760 px/s => ~26.6px/fuel, full tank ~2660px. Trampoline apex 270, zero-boost drift reach ~395px (trampoline) / ~527px (spring). Pad TOUCH refunds +20 fuel; a deliberate double-bounce on a pad = two touches = +40 (that is the banking tech for safety margin).\n\nFLIGHT-REQUIRED PROOF: all six inter-pad gaps are 680px and the final gap is 800px -- every one exceeds even the 527px spring drift ceiling (these are trampolines, reach ~395), so a zero-boost bounce lands in the void every single time. Total run 6280px >> 2660px one-tank flight, so no single-burn line exists either: refuel touches are structurally mandatory.\n\nFUEL LEDGER (single-touch line): hop cost ~ (680/760 s + spin-up) x 28.6 ~= 28.5 fuel; refund +20 per pad => net -8.5 per hop x 6 hops = -51; final 800px gap ~= 33 fuel. 100 - 51 - 33 = ~16 fuel remaining at the goal. COMPLETABLE with margin, and double-bouncing any pad banks +20 more. MISS-A-PAD PROOF: skipping one pad merges two gaps into 1480px (~58 fuel) and forfeits its +20 -- ledger goes ~25 fuel negative before the goal => the run dies. Every pad must be touched, which is the whole course.\n\nHeights undulate 920-1020 (a ridge, not a runway) so each approach needs a fresh aim solution. A missed pad = void fall = free respawn at start_gate; the course punishes with restart-of-crossing time only.\n\nBOUNDS: explicit -- top -1900 (a vertical super from the highest pad, y=920, apexes at 920-2450 = -1530; ceiling sits 370px above that), bottom 1950, sides -700/7000. Void line y=1350 under the whole ridge.\n\nWK-123 / WK-95f(d) (2026-11-14): every gap +40 px (inter-pad 680->720, final 800->840; pads now x1040/1880/2720/3560/4400/5240, goal pad x6200), so ANY merged skip-one gap is +80 (1480->1560) per the WK-95 spec; bounds right 7280, void +280. The numbers above predate WK-95 (cap 800, grip). MEASURED in-engine (scripted single-touch pilot, Standard goat): all six pads clears with ~20 fuel left (was ~28). HONEST CAVEAT: the same efficient pilot still clears most skip-one lines (0-29 fuel left), because a drop-and-relaunch pad touch costs about as much fuel as its +20 refund under WK-95 flight. No gap width separates 'touched every pad' from 'flew efficiently'; making the refuel mandatory needs a layout where the direct line between non-adjacent pads is blocked (pads in pockets), or the feathering/wall-refuel code fixes (WK-123 report).",
   "sky_top": "#3a7d44",
   "sky_bottom": "#cfeecf",
   "hint": "TAP EVERY PAD — THEY ARE YOUR FUEL",
   "bounds": {
     "left": -700,
     "top": -1900,
-    "right": 7000,
+    "right": 7280,
     "bottom": 1950
   },
   "platforms": [
@@ -23,49 +23,49 @@
       "tier": "trampoline"
     },
     {
-      "x": 1000,
+      "x": 1040,
       "y": 960,
       "w": 120,
       "h": 40,
       "tier": "trampoline"
     },
     {
-      "x": 1800,
+      "x": 1880,
       "y": 1020,
       "w": 120,
       "h": 40,
       "tier": "trampoline"
     },
     {
-      "x": 2600,
+      "x": 2720,
       "y": 940,
       "w": 120,
       "h": 40,
       "tier": "trampoline"
     },
     {
-      "x": 3400,
+      "x": 3560,
       "y": 1000,
       "w": 120,
       "h": 40,
       "tier": "trampoline"
     },
     {
-      "x": 4200,
+      "x": 4400,
       "y": 920,
       "w": 120,
       "h": 40,
       "tier": "trampoline"
     },
     {
-      "x": 5000,
+      "x": 5240,
       "y": 1000,
       "w": 120,
       "h": 40,
       "tier": "trampoline"
     },
     {
-      "x": 5920,
+      "x": 6200,
       "y": 1000,
       "w": 360,
       "h": 128,
@@ -77,7 +77,7 @@
       "type": "void",
       "x": -700,
       "y": 1350,
-      "w": 7700,
+      "w": 7980,
       "h": 600,
       "wall_px": 120
     },
@@ -88,7 +88,7 @@
     },
     {
       "type": "goal_gate",
-      "x": 6100,
+      "x": 6380,
       "y": 860,
       "w": 240,
       "h": 320

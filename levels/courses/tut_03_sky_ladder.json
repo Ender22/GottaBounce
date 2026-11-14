@@ -1,21 +1,83 @@
 {
   "name": "Sky Ladder",
-  "version": 1,
+  "version": 2,
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "central_pit",
-  "design_intent": "TUTORIAL 3 of 4. Lesson: COMBINE — fly up first, THEN super for the peak. The goal ring is 3600px above the floor, chosen so NEITHER verb alone reaches it but the combo clears with margin: plain-boost ceiling = 760 px/s x 3.5s tank ~= 2660px < 3600 (tank dies 1000px short); super-only from the floor = 2800^2/3200 = 2450px < 3600 (1150px short); the COMBO — boost-climb ~1200px (~45 fuel), then fire the super while still rising (vy -760 + 2800 clamps to max_speed 3000 => apex 3000^2/3200 = 2812px above the fire point) — tops out around 1200+2812 = 4000px > 3600 with ~400px margin, and even a lazy hover-then-fire at 1200px still reaches 1200+2450 = 3650. The floor is SPRING tier (480 apex — the bounciest, so retry refuels bank fast at +20/touch and the course feels like a launchpad). Wide bumper rails mark the flight column visually. No void — a failed attempt is a long soft fall back to the spring floor.",
-  "hint": "FLY HIGH FIRST — THEN  X / K  FOR THE PEAK",
+  "design_intent": "TUTORIAL 3 of 4. WK-123 re-author (CD2-01: after WK-95, v1 cleared on FLY alone from a bounce apex in 3.3 s). Lesson: SPEND THE TANK, THEN SUPER. This builds on lesson 2 (press X) with fuel discipline: the rings are so high that lesson 2's early super falls short. You bounce high (SPRING floor), fly until the tank is low, and fire the super with the last of it: the same 'keep 10% for the super' read the whole game runs on.\n\nGEOMETRY: one wide SPRING floor (x0-2800, top y1000); a miss is a long soft fall that refunds ~+27 fuel per touch. Four LANES at x500/1100/1700/2300, each with its own start_gate and gold ring (centre y-3830, 360x380, bottom edge y-3640); any ring counts as HOME. Start_gate order is P1 1100, P2 1700, P3 500, P4 2300 (co-op goats 600 px apart, so a finished goat falls down its own lane: CD2-02 layout fix). A marshmallow ROOF (y-4160) sits 330 px above the ring tops, for the same reasons as tut_02: the rings stay framed, the overshoot is capped, and it is useless to fly-only players. NO side walls (wall-contact refuel).\n\nMOVEMENT-TOOL ANALYSIS (in-engine, scripted pilots, highest centre y; ring bottom y-3640):\n- BOUNCE only: spring apex 480 (672 supercharged). Short by ~3800 px.\n- HOLD FLY from spawn: y-2023 Standard / -2276 Ziggy. Short by 1617 / 1364 px.\n- FLY from the bounce apex (CD2's v1 leak): y-2463 Standard / -2715 Ziggy. Short by 1177 / 925 px.\n- Best held-flight line (supercharged spring bounce, coast, hold to empty): y-2654 Standard / ~-2907 Ziggy. Short by ~986 / ~733 px.\n- Lesson 2's habit, a super at 65% fuel: y-3481 even after a supercharged bounce. Short. This is the teaching beat.\n- FLY to a low tank, THEN SUPER (the lesson): clears when X is pressed at <=35% fuel from standing, or <=50% after a supercharged spring bounce, down to the 10% minimum. Super at 30%: HOME at 4.4 s.\n- 2P co-op (recorded): P1 HOME at 4.15 s, bonks the roof and falls down lane 1100 while P2 supers up lane 1700. They pass at the same height 600 px apart, and P2 is HOME at 6.3 s.\nKNOWN LEAK (code, reported in WK-123): FEATHERING fly cleared this course with 31-38% fuel left.\n\nBOUNDS: explicit; top -5000 sits above the roof.",
+  "hint": "FLY TILL YOUR TANK IS LOW, THEN  X / K",
   "sky_top": "#274f86",
   "sky_bottom": "#a9d9f7",
-  "bounds": { "left": -300, "top": -3500, "right": 2700, "bottom": 1700 },
+  "bounds": {
+    "left": -700,
+    "top": -5000,
+    "right": 3500,
+    "bottom": 1700
+  },
   "platforms": [
-    { "x": 200, "y": 1000, "w": 2000, "h": 128, "tier": "spring" },
-    { "x": 560, "y": -2900, "w": 110, "h": 3900, "tier": "bumper" },
-    { "x": 1730, "y": -2900, "w": 110, "h": 3900, "tier": "bumper" }
+    {
+      "x": 0,
+      "y": 1000,
+      "w": 2800,
+      "h": 128,
+      "tier": "spring"
+    },
+    {
+      "x": 0,
+      "y": -4160,
+      "w": 2800,
+      "h": 70,
+      "tier": "marshmallow"
+    }
   ],
   "objects": [
-    { "type": "start_gate", "x": 1200, "y": 900 },
-    { "type": "goal_gate", "x": 1200, "y": -2600, "w": 380, "h": 380 }
+    {
+      "type": "start_gate",
+      "x": 1100,
+      "y": 900
+    },
+    {
+      "type": "start_gate",
+      "x": 1700,
+      "y": 900
+    },
+    {
+      "type": "start_gate",
+      "x": 500,
+      "y": 900
+    },
+    {
+      "type": "start_gate",
+      "x": 2300,
+      "y": 900
+    },
+    {
+      "type": "goal_gate",
+      "x": 500,
+      "y": -3830,
+      "w": 360,
+      "h": 380
+    },
+    {
+      "type": "goal_gate",
+      "x": 1100,
+      "y": -3830,
+      "w": 360,
+      "h": 380
+    },
+    {
+      "type": "goal_gate",
+      "x": 1700,
+      "y": -3830,
+      "w": 360,
+      "h": 380
+    },
+    {
+      "type": "goal_gate",
+      "x": 2300,
+      "y": -3830,
+      "w": 360,
+      "h": 380
+    }
   ]
 }

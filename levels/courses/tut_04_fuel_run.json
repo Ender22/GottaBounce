@@ -4,20 +4,67 @@
   "theme": "grass",
   "mode": "trials",
   "kill_shape": "void_is_floor",
-  "design_intent": "TUTORIAL 4 of 4. Lesson: PADS REFILL THE TANK — recharge along the way. A tank_run-shaped A->B crossing over a lethal void, tuned so ONE tank cannot fly the whole span: total crossing ~3600px of powered flight > 2660px (one full tank), so the player MUST touch the stepping pads (+20 fuel per bounce, fuel_per_bounce) to bank range — the exact recharge loop the whole game economy runs on. Four 700px gaps: 700 > 527 (max zero-boost spring drift) and > 395 (trampoline drift), so every gap is flight-required (a bounce alone falls in). Per-leg cost ~700px at 760 px/s ~= 0.95s ~= 27 fuel vs +20 refund per pad touch plus the double-bounce trick (bounce the same pad twice to bank +40) — the course closes comfortably for a player who touches pads and starves a player who tries to skip them, which IS the lesson. First tutorial with a real void: falls are free respawns at the start gate (v10), introducing death-space safely.",
+  "design_intent": "TUTORIAL 4 of 4. Lesson: PADS REFILL THE TANK — recharge along the way. A tank_run-shaped A->B crossing over a lethal void, tuned so ONE tank cannot fly the whole span: total crossing ~3600px of powered flight > 2660px (one full tank), so the player MUST touch the stepping pads (+20 fuel per bounce, fuel_per_bounce) to bank range — the exact recharge loop the whole game economy runs on. Four 700px gaps: 700 > 527 (max zero-boost spring drift) and > 395 (trampoline drift), so every gap is flight-required (a bounce alone falls in). Per-leg cost ~700px at 760 px/s ~= 0.95s ~= 27 fuel vs +20 refund per pad touch plus the double-bounce trick (bounce the same pad twice to bank +40) — the course closes comfortably for a player who touches pads and starves a player who tries to skip them, which IS the lesson. First tutorial with a real void: falls are free respawns at the start gate (v10), introducing death-space safely.\n\nWK-123 (2026-11-14, CD2 accept 'FLY-only fails tut_04'): after WK-95 (cap 800, grip, ~2800 px level range per tank) a FLY-only pilot that flew OVER every pad fell only ~15 px short of the goal pad with Ziggy (boost 1.08). Every gap is now +75 px (pads x1095/2020/2945, goal pad x3870-4230, goal x4050, void +300). MEASURED in-engine: no-touch FLY-only falls short by ~380 px (Standard/Puff) and ~180 px (Ziggy); touching the three pads clears with 24-25 fuel left (Standard/Puff). The 760 px/s figures above are pre-WK-95.",
   "hint": "PADS REFILL YOUR TANK — TOUCH EVERY ONE",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
   "platforms": [
-    { "x": 0, "y": 1000, "w": 320, "h": 128, "tier": "trampoline" },
-    { "x": 1020, "y": 980, "w": 150, "h": 128, "tier": "trampoline" },
-    { "x": 1870, "y": 1010, "w": 150, "h": 128, "tier": "trampoline" },
-    { "x": 2720, "y": 970, "w": 150, "h": 128, "tier": "trampoline" },
-    { "x": 3570, "y": 1000, "w": 360, "h": 128, "tier": "trampoline" }
+    {
+      "x": 0,
+      "y": 1000,
+      "w": 320,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 1095,
+      "y": 980,
+      "w": 150,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2020,
+      "y": 1010,
+      "w": 150,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 2945,
+      "y": 970,
+      "w": 150,
+      "h": 128,
+      "tier": "trampoline"
+    },
+    {
+      "x": 3870,
+      "y": 1000,
+      "w": 360,
+      "h": 128,
+      "tier": "trampoline"
+    }
   ],
   "objects": [
-    { "type": "void", "x": -650, "y": 1300, "w": 5230, "h": 620, "wall_px": 120 },
-    { "type": "start_gate", "x": 160, "y": 900 },
-    { "type": "goal_gate", "x": 3750, "y": 890, "w": 260, "h": 320 }
+    {
+      "type": "void",
+      "x": -650,
+      "y": 1300,
+      "w": 5530,
+      "h": 620,
+      "wall_px": 120
+    },
+    {
+      "type": "start_gate",
+      "x": 160,
+      "y": 900
+    },
+    {
+      "type": "goal_gate",
+      "x": 4050,
+      "y": 890,
+      "w": 260,
+      "h": 320
+    }
   ]
 }
