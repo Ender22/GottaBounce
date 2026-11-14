@@ -232,7 +232,7 @@ layout_mode = 2
 theme_type_variation = &"CardName"
 theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
 theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 28
 text = "CPU"
 
 [node name="BarSlot" type="Control" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]

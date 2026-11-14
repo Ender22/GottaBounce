@@ -25,6 +25,7 @@ const SIZE := 44.0
 const PILL_W := 64.0                       # START pill width (height = SIZE)
 const PILL_COLOR := Color("#3b3f4a")       # Xbox charcoal for the centre buttons
 const RING_COLOR := Color("#ffd23f")
+const LETTER_PX := 28                      # WK-18 / CC-8.1 couch floor for every glyph letter / key name
 
 @export var glyph := ""                    # set in .tscn; "" = wait for setup()
 @export var icon_size := 36.0:             # "check" only: drawn diameter-ish box (36 = READY tick)
@@ -59,21 +60,26 @@ func setup(g: String) -> void:
 	var w := SIZE
 	if FACE_COLORS.has(_glyph):
 		_label.text = _glyph
-		_label.add_theme_font_size_override("font_size", 26)
+		_label.add_theme_font_size_override("font_size", LETTER_PX)
 		_label.add_theme_color_override("font_color", Color.WHITE)
 		_label.add_theme_color_override("font_outline_color", CHOCO)
 		_label.add_theme_constant_override("outline_size", 6)
 	elif _glyph == "LB" or _glyph == "RB":
 		_label.text = _glyph
-		_label.add_theme_font_size_override("font_size", 22)
+		_label.add_theme_font_size_override("font_size", LETTER_PX)
 		_label.add_theme_color_override("font_color", Color.WHITE)
 		w = PILL_W
 	elif _glyph.begins_with("key:"):
 		var t := _glyph.substr(4)
 		_label.text = t
-		_label.add_theme_font_size_override("font_size", 20 if t.length() > 1 else 24)
+		_label.add_theme_font_size_override("font_size", LETTER_PX)
 		_label.add_theme_color_override("font_color", CHOCO)
-		w = maxf(SIZE, 22.0 + 14.0 * t.length())
+		# key cap width from the real text width at 28 px (+ rim/padding), so "ENTER"/"SPACE" never spill
+		var tw: float = 14.0 * t.length()
+		var f: Font = _label.get_theme_font("font")
+		if f != null:
+			tw = f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, LETTER_PX).x
+		w = maxf(SIZE, ceilf(tw) + 24.0)
 	elif _glyph == "START" or _glyph == "VIEW":
 		_label.text = ""
 		w = PILL_W

@@ -4,13 +4,35 @@ extends Control
 ## is taken (E.10 "skip a taken goat"). View only — the lobby drives it.
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
+const DESAT_SHADER := preload("res://assets/shaders/ui_desaturate.gdshader")
+## WK-18 / lobby review L6: a LOCKED ("taken") medallion desaturates to 0.6 and dims a touch, and wears the
+## MenuCard green check (drawn PadGlyph) top-right; the P-badges are 28 px white on a chocolate chip.
+const TAKEN_SATURATION := 0.6
+const TAKEN_VALUE := 0.85
 
 @onready var _plate: Panel = $Plate
 @onready var _art: TextureRect = $Art
+@onready var _check: Control = $Check
 @onready var _badges: Array = [$Badges/B1, $Badges/B2, $Badges/B3, $Badges/B4]
 
 var goat_index := 0
 var _shown: Array = [false, false, false, false]
+var _taken := false
+var _desat: ShaderMaterial = null
+
+func _ready() -> void:
+	# one material per medallion (its uniforms differ per goat); plate + shine + art share it via the root
+	_desat = ShaderMaterial.new()
+	_desat.shader = DESAT_SHADER
+	material = _desat
+	for n: CanvasItem in [_plate, $Plate/Shine, _art]:
+		n.use_parent_material = true
+	_apply_taken(false)
+
+func _apply_taken(on: bool) -> void:
+	_desat.set_shader_parameter("saturation", TAKEN_SATURATION if on else 1.0)
+	_desat.set_shader_parameter("value", TAKEN_VALUE if on else 1.0)
+	_check.visible = on
 
 func setup(idx: int, color: Color, tex: Texture2D) -> void:
 	goat_index = idx
@@ -40,8 +62,14 @@ func set_locked_by(slots: Array) -> void:
 				var t := b.create_tween()
 				t.tween_property(b, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_shown[i] = on
-	# a locked goat greys slightly so "taken" reads at a glance from the couch
-	_art.modulate = Color(0.75, 0.75, 0.75, 1.0) if any else Color.WHITE
+	# a locked goat desaturates + gets the check so "taken" reads at a glance from the couch
+	if any != _taken:
+		_taken = any
+		_apply_taken(any)
+		if any:
+			_check.scale = Vector2(1.6, 1.6)
+			var tc := _check.create_tween()
+			tc.tween_property(_check, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func wiggle() -> void:
 	MenuFX.reject_shake(self)

@@ -382,7 +382,7 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 		(nm as Label).add_theme_font_size_override("font_size", 40 if big else 34)
 	var tag := card.get_node_or_null("Content/VBox/NameStrip/Labels/TagLabel")
 	if tag is Label:
-		(tag as Label).add_theme_font_size_override("font_size", 26)
+		(tag as Label).add_theme_font_size_override("font_size", 28)   # WK-18 couch floor (CC-8.1)
 	# unlocked circuit line 2: real star icons + arena count (§3.7 — no ASCII stars)
 	if bool(a.get("circuit", false)) and not bool(a.get("locked", false)):
 		(card as Object).call("set_star_row", int(a.get("difficulty", 1)), 3,

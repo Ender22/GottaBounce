@@ -342,7 +342,7 @@ shadow_offset = Vector2(0, 2)
 
 [resource]
 default_font = ExtResource("1_font_display")
-default_font_size = 24
+default_font_size = 28
 BodyDark/base_type = &"Label"
 BodyDark/colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 BodyDark/colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 0)
@@ -378,7 +378,7 @@ CardName/base_type = &"Label"
 CardName/colors/font_color = Color(1, 1, 1, 1)
 CardName/colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
 CardName/constants/outline_size = 6
-CardName/font_sizes/font_size = 26
+CardName/font_sizes/font_size = 28
 CardNameBig/base_type = &"Label"
 CardNameBig/colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 CardNameBig/colors/font_outline_color = Color(1, 1, 1, 1)
@@ -388,7 +388,7 @@ CardTag/base_type = &"Label"
 CardTag/colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 CardTag/colors/font_outline_color = Color(1, 1, 1, 1)
 CardTag/constants/outline_size = 4
-CardTag/font_sizes/font_size = 22
+CardTag/font_sizes/font_size = 28
 ModeTitle/base_type = &"Label"
 ModeTitle/colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 ModeTitle/colors/font_outline_color = Color(1, 1, 1, 1)

@@ -21,6 +21,7 @@ extends Button
 # Existence-guarded: missing icons degrade to the plain text suffix, never to ASCII glyphs.
 const STAR_FULL := "res://assets/ui/icons/star_full.png"
 const STAR_EMPTY := "res://assets/ui/icons/star_empty.png"
+const MIN_FONT := 28   # WK-18 / CC-8.1: nothing a player reads drops below 28 px at 1080p
 
 var accent := Color("#ff5fa8")
 var is_soon := false
@@ -63,7 +64,9 @@ func _fit_name_font() -> void:
 	# measure at the BASE size (ignore any prior override) so the fit is idempotent across re-layouts
 	var w: float = f.get_string_size(_name.text, HORIZONTAL_ALIGNMENT_CENTER, -1, base).x
 	if w > avail:
-		_name.add_theme_font_size_override("font_size", maxi(22, int(floor(base * avail / w))))
+		# floor = the CC-8.1 couch floor (WK-18); NameLabel autowraps, so a name that still doesn't fit at 28
+		# takes a second line instead of shrinking below it
+		_name.add_theme_font_size_override("font_size", maxi(MIN_FONT, int(floor(base * avail / w))))
 	else:
 		_name.remove_theme_font_size_override("font_size")
 
@@ -103,7 +106,7 @@ func set_star_row(filled: int, total: int, suffix: String, icon_px := 26) -> voi
 	var lbl := Label.new()
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.theme_type_variation = &"CardTag"
-	lbl.add_theme_font_size_override("font_size", icon_px)
+	lbl.add_theme_font_size_override("font_size", maxi(icon_px, MIN_FONT))
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.text = ("  " if total > 0 else "") + suffix
 	_star_row.add_child(lbl)

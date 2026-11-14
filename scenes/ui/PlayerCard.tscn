@@ -22,9 +22,9 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 8
+theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_bottom = 8
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
@@ -67,18 +67,18 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = -6
+theme_override_constants/separation = -10
 
 [node name="NameLabel" type="Label" parent="Margin/VBox/IdentityRow/NameBox"]
 layout_mode = 2
 theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 34
 text = "P1"
 
 [node name="SubLabel" type="Label" parent="Margin/VBox/IdentityRow/NameBox"]
 visible = false
 layout_mode = 2
 theme_type_variation = &"CardTag"
-theme_override_font_sizes/font_size = 20
 text = "CPU"
 
 [node name="Spacer" type="Control" parent="Margin/VBox/IdentityRow"]

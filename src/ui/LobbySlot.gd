@@ -278,18 +278,12 @@ func set_row(row: int) -> void:
 	_fchev_l.visible = on_flair
 	_fchev_r.visible = on_flair
 
-## WK-81 F5: flair label at a fixed 28 px (names come pre-shortened from flair.json "short"); a safety
-## shrink to 24 px only if a future name still overflows.
+## WK-81 F5: flair label at a fixed 28 px (names come pre-shortened from flair.json "short"). WK-18: 28 is the
+## CC-8.1 couch floor, so there is no shrink below it -- a new "short" name must fit 28 px (all 10 measured to fit).
 func set_flair(text: String, locked: bool) -> void:
 	_flair_val.text = text
 	_flair_val.add_theme_color_override("font_color", Color(CHOCO.r, CHOCO.g, CHOCO.b, 0.45 if locked else 1.0))
-	var f: Font = _flair_val.get_theme_font("font")
-	var avail: float = _flair_val.size.x - 4.0
-	var fs := 28
-	if f != null and avail > 10.0:
-		while fs > 24 and f.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x > avail:
-			fs -= 1
-	_flair_val.add_theme_font_size_override("font_size", fs)
+	_flair_val.add_theme_font_size_override("font_size", 28)
 
 func flair_nudge(dir: int) -> void:
 	((_fchev_r if dir > 0 else _fchev_l) as Object).call("nudge")
