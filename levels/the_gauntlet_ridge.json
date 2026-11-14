@@ -5,9 +5,10 @@
   "kill_shape": "void_is_floor",
   "design_intent": "THE GAUNTLET RIDGE — THE HIGH WIRE #11 (tier 2, asymmetric: safe ledge -> thin exposed run). One big safe trampoline ledge (1200px) on the left anchors an asymmetric run of three thin bubblegum perches (600px) marching right over a deep dusk void, separated by 600px gaps, with a spring throne as a far prize past the last perch. The safe ledge is home base; each perch out is more exposed, so pushing for the far throne is a committed gauntlet across thinning footing. kill_shape = void_is_floor. Signature: the asymmetric safe-to-exposed run (the_cliff-like mesa-plus-scatter reframed for height; the ridges/spires are symmetric). Feel = 'leave the safe ledge and run the thinning gauntlet out to the far throne.'\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; drift ~395 trampoline / ~320 bubblegum / ~527 spring MAX; normal_boost_max 760 crosses 600px in ~0.9s; super 2800 clears all). Ledge x0..1200 top1000; perches P1(1800..2400) P2(3000..3600) P3(4200..4800) top1000; throne spring x4900..5260 top480:\n- GAP ledge<->P1 / P1<->P2 / P2<->P3: each edge gap = 600px over the void. 600 > 527 (max spring drift) and >> 395/320. NORMAL BOOST REQUIRED on every crossing; miss = fall into the deep void. Verb: FLY. (Rule A.)\n- REACH / CLIMB the far THRONE (top y480): sits 100px past P3's right edge AND 520px above the perch tops (1000). Bubblegum apex 180 from P3 reaches only y820 -> far short. JETPACK CLIMB REQUIRED; an under-shot drops off the far end into the void. Verb: FLY (+ SUPER). (Rule B, >= 520.)\n- RECOVER: ledge/perch bottom 1128 -> bottom blast line 2028 = 900px of recovery sky (>= 650, Rule D) -> a fuelled knock boosts back; the far perches P2/P3 are the most exposed, least-recoverable prizes. Verb: FLY.\n- No bounce clears any 600px gap or the 520px throne climb, so the jetpack is required to move at all. Vertical AND horizontal distance are load-bearing, not scenery.",
   "backdrop": "open_sky",
+  "backdrop_painting": "dusk_gold",
   "clouds": true,
-  "sky_top": "#3A3A72",
-  "sky_bottom": "#E7A867",
+  "sky_top": "#141939",
+  "sky_bottom": "#120C10",
   "bounds": { "left": -100, "right": 5360, "top": -2170, "bottom": 2028 },
   "platforms": [
     { "x": 0,    "y": 1000, "w": 1200, "h": 128, "tier": "trampoline" },

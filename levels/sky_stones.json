@@ -5,9 +5,10 @@
   "kill_shape": "void_is_floor",
   "design_intent": "SKY STONES — THE HIGH WIRE #4 (tier 1, the high-altitude on-ramp). Four WIDE trampoline islands (900px) strung left-to-right over a DEEP bottomless void (recovery sky ~900px), separated by 600px gaps, with one central spring throne floating over the B<->C gap. This is the circuit's gentle exposure introduction: forgiving wide landing decks so a knocked player can re-land, but every crossing already REQUIRES a boost and the void below is deep and unmistakably lethal — teaching the recovery gamble on safe geometry before the thin ridges and spires. kill_shape = void_is_floor (off-screen kills >= 88%). Signature vs the two ridge/spire flagships: SKY STONES is the roomy high-sky archipelago, all one height, wide decks — the calm entry. Feel = 'boost stone to stone high in the clear sky; a mistimed hop drops forever.'\n\nMOVEMENT-TOOL-PER-GAP ANALYSIS (Tuning.gd: trampoline apex 270 / bubblegum 180 / spring 480; air_drift_max 340, gravity 1600 => zero-boost drift ~395 trampoline / ~527 spring MAX; normal_boost_max 760 crosses a 600px gap in ~0.9s @ ~24 fuel, bounce refunds +20; super 2800 clears all, rises ~2450). Islands A(0..900) B(1500..2400) C(3000..3900) D(4500..5400), all top y1000 trampoline:\n- GAP A<->B / B<->C / C<->D: each island-edge gap = 600px over the void. 600 > 527 (max spring drift) and >> 395 (trampoline drift). NORMAL BOOST REQUIRED on every crossing; miss = fall into the deep void. Verb: FLY. (Rule A.)\n- CLIMB to the central THRONE (top y440): 560px above the island tops (1000). Trampoline apex 270 reaches only y730 -> 270px short, and the throne hangs over the open B<->C gap so an under-shot drops into the void. JETPACK CLIMB REQUIRED. Verb: FLY (+ SUPER earns it). (Rule B, >= 520.)\n- RECOVER: island bottom 1128 -> bottom blast line 2028 = 900px of recovery sky (>= 650, Rule D) -> a fuelled knock-off boosts back to a wide deck; a near-brink smash or starved victim rings out. Verb: FLY.\n- No bounce route crosses any 600px gap or climbs the 560px throne, so the jetpack is required to move at all. Vertical AND horizontal distance are load-bearing, not scenery.",
   "backdrop": "open_sky",
+  "backdrop_painting": "meadow_day",
   "clouds": true,
-  "sky_top": "#2E7FC2",
-  "sky_bottom": "#CDEBF7",
+  "sky_top": "#5CA8E0",
+  "sky_bottom": "#CDEBF6",
   "bounds": { "left": -150, "right": 5550, "top": -2210, "bottom": 2028 },
   "platforms": [
     { "x": 0,    "y": 1000, "w": 900, "h": 128, "tier": "trampoline" },

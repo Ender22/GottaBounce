@@ -4,6 +4,7 @@
   "theme": "grass",
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
+  "backdrop_painting": "meadow_day",
   "bounds": { "left": -900, "right": 2760, "top": -1150, "bottom": 1780 },
   "platforms": [
     { "x": 64,   "y": 980, "w": 1792, "h": 128, "tier": "trampoline" },
