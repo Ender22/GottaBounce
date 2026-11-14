@@ -42,7 +42,7 @@ sit right behind WK-20a so the ruling flows straight into a build. Within the re
 deck #2/#3: the power shot matters, but kickoff fairness, the restart regression and the end screen are what CD2 says stand between sports
 and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 
-1. WK-123 [P1][M] (in progress) Flight School lessons 2-3 require the super (CD2-01) + co-op HOME players stop blocking (CD2-02) + Refuel Ridge gap (WK-95f d) — level-designer (+ gameplay-programmer for HOME parking)
+1. ~~WK-123~~ done 7fe4ce4 — [P1][M] (in progress) Flight School lessons 2-3 require the super (CD2-01) + co-op HOME players stop blocking (CD2-02) + Refuel Ridge gap (WK-95f d) — level-designer (+ gameplay-programmer for HOME parking)
 2. ~~WK-20a~~ done 2721c7c — [P1][M] (in progress) Who wins and why: CPU share, self-KO −1, stage length and first-death time, human-style drivers -> game-designer rulings — qa-playtester + game-designer
 3. WK-108 [P1][M] (in progress) Sports bots route/keep goal + kickoff goals ≤ 10 % with human-style drivers (CD2-03 folded in) — gameplay-programmer + game-designer
 4. ~~WK-20c~~ done 6f4f51b — / WK-20b [P1][S] Apply whatever the WK-20a ruling calls for (self-KO / CPU mix / Lv0 gate); BLOCKED on the ruling, pulled the moment it lands — gameplay-programmer
@@ -102,7 +102,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
 - Accept: recording of 3 bot supers per difficulty shows smooth, readable wind-up; max angular step under cap.
 - Status: done 9a2ee3f. WK-98 confirmed it in sports: 5 recordings, aim capped at 2.63°/tick, 0 jumps over 15° (§6.7).
 
-### [ ] WK-123 [P1][M] Flight School must teach the super; co-op HOME goats stop blocking partners; Refuel Ridge gap
+### [x] WK-123 [P1][M] Flight School must teach the super; co-op HOME goats stop blocking partners; Refuel Ridge gap — 7fe4ce4
 - Area: trials · Owner: level-designer (JSON) + game-designer (lesson intent) + gameplay-programmer (HOME parking, if it needs code)
 - Source: creative-director WK-CD2 (CD2-01 P1/S-M, CD2-02 P2/S) + WK-95f (d) · owner WK-95 ruling follow-through ("super = the attack")
 - Evidence (CD2-01): a FLY-only point-and-go pilot clears `tut_02_super_shot` in 1.72 s with 31 % fuel left (`tools/out/cd2/47_t2_flyonly.png`,
@@ -1113,6 +1113,23 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   Minor: `smash_landed` fires for hits on spawn-protected players. Owner: gameplay-programmer (bot brain).
 - Accept: 320-stage batch: bot self-KO share <= 20%, first-death-before-3 s <= 20% of stages, median stage length up;
   recordings show no opening suicide supers.
+
+
+### [ ] WK-128 [P1][S] Fuel exploits: fly-TAPPING keeps ~750 px/s at a fraction of the fuel; wall-touch refuel is infinite
+- Source: WK-123 level-designer (scripted pilot). (a) Fuel drains only on frames fly is held, but tapping keeps ~750 px/s —
+  a tapping pilot cleared Flight School 2 with 40-47% fuel left / lesson 3 with 31-38% (beats every fuel-limited Trials
+  course). Fix: drain by thrust actually applied, or a minimum burn per press. (b) Pressing into a platform side while
+  flying refunds +20 per touch several times a second (`fuel_per_bumper`/wall refund) = infinite fuel by any wall;
+  add a per-surface cooldown. Both touch the fuel economy — game-designer ruling + prediction first (skill
+  gottabounce-analysis-toolkit), then gameplay-programmer. Re-check Trials completability + brawl recovery after.
+- Accept: tapping pilot no better than holding (fuel per metre within 10%); wall-hugging can't exceed +20 per 1 s;
+  WK-123 recordings still pass; brawl recovery telemetry unchanged within noise.
+
+### [ ] WK-129 [P2][S] `break_on: "super"` crates (super-only destructible) + Flight School "smash the crate" beat
+- Source: WK-123. Crates break on any 900 px/s impact, so plain flight/dive breaks them. Add a super-only mode to
+  DestructibleBlock and use it in lesson 2 per CD2's suggestion. Accept: recording — dive fails, super breaks it.
+
+### [ ] WK-123b [P2][S] Finished (HOME) Trials players park/ghost so they never block partners (code-side CD2-02 fix)
 
 
 ## P2 — visible polish gaps
