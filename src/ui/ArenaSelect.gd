@@ -501,6 +501,13 @@ func _step_shelf(shelf_id: int, delta: int) -> void:
 	cards[to].grab_focus()
 
 ## LB/RB + PageUp/PageDown: jump 3 cards along the CURRENT shelf (the 30+ arena answer, §3.5).
+## WK-11 / CC-3.3: once a lobby exists, devices that never joined can't drive this shared screen (focus nav,
+## FIGHT!, page jumps, back). _input runs before GUI focus navigation, so eating the event here stops it all.
+## Mouse / keyless events always pass (CC-2.4).
+func _input(e: InputEvent) -> void:
+	if not InputRouter.may_drive_shared(e):
+		get_viewport().set_input_as_handled()
+
 func _unhandled_input(e: InputEvent) -> void:
 	super._unhandled_input(e)
 	if not _entered:

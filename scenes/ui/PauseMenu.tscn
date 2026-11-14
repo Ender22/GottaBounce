@@ -1,100 +1,309 @@
-[gd_scene load_steps=4 format=3 uid="uid://pausemenu00001"]
+[gd_scene load_steps=12 format=3 uid="uid://pausemenu00001"]
 
 [ext_resource type="Script" path="res://src/ui/PauseMenu.gd" id="1_pause"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HoldButton.tscn" id="4_hold"]
+
+[sub_resource type="StyleBoxFlat" id="plate"]
+content_margin_left = 44.0
+content_margin_top = 34.0
+content_margin_right = 44.0
+content_margin_bottom = 30.0
+bg_color = Color(1, 0.968627, 0.921569, 0.97)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 26
+corner_radius_top_right = 26
+corner_radius_bottom_right = 26
+corner_radius_bottom_left = 26
+shadow_color = Color(0.12, 0.07, 0.05, 0.4)
+shadow_size = 14
+shadow_offset = Vector2(0, 8)
+
+[sub_resource type="StyleBoxFlat" id="owner_band"]
+bg_color = Color(1, 0.372549, 0.658824, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 26
+corner_radius_top_right = 26
+corner_radius_bottom_right = 26
+corner_radius_bottom_left = 26
+
+[sub_resource type="StyleBoxFlat" id="disc"]
+bg_color = Color(1, 0.968627, 0.921569, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 80
+corner_radius_top_right = 80
+corner_radius_bottom_right = 80
+corner_radius_bottom_left = 80
+shadow_color = Color(0.12, 0.07, 0.05, 0.3)
+shadow_size = 6
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="pill"]
+content_margin_left = 18.0
+content_margin_top = 2.0
+content_margin_right = 18.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 0.968627, 0.921569, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="chip"]
+content_margin_left = 14.0
+content_margin_top = 2.0
+content_margin_right = 14.0
+content_margin_bottom = 3.0
+bg_color = Color(1, 0.372549, 0.658824, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="rule"]
+bg_color = Color(0.231373, 0.141176, 0.105882, 0.16)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 20
 process_mode = 3
 script = ExtResource("1_pause")
 
-[node name="Menu" type="Control" parent="."]
+[node name="Root" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme = ExtResource("2_theme")
 
-[node name="Scrim" type="ColorRect" parent="Menu"]
+[node name="Scrim" type="ColorRect" parent="Root"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0784314, 0.0784314, 0.156863, 0.55)
+color = Color(0.141176, 0.0823529, 0.0588235, 0.58)
 
-[node name="Panel" type="PanelContainer" parent="Menu"]
+[node name="Menu" type="Control" parent="Root"]
 layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root/Menu"]
+custom_minimum_size = Vector2(640, 0)
+layout_mode = 1
+anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = &"MatchEndPanel"
+theme_override_styles/panel = SubResource("plate")
 
-[node name="VBox" type="VBoxContainer" parent="Menu/Panel"]
+[node name="VBox" type="VBoxContainer" parent="Root/Menu/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 24
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="OwnerBand" type="PanelContainer" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("owner_band")
+
+[node name="Header" type="HBoxContainer" parent="Root/Menu/Panel/VBox/OwnerBand"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
 alignment = 1
 
-[node name="Title" type="Label" parent="Menu/Panel/VBox"]
+[node name="Medallion" type="Control" parent="Root/Menu/Panel/VBox/OwnerBand/Header"]
+custom_minimum_size = Vector2(124, 124)
 layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Disc" type="Panel" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Medallion"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -18.0
+offset_bottom = -2.0
+offset_left = -8.0
+offset_right = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("disc")
+
+[node name="Portrait" type="TextureRect" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Medallion"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -6.0
+offset_top = -22.0
+offset_right = 6.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header"]
+layout_mode = 2
+size_flags_vertical = 4
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_constants/outline_size = 16
-theme_override_font_sizes/font_size = 92
+theme_override_font_sizes/font_size = 76
 text = "PAUSED"
-horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="ResumeBtn" type="Button" parent="Menu/Panel/VBox"]
-custom_minimum_size = Vector2(420, 88)
+[node name="Dot" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header"]
 layout_mode = 2
-size_flags_horizontal = 4
-focus_mode = 2
-theme_type_variation = &"ShellBtnPrimary"
-text = "RESUME"
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 14
+theme_override_font_sizes/font_size = 64
+text = "·"
+vertical_alignment = 1
 
-[node name="RestartBtn" type="Button" parent="Menu/Panel/VBox"]
-custom_minimum_size = Vector2(380, 76)
+[node name="OwnerPill" type="PanelContainer" parent="Root/Menu/Panel/VBox/OwnerBand/Header"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("pill")
+
+[node name="OwnerLabel" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header/OwnerPill"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.372549, 0.658824, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 58
+text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Context" type="Label" parent="Root/Menu/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "BRAWL  ·  ARENA"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Scores" type="HBoxContainer" parent="Root/Menu/Panel/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="ChipTemplate" type="PanelContainer" parent="Root/Menu/Panel/VBox/Scores"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("chip")
+
+[node name="Label" type="Label" parent="Root/Menu/Panel/VBox/Scores/ChipTemplate"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 28
+text = "P1  0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Rule" type="Panel" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("rule")
+
+[node name="Buttons" type="VBoxContainer" parent="Root/Menu/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="ResumeBtn" type="Button" parent="Root/Menu/Panel/VBox/Buttons"]
+custom_minimum_size = Vector2(520, 84)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
 theme_type_variation = &"ShellBtn"
+text = "RESUME"
+
+[node name="RestartBtn" parent="Root/Menu/Panel/VBox/Buttons" instance=ExtResource("4_hold")]
+layout_mode = 2
 text = "RESTART"
 
-[node name="OptionsBtn" type="Button" parent="Menu/Panel/VBox"]
-custom_minimum_size = Vector2(380, 76)
+[node name="OptionsBtn" type="Button" parent="Root/Menu/Panel/VBox/Buttons"]
+custom_minimum_size = Vector2(520, 80)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
 theme_type_variation = &"ShellBtn"
 text = "OPTIONS"
 
-[node name="SetupBtn" type="Button" parent="Menu/Panel/VBox"]
-custom_minimum_size = Vector2(380, 76)
+[node name="SetupBtn" parent="Root/Menu/Panel/VBox/Buttons" instance=ExtResource("4_hold")]
 layout_mode = 2
-size_flags_horizontal = 4
-focus_mode = 2
-theme_type_variation = &"ShellBtn"
 text = "CHANGE SETUP"
 
-[node name="QuitBtn" type="Button" parent="Menu/Panel/VBox"]
-custom_minimum_size = Vector2(380, 76)
+[node name="QuitBtn" parent="Root/Menu/Panel/VBox/Buttons" instance=ExtResource("4_hold")]
 layout_mode = 2
-size_flags_horizontal = 4
-focus_mode = 2
-theme_type_variation = &"ShellBtn"
 text = "QUIT TO MENU"
 
-[node name="HintBox" type="HBoxContainer" parent="Menu/Panel/VBox"]
+[node name="Rule2" type="Panel" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("rule")
+
+[node name="HintBox" type="HBoxContainer" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 4
-alignment = 1
 mouse_filter = 2
+alignment = 1
 script = ExtResource("3_hint")
-hints = PackedStringArray("A|Select", "START|Resume", "B|Back")
+hints = PackedStringArray("A|Select", "B/START|Resume")
+dark_text = true

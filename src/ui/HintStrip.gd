@@ -1,69 +1,66 @@
 extends HBoxContainer
-## Footer control-hint strip (frontend_ux_spec §1.4). Builds cream rounded glyph chips (chocolate
-## glyph on the shell's cream button family — ui_audit_2026-07-10 §1.2#2 contrast pass: the old
-## translucent-chocolate chips vanished on dark grass at couch distance) each followed by a Hint
-## label, from an exported list of "GLYPH|Label" pairs — NOT literal platform glyphs (a real glyph
-## set is a Phase-2 nicety). Pure presentation.
-
-const CREAM := Color(1.0, 0.97, 0.92, 0.96)
+## Footer control-hint strip (frontend_ux_spec §1.4) built from an exported list of "GLYPH|Label" pairs.
+## WK-80(b) / CC-1.6: every glyph is drawn by the ONE glyph component (PadGlyph) — Xbox-coloured A/B/X/Y
+## circles, the charcoal START/VIEW/LB/RB pills, the stick glyph, and "key:<TEXT>" cream key caps — so the
+## footer chips match the ControlsLegend and the Herd Lobby exactly (the old cream text-chip "START" keycap is
+## gone). Token rules:
+##   "A" "B" "X" "Y" "START" "VIEW" "LB" "RB" "stick" "key:ENTER" ...   one PadGlyph
+##   "< >"                                                               the stick glyph (left/right = adjust)
+##   "B/START"                                                           several glyphs joined by a "/" (lobby style)
+## Pure presentation.
 
 @export var hints: PackedStringArray = PackedStringArray()
-@export var green_first := false   # tint the first chip green (ArenaSelect "(A) FIGHT!")
+@export var green_first := false   # legacy (ArenaSelect "A FIGHT!"): the A glyph is already green
+@export var dark_text := false     # chocolate labels with no outline (for strips sitting on a cream plate)
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 24)
 	rebuild()
 
+func set_hints(h: PackedStringArray) -> void:
+	hints = h
+	if is_inside_tree():
+		rebuild()
+
 func rebuild() -> void:
 	for c in get_children():
+		remove_child(c)
 		c.queue_free()
 	for i in range(hints.size()):
 		var parts: PackedStringArray = String(hints[i]).split("|")
-		var glyph: String = parts[0] if parts.size() > 0 else "?"
+		var glyph_spec: String = parts[0] if parts.size() > 0 else "?"
 		var label: String = parts[1] if parts.size() > 1 else ""
 		var group := HBoxContainer.new()
 		group.add_theme_constant_override("separation", 8)
 		group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(group)
+		var toks: PackedStringArray = _tokens(glyph_spec)
+		for t in range(toks.size()):
+			if t > 0:
+				group.add_child(_text_label("/"))
+			var g := PadGlyph.new()
+			g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			g.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			g.setup(toks[t])
+			group.add_child(g)
+		if label != "":
+			group.add_child(_text_label(label))
 
-		var chip := Panel.new()
-		var green: bool = green_first and i == 0
-		# widen the chip for multi-char glyphs ("< >") so the text never spills the pill
-		chip.custom_minimum_size = Vector2(40 + 14 * maxi(0, glyph.length() - 1), 40)
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(0.329412, 0.788235, 0.290196, 0.92) if green else CREAM
-		sb.border_color = MenuFX.CHOCO
-		sb.set_border_width_all(3)
-		sb.set_corner_radius_all(11)
-		sb.shadow_color = Color(0.12, 0.07, 0.05, 0.3)
-		sb.shadow_size = 3
-		sb.shadow_offset = Vector2(0, 2)
-		chip.add_theme_stylebox_override("panel", sb)
-		group.add_child(chip)
+## Split a glyph spec into PadGlyph ids ("< >" is the stick; "B/START" is two glyphs).
+func _tokens(spec: String) -> PackedStringArray:
+	if spec == "< >" or spec == "<>":
+		return PackedStringArray(["stick"])
+	if spec.begins_with("key:"):
+		return PackedStringArray([spec])   # a key cap's text may itself contain "/"
+	return spec.split("/", false)
 
-		var gl := Label.new()
-		gl.set_anchors_preset(Control.PRESET_FULL_RECT)
-		gl.anchor_right = 1.0
-		gl.anchor_bottom = 1.0
-		gl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		gl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		gl.add_theme_font_size_override("font_size", 22)
-		if green:
-			gl.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-			gl.add_theme_color_override("font_outline_color", MenuFX.CHOCO)
-			gl.add_theme_constant_override("outline_size", 6)
-		else:
-			# chocolate glyph on the cream chip — highest-contrast pairing in the palette
-			gl.add_theme_color_override("font_color", MenuFX.CHOCO)
-			gl.add_theme_constant_override("outline_size", 0)
-		gl.text = glyph
-		chip.add_child(gl)
-
-		var lbl := Label.new()
-		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lbl.theme_type_variation = &"Hint"
-		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		lbl.text = label
-		group.add_child(lbl)
+func _text_label(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.theme_type_variation = &"Hint"
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if dark_text:
+		lbl.add_theme_color_override("font_color", MenuFX.CHOCO)
+		lbl.add_theme_constant_override("outline_size", 0)
+	lbl.text = text
+	return lbl

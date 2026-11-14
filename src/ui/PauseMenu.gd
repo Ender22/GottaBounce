@@ -1,48 +1,72 @@
 extends CanvasLayer
-## PauseMenu overlay (frontend_ux_spec §2.6). Instanced by PartyMatch on the `pause` action (pad Start /
-## keyboard Esc, P) during a live match; freezes the sim (get_tree().paused). RESUME / RESTART / OPTIONS /
-## CHANGE SETUP (WK-07) / QUIT TO MENU. Processes while paused (PROCESS_MODE_ALWAYS). Options is hosted in-place (shell-less)
-## and returns here on back.
-## Couch rules (COUCH_CONVENTIONS CC-1.5 / CC-7.3): the device that pressed pause OWNS the menu — other
-## devices' key/pad events are dropped in _input before focus nav sees them. A confirms the focused item;
-## Start (`pause`) or B (`menu_back`) = RESUME. Resuming tells PartyMatch to swallow held gameplay buttons
-## until release (C-19), so the resume press never boosts / fires a powerup.
+## PauseMenu overlay (frontend_ux_spec §2.6 · COUCH_CONVENTIONS CC-1.5 / CC-6.1 / CC-7.x). Instanced by
+## PartyMatch on the `pause` action (pad Start / keyboard Esc, P) during a live match; freezes the sim
+## (get_tree().paused). Processes while paused (PROCESS_MODE_ALWAYS).
+##
+## Look (WK-09): the lobby's cream plate + chocolate rim, with an OWNER BAND in the pausing player's goat
+## colour — their goat portrait in a cream medallion and "PAUSED · P2" — then a context line (mode · arena ·
+## target) and compact score chips. Focus = a full style swap to the owner's colour (CC-5.1: RESUME is NOT
+## permanently "primary"-styled any more).
+##
+## Content (CC-7.1): RESUME · RESTART (hold) · OPTIONS · CHANGE SETUP (hold) · QUIT TO MENU (hold).
+## Destructive items are HoldButtons (0.9 s, radial fill in the owner colour, early release drains) — the
+## banned double-press "REALLY?" swap is gone (C-18 / R-09).
+##
+## Couch rules (CC-1.5 / CC-7.3): the device that pressed pause OWNS the menu — other devices' key/pad events
+## are dropped in _input before focus nav sees them. A confirms the focused item; Start (`pause`) or B
+## (`menu_back`) = RESUME. Resuming tells PartyMatch to swallow held gameplay buttons until release (C-19).
+## Options is hosted in-place; backing out of it restores focus to OPTIONS (WK-80a).
 
 const OPTIONS := preload("res://scenes/ui/Options.tscn")
+const PORTRAIT := "res://assets/ui/portraits/portrait_%s.png"
+const NEUTRAL := Color("#ffd23f")   # header colour when the pausing device drives no human
 
-@onready var _menu: Control = $Menu
-@onready var _panel: PanelContainer = $Menu/Panel
-@onready var _resume: Button = $Menu/Panel/VBox/ResumeBtn
-@onready var _restart: Button = $Menu/Panel/VBox/RestartBtn
-@onready var _options_btn: Button = $Menu/Panel/VBox/OptionsBtn
-@onready var _setup_btn: Button = $Menu/Panel/VBox/SetupBtn
-@onready var _quit: Button = $Menu/Panel/VBox/QuitBtn
+@onready var _root: Control = $Root
+@onready var _menu: Control = $Root/Menu
+@onready var _panel: PanelContainer = $Root/Menu/Panel
+@onready var _band: PanelContainer = $Root/Menu/Panel/VBox/OwnerBand
+@onready var _medallion: Control = $Root/Menu/Panel/VBox/OwnerBand/Header/Medallion
+@onready var _portrait: TextureRect = $Root/Menu/Panel/VBox/OwnerBand/Header/Medallion/Portrait
+@onready var _dot: Label = $Root/Menu/Panel/VBox/OwnerBand/Header/Dot
+@onready var _owner_pill: PanelContainer = $Root/Menu/Panel/VBox/OwnerBand/Header/OwnerPill
+@onready var _owner_label: Label = $Root/Menu/Panel/VBox/OwnerBand/Header/OwnerPill/OwnerLabel
+@onready var _context: Label = $Root/Menu/Panel/VBox/Context
+@onready var _scores: HBoxContainer = $Root/Menu/Panel/VBox/Scores
+@onready var _chip_tpl: PanelContainer = $Root/Menu/Panel/VBox/Scores/ChipTemplate
+@onready var _resume: Button = $Root/Menu/Panel/VBox/Buttons/ResumeBtn
+@onready var _restart: HoldButton = $Root/Menu/Panel/VBox/Buttons/RestartBtn
+@onready var _options_btn: Button = $Root/Menu/Panel/VBox/Buttons/OptionsBtn
+@onready var _setup_btn: HoldButton = $Root/Menu/Panel/VBox/Buttons/SetupBtn
+@onready var _quit: HoldButton = $Root/Menu/Panel/VBox/Buttons/QuitBtn
+@onready var _hints: HBoxContainer = $Root/Menu/Panel/VBox/HintBox
 
 var match_ref
 var _options: Control = null
 # Device that opened the pause ("kb" / "pad:N", InputRouter.device_key). "" = no owner, any device
 # drives the menu (also the fallback if the owner's pad disconnects while paused).
 var _owner_key := ""
-# Destructive-action confirm (ui_audit_2026-07-10 §1.6#2): first press of RESTART / QUIT TO MENU arms
-# the button ("REALLY?"), second press within the window executes; 1.5s or a focus move disarms.
-const CONFIRM_WINDOW := 1.5
-var _armed: Button = null
-var _arm_gen := 0
+var _owner_color := NEUTRAL
+# QA readouts (eval): who the header says paused, and what fired.
+var owner_label := 0                 # P# shown in the header (0 = no owner pill)
+var last_action := ""                # "resume" / "restart" / "setup" / "quit" / "options"
 
 func setup(m, owner_key: String = "") -> void:
 	match_ref = m
 	_owner_key = owner_key
 	if InputRouter.is_pad(_owner_key) and not InputRouter.device_lost.is_connected(_on_device_lost):
 		InputRouter.device_lost.connect(_on_device_lost)
+	if is_node_ready():
+		_apply_owner()
 
 ## Owner's pad died mid-pause → release ownership so the menu can't become a dead end. Router signal, so
 ## InputRouter.simulate_device_lost() exercises the same path. TODO(C-07): DisconnectOverlay replaces this.
 func _on_device_lost(key: String) -> void:
 	if key == _owner_key:
 		_owner_key = ""
+		_refresh_hints()
 
 ## Pause-owner gate (CC-1.5). _input runs before GUI focus navigation, so marking a non-owner event
-## handled here stops it moving focus, pressing buttons, or resuming. Mouse events are never gated.
+## handled here stops it moving focus, pressing / holding buttons, or resuming. Mouse is never gated.
 func _input(e: InputEvent) -> void:
 	if _owner_key == "":
 		return
@@ -52,9 +76,14 @@ func _input(e: InputEvent) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	for b in [_resume, _restart, _options_btn, _setup_btn, _quit]:
+	var col: Array = [_resume, _restart, _options_btn, _setup_btn, _quit]
+	for b in col:
 		_reg(b)
-	_wire_col([_resume, _restart, _options_btn, _setup_btn, _quit])
+	_wire_col(col)
+	_restart.confirmed.connect(_do_restart)
+	_setup_btn.confirmed.connect(_do_change_setup)
+	_quit.confirmed.connect(_do_quit)
+	_apply_owner()
 	# panel drop-pop (same juice as the HUD banners)
 	_panel.pivot_offset = _panel.size * 0.5
 	_panel.scale = Vector2(0.85, 0.85)
@@ -65,19 +94,116 @@ func _ready() -> void:
 	t.tween_property(_panel, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	call_deferred("_grab", _resume)
 
+# ------------------------------------------------------------------ owner header + context (CC-7.2)
+
+func _apply_owner() -> void:
+	var info: Dictionary = {}
+	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("pause_owner_info"):
+		info = match_ref.pause_owner_info(_owner_key)
+	owner_label = int(info.get("label", 0))
+	_owner_color = info.get("color", NEUTRAL)
+	var band_sb: StyleBoxFlat = (_band.get_theme_stylebox("panel") as StyleBoxFlat).duplicate()
+	band_sb.bg_color = _owner_color
+	_band.add_theme_stylebox_override("panel", band_sb)
+	var has_owner: bool = owner_label > 0
+	_dot.visible = has_owner
+	_owner_pill.visible = has_owner
+	_owner_label.text = "P%d" % owner_label
+	_owner_label.add_theme_color_override("font_color", _owner_color)
+	var skin := str(info.get("skin", ""))
+	var tex_path := PORTRAIT % PlayerIdentity.name_for_skin(skin).to_lower()
+	_medallion.visible = has_owner and skin != "" and ResourceLoader.exists(tex_path)
+	if _medallion.visible:
+		_portrait.texture = load(tex_path)
+	for b: Button in [_restart, _setup_btn, _quit]:
+		(b as HoldButton).ring_color = _owner_color
+	_apply_context()
+	_refresh_hints()
+	# a button focused before the owner was known gets re-tinted
+	var f := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	if f is Button and _is_menu_button(f):
+		_style_focus(f as Button, true)
+
+func _apply_context() -> void:
+	var ctx: Dictionary = {}
+	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("pause_context"):
+		ctx = match_ref.pause_context()
+	_context.text = str(ctx.get("line", ""))
+	_context.visible = _context.text != ""
+	for c in _scores.get_children():
+		if c != _chip_tpl:
+			c.queue_free()
+	var chips: Array = ctx.get("chips", [])
+	for ch in chips:
+		var d: Dictionary = ch
+		var chip: PanelContainer = _chip_tpl.duplicate()
+		chip.visible = true
+		var sb: StyleBoxFlat = (chip.get_theme_stylebox("panel") as StyleBoxFlat).duplicate()
+		sb.bg_color = d.get("color", NEUTRAL)
+		chip.add_theme_stylebox_override("panel", sb)
+		(chip.get_node("Label") as Label).text = str(d.get("text", ""))
+		_scores.add_child(chip)
+	_scores.visible = not chips.is_empty()
+
+## Hint strip in the OWNER's device glyphs (CC-1.6: a prompt that belongs to one player uses their device).
+## A HoldButton in focus turns "Select" into "Hold".
+func _refresh_hints() -> void:
+	if _hints == null:
+		return
+	var f := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var hold: bool = f is HoldButton and _is_menu_button(f)
+	var verb := "Hold to confirm" if hold else "Select"
+	var h: PackedStringArray
+	if _owner_key == InputRouter.KB:
+		h = PackedStringArray(["key:ENTER|" + verb, "key:ESC|Resume"])
+	else:
+		h = PackedStringArray(["A|" + verb, "B/START|Resume"])
+	_hints.call("set_hints", h)
+
+# ------------------------------------------------------------------ focus
+
+func _is_menu_button(c: Control) -> bool:
+	return c == _resume or c == _restart or c == _options_btn or c == _setup_btn or c == _quit
+
 func _reg(b: Button) -> void:
 	b.set_meta("focus_scale", 1.08)
 	b.focus_entered.connect(func() -> void:
 		MenuFX.focus_in(b)
+		_style_focus(b, true)
+		_refresh_hints()
 		AudioManager.play_sfx("ui_click", {"pitch": 1.26, "volume_db": -12.0}))
 	b.focus_exited.connect(func() -> void:
 		MenuFX.focus_out(b)
-		if _armed == b:
-			_disarm())
+		_style_focus(b, false))
 	b.mouse_entered.connect(func() -> void:
 		if not b.has_focus():
 			b.grab_focus())
-	b.pressed.connect(_on_pressed.bind(b))
+	if not (b is HoldButton):
+		b.pressed.connect(_on_pressed.bind(b))
+
+## CC-5.1 focus = full style swap: owner-colour fill, white label with a chocolate outline. Unfocused = the
+## cream ShellBtn. (HoldButtons keep their cream cap on the left so the radial fill reads on any colour.)
+func _style_focus(b: Button, on: bool) -> void:
+	for s in ["normal", "hover", "focus", "pressed"]:
+		b.remove_theme_stylebox_override(s)
+	for c in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_outline_color"]:
+		b.remove_theme_color_override(c)
+	b.remove_theme_constant_override("outline_size")
+	if not on:
+		return
+	var base: StyleBox = b.get_theme_stylebox("hover")
+	if base is StyleBoxFlat:
+		var sb: StyleBoxFlat = (base as StyleBoxFlat).duplicate()
+		sb.bg_color = _owner_color
+		for s in ["normal", "hover", "focus"]:
+			b.add_theme_stylebox_override(s, sb)
+		var pr: StyleBoxFlat = sb.duplicate()
+		pr.bg_color = _owner_color.darkened(0.12)
+		b.add_theme_stylebox_override("pressed", pr)
+	for c in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
+		b.add_theme_color_override(c, Color.WHITE)
+	b.add_theme_color_override("font_outline_color", MenuFX.CHOCO)
+	b.add_theme_constant_override("outline_size", 12)
 
 func _grab(b: Control) -> void:
 	if is_instance_valid(b):
@@ -88,74 +214,56 @@ func _on_pressed(b: Button) -> void:
 	MenuFX.press_pop(b)
 	if b == _resume:
 		_do_resume()
-	elif b == _restart:
-		if _confirmed(b):
-			_do_restart()
 	elif b == _options_btn:
 		_open_options()
-	elif b == _setup_btn:
-		if _confirmed(b):
-			_do_change_setup()
-	elif b == _quit:
-		if _confirmed(b):
-			_do_quit()
 
-## Two-press guard for match-ending actions. Returns true only on the confirming (second) press.
-func _confirmed(b: Button) -> bool:
-	if _armed == b:
-		_disarm()
-		return true
-	_disarm()
-	_armed = b
-	_arm_gen += 1
-	var gen := _arm_gen
-	if not b.has_meta("orig_text"):
-		b.set_meta("orig_text", b.text)
-	b.text = "REALLY?"
-	MenuFX.reject_shake(b)
-	# SceneTreeTimer with process_always=true ticks while the sim is paused
-	get_tree().create_timer(CONFIRM_WINDOW, true).timeout.connect(func() -> void:
-		if _arm_gen == gen and _armed == b:
-			_disarm())
-	return false
-
-func _disarm() -> void:
-	if _armed != null and is_instance_valid(_armed) and _armed.has_meta("orig_text"):
-		_armed.text = str(_armed.get_meta("orig_text"))
-	_armed = null
+# ------------------------------------------------------------------ actions
 
 func _do_resume() -> void:
+	last_action = "resume"
 	get_tree().paused = false
-	# C-19: held A/B/Start must not act in gameplay on the first unpaused tick
-	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("on_pause_resumed"):
-		match_ref.on_pause_resumed()
+	if match_ref != null and is_instance_valid(match_ref):
+		if match_ref.has_method("set_match_overlays_hidden"):
+			match_ref.set_match_overlays_hidden(false)
+		# C-19: held A/B/Start must not act in gameplay on the first unpaused tick
+		if match_ref.has_method("on_pause_resumed"):
+			match_ref.on_pause_resumed()
 	queue_free()
 
 func _do_restart() -> void:
+	last_action = "restart"
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
 ## WK-07 / CC-4.7: CHANGE SETUP from Pause lands in the Herd Lobby with the same players, devices and goats
 ## (nobody READY) — ShellRoot consumes resume_setup exactly like the Victory screen's CHANGE SETUP.
 func _do_change_setup() -> void:
+	last_action = "setup"
 	get_tree().paused = false
 	GameConfig.resume_setup = true
 	get_tree().change_scene_to_file("res://scenes/ui/ShellRoot.tscn")
 
 func _do_quit() -> void:
+	last_action = "quit"
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/ShellRoot.tscn")
 
 func _open_options() -> void:
 	if _options != null:
 		return
+	last_action = "options"
 	_options = OPTIONS.instantiate()
 	add_child(_options)
 	_options.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_options.process_mode = Node.PROCESS_MODE_ALWAYS
 	_options.setup(null)
+	if _options.has_method("set_pause_host"):
+		_options.set_pause_host(_owner_key)   # WK-80(c): "START Resume" in its hint bar, owner's glyphs
 	_options.back_requested.connect(_close_options)
 	_menu.visible = false
+	# WK-80(f): HUD corner cards / legend must not show through Options' BACK + hint bar
+	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("set_match_overlays_hidden"):
+		match_ref.set_match_overlays_hidden(true)
 	if _options.has_method("enter"):
 		_options.enter()
 
@@ -164,7 +272,9 @@ func _close_options() -> void:
 		_options.queue_free()
 		_options = null
 	_menu.visible = true
-	call_deferred("_grab", _resume)
+	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("set_match_overlays_hidden"):
+		match_ref.set_match_overlays_hidden(false)
+	call_deferred("_grab", _options_btn)   # WK-80(a): back out of a submenu -> focus the item that opened it
 
 func _unhandled_input(e: InputEvent) -> void:
 	if e.is_echo():

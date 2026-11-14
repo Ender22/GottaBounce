@@ -43,11 +43,18 @@ var _shown_scoring := -2   # last last_scoring_team we flashed for (-2 = uniniti
 var _match_btns: Array = []       # [Button] left->right; last = the safe menu_back target
 var _match_focus := 0
 var _match_armed := false
+var _gate: MenuInputGate
 var _match_pulse: Tween
 var _match_row: HBoxContainer = null
 
 func _ready() -> void:
 	_runner = get_parent()
+	# WK-11 (CC-10.2 / CC-3.3): the REMATCH row only takes FRESH presses from JOINED devices, >= 1.0 s
+	# after the match-end panel appears (opened in show_match_end).
+	_gate = MenuInputGate.new()
+	_gate.name = "InputGate"
+	add_child(_gate)
+	_gate.verb.connect(_on_match_verb)
 	_flash.visible = false
 	_flash_label.visible = false
 	_red_score.add_theme_color_override("font_color", RED)
@@ -70,8 +77,6 @@ func animate_scores(_new_scores: Array) -> void:
 
 # ------------------------------------------------------------------ live readouts
 func _process(_delta: float) -> void:
-	if _match_armed:
-		_match_input()
 	if _runner == null:
 		return
 	var mode = _runner._mode
@@ -152,6 +157,7 @@ func hide_center() -> void:
 func show_match_end(text: String, color: Color, subline: String) -> void:
 	hide_center()
 	_clear_match_buttons()
+	_gate.open()   # the end screen "appears" now: presses must begin after this and the row arms >= 1.0 s later
 	_match_text.text = text
 	_match_text.add_theme_color_override("font_color", color)
 	_match_sub.text = subline
@@ -188,7 +194,7 @@ func show_match_buttons(specs: Array) -> void:
 		b.set_meta("id", spec.get("id", &""))
 		var idx := i
 		b.pressed.connect(func() -> void:
-			if _match_armed:
+			if _match_armed and _gate.mouse_may_act():
 				_activate_match(idx))
 		_match_row.add_child(b)
 		_match_btns.append(b)
@@ -218,22 +224,24 @@ func _arm_match() -> void:
 	_match_armed = true
 	_set_match_focus(0)
 
-func _match_input() -> void:
-	if _match_btns.is_empty():
+## Gate verb (armed + fresh + joined device). The row may still be fading in; it acts once built + armed.
+func _on_match_verb(v: String, _key: String) -> void:
+	if not _match_armed or _match_btns.is_empty():
 		return
-	if Input.is_action_just_pressed(&"ui_left"):
-		_set_match_focus((_match_focus + _match_btns.size() - 1) % _match_btns.size())
-	elif Input.is_action_just_pressed(&"ui_right"):
-		_set_match_focus((_match_focus + 1) % _match_btns.size())
-	elif Input.is_action_just_pressed(&"menu_accept") or Input.is_action_just_pressed(&"ui_accept"):
-		_activate_match(_match_focus)
-	elif Input.is_action_just_pressed(&"menu_back"):
-		# first back = focus the safe QUIT option (last); second back = take it (VictoryScreen rule)
-		var qi := _match_btns.size() - 1
-		if _match_focus == qi:
-			_activate_match(qi)
-		else:
-			_set_match_focus(qi)
+	match v:
+		"left":
+			_set_match_focus((_match_focus + _match_btns.size() - 1) % _match_btns.size())
+		"right":
+			_set_match_focus((_match_focus + 1) % _match_btns.size())
+		"accept":
+			_activate_match(_match_focus)
+		"back":
+			# first back = focus the safe QUIT option (last); second back = take it (VictoryScreen rule)
+			var qi := _match_btns.size() - 1
+			if _match_focus == qi:
+				_activate_match(qi)
+			else:
+				_set_match_focus(qi)
 
 func _set_match_focus(i: int) -> void:
 	_match_focus = i

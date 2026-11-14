@@ -48,9 +48,17 @@ var _bar_ends: Array = []      # [{fill, w, score_l, to}] for fast-forward
 var _bust_rest_y := 320.0
 var _tray_rest_x := 0.0
 var _pulse: Tween
+var _ff_done := false
+# WK-11 (CC-10.2 / CC-3.3): fresh presses only, arm >= Tuning.end_screen_arm, joined devices only.
+var _gate: MenuInputGate
 
 func _ready() -> void:
 	visible = false
+	_gate = MenuInputGate.new()
+	_gate.name = "InputGate"
+	add_child(_gate)
+	_gate.verb.connect(_on_verb)
+	_gate.early.connect(_on_early)
 	for i in range(_btns.size()):
 		var idx := i
 		(_btns[i] as Button).pressed.connect(func() -> void:
@@ -65,8 +73,11 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 	visible = true
 	_live = true
 	_armed = false
+	_ff_done = false
 	_t = 0.0
 	_focus = 0
+	# the row arms when the prompts finish fading in, and never before Tuning.end_screen_arm (C-14)
+	_gate.open(maxf(Tuning.end_screen_arm, ARM_TIME + 0.15))
 	_tweens.clear()
 	_bar_ends.clear()
 	# --- winner altar content ---
@@ -228,24 +239,31 @@ func _process(delta: float) -> void:
 	if not _live:
 		return
 	_t += delta
-	if not _armed:
-		if _t >= ARM_TIME + 0.15:
-			_arm()
-		elif _t > 0.05 and (Input.is_action_just_pressed(&"menu_accept") or Input.is_action_just_pressed(&"ui_accept")):
-			_fast_forward()
+	if not _armed and _gate.is_armed():
+		_arm()
+
+## Pre-arm press (fresh, joined device): accept FAST-FORWARDS the choreography — it never arms the row.
+func _on_early(v: String, _key: String) -> void:
+	if _live and not _armed and v == "accept" and _t > 0.05 and not _ff_done:
+		_fast_forward()
+
+## Armed, fresh press from a device allowed to drive this shared screen.
+func _on_verb(v: String, _key: String) -> void:
+	if not _live or not _armed:
 		return
-	if Input.is_action_just_pressed(&"ui_left"):
-		_set_focus((_focus + _btns.size() - 1) % _btns.size())
-	elif Input.is_action_just_pressed(&"ui_right"):
-		_set_focus((_focus + 1) % _btns.size())
-	elif Input.is_action_just_pressed(&"menu_accept") or Input.is_action_just_pressed(&"ui_accept"):
-		_activate(_focus)
-	elif Input.is_action_just_pressed(&"menu_back"):
-		# first back = focus the safe MENU option; second back = take it (brief §3 input map)
-		if _focus == 2:
-			_activate(2)
-		else:
-			_set_focus(2)
+	match v:
+		"left":
+			_set_focus((_focus + _btns.size() - 1) % _btns.size())
+		"right":
+			_set_focus((_focus + 1) % _btns.size())
+		"accept":
+			_activate(_focus)
+		"back":
+			# first back = focus the safe MENU option; second back = take it (brief §3 input map)
+			if _focus == 2:
+				_activate(2)
+			else:
+				_set_focus(2)
 
 func _arm() -> void:
 	_armed = true
@@ -276,8 +294,10 @@ func _activate(i: int) -> void:
 		1: setup_pressed.emit()
 		2: menu_pressed.emit()
 
-## Accept during the choreography: land every element instantly (never a black cut), arm input.
+## Accept during the choreography: land every element instantly (never a black cut). WK-11: it does NOT
+## arm the row — the gate still waits (>= Tuning.end_screen_ff_rearm after this, >= end_screen_arm overall).
 func _fast_forward() -> void:
+	_ff_done = true
 	for tw in _tweens:
 		if tw != null and tw.is_valid():
 			tw.kill()
@@ -308,10 +328,12 @@ func _fast_forward() -> void:
 			(h["score_l"] as Label).text = str(int(h["to"]))
 	_bust_bob()
 	_rays_spin()
-	_arm()
+	_gate.delay_arm(Tuning.end_screen_ff_rearm)
 
 func dismiss() -> void:
 	_live = false
+	_armed = false
+	_gate.close()
 	for tw in _tweens:
 		if tw != null and tw.is_valid():
 			tw.kill()
@@ -372,9 +394,11 @@ func _burst(pos: Vector2, angle_deg: float) -> void:
 	_tint_confetti(p)
 	p.emitting = true
 	_fx.add_child(p)
-	get_tree().create_timer(3.0).timeout.connect(func() -> void:
-		if is_instance_valid(p):
-			p.queue_free())
+	# self-owned cleanup: a tween bound to the particles dies with them (a SceneTreeTimer lambda capturing `p`
+	# logged "Lambda capture at index 0 was freed" whenever dismiss() freed the burst first — fast REMATCH)
+	var life := p.create_tween()
+	life.tween_interval(3.0)
+	life.tween_callback(p.queue_free)
 
 ## Lazy top-edge confetti drizzle while the screen lives (brief §3).
 func _drizzle() -> void:

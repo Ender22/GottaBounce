@@ -131,6 +131,12 @@ const KILL_CHEVRON_H := 26.0        # chevron height (was 11)
 const KILL_CHEVRON_OUTLINE := Color("#7A1E14")
 
 var _layers: Array = []      # parallax: { node, factor: float, base: Vector2 }
+# WK-80(e): sky paintings that must always cover the camera view, even when the owner-rules camera zooms out
+# past MAX_VIEW (it fits everyone with NO zoom floor, so a wide spread on a big arena showed the Layer-0
+# gradient as a pale strip at the screen edge, and the flat _extend_below fill as a band at the bottom).
+# { node, pin: Vector2 (local, unscaled), half_w, up_h, down_h } — see _cover_view().
+var _cover: Array = []
+const COVER_MAX_SCALE := 3.0
 var _anchor := Vector2.ZERO  # camera anchor (play-rect center): layers sit at base when cam is here
 var _clouds: Array = []      # { node, speed, min_x, max_x }
 var _twinkles: Array = []    # { node, speed, phase, max_a }
@@ -277,6 +283,9 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 		var base := Vector2(_anchor.x, floor_y + 420.0 - sky_h * 0.5)
 		_extend_below(node, tex, Vector2(0.0, floor_y + 400.0), tex.get_width() * sc, brect.end.y + pad)
 		_add_layer(node, 0.05, base)
+		# pinned at its bottom edge (the hills strip + extension own everything below it)
+		_cover.append({"node": node, "pin": Vector2(0.0, sky_h * 0.5), "half_w": tex.get_width() * sc * 0.5,
+			"up_h": sky_h, "down_h": 0.0})
 	else:
 		_warn_once("sky", "ArenaRenderer: missing " + SKY_TEX + " — sky gradient only")
 
@@ -588,6 +597,10 @@ func _build_painting_backdrop(json: Dictionary, brect: Rect2, floor_y: float) ->
 	_extend_below(node, tex, Vector2(0.0, sky_h * 0.5 - 4.0), tex.get_width() * sc,
 		(brect.end.y + pad) - base.y)
 	_add_layer(node, 0.05, base)
+	# pinned at its horizon (stays on floor_y while it grows); its own bottom must reach the view bottom too,
+	# or the flat extension colour reads as a band under the painted hills (meadow_day's bottom row is teal)
+	_cover.append({"node": node, "pin": Vector2(0.0, (hf - 0.5) * sky_h), "half_w": tex.get_width() * sc * 0.5,
+		"up_h": hf * sky_h, "down_h": (1.0 - hf) * sky_h})
 	return true
 
 ## Build a world-static gradient sprite covering `rect`, backed by a GradientTexture2D (same toolkit
@@ -673,6 +686,32 @@ func _feathered_texture(tex: Texture2D, feather_frac: float) -> Texture2D:
 			img.set_pixel(w - 1 - x, yy, c2)
 	return ImageTexture.create_from_image(img)
 
+## WK-80(e): grow each _cover painting about its pin just enough to contain the current view (+ shake slack).
+## At normal zoom k == 1 (no change at all); only past MAX_VIEW does the far painting "zoom out less" than the
+## world — the natural parallax read for a distant backdrop. Runs after the parallax pass sets node.position.
+func _cover_view(cam: Camera2D) -> void:
+	var z: float = maxf(cam.zoom.x, 0.01)
+	var vs: Vector2 = get_viewport_rect().size / z
+	var slack: float = Tuning.shake_max_offset / z + 8.0
+	var vc: Vector2 = to_local(cam.get_screen_center_position())
+	var vr := Rect2(vc - vs * 0.5, vs).grow(slack)
+	for cv in _cover:
+		var node: Node2D = cv["node"]
+		if not is_instance_valid(node):
+			continue
+		var pin: Vector2 = cv["pin"]
+		var p: Vector2 = node.position + pin   # pin position at scale 1 (this frame's parallax)
+		var hw: float = cv["half_w"]
+		var k := 1.0
+		k = maxf(k, (p.x - vr.position.x) / hw)
+		k = maxf(k, (vr.end.x - p.x) / hw)
+		k = maxf(k, (p.y - vr.position.y) / maxf(float(cv["up_h"]), 1.0))
+		if float(cv["down_h"]) > 0.0:
+			k = maxf(k, (vr.end.y - p.y) / float(cv["down_h"]))
+		k = minf(k, COVER_MAX_SCALE)
+		node.scale = Vector2(k, k)
+		node.position = p - pin * k
+
 func _add_layer(node: Node2D, factor: float, base: Vector2) -> void:
 	node.position = base
 	add_child(node)
@@ -687,6 +726,8 @@ func _process(delta: float) -> void:
 			var node: Node2D = L["node"]
 			if is_instance_valid(node):
 				node.position = (L["base"] as Vector2) + d * (1.0 - float(L["factor"]))
+		if not _cover.is_empty():
+			_cover_view(cam)
 	for c in _clouds:
 		var sp: Node2D = c["node"]
 		if not is_instance_valid(sp):

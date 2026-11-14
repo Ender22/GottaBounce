@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/HoldButton.gd" id="1_hold"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[node name="HoldButton" type="Button"]
+custom_minimum_size = Vector2(520, 80)
+size_flags_horizontal = 4
+focus_mode = 2
+theme = ExtResource("2_theme")
+theme_type_variation = &"ShellBtn"
+text = "HOLD TO CONFIRM"
+script = ExtResource("1_hold")

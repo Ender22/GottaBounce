@@ -69,8 +69,10 @@ var _pause_overlay: CanvasLayer = null
 # for BRAWL (owner-directed; the screen is skippable with accept after a short guard).
 const SCORE_SCENE := preload("res://scenes/ui/ScoreScreen.tscn")
 const SCORE_HOLD := 3.4        # auto-advance after this (real-time seconds)
-const SCORE_MIN_GUARD := 0.8   # accept ignored before this (no accidental skip from combat mashing)
+# WK-11: the skip guard is Tuning.scoreboard_skip_guard (1.2 s) through a MenuInputGate (fresh presses only).
 var _score_screen: CanvasLayer = null
+var _score_gate: MenuInputGate = null
+var _score_skip := false
 
 # MATCH CEREMONY (docs/briefs/match_ceremony_2026-07-18.md — BRAWL opt-in via wants_scoreboard):
 # stage intro card (rides the existing STAGE_INTRO/countdown window, adds 0.0s and NEVER gates
@@ -243,6 +245,13 @@ func _ready() -> void:
 		_score_screen = SCORE_SCENE.instantiate()
 		_score_screen.visible = false
 		add_child(_score_screen)
+		# WK-11 (C-14 / CC-10.2): the tally skip takes only FRESH accepts from JOINED devices, after a guard
+		_score_gate = MenuInputGate.new()
+		_score_gate.name = "ScoreGate"
+		add_child(_score_gate)
+		_score_gate.verb.connect(func(v: String, _k: String) -> void:
+			if v == "accept" and state == "SCOREBOARD":
+				_score_skip = true)
 		# match ceremony pieces share the same BRAWL gate (brief §1/§2/§3)
 		_intro_card = INTRO_CARD_SCENE.instantiate()
 		add_child(_intro_card)
@@ -883,7 +892,8 @@ func _tick_stage_end(delta: float) -> void:
 
 ## SCOREBOARD (owner 2026-07-16): the brief Duck-Game-style tally between stages. Rows carry each
 ## player's cumulative kills + this stage's delta (same survivor display-floor rule as the old
-## deltas banner line). Auto-advances after SCORE_HOLD; accept skips after SCORE_MIN_GUARD.
+## deltas banner line). Auto-advances after SCORE_HOLD; a FRESH accept from a joined device skips after
+## Tuning.scoreboard_skip_guard (WK-11 MenuInputGate — combat mashing / a held boost never skips it).
 func _enter_scoreboard() -> void:
 	state = "SCOREBOARD"
 	_state_t = 0.0
@@ -902,12 +912,16 @@ func _enter_scoreboard() -> void:
 			"delta": d,
 		})
 	_score_screen.present(rows, match_target_kills)
+	_score_skip = false
+	if _score_gate != null:
+		_score_gate.open(Tuning.scoreboard_skip_guard)
 
 func _tick_scoreboard(delta: float) -> void:
 	_state_t += delta
-	var skip: bool = _state_t >= SCORE_MIN_GUARD \
-		and (Input.is_action_just_pressed(&"menu_accept") or Input.is_action_just_pressed(&"ui_accept"))
-	if _state_t >= SCORE_HOLD or skip:
+	if _state_t >= SCORE_HOLD or _score_skip:
+		_score_skip = false
+		if _score_gate != null:
+			_score_gate.close()
 		_score_screen.dismiss()
 		_begin_stage()
 
@@ -1071,6 +1085,53 @@ func on_pause_resumed() -> void:
 	for p in players:
 		if is_instance_valid(p) and p.provider != null and p.provider.has_method("swallow_until_release"):
 			p.provider.swallow_until_release()
+
+## WK-09 (CC-1.5 / CC-7.2): who owns a pause opened by device `key` — {index, label, color, skin}, or {} for
+## a device that drives no human (the header then reads plain "PAUSED"). Humans-first: human h = player h.
+## Fallback (BACKLOG WK-09 deps): the keyboard / an unkeyed pause belongs to P1 when no human is bound to it.
+func pause_owner_info(key: String) -> Dictionary:
+	var h: int = human_index_for_device(key)
+	if h < 0 and (key == InputRouter.KB or key == ""):
+		h = 0
+	if not is_human_player(h):
+		return {}
+	return {"index": h, "label": player_label(h), "color": player_color(h), "skin": str(players[h].skin)}
+
+## WK-09 (CC-7.2) pause context line: "BRAWL · DAISY RING · FIRST TO 10" + compact score chips
+## [{text, color}] — per-player KOs (Brawl), team goals (Sports), the stage number (Trials).
+func pause_context() -> Dictionary:
+	var parts: Array[String] = []
+	if _mode != null and str(_mode.display_name()) != "":
+		parts.append(str(_mode.display_name()))
+	if level_name != "":
+		parts.append(level_name.to_upper())
+	var chips: Array = []
+	if _mode != null and _mode.has_method("team_scores"):
+		var ts: Array = _mode.team_scores()
+		for t in range(ts.size()):
+			chips.append({"text": "%s %d" % [str(_mode.team_name(t)), int(ts[t])], "color": _mode.team_color(t)})
+	elif _config != null and _config.mode_id == &"trials":
+		chips.append({"text": "STAGE %d" % maxi(1, stage_index), "color": GOLD})
+	else:
+		parts.append("FIRST TO %d" % match_target_kills)
+		for i in range(players.size()):
+			var sc: int = int(scores[i]) if i < scores.size() else 0
+			chips.append({"text": "%s  %d" % [player_tag(i), sc], "color": player_color(i)})
+	return {"line": "  ·  ".join(parts), "chips": chips}
+
+## WK-80(f): the pause hosts Options full-screen; the corner HUD cards / controls legend must not show
+## through behind its BACK button + hint bar. Presentation only (INV-12): toggles CanvasLayer visibility.
+func set_match_overlays_hidden(hidden: bool) -> void:
+	for n in [_hud, _legend]:
+		if n == null or not is_instance_valid(n) or not (n is CanvasLayer):
+			continue
+		var cl := n as CanvasLayer
+		if hidden:
+			cl.set_meta("vis_before_options", cl.visible)   # the legend may already have hidden itself
+			cl.visible = false
+		elif cl.has_meta("vis_before_options"):
+			cl.visible = bool(cl.get_meta("vis_before_options"))
+			cl.remove_meta("vis_before_options")
 
 func _deltas_line() -> String:
 	var parts: Array[String] = []

@@ -58,9 +58,9 @@ vertical_alignment = 1
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchor_left = 0.26
+anchor_left = 0.23
 anchor_top = 0.5
-anchor_right = 0.74
+anchor_right = 0.77
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2

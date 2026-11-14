@@ -192,7 +192,9 @@ func round_sweep() -> void:
 	for player in _held_icons.keys().duplicate():
 		if is_instance_valid(player):
 			player.held_powerup = ""
-		_refresh_held_icon(player)
+			_refresh_held_icon(player)
+		else:
+			_held_icons.erase(player)   # freed with its player (scene change / reload): just forget it
 	for n in get_tree().get_nodes_in_group("pu_field"):
 		n.queue_free()
 
@@ -252,9 +254,12 @@ func _plant_ring(player) -> void:
 
 ## Over-head held icon (32px, bobbing): deliberate target-painting (spec §2).
 func _refresh_held_icon(player) -> void:
-	var icon: Node2D = _held_icons.get(player)
-	if icon != null and is_instance_valid(icon):
-		icon.queue_free()
+	# WK-80(d): UNTYPED on purpose. The icon is a child of the player, so when a stage change frees the
+	# player first, the dict still holds a freed instance; assigning that to a typed `Node2D` var raised
+	# "invalid previously freed instance" (x10 per stage change from round_sweep). Validate, never type.
+	var icon = _held_icons.get(player)
+	if is_instance_valid(icon):
+		(icon as Node).queue_free()
 	_held_icons.erase(player)
 	if player == null or not is_instance_valid(player) or player.held_powerup == "":
 		return

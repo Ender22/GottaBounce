@@ -181,6 +181,14 @@ var lobby_entry_grace: float = 0.30        # s after the lobby appears before in
 var lobby_random_spin: float = 0.6         # s the Y/R random portrait spin runs before landing
 var lobby_empty_well_alpha: float = 0.94   # EMPTY panel dark-well opacity (review said 0.72; 0.72 and 0.86 both still ghosted the backdrop at 1080p)
 
+# --- Hold-to-confirm + end-screen input gate (WK-09 / WK-11 · CC-6.1 / CC-10.2 · audit C-14/C-18) — menu feel ---
+var hold_confirm_time: float = 0.9         # s of held A/Enter on a HoldButton (pause RESTART / CHANGE SETUP / QUIT)
+var hold_confirm_drain: float = 0.15       # s for a released (unfinished) ring to drain back to empty
+var hold_confirm_tick: float = 0.15        # s of hold progress between rising-pitch ticks
+var end_screen_arm: float = 1.0            # s after an end screen appears before its buttons accept a press
+var end_screen_ff_rearm: float = 0.6       # s minimum after a fast-forward (Victory) before the row arms
+var scoreboard_skip_guard: float = 1.2     # s after the between-stage score screen appears before A skips it
+
 # --- Player identity pips (WK-10 · CC-8.3 · audit C-09/R-05/R-17) — presentation timing, not player feel ---
 var pip_idle_alpha: float = 0.70        # a human's P# pip alpha once settled in combat (never 0 — never gone)
 var pip_full_hold: float = 1.0          # s a human's pip stays at FULL alpha after a (re)spawn / pop-in

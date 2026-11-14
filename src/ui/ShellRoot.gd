@@ -25,6 +25,9 @@ var _busy := false
 ## Direction of the screen change in progress (true = go_forward). HerdLobby reads it: coming back from
 ## ArenaSelect keeps everyone READY, coming forward from ModeSelect un-readies (CC-4.7).
 var nav_forward := true
+## WK-80(a) / CC-5.6: screen key -> MenuScreen focus index the player left FROM when going forward, restored
+## when they come back (MainMenu OPTIONS -> back lands on OPTIONS; lobby B -> the mode card they picked).
+var _focus_memory := {}
 
 func _ready() -> void:
 	# a fresh config on cold boot so an untouched flow reproduces today's default boot (C7)
@@ -48,6 +51,10 @@ func _ready() -> void:
 func go_forward(key: String) -> void:
 	if _busy or not SCREENS.has(key):
 		return
+	if _cur != null and is_instance_valid(_cur) and _cur.has_method("focus_index"):
+		var fi: int = _cur.focus_index()
+		if fi >= 0:
+			_focus_memory[_cur_key] = fi
 	_stack.append(_cur_key)
 	_show(key, true)
 
@@ -63,6 +70,8 @@ func _show(key: String, forward: bool) -> void:
 	nav_forward = forward
 	if key == "main":
 		GameConfig.clear_lobby()   # QUIT TO TITLE / back to title forgets who joined (CC-4.7)
+	if forward:
+		_focus_memory.erase(key)   # a fresh forward visit starts at the screen's default focus
 	var old := _cur
 	var screen: Control = (SCREENS[key] as PackedScene).instantiate()
 	_screen_layer.add_child(screen)
@@ -70,6 +79,8 @@ func _show(key: String, forward: bool) -> void:
 	screen.pivot_offset = DESIGN * 0.5
 	if screen.has_method("setup"):
 		screen.setup(self)
+	if not forward and _focus_memory.has(key) and "restore_focus_index" in screen:
+		screen.restore_focus_index = int(_focus_memory[key])
 	screen.scale = Vector2(1.06, 1.06) if forward else Vector2(0.95, 0.95)
 	screen.modulate.a = 0.0
 	_cur = screen

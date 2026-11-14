@@ -13,6 +13,9 @@ const CHOCO := Color(0.231373, 0.141176, 0.105882)
 var shell   # ShellRoot (set via setup); null when a screen is hosted outside the shell (Options in pause)
 var _entered := false
 var _focusables: Array[Control] = []
+## WK-80(a) / CC-5.6: index into _focusables to focus on entry instead of first_focus() — ShellRoot sets it
+## when coming BACK to this screen, so B lands on the item the player left from (OPTIONS, the mode card...).
+var restore_focus_index := -1
 
 func setup(shell_ref) -> void:
 	shell = shell_ref
@@ -130,7 +133,18 @@ func enter() -> void:
 	_entered = true
 	call_deferred("_grab_first")
 
+## Registration index of the currently focused control (-1 if focus is elsewhere). ShellRoot remembers it.
+func focus_index() -> int:
+	var f := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	return _focusables.find(f) if f != null else -1
+
 func _grab_first() -> void:
+	if restore_focus_index >= 0 and restore_focus_index < _focusables.size():
+		var rc: Control = _focusables[restore_focus_index]
+		restore_focus_index = -1
+		if is_instance_valid(rc) and rc.is_visible_in_tree() and rc.focus_mode != Control.FOCUS_NONE:
+			rc.grab_focus()
+			return
 	var ff := first_focus()
 	if ff != null and is_instance_valid(ff):
 		ff.grab_focus()

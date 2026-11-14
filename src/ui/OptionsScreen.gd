@@ -31,6 +31,21 @@ func _ready() -> void:
 func first_focus() -> Control:
 	return _rows[0]
 
+## WK-80(c): hosted by the PauseMenu. The pause's chocolate scrim already dims the frozen arena (its HUD is
+## hidden while we're up, WK-80f), so drop our own navy scrim, and say how to get straight back to the match
+## in the pause owner's glyphs: pad Start resumes; on the keyboard Esc is Back and P resumes (PauseMenu).
+func set_pause_host(owner_key: String) -> void:
+	var scrim := get_node_or_null("Scrim") as ColorRect
+	if scrim != null:
+		scrim.color.a = 0.0
+	var hb := get_node_or_null("Footer/HintBox")
+	if hb == null:
+		return
+	if owner_key == InputRouter.KB:
+		hb.call("set_hints", PackedStringArray(["key:A/D|Adjust", "key:ESC|Back", "key:P|Resume"]))
+	else:
+		hb.call("set_hints", PackedStringArray(["< >|Adjust", "B|Back", "START|Resume"]))
+
 func stagger_items() -> Array:
 	return _rows
 

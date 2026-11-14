@@ -56,6 +56,14 @@ func _ready() -> void:
 	_back.focus_neighbor_top = _back.get_path_to(_cards[0])
 
 func first_focus() -> Control:
+	# WK-80(a) / CC-5.6: arriving BACK (B out of the lobby, incl. after Pause -> CHANGE SETUP, where the shell
+	# has no remembered focus) lands on the mode you came from, never on TRIALS by default. Fresh forward
+	# entry keeps today's default (WK-13 owns the forward default).
+	if shell != null and not bool(shell.get("nav_forward")) and GameConfig.match_config != null:
+		var cur := str(GameConfig.match_config.mode_id)
+		for c in _cards:
+			if str((c.get_meta("mode", {}) as Dictionary).get("id", "")) == cur:
+				return c
 	return _cards[0]
 
 func stagger_items() -> Array:
