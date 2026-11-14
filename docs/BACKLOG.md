@@ -1106,7 +1106,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
 - Status: open (on deck)
 
 
-### [ ] WK-127 [P1][M] Bots self-KO 36% of deaths; 59% of 4-bot stages lose a fighter before 3 s
+### [x] WK-127 [P1][M] Bots self-KO 36% of deaths; 59% of 4-bot stages lose a fighter before 3 s — 25e2c86
 - Source: WK-20a results (2721c7c) §11. Causes: (a) bots fire an attack super in the first second (53% of stages) and fly
   off after missing; (b) `recovery_unreachable` supers fire at 50-97 fuel — `_nearest_ground_dx` mis-measures on spires /
   the_ascent (74 cases followed by self-KO within 3 s = 9% of all deaths). Likeliest source of CD2's short stages.
@@ -1139,6 +1139,12 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   THE BOX after-recording ~4.5 s: three goats in one goal mouth while the ball rolls mid-floor (role/target bug).
   THE BOWL own goals 21.5 -> 26.3%. Stuck/min 36.7 -> 42.5 — inspect episodes (likely wide loops).
 - Accept: 32-run batch own goals <= 15%, keeper presence >= 50%, no goal-mouth stacking in recordings, stuck <= before.
+
+
+### [ ] WK-127b [P2][S] Bot stuck 1.4x after WK-127: hopping on the_ascent's top trampoline chasing targets below
+- Source: WK-127 (tools/out/wk/WK-127_measure.json). Bots that used to die in the sky lid now brake and hop in place on
+  the top tier. Needs a "way down past the top trampoline" route. Blocked-ascent rise is mostly the detector counting
+  legit fall-arrests — consider excluding braking arrests from `_mh_blocked_ascent`. Accept: stuck <= 1.1x pre-WK-127.
 
 
 ## P2 — visible polish gaps

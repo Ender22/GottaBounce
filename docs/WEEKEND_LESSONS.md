@@ -57,6 +57,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - Raw last-touch goal credit makes ~50-75% of sports goals OWN GOALs (defenders deflect shots) — use a deflection
   rule crediting the shooter.
 
+- `SportsMode.wk108_enclosed` defaults false, so bot `_enclosed()` is false in sports and court walls count as blast
+  lines — any bot logic keyed to "about to cross the bounds" fires at every wall in sports.
+- Bots aimed 29% of opening attack supers at spawn-protected (blinking) targets; `_nearest_ground_dx` returned INF
+  whenever the bot was below every platform top -> "unreachable" recovery supers at full fuel (fixed WK-127).
+
 ## Owner preferences learned this run
 - Wants zero involvement during the run but does check in: UI changes landed well; gameplay feel is the concern.
 - Normal flight must be good enough to manoeuvre; super boost is an ATTACK (ruling 2026-11-14, WK-95).
