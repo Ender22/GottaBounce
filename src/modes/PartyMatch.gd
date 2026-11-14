@@ -196,6 +196,9 @@ var _recent_dead: Array = []    # simultaneous-elimination group (double-KO SD, 
 var _last_death_clock := 0.0
 var _revived_this_stage := false # one sudden-death revive max per stage (no recursion)
 var _stage_deltas: Array = []   # applied kill deltas this stage (for the STAGE_END sub-line)
+var _stage_self_kos: Array = []  # WK-20c: self-KOs per player this stage (BrawlMode.on_kill) -> "OOPS!" when they cost 0
+## WK-20c (Ra): points a BRAWL self-KO costs (MatchConfig.self_ko_penalty via BrawlMode.configure). 0 = default.
+var self_ko_penalty := 0
 var _stage_start_alive := 0
 var _stage_winner := -1
 var _two_left_fired := false
@@ -648,6 +651,7 @@ func _begin_stage() -> void:
 	_two_left_fired = false
 	_stage_winner = -1
 	_stage_deltas.clear()
+	_stage_self_kos.clear()
 	_had_contact.clear()
 	_smash_off_stage.clear()
 	# rotate the level BEFORE the pop-in so the establishing shot frames the new level (§6)
@@ -668,6 +672,7 @@ func _begin_stage() -> void:
 	for i in range(players.size()):
 		var p = players[i]
 		_stage_deltas.append(0)
+		_stage_self_kos.append(0)
 		_had_contact.append(false)
 		_smash_off_stage.append(false)
 		lives_left[i] = lives_per_player
@@ -766,6 +771,7 @@ func _bounce_go() -> void:
 		"length_s": 0.0, "end_cause": "none", "entered_sd": false,
 		"kills": [], "survivor_had_contact": false, "supers_fired": [],
 		"smashes": [],   # kill-zone spec §8: hit-solidity distribution + recovery correlation feed
+		"self_ko_penalty": self_ko_penalty,   # WK-20c: the self-KO rule this stage was scored under (0 = Ra)
 	}
 	for p in players:
 		p.frozen = false
@@ -1045,7 +1051,8 @@ func _on_killed(victim, cause, attacker) -> void:
 		})
 		_cur_stats["end_cause"] = str(cause)   # the stage-deciding death overwrites last
 	# kill credit vs suicide (spec §2), delegated to the mode's scoring hook. Every cause counts; dead
-	# attackers still score ("beyond the grave"); being killed is never -1. Score is CUMULATIVE kills.
+	# attackers still score ("beyond the grave"); being killed is never -1; a self-KO costs self_ko_penalty
+	# (WK-20c: 0 by default). Score is CUMULATIVE kills.
 	var ai: int = players.find(attacker) if attacker != null else -1
 	_mode.on_kill(self, ai, idx, cause)
 	# FIRST BLOOD is a BRAWL kill-race moment — never in SPORTS (rocketball/dropshot), where knocking
@@ -1283,6 +1290,7 @@ func _enter_scoreboard() -> void:
 			"skin": (players[i].skin if is_instance_valid(players[i]) else "pink"),
 			"score": int(scores[i]),
 			"delta": d,
+			"oops": stage_display_oops(i),   # WK-20c: non-scoring self-KO chip ("OOPS!") when delta is 0
 		})
 	_score_screen.present(rows, match_target_kills)
 	_score_screen.set_countdown(1.0)
@@ -1551,7 +1559,20 @@ func _deltas_line() -> String:
 		var d: int = stage_display_delta(i)
 		if d != 0:
 			parts.append("%s %+d" % [player_name(i), d])
+		elif stage_display_oops(i):
+			parts.append("%s OOPS!" % player_name(i))   # WK-20c: a self-KO that cost nothing (Ra default)
 	return "  ·  ".join(parts)
+
+## WK-20c (Ra): true when player i self-KO'd this stage under the default rule (self-KO costs 0). Under the
+## "SELF-KO -1" toggle this is always false and the line keeps today's text (a -1 floored at 0 shows nothing).
+## Shown only when there is no scoring delta to show, so a KO-er who later fell off still reads "+1". The SD
+## revived survivor is skipped (same display floor as stage_display_delta: "P1 SURVIVED · P1 OOPS!" reads wrong).
+func stage_display_oops(i: int) -> bool:
+	if self_ko_penalty > 0 or i < 0 or i >= _stage_self_kos.size():
+		return false
+	if int(_stage_self_kos[i]) <= 0 or stage_display_delta(i) != 0:
+		return false
+	return not (_revived_this_stage and i == _stage_winner)
 
 ## Player i's stage delta AS DISPLAYED. SD display fix (pacing6): on a sudden-death stage the announced
 ## SURVIVOR lost their last life into the double-KO and was revived, so their true net stage delta can be

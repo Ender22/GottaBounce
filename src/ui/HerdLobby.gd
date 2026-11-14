@@ -257,13 +257,14 @@ func _load_rules() -> void:
 		_cpu_pref = int(r.get("cpus", 3))
 		cfg.kills_to_win = int(r.get("kills_to_win", 10))
 		cfg.lives_per_player = int(r.get("lives_per_player", 1))
+		cfg.self_ko_penalty = int(r.get("self_ko_penalty", 0))   # WK-20c: Ra default OFF
 
 func _current_rules() -> Dictionary:
 	var cfg: MatchConfig = GameConfig.match_config
 	if _mode == "sports":
 		return {"sports_total": _sports_total, "bot_difficulty": cfg.bot_difficulty}
 	return {"cpus": _cpu_pref, "bot_difficulty": cfg.bot_difficulty, "kills_to_win": cfg.kills_to_win,
-		"lives_per_player": cfg.lives_per_player}
+		"lives_per_player": cfg.lives_per_player, "self_ko_penalty": cfg.self_ko_penalty}
 
 func _hero(g: int) -> Dictionary:
 	var h: Dictionary = (HEROES[g] as Dictionary).duplicate()
@@ -994,6 +995,8 @@ func _open_rules(key: String, si: int) -> void:
 			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty"},
 			{"title": "KOs TO WIN", "labels": ["5", "7", "8", "10"], "vals": [5, 7, 8, 10], "field": "kills_to_win"},
 			{"title": "LIVES", "labels": ["1", "2", "3"], "vals": [1, 2, 3], "field": "lives_per_player"},
+			# WK-20c (DECISIONS 2026-11-14, ruling Ra): self-KO costs 0 by default; ON = the old -1 (floored at 0)
+			{"title": "SELF-KO −1", "labels": ["OFF", "ON"], "vals": [0, 1], "field": "self_ko_penalty"},
 		]
 	else:
 		_rules_defs = [
@@ -1063,6 +1066,7 @@ func _apply_rules(r: Dictionary) -> void:
 		_cpu_pref = int(r.get("cpus", _cpu_pref))
 		cfg.kills_to_win = int(r.get("kills_to_win", cfg.kills_to_win))
 		cfg.lives_per_player = int(r.get("lives_per_player", cfg.lives_per_player))
+		cfg.self_ko_penalty = int(r.get("self_ko_penalty", cfg.self_ko_penalty))
 
 ## Current value of a rule row + its legal values/labels (CPUs range follows the humans, WK-02 cap).
 func _rule_def_values(def: Dictionary) -> Array:
@@ -1230,6 +1234,8 @@ func _refresh_rules_bar() -> void:
 	if _mode == "brawl":
 		_rules_text.text = "FIRST TO %d KOs  ·  %d %s  ·  CPU SKILL %s" % [cfg.kills_to_win, cfg.lives_per_player,
 			"LIFE" if cfg.lives_per_player == 1 else "LIVES", skill]
+		if cfg.self_ko_penalty > 0:
+			_rules_text.text += "  ·  SELF-KO −%d" % cfg.self_ko_penalty   # WK-20c: only the non-default rule shows
 	elif _mode == "sports":
 		var total: int = _sports_total if _joined_count() <= _sports_total else 4
 		_rules_text.text = "%s  ·  FIRST TO %d GOALS  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", Tuning.sports_goal_target, skill]

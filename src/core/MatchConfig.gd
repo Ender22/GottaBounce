@@ -37,6 +37,11 @@ const MAX_FIGHTERS := 4
 @export var circuit_id: StringName = &""                   # used only when arena_mode == CIRCUIT; key into levels/circuits.json
 @export var kills_to_win: int = 10                          # overrides Tuning.match_target_kills for the match
 @export var lives_per_player: int = 1                       # overrides Tuning.lives_per_player for the match
+## WK-20c (DECISIONS 2026-11-14 WK-20a ruling Ra): points a SELF-KO costs in BRAWL (a death with no credited
+## attacker: a self-fall, a hazard, a whiffed super). 0 = Ra default (the lost stage/life IS the cost; the
+## stage-end line reads "OOPS!"); 1 = the RULES toggle "SELF-KO −1" (the old rule: −1, floored at 0).
+## Sports/Trials ignore it.
+@export var self_ko_penalty: int = 0
 
 ## Most bots allowed alongside `humans` humans (BOTS stepper max / lobby CPU tray max).
 static func max_bots_for(humans: int) -> int:

@@ -24,7 +24,8 @@ var resume_setup := false
 ## (empty Array = no lobby yet).
 var lobby: Array = []
 ## WK-07 per-mode rule memory (CC-4.6 / R-26): mode key ("brawl", "rocketball", "dropshot", ...) -> rule
-## dict. BRAWL {cpus, bot_difficulty, kills_to_win, lives_per_player}; SPORTS {sports_total, bot_difficulty}.
+## dict. BRAWL {cpus, bot_difficulty, kills_to_win, lives_per_player, self_ko_penalty (WK-20c)}; SPORTS
+## {sports_total, bot_difficulty}.
 ## `cpus` is the CPU *preference* (the lobby shows min(pref, MAX_FIGHTERS - humans), so a full lobby stays
 ## full as humans come and go — WK-02). Survives QUIT TO TITLE on purpose (rules are a preference, the
 ## lobby is a session). A mode never reads another mode's entry, so Rocketball's 1 bot can't leak into Brawl.
@@ -70,6 +71,7 @@ func rules_for(key: String) -> Dictionary:
 		d["cpus"] = 3
 		d["kills_to_win"] = 10
 		d["lives_per_player"] = 1
+		d["self_ko_penalty"] = 0   # WK-20c: Ra default (self-KO costs 0); 1 = RULES "SELF-KO −1" ON
 	var saved: Variant = mode_rules.get(key, {})
 	if typeof(saved) == TYPE_DICTIONARY:
 		for k in (saved as Dictionary).keys():

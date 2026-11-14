@@ -5,7 +5,8 @@ extends GameMode
 ## corresponding runner code did before the seam existed. Parity is proven by C7.
 ##
 ## Rules: last-one-flying stages, CUMULATIVE kill-race to `kills_to_win` with a strict lead, +1 per
-## credited kill / -1 self-fall floored at 0. Level rotation = a shuffle-bag over the arena pool
+## credited kill; a self-KO costs MatchConfig.self_ko_penalty (WK-20c: 0 by default = Ra, "OOPS!"; the RULES
+## toggle "SELF-KO −1" restores -1 floored at 0). Level rotation = a shuffle-bag over the arena pool
 ## (RANDOM_ALL) or a fixed single arena (SINGLE). Sudden-death plumbing stays in the runner.
 
 const HUD_SCENE := preload("res://scenes/ui/MatchHUD.tscn")
@@ -40,6 +41,7 @@ func configure(runner, config: MatchConfig) -> void:
 	# read config into the runner (defaults reproduce Tuning.match_target_kills / lives_per_player)
 	runner.match_target_kills = config.kills_to_win
 	runner.lives_per_player = config.lives_per_player
+	runner.self_ko_penalty = maxi(0, config.self_ko_penalty)   # WK-20c (Ra): 0 = self-KO costs nothing
 	# build the level sequence: CIRCUIT -> authored ordered list; SINGLE -> one arena;
 	# RANDOM_ALL (default) -> the whole pool (shuffle-bag). Only CIRCUIT is _ordered.
 	_ordered = false
@@ -212,7 +214,10 @@ func next_level_path(_runner) -> String:
 func is_stage_over(runner) -> bool:
 	return runner._not_eliminated_count() <= 1
 
-## Scoring (today's _on_killed math): +1 credited kill / -1 self-fall floored at 0. CUMULATIVE.
+## Scoring: +1 credited kill. A SELF-KO (no credited attacker: self-fall, hazard, whiffed super) costs
+## runner.self_ko_penalty points floored at 0 — 0 by default (WK-20c / DECISIONS 2026-11-14 ruling Ra: score =
+## credited KOs; the lost stage/life is the cost), 1 with the RULES toggle "SELF-KO −1". Either way the
+## self-KO is counted in runner._stage_self_kos so the stage-end line can say "OOPS!" when it cost nothing.
 func on_kill(runner, killer_idx: int, victim_idx: int, _cause) -> void:
 	if killer_idx >= 0 and killer_idx != victim_idx:
 		runner.scores[killer_idx] = int(runner.scores[killer_idx]) + 1
@@ -221,9 +226,14 @@ func on_kill(runner, killer_idx: int, victim_idx: int, _cause) -> void:
 		# credit fires, NEVER decremented — the suicide branch below adjusts score only.
 		if killer_idx < runner.raw_kills.size():
 			runner.raw_kills[killer_idx] = int(runner.raw_kills[killer_idx]) + 1
-	elif int(runner.scores[victim_idx]) > 0:   # suicide: -1 to your own total, floored at 0
-		runner.scores[victim_idx] = int(runner.scores[victim_idx]) - 1
-		runner._stage_deltas[victim_idx] = int(runner._stage_deltas[victim_idx]) - 1
+		return
+	# self-KO
+	if victim_idx < runner._stage_self_kos.size():
+		runner._stage_self_kos[victim_idx] = int(runner._stage_self_kos[victim_idx]) + 1
+	var pen: int = mini(int(runner.self_ko_penalty), int(runner.scores[victim_idx]))   # floored at 0
+	if pen > 0:
+		runner.scores[victim_idx] = int(runner.scores[victim_idx]) - pen
+		runner._stage_deltas[victim_idx] = int(runner._stage_deltas[victim_idx]) - pen
 
 ## The single leader at >= kills_to_win, or -1 (today's _match_over_leader, strict-lead rule).
 func match_winner(runner) -> int:
@@ -275,8 +285,12 @@ func stage_end_banner(runner) -> Dictionary:
 	return {"text": text, "color": col, "subline": "   ·   ".join(parts)}
 
 ## WK-15 (D-04 / D-13): the rule, stated where a first-timer looks — the stage-1 intro card.
+## WK-20c: the non-default "SELF-KO −1" rule is stated here too, so nobody is surprised by the subtraction.
 func goal_line(runner) -> String:
-	return "SMASH 'EM OFF-SCREEN  ·  FIRST TO %d KOs" % int(runner.match_target_kills)
+	var line := "SMASH 'EM OFF-SCREEN  ·  FIRST TO %d KOs" % int(runner.match_target_kills)
+	if int(runner.self_ko_penalty) > 0:
+		line += "  ·  SELF-KO −%d" % int(runner.self_ko_penalty)
+	return line
 
 ## BRAWL arenas spawn powerups, so its legend teaches the B button too.
 func legend_verbs() -> Array:

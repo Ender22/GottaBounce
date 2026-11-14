@@ -8,7 +8,8 @@ extends CanvasLayer
 ##
 ## Presentation: each player row = goat head + NAME (+ small sub-tag, CC-8.5) + a colored RACE BAR toward the kill target
 ## (the finish line IS the "first to N" teaching device, replacing the pips) + big tally + this
-## stage's +/- delta chip. Bars animate from the pre-stage score to the new truth, staggered.
+## stage's +/- delta chip (WK-20c: or a non-scoring "OOPS!" chip for a self-KO that cost nothing).
+## Bars animate from the pre-stage score to the new truth, staggered.
 
 const BAR_PAD := 3.0
 const ROW_STAGGER := 0.12
@@ -16,6 +17,8 @@ const FILL_TIME := 0.5
 const GOLD := Color("#ffd23f")
 const DANGER := Color("#ff4b3a")
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
+## WK-20c: the non-scoring "OOPS!" chip (self-KO under the default rule) — a cool neutral, never the -1 red.
+const OOPS_COLOR := Color(0.62, 0.74, 0.92)
 
 @onready var _root: Control = $Root
 @onready var _panel: PanelContainer = $Root/Center/Panel
@@ -28,7 +31,8 @@ const CHOCO := Color(0.231373, 0.141176, 0.105882)
 
 var _tw: Tween
 
-## rows: [{pn:int, name:String, sub:String, color:Color, skin:String, score:int, delta:int}], target = kills_to_win.
+## rows: [{pn:int, name:String, sub:String, color:Color, skin:String, score:int, delta:int, oops:bool}],
+## target = kills_to_win. `oops` (WK-20c, optional) = a self-KO this stage that cost nothing.
 ## pn = 1-based player index (row identity); name/sub = CC-8.5 identity (WK-88): "P3"+"POGO" / "VEX"+"CPU".
 func present(rows: Array, target: int) -> void:
 	visible = true
@@ -115,14 +119,20 @@ func _build_row(r: Dictionary, target: int) -> Dictionary:
 	var from_score: int = maxi(0, int(r["score"]) - delta)
 	score_l.text = str(from_score)
 	var delta_l: Label = row.get_node("Delta")
+	var oops: bool = delta == 0 and bool(r.get("oops", false))
 	if delta != 0:
 		delta_l.text = "%+d" % delta
 		delta_l.add_theme_color_override("font_color", GOLD if delta > 0 else Color(0.75, 0.45, 0.4))
 		delta_l.modulate.a = 0.0
+	elif oops:
+		# WK-20c (Ra): a self-KO that cost nothing — a non-scoring reaction chip, never a number
+		delta_l.text = "OOPS!"
+		delta_l.add_theme_color_override("font_color", OOPS_COLOR)
+		delta_l.modulate.a = 0.0
 	else:
 		delta_l.text = ""
 	return {"row": row, "fill": fill, "score_l": score_l, "delta_l": delta_l,
-		"from": from_score, "to": int(r["score"]), "target": maxi(1, target), "delta": delta}
+		"from": from_score, "to": int(r["score"]), "target": maxi(1, target), "delta": delta, "oops": oops}
 
 func _animate_row(h: Dictionary, delay: float) -> void:
 	var slot: Control = (h["row"] as Control).get_node("BarSlot")
@@ -141,7 +151,7 @@ func _animate_row(h: Dictionary, delay: float) -> void:
 	var score_l: Label = h["score_l"]
 	tw.parallel().tween_method(func(v: float) -> void: score_l.text = str(int(round(v))),
 		float(h["from"]), float(h["to"]), FILL_TIME if h["to"] != h["from"] else 0.01)
-	if int(h["delta"]) != 0:
+	if int(h["delta"]) != 0 or bool(h.get("oops", false)):
 		var delta_l: Label = h["delta_l"]
 		delta_l.pivot_offset = delta_l.size * 0.5
 		delta_l.scale = Vector2(1.6, 1.6)

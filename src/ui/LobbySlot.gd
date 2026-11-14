@@ -10,6 +10,8 @@ extends Control
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const CREAM := Color(1.0, 0.968627, 0.921569)
 const GOLD := Color("#ffd23f")
+const ROW_Y0 := 72.0      # RULES back face: first rule row's top (rows are 72 px tall in LobbySlot.tscn)
+const ROW_PITCH := 78.0   # 5 BRAWL rows (WK-20c) fit 72..456 above the DONE/UNDO footer at 462
 const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smash / MK8), not see-through glass
 
 @onready var _plate: Panel = $Plate
@@ -44,7 +46,7 @@ const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smas
 @onready var _rules_face: Control = $RulesFace
 @onready var _rules_icon: TextureRect = $RulesFace/ModeIcon
 @onready var _rules_check: Control = $RulesFace/ReadyCheck
-@onready var _rule_rows: Array = [$RulesFace/Row0, $RulesFace/Row1, $RulesFace/Row2, $RulesFace/Row3]
+@onready var _rule_rows: Array = [$RulesFace/Row0, $RulesFace/Row1, $RulesFace/Row2, $RulesFace/Row3, $RulesFace/Row4]
 @onready var _rules_done_glyph: Control = $RulesFace/Footer/DoneGlyph
 @onready var _rules_undo_glyph: Control = $RulesFace/Footer/UndoGlyph
 
@@ -433,8 +435,9 @@ func show_rules(data: Dictionary) -> void:
 		row.visible = i < n
 		if i >= n:
 			continue
-		# BRAWL x4 rows from y=76 (94 apart); SPORTS x2 centred in the 76-440 band (y = 168, 262)
-		row.position.y = (76.0 + 94.0 * i) if n > 2 else (168.0 + 94.0 * i)
+		# BRAWL x5 rows (72 tall) from y=72, 78 apart -> last ends at 456, above the footer (462); WK-20c added
+		# SELF-KO -1. SPORTS x2 keep the old 94 pitch, centred in the band (y = 174, 268).
+		row.position.y = (ROW_Y0 + ROW_PITCH * i) if n > 2 else (174.0 + 94.0 * i)
 		var ps := StyleBoxFlat.new()
 		ps.bg_color = _color
 		ps.border_color = CHOCO
