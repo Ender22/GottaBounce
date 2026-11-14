@@ -49,7 +49,38 @@ const SFX := {
 	                      "res://assets/sfx/kenney_impactPlank_medium_002.ogg"],   # WK-121 Dropshot tile hit 1
 	"tile_break":        ["res://assets/sfx/crunch.mp3"],                 # WK-121 Dropshot tile hit 2 (hole opens)
 	"tile_break_body":   ["res://assets/sfx/kenney_impactWood_medium_000.ogg", "res://assets/sfx/kenney_impactWood_medium_001.ogg"],
+	# --- WK-53 bleat / taunt: one freesound CC0 goat per hero (provenance in assets/sfx/LICENSES.md). Keys are
+	# "bleat_<hero>" (living) / "bleat_ghost_<hero>" (ghost variant: band-limited + vibrato + echo baked in). ---
+	"bleat_butch":       ["res://assets/sfx/bleat_butch.ogg"],
+	"bleat_billy":       ["res://assets/sfx/bleat_billy.ogg"],
+	"bleat_vex":         ["res://assets/sfx/bleat_vex.ogg"],
+	"bleat_ziggy":       ["res://assets/sfx/bleat_ziggy.ogg"],
+	"bleat_pogo":        ["res://assets/sfx/bleat_pogo.ogg"],
+	"bleat_puff":        ["res://assets/sfx/bleat_puff.ogg"],
+	"bleat_ghost_butch": ["res://assets/sfx/bleat_ghost_butch.ogg"],
+	"bleat_ghost_billy": ["res://assets/sfx/bleat_ghost_billy.ogg"],
+	"bleat_ghost_vex":   ["res://assets/sfx/bleat_ghost_vex.ogg"],
+	"bleat_ghost_ziggy": ["res://assets/sfx/bleat_ghost_ziggy.ogg"],
+	"bleat_ghost_pogo":  ["res://assets/sfx/bleat_ghost_pogo.ogg"],
+	"bleat_ghost_puff":  ["res://assets/sfx/bleat_ghost_puff.ogg"],
 }
+
+# --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
+# plus a per-hero pitch so no two heroes share a voice; db trims level-match the files by ear-proxy (active RMS).
+const BLEAT_BY_SKIN := {
+	"blue":   {"hero": "butch", "pitch": 0.90, "db": 0.0},    # BUTCH: deepest, sustained adult "MAAAH"
+	"orange": {"hero": "billy", "pitch": 1.00, "db": 0.0},    # BILLY: adult with a goaty tremolo
+	"purple": {"hero": "vex",   "pitch": 1.00, "db": 1.0},    # VEX: pulsed buck "meh-eh-eh"
+	"green":  {"hero": "ziggy", "pitch": 0.95, "db": 0.0},    # ZIGGY: clean, nasal "meeeh"
+	"pink":   {"hero": "pogo",  "pitch": 1.00, "db": 1.0},    # POGO: kid
+	"yellow": {"hero": "puff",  "pitch": 1.08, "db": 2.0},    # PUFF: smallest, highest kid
+}
+const BLEAT_FALLBACK_ORDER := ["pogo", "butch", "ziggy", "puff", "vex", "billy"]   # unknown skin -> by player idx
+const BLEAT_DB := -4.0            # living taunt: under a smash (-10..+2) and the KO pop (-3), over the music bed
+const BLEAT_GHOST_DB := -6.0      # the dead are a seasoning: just over the thrust loop (-24 dB eff.), under a KO pop
+const BLEAT_GHOST_PITCH := 1.1892 # +3 semitones (spec wk37a §9 "ghostly variant")
+const BLEAT_PITCH_VAR := 0.03     # small per-press spread so repeats aren't a machine-gun of one sample
+const BLEAT_MAX_VOICES := 3       # global cap on simultaneous bleats (4 spamming ghosts can't starve the pool)
 const MUSIC_GAMEPLAY := [
 	"res://assets/music/gameplay_1.mp3", "res://assets/music/gameplay_2.mp3",
 	"res://assets/music/gameplay_3.mp3", "res://assets/music/gameplay_4.mp3",
@@ -77,6 +108,11 @@ var thrust_active := false
 var sfx_counts := {}             # event key -> times played (QA: sports evidence logs counts by type)
 var ball_strikes_seen := 0       # every EventBus.ball_struck received (heard or rate-limited)
 var ball_strikes_heard := 0      # strikes that produced a sound
+var sfx_dropped := 0             # low_priority sounds skipped because every voice was busy (pool starvation)
+var bleats_seen := 0             # WK-53: every EventBus.bleated received
+var bleats_heard := 0            # bleats that produced a sound (rest = rate limit / voice cap / pool full)
+var bleat_log: Array = []        # last 32 heard: {ms, idx, ghost, key, pitch} (QA via gbplay eval)
+var _bleat_hist := {}            # "idx:ghost" -> [ms of recent heard bleats] (per-player rate limit)
 
 # --- SPORTS mix / rate-limit (WK-105). Touch loudness rides the |delta-v| the touch gave the ball. ---
 # Measured (2v2 L3 bots, 77 touches): |delta-v| min 342 / median 2237 / max 3872 — a touch that REVERSES
@@ -142,6 +178,7 @@ func _ready() -> void:
 	EventBus.ball_struck.connect(_on_ball_struck)       # WK-105 sports ball touch
 	EventBus.goal_scored.connect(_on_goal_scored)       # WK-105 goal/point stinger (WK-106 signal)
 	EventBus.drop_tile_hit.connect(_on_drop_tile_hit)   # WK-121 Dropshot tile crack / break
+	EventBus.bleated.connect(_on_bleated)               # WK-53 ghost bleat (+ living taunt once WK-128 lands)
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -158,8 +195,14 @@ func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	var stream := _stream(path)
 	if stream == null:
 		return
-	var pl := _grab()
+	# WK-53 `low_priority`: takes a FREE voice, else steals a ringing BOUNCE tail (spring.mp3 rings 0.95 s and
+	# bounces keep 7-14 of the 14 voices busy in a brawl), never a smash / KO / goal voice; else it is dropped.
+	var pl: AudioStreamPlayer = _free_or_bounce_voice() if bool(opts.get("low_priority", false)) else _grab()
+	if pl == null:
+		sfx_dropped += 1
+		return
 	pl.set_meta("protect", bool(opts.get("protect", false)))
+	pl.set_meta("tag", str(opts.get("tag", "")))
 	pl.stream = stream
 	var pitch: float = float(opts.get("pitch", 1.0))
 	var pvar: float = float(opts.get("pitch_var", 0.06))
@@ -169,6 +212,31 @@ func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	sfx_fired += 1
 	last_sfx = name
 	sfx_counts[name] = int(sfx_counts.get(name, 0)) + 1
+
+func _free_or_bounce_voice() -> AudioStreamPlayer:
+	for i in range(_pool.size()):
+		var idx := (_next + i) % _pool.size()
+		if not _pool[idx].playing:
+			_next = (idx + 1) % _pool.size()
+			return _pool[idx]
+	# all busy: the bounce voice furthest into its tail (quietest part of the ring)
+	var best: AudioStreamPlayer = null
+	var best_pos := -1.0
+	for p in _pool:
+		if str(p.get_meta("tag", "")) == "bounce" and not bool(p.get_meta("protect", false)):
+			var pos: float = p.get_playback_position()
+			if pos > best_pos:
+				best_pos = pos
+				best = p
+	return best
+
+## Voices currently playing a sound fired with opts.tag == tag.
+func voices_tagged(tag: String) -> int:
+	var n := 0
+	for p in _pool:
+		if p.playing and str(p.get_meta("tag", "")) == tag:
+			n += 1
+	return n
 
 func _grab() -> AudioStreamPlayer:
 	# prefer a free voice; otherwise steal the next in round-robin (oldest-ish)
@@ -248,7 +316,7 @@ func _on_surface_bounced(surface, _player, _normal, _contact) -> void:
 		return
 	_bounce_last_t = now
 	var db: float = BOUNCE_DB_SPORTS if _sports_active() else -4.0
-	play_sfx("bounce", {"pitch": pitch, "pitch_var": 0.08, "volume_db": db})
+	play_sfx("bounce", {"pitch": pitch, "pitch_var": 0.08, "volume_db": db, "tag": "bounce"})
 
 func _on_smashed(_attacker, _victim, impulse) -> void:
 	# volume scaled by hit solidity (impulse magnitude vs a full super blast)
@@ -381,6 +449,57 @@ func _on_drop_tile_hit(_tile, broken) -> void:
 		play_sfx("tile_break_body", {"volume_db": -8.0, "pitch": 0.9, "pitch_var": 0.05})
 	else:
 		play_sfx("tile_crack", {"volume_db": -9.0, "pitch": 1.15, "pitch_var": 0.08})
+
+## WK-53 bleat / taunt (EventBus.bleated). Each hero has its own goat; a ghost plays the ghost variant +3 st.
+## Rate limit per player (same numbers as the ghost spec: one per ghost_bleat_min_interval, <= ghost_bleat_max_per_s
+## in any second) + a global cap of BLEAT_MAX_VOICES live bleats; bleats are low priority (never steal a voice).
+## Wall-clock based, so it also holds on the ScoreScreen / while paused.
+func _on_bleated(player_idx, ghost) -> void:
+	bleats_seen += 1
+	var idx: int = int(player_idx)
+	var is_ghost: bool = bool(ghost)
+	var now: int = Time.get_ticks_msec()
+	var hist: Array = (_bleat_hist.get(idx, []) as Array).filter(func(t) -> bool: return now - int(t) < 1000)
+	if not hist.is_empty() and float(now - int(hist.back())) / 1000.0 < Tuning.ghost_bleat_min_interval:
+		_bleat_hist[idx] = hist
+		return
+	if hist.size() >= Tuning.ghost_bleat_max_per_s:
+		_bleat_hist[idx] = hist
+		return
+	if voices_tagged("bleat") >= BLEAT_MAX_VOICES:
+		return
+	var v: Dictionary = _bleat_voice(idx)
+	var key: String = ("bleat_ghost_" if is_ghost else "bleat_") + str(v["hero"])
+	var pitch: float = float(v["pitch"]) * (BLEAT_GHOST_PITCH if is_ghost else 1.0)
+	var db: float = (BLEAT_GHOST_DB if is_ghost else BLEAT_DB) + float(v["db"])
+	var before := sfx_fired
+	play_sfx(key, {"pitch": pitch, "pitch_var": BLEAT_PITCH_VAR, "volume_db": db, "low_priority": true, "tag": "bleat"})
+	if sfx_fired == before:
+		return   # pool full (or file missing): dropped, not counted against the rate limit
+	hist.append(now)
+	_bleat_hist[idx] = hist
+	bleats_heard += 1
+	bleat_log.append({"ms": now, "idx": idx, "ghost": is_ghost, "key": key, "pitch": snappedf(pitch, 0.001)})
+	if bleat_log.size() > 32:
+		bleat_log.pop_front()
+
+## The bleating player's hero voice: their worn skin (living Player, else their GhostGoat), else a stable pick by idx.
+func _bleat_voice(idx: int) -> Dictionary:
+	var skin := ""
+	var scene := get_tree().current_scene
+	if scene != null and "players" in scene:
+		var ps: Array = scene.players
+		if idx >= 0 and idx < ps.size() and is_instance_valid(ps[idx]) and "skin" in ps[idx]:
+			skin = str(ps[idx].skin)
+	if skin == "" and scene != null and scene.has_method("ghost_director"):
+		var gd = scene.ghost_director()
+		if gd != null and gd.has_method("ghost_for"):
+			var g = gd.ghost_for(idx)
+			if g != null and "skin" in g:
+				skin = str(g.skin)
+	if BLEAT_BY_SKIN.has(skin):
+		return BLEAT_BY_SKIN[skin]
+	return {"hero": BLEAT_FALLBACK_ORDER[posmod(idx, BLEAT_FALLBACK_ORDER.size())], "pitch": 1.0, "db": 0.0}
 
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()

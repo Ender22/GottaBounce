@@ -29,3 +29,19 @@ Downloaded 2026-11-14 from the official pack pages; files copied verbatim, renam
 
 Pack licence text (both packs): "License: (Creative Commons Zero, CC0) ... This content is free to use in personal,
 educational and commercial projects. Support us by crediting Kenney or www.kenney.nl (this is not mandatory)".
+
+## freesound.org — Creative Commons Zero (CC0 1.0), http://creativecommons.org/publicdomain/zero/1.0/
+WK-53 goat bleats. Each source page was checked on 2026-11-15 and shows CC0 1.0 as its only licence. The source is the
+freesound HQ preview (`https://cdn.freesound.org/previews/<id/1000>/<id>_<user-id>-hq.ogg`). One bleat was cut from each
+preview, high-passed and loudness-matched (~-16 dBFS active RMS, peak <= -1.2 dBFS); pogo/puff/vex also got denoise and a
+-5 dB shelf above 4 kHz. The `bleat_ghost_*` variants add a band-limit (280 Hz-2.6 kHz), a 5.5 Hz vibrato and a 4-tap echo
+tail. AudioManager adds +3 semitones at playback (spec wk37a §9). Reproduce with `tools/audio/render_bleats.sh`.
+
+| File(s) | Source sound (author) | Cut from preview | Use (AudioManager key) |
+|---|---|---|---|
+| `bleat_butch.ogg`, `bleat_ghost_butch.ogg` | https://freesound.org/people/Kinoton/sounds/581240/ "Single Goat Bleating 2x" (Kinoton) | 0.36-1.12 s (bleat 1) | `bleat_butch` / `bleat_ghost_butch` — BUTCH (blue), deep adult |
+| `bleat_billy.ogg`, `bleat_ghost_billy.ogg` | https://freesound.org/people/Kinoton/sounds/581240/ (Kinoton) | 2.11-2.88 s (bleat 2, tremolo) | `bleat_billy` / `bleat_ghost_billy` — BILLY (orange) |
+| `bleat_vex.ogg`, `bleat_ghost_vex.ogg` | https://freesound.org/people/satoristudios3/sounds/677220/ "Nigerian Dwarf Buck Goat" (satoristudios3) | 0.10-0.80 s | `bleat_vex` / `bleat_ghost_vex` — VEX (purple), pulsed buck |
+| `bleat_ziggy.ogg`, `bleat_ghost_ziggy.ogg` | https://freesound.org/people/saha213131/sounds/691476/ "goat2.mp3" (saha213131) | 0.03-0.70 s | `bleat_ziggy` / `bleat_ghost_ziggy` — ZIGGY (green), clean "meeh" |
+| `bleat_pogo.ogg`, `bleat_ghost_pogo.ogg` | https://freesound.org/people/jsbarrett/sounds/200333/ "Baby goat bleating" (jsbarrett) | 1.40-2.10 s | `bleat_pogo` / `bleat_ghost_pogo` — POGO (pink), kid |
+| `bleat_puff.ogg`, `bleat_ghost_puff.ogg` | https://freesound.org/people/jsbarrett/sounds/200333/ (jsbarrett) | 4.86-5.45 s | `bleat_puff` / `bleat_ghost_puff` — PUFF (yellow), smallest kid |
