@@ -49,7 +49,7 @@ and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 5. ~~WK-124~~ done 540f863 — [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT regression, now 3.27 s) — gameplay-programmer + ui-ux-designer
 6. WK-37a [P1][S] Ghost-goat spec (no game slot, can run in parallel now): the dead are 48 % of a weaker player's match — game-designer
 7. ~~WK-18~~ done 2aa8f87 — [P1][S] 28 px floor for anything a player reads (HUD, legend, lobby badges, sports score bug) — ui-ux-designer
-8. WK-111 [P1][M] Sports end screen frames the winning team + stat strip + MVP (SP-09; raised P2 -> P1 by CD2) — ui-ux-designer + gameplay-programmer
+8. ~~WK-111~~ done b4eb885 — [P1][M] Sports end screen frames the winning team + stat strip + MVP (SP-09; raised P2 -> P1 by CD2) — ui-ux-designer + gameplay-programmer
 9. ~~WK-25~~ done 2eef67e — [P1][M] KO credit pop (+1 to the killer's card, −1 OOPS if the rule survives) + ScoreScreen kill list; after the WK-20a/20c ruling — gameplay-programmer + ui-ux-designer
 10. WK-34 [P1][M] Toybox panel kit A: Pause, in-match Options, ScoreScreen (first half of "one finished look"; WK-35 follows) — ui-ux-designer
 
@@ -374,7 +374,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
 - Accept: rules screenshot with the GOALS row; at 5-4 and 5-5 (cap 6) screenshots show "MATCH POINT — RED" and "GOLDEN GOAL".
 - Status: open (on deck)
 
-### [ ] WK-111 [P1][M] Sports end screen: frame the winning team, panel to the lower third, per-player stat strip + MVP (SP-09)
+### [x] WK-111 [P1][M] Sports end screen: frame the winning team, panel to the lower third, per-player stat strip + MVP (SP-09) — b4eb885
 - Area: sports | menus · Owner: ui-ux-designer + gameplay-programmer · Source: WK-98 SP-09
 - Evidence: `tools/out/sports/evidence/sp_end_zoom_into_wall.png` (LONG HAUL: `MATCH_END_ZOOM` 1.1 punch on the representative winner =
   goal pillars + void, winners hidden behind the panel); `m6_rb2v2_bowl/end.png` (same on the bowl ledges); panel says only

@@ -18,6 +18,9 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   builder's unverified hunks sit in the same file. Note the pending state in STATUS; commit both together.
 - **Partial commits of mixed files: `python tools/stage_hunks.py <file> --exclude|--include REGEX [--list]`** stages
   only matching hunks (git add -p is interactive and unavailable). Pipe patches as BYTES on Windows.
+- **Port 9090 is shared**: any Godot started from the repo (incl. Movie Maker recordings) can grab it, so gbplay may
+  drive SOMEONE ELSE'S game. Before gbplay commands, confirm 9090's owner PID is yours (or drive your instance with
+  your own in-game script). WK-111 accidentally reset another agent's match this way.
 - **`tools/stop_game.ps1` kills EVERY Godot process** (incl. other agents' headless runs). Check before using.
 - **Deny rules match whole command text**: a commit message containing "reset --hard"/"push"/"clean" after `git`
   is denied. Reword.
