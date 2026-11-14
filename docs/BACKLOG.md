@@ -19,17 +19,34 @@ Standard: `docs/COUCH_CONVENTIONS.md` (CC-x.y). Procedure: `docs/WEEKEND_LOOP.md
 
 Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 files · M = one full slice · L = split it.
 
-## Next 10
-1. ~~WK-01~~ done 933a77a
-2. ~~WK-02~~ done 933a77a
-3. ~~WK-03~~ done 1191757 — InputRouter autoload + device keys + gbplay simulated-pad testability
-4. ~~WK-04~~ done 1191757 — Each human driven by exactly one device (`InputHuman.for_device`, no keyboard sharing)
-5. ~~WK-05~~ done fe2a99c — Herd Lobby slice 1: press-A-to-join panels, independent goat cycling
-6. ~~WK-06~~ done fe2a99c — Herd Lobby slice 2: ready / banner / Start proceeds / devices carry into the match
-7. ~~WK-81~~ done f1a9fdd — Lobby review must-fixes + WK-07 Herd Lobby slice 3: RULES panel + lobby persistence + CHANGE SETUP
-8. ~~WK-08~~ done 4e7caf6 — One player = one colour = their goat's colour, everywhere
-9. WK-09 Pause menu finish: hold-to-confirm RESTART/QUIT + "PAUSED · P2" header
-10. ~~WK-10~~ done 4e7caf6 — Persistent P# pip over humans, CPU tags on bots
+## In flight (do NOT reassign)
+- WK-09 Pause finish (hold-to-confirm, "PAUSED · P#") · WK-11 end-screen fresh-press gate · WK-80 QA nits — one gameplay-programmer
+- WK-12 painted backdrop on every brawl arena — level-designer
+
+## Next 10 (producer re-rank 2026-11-14, after WK-01..08/10/81 landed; pull top-down once the in-flight items land)
+Ranking logic: no open P0 remains. P1 ordered by couch impact per cost, depth-first on the core brawl's
+readability (the KO is the climax of the loop and is currently invisible + anonymous: audit D-01/D-02/D-06 =
+design top move #1), then the RECOVER verb (GAME_ESSENCE verb 4: D-18, D-05) and front-end flow, before content.
+
+0. WK-CD1 creative-director cold playthrough after WK-09/11/12 land — creative-director (10 items done since seeding; WEEKEND_LOOP
+   says every ~6). Integrated build, 2 simulated pads + keyboard, Title -> Lobby -> Brawl match -> Victory -> REMATCH,
+   plus one Trials and one Sports launch. Findings -> producer re-rank BEFORE item 1 is pulled. Recurs: next one due
+   after item 6 below (WK-CD2), then every ~6 items.
+1. WK-24 [P1][S] Hits carry the attacker's colour (burst, streak, last-touch ring) — gameplay-programmer
+2. WK-22 [P1][S] KO blast sprite strip — art pipeline (art-director brief). Runs in PARALLEL with item 1 (no game slot until the test frame)
+3. WK-23 [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer (deps WK-22)
+4. WK-20a [P1][S] Measure the +25 % knockback side effects + game-designer ruling (no code) — qa-playtester + game-designer
+5. WK-82 [P1][S] Lobby hold-B exit only from a B that changed nothing (one kid un-readying must not eject the room) — gameplay-programmer
+6. WK-21 [P1][S] Adaptive ScoreScreen hold 2.0 / 3.4 s + FLY skips via the WK-11 gate — gameplay-programmer (deps WK-11)
+7. WK-25 [P1][M] KO credit pop (+1 to killer's card / −1 OOPS) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-23)
+8. WK-17 [P1][S] Bundle an OFL display font (DECISIONS b) — ui-ux-designer; unblocks WK-18/34/35
+9. WK-15 [P1][S] Teach the goal: legend on every mode's stage 1, "SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs" — ui-ux-designer + gameplay-programmer
+10. WK-36 [P1][M] Off-screen magnifier bubbles with fuel ring (watch the recovery live) — gameplay-programmer
+
+On deck (11+, in order): WK-26 super-aim wind-up + "!" (S) · WK-20b knockback fix, only if WK-20a rules it needed (S) ·
+WK-13 BRAWL default focus on ModeSelect (S) · WK-19 rumble only to the concerned pad (S) · WK-53 quack/taunt (S, needs a
+CC0 bleat) · WK-37a ghost-goat spec (S, game-designer, can run in parallel any time) · WK-32a hero wire-or-cosmetic
+decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware glyph component (M).
 
 ---
 
@@ -44,6 +61,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - (e) Painted backdrop doesn't reach screen edges (pale strips L/B on Daisy Ring, L/R on meadow).
 - (f) Options: focus bar overlaps the "M" of MASTER VOLUME; from pause, Options BACK + hint bar overlap HUD cards.
 - Accept: each sub-item screenshot-verified in tools/out/wk/WK-80_*.png; no PowerupSystem errors across 3 stages.
+- Status: in-progress (gameplay-programmer, with WK-09 + WK-11). Note: (a) "B from CharacterSelect" now means B from the Herd Lobby; (e) overlaps WK-12 (backdrop coverage) — coordinate, don't both edit Backdrop code.
 
 ## P0 — broken normal couch play (controls, joining/selecting, roster)
 
@@ -60,7 +78,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   Esc -> PAUSED; P -> PAUSED; pad1 opens pause, pad0 A/stick ignored, pad1 A resumes; A-resume -> goat does not boost
   on the first 10 frames; B-resume -> no powerup fires; super held through pause is not fired by resume; legend shows
   START glyph. Screens `tools/out/wk/WK-01_*.png`.
-- Status: **built, rendered verification in progress**
+- Status: done 933a77a (QA 8/8 rendered)
 
 ### [x] WK-02 [P0][S] Roster cap = 4 fighters; HUMANS up lowers BOTS; HUD hides unused cards — 933a77a
 - Sources: R-03, C-15 (hide part + out-of-bounds `skins[i]`), D-17 (cap part — see Deferred for 6-8 players)
@@ -72,7 +90,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   overrides the audit's "CPUs 0..8−humans").
 - Accept (rendered): default Brawl = 1H+3CPU, 4 cards; HUMANS->2 shows BOTS 2 -> match has 4 fighters, no P5 tag; 1H+1CPU
   Brawl shows exactly 2 HUD cards, no ghost "P1" cards, no script error in the log; BOTS cannot exceed 4−humans.
-- Status: open
+- Status: done 933a77a (stepper coupling since replaced by the lobby CPU tray, fe2a99c)
 
 ### [x] WK-03 [P0][M] InputRouter autoload + device keys + simulated pads testable from gbplay — 1191757
 - Sources: C-05 (infrastructure), C-06/C-07/C-10/C-26 (enablers), audit §E.8
@@ -85,7 +103,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Accept (rendered): via gbplay, keyboard + `gamepad` device 0/1/2 presses -> `eval InputRouter.last_device_key` reads
   `kb`, `pad:0`, `pad:1`, `pad:2` in turn; keyboard after pad 0 is `kb` (not `pad:0`); `simulate_device_lost("pad:1")`
   emits the signal (eval a counter). WK-01 pause gating still passes (regression).
-- Status: open
+- Status: done 1191757
 
 ### [x] WK-04 [P0][M] Each human is driven by exactly one device (`InputHuman.for_device`) — 1191757
 - Sources: C-05, C-04 (match half), R-02 (match half)
@@ -97,7 +115,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Accept (rendered): set `human_devices=["kb","pad:0","pad:1"]` via eval + 3 humans, start Brawl; drive each device in turn
   and `eval` positions: keyboard moves only P1, pad0 only P2, pad1 only P3 (0 cross-moves over 3 trials each);
   cold-boot Arena.tscn still drives P1 from any device.
-- Status: open
+- Status: done 1191757 (0 cross-moves, rendered)
 
 ### [x] WK-05 [P0][M] Herd Lobby slice 1: press A/Enter to join, per-player panels, independent goat cycling — fe2a99c
 - Sources: C-03, C-04, C-34 ("CHOOSE YOUR GOAT"), C-21 (lobby per-device repeat), R-02, R-24, D-28 (join intent), CC-4.1/4.2/4.8
@@ -110,7 +128,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Accept (rendered, launch the scene directly): E.13 steps 1-3 — Enter -> P1 [kb] PICKING; pad0 A -> P2 joins; pad1 A -> P3 joins;
   all three cycle simultaneously and each panel shows a different goat, no panel moved by another device; B on a
   PICKING slot -> EMPTY. Screens `tools/out/wk/WK-05_*.png`; ui-ux-designer verdict vs CC-4.x, CC-5.1, CC-8.1.
-- Status: open
+- Status: done fe2a99c (ui-ux verdict FIX -> must-fixes shipped as WK-81 f1a9fdd)
 
 ### [x] WK-06 [P0][M] Herd Lobby slice 2: lock/ready, exclusive goats, READY banner, Start proceeds, devices carry into the match — fe2a99c
 - Sources: C-03, C-04, C-17 (delete shared tray focus), R-02, R-24, CC-4.3/4.4/4.5, E.5, E.6 (Trials variant)
@@ -125,7 +143,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   banner appears only when all joined are READY; pad1 Start -> ArenaSelect -> match where pad0 drives only P2's goat,
   pad1 only P3's, keyboard only P1's (eval positions); solo: Mode -> A (lock) -> A/Start (go) = 2 presses; 1H+0CPU
   shows the amber hint, never a dead end; Trials + Rocketball still launch. Screens `tools/out/wk/WK-06_*.png`.
-- Status: open
+- Status: done fe2a99c (old CharacterSelect deleted; route swapped)
 
 ### [x] WK-81 [P0][S] Herd Lobby review must-fixes (ui-ux-designer verdict FIX, docs/audit/2026-11-14_lobby_review.md) — f1a9fdd
 - Owner: gameplay-programmer (lobby builder) · Deps: WK-06 · Do together with WK-07.
@@ -135,6 +153,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   (6) lift "PRESS A TO JOIN" above the READY banner; (7) fade arrows on READY panels; (8) GO press during banner
   guard gets a tick + banner pop. Bug: Start launches while another player has RULES open — block GO while open.
 - Accept: re-review by ui-ux-designer from fresh 1920x1080 captures + a motion burst; Ship verdict.
+- Status: done f1a9fdd (also closes lobby review L1 and L13). Review "later" items L2-L12 folded below — see Coverage index.
 
 ### [x] WK-07 [P0][M] Herd Lobby slice 3: RULES panel, lobby survives round trips, CHANGE SETUP, per-mode rule memory — f1a9fdd
 - Sources: C-17, C-25 (Stepper B reverts), C-29, R-13, R-16, R-26, CC-4.6/4.7, CC-10.3, E.7
@@ -146,7 +165,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Accept (rendered): E.13 step 6 (back from ArenaSelect -> all three still READY on the same devices); pad0 Tab/View opens RULES,
   pad1 input ignored inside it; edit KOs 10->7 then B -> reverts to 10; play Rocketball then open Brawl -> CPUs still
   3 (no leak); Pause -> CHANGE SETUP lands in the lobby with picks kept. Screens `tools/out/wk/WK-07_*.png`.
-- Status: open
+- Status: done f1a9fdd (rendered at 1920x1080; RULES = Duck-Game panel flip per lobby review spec, not a modal)
 
 ---
 
@@ -165,6 +184,30 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   FIRST BLOOD, match point, EdgeIndicators chevrons, ScoreScreen, VictoryScreen). Sports team skins follow automatically.
 - Accept (rendered): P1=BUTCH(blue), P2=POGO(pink) + 2 CPU: name tag at pop-in, an off-screen chevron, a stage banner, the
   ScoreScreen row and the Victory row are blue for P1 and pink for P2 (5 screenshots).
+- Status: done 4e7caf6
+
+### [ ] WK-CD1 [P1][M] Creative-director cold playthrough of the integrated build (recurring)
+- Source: WEEKEND_LOOP step 6 (every ~6 items; 10 done since seeding) · Owner: creative-director, then producer re-rank
+- Area: all · Deps: WK-09, WK-11, WK-12 landed (WK-80 if it lands first) · uses the game slot
+- Do: fresh-eyes run vs GAME_ESSENCE: Title -> Herd Lobby with kb + 2 simulated pads -> RULES flip -> Brawl match to Victory ->
+  REMATCH -> CHANGE SETUP; one Trials and one Rocketball launch. Report new findings as R/D-style entries with screenshots
+  in `tools/out/wk/CD1_*.png`; explicitly re-judge the lobby (WK-05..07/81) and identity (WK-08/10) as a player would.
+- Accept: findings file in `docs/feedback/cd_2026-11-14_weekend1.md` (or similar) + producer re-rank committed before Next-10 item 1 is pulled.
+  Next instance WK-CD2 after Next-10 item 6.
+- Status: open (waiting on in-flight items)
+
+### [ ] WK-82 [P1][S] Lobby hold-B exits only from a B press that changed nothing; 6 px ring
+- Source: ui-ux-designer lobby review L8 (docs/audit/2026-11-14_lobby_review.md); producer code re-check 2026-11-14
+- Area: menus · Owner: gameplay-programmer · Deps: none
+- Evidence: HerdLobby.gd:509-540 (`_on_back_press` arms `_hold_b` on EVERY B, including the press that un-readies or leaves
+  a slot; `_tick_hold_b` exits for everyone at 1.0 s). Code-verified, rendered repro not yet captured.
+- Impact: a READY player who holds B to un-ready (a natural "wait, change goat" gesture) ejects all 4 players from the lobby.
+  Couch-visible, front-end flow, the exact "nonsense controls" class the owner complained about.
+- Do: count the hold only from a B press that did not change any slot state (a device with no slot, i.e. never joined or
+  already left); a press that un-readies or leaves never arms the ring, even if held. Ring stroke 6 px (now ~3 px) per CC-8.1.
+- Accept (rendered, 3 joined): READY P2 holds pad B 2 s -> P2 un-readies, lobby stays, no ring; P2 releases and holds B again
+  from PICKING -> leaves the slot only, no ring; P2 (now slotless) presses and holds B 1.0 s -> ring fills (6 px) -> exits; a
+  B tap with nobody joined still backs straight out. Screens `tools/out/wk/WK-82_*.png`.
 - Status: open
 
 ### [ ] WK-09 [P1][S] Pause finish: hold-to-confirm RESTART/QUIT, "PAUSED · P2" header with goat head, context line
@@ -175,7 +218,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   "REALLY?" double-press; header "PAUSED · P#" + portrait in owner colour; sub-line mode · arena · score.
 - Accept (rendered): hold A 1.0 s on QUIT -> menu; release at 0.5 s -> still paused, ring drained; mashing A x6 never quits;
   pad1 pauses -> header reads P2/P3 per label in that goat's colour. Screens `tools/out/wk/WK-09_*.png`.
-- Status: open
+- Status: in-progress (gameplay-programmer, with WK-11 + WK-80)
 
 ### [x] WK-10 [P1][S] Persistent P# pip over every human; bots tagged CPU — 4e7caf6
 - Sources: C-09, R-17, R-05 (pointer part), C-15 (label part), CC-8.3
@@ -183,7 +226,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Evidence: tools/out/cd_audit/21_after_resume.png (no tags after intro), 45_rocketball_1s.png (bot tagged "P2"), d56_contact.png
 - Accept (rendered): 2H+2CPU Brawl at 10 s into combat: both humans show a 28-32 px "P#" pip in goat colour (~70 % alpha),
   full alpha 1 s after respawn; bots show "CPU" during intro only; HUD cards for bots read "CPU", never "P3".
-- Status: open
+- Status: done 4e7caf6 (also closes lobby review L11)
 
 ### [ ] WK-11 [P1][S] End-screen input gate (fresh presses only, arm >= 1.0 s) + shared menus ignore unjoined devices
 - Sources: C-14, C-06 (shell part), CC-3.3, CC-10.2; resolves D-09 "FLY skips" conflict (a FLY press only counts if it began after the screen appeared)
@@ -191,7 +234,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Evidence: VictoryScreen.gd:234-235/311 (fast-forward arms instantly), PartyMatch.gd:74/849-850 (code, VERIFY rendered)
 - Accept (rendered): hold pad A through the winning KO -> Victory does not REMATCH and ScoreScreen tally is not skipped;
   a fresh A after 1.0 s works; an unjoined pad2 cannot press REMATCH once a lobby exists.
-- Status: open
+- Status: in-progress (gameplay-programmer, with WK-09 + WK-80)
 
 ### [ ] WK-12 [P1][S] First impression: every brawl arena gets a painted backdrop (Grassy Expanse first)
 - Sources: R-08 (+ STATUS "grass arenas without a backdrop_painting show a plain sky")
@@ -199,7 +242,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Evidence: tools/out/cd_audit/17_launch_1.5s.png, 18_launch_3s.png, 26_rematch_1.5s.png vs 22_now.png
 - Accept (rendered): screenshot Grassy Expanse at BOUNCE! shows the meadow painting, not flat grey-blue; grep confirms
   every brawl level JSON has `backdrop_painting`; spot-render 5 previously-bare arenas.
-- Status: open
+- Status: in-progress (level-designer)
 
 ### [ ] WK-13 [P1][S] Mode select: BRAWL default focus, equal card heights, player-count chips
 - Sources: R-18, D-29, C-35 · **OWNER-RULED**: card ORDER is owner-set (TRIALS, BRAWL, …) — keep it, change focus only
@@ -234,7 +277,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Status: open
 
 ### [ ] WK-17 [P1][S] Bundle a real display font (OFL) — NOT blocked (DECISIONS ruling b)
-- Sources: C-32, R-10, CC-12.3, STATUS "real FONT"
+- Sources: C-32, R-10, CC-12.3, STATUS "real FONT", lobby review L10
 - Area: art/menus · Owner: ui-ux-designer (pick) + art pipeline (import) · Deps: none
 - Do: OFL rounded heavy face (Fredoka / Baloo 2 ExtraBold / Lilita One) + licence file in `assets/fonts/`; theme default
   font replaces the SystemFont chain; check MenuCard auto-shrink and long labels.
@@ -242,10 +285,12 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Status: open
 
 ### [ ] WK-18 [P1][S] 28 px floor for anything a player reads
-- Sources: C-27, R-10 (micro-text), R-25 (KO chip legibility), CC-8.1
+- Sources: C-27, R-10 (micro-text), R-25 (KO chip legibility), CC-8.1, lobby review L6
 - Area: menus/HUD · Owner: ui-ux-designer · Deps: WK-17
+- Also (L6): lobby roster-medallion P-badges ~21 px -> 30x44 chip, 28 px white text on chocolate; a locked medallion
+  desaturates to 0.6 and shows the MenuCard check ("taken" reads from the sofa).
 - Accept (rendered): theme tokens CardTag/CardName/HintStrip/ControlsLegend/FLAIR >= 28 px; screenshots of the 5 affected screens
-  at 1080p show no overflow; KO meta chip readable.
+  at 1080p show no overflow; KO meta chip readable; lobby with 2 locked goats shows 28 px badges + desaturated medallions.
 - Status: open
 
 ### [ ] WK-19 [P1][S] Rumble goes only to the concerned player's pad
@@ -255,17 +300,23 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   (Rumble can't be seen; the call log is the evidence.) Options toggle lands in WK-44.
 - Status: open
 
-### [ ] WK-20 [P1][M] Brawl pacing: measure the +25 % knockback side effects, then fix what feeds sting/hitstun at Lv0
-- Sources: D-18, R-07 (early KOs), DECISIONS 2026-07-19 watch item · **OWNER-RULED**: `dmg_launch_mult` array and hitstun triad
-  constants do NOT change; only the impulse fed to the sting/escalation gate and hitstun at Lv0 (pre-multiplier) may.
-  Needs a game-designer ruling + DECISIONS entry before building.
-- Area: brawl · Owner: game-designer (ruling) + gameplay-programmer + qa-playtester · Deps: none
-- Evidence: tools/out/cd_audit/b19_contact.png (2 deaths within ~6 s), d56_brawl_fast/log.json (P1 dead ~4 s in)
-- Do: step 1 QA measurement (graze s<=0.15 on Lv0: damage_level, sting, hitstun; median time-to-first-death over 20
-  stages). Step 2 only if graze stings/max-stuns: gate on `impulse_pre_mult` at Lv0, re-run lethality battery §9.
-- Accept: graze on Lv0 -> damage_level 0, `_last_sting_applied` 0, hitstun ~0.48 s; centre hit unchanged; >= 50 % of Lv0
-  non-edge smashes on victims with fuel >= 20 survived over 40 stages; rendered contact sheet of 3 recoveries.
+### [ ] WK-20a [P1][S] Measure the +25 % knockback side effects, then a game-designer ruling (no code change)
+- Sources: D-18, R-07 (early KOs), DECISIONS 2026-07-19 watch item · split from WK-20 (producer 2026-11-14: measure before building)
+- Area: brawl · Owner: qa-playtester (measure) + game-designer (ruling) · Deps: none · uses the game slot — serialize with builders
+- Evidence: tools/out/cd_audit/b19_contact.png (2 deaths within ~6 s), d56_brawl_fast/log.json (P1 dead ~4 s in) — audit inference, not yet measured
+- Do: graze s<=0.15 on Lv0 -> log damage_level, `_last_sting_applied`, hitstun; centre hit same; median time-to-first-death
+  and Lv0 non-edge-smash survival rate (victim fuel >= 20) over 20-40 bot stages.
+- Accept: numbers in `tools/out/wk/WK-20a_measure.json` + a contact sheet of 3 recoveries; game-designer writes the ruling in
+  DECISIONS: either "no fix needed" (WK-20b -> Won't do) or the exact WK-20b gate.
 - Status: open
+
+### [ ] WK-20b [P1][S] (conditional on WK-20a) Gate sting/escalation/hitstun at Lv0 on the pre-multiplier impulse
+- Sources: D-18 · **OWNER-RULED**: `dmg_launch_mult` array and hitstun triad constants do NOT change; only the impulse fed to the
+  sting/escalation gate and hitstun at Lv0 (pre-multiplier) may. DECISIONS entry in the same commit (ruling c).
+- Area: brawl · Owner: gameplay-programmer + qa-playtester · Deps: WK-20a ruling
+- Accept: graze on Lv0 -> damage_level 0, `_last_sting_applied` 0, hitstun ~0.48 s; centre hit unchanged; >= 50 % of Lv0
+  non-edge smashes on victims with fuel >= 20 survived over 40 stages; lethality battery §9 re-run; rendered contact sheet of 3 recoveries.
+- Status: open (BLOCKED until WK-20a ruling)
 
 ### [ ] WK-21 [P1][S] Adaptive ScoreScreen hold (2.0 s normal, 3.4 s on lead change / match point)
 - Sources: D-09, R-07 (dead time) · **OWNER-RULED**: ScoreScreen stays (owner 2026-07-16); `SCORE_HOLD` is the sanctioned knob; `round_end_freeze` and countdown untouched
@@ -311,8 +362,8 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Status: open
 
 ### [ ] WK-27 [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team
-- Sources: C-16 (sports half), C-31, R-14 (sports half), E.6
-- Area: menus/sports · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-07
+- Sources: C-16 (sports half), C-31, R-14 (sports half), E.6, lobby review L2 (17a/17b: ZIGGY/PUFF still selectable in ROCKETBALL)
+- Area: menus/sports · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-07 (done)
 - Do: carousel = POGO/BILLY (RED), BUTCH/VEX (BLUE), team ribbon, full-team goats skipped; `MatchConfig.team_ids`;
   `SportsMode.spawn_plan` honours team_ids + human skins (keep even-total clamp, bot mirroring); CPUs fill seats.
 - Accept (rendered): 2 humans pick POGO + VEX with 2 CPUs -> 2v2 with one human per team; the picked goat skins appear in
@@ -320,16 +371,18 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Status: open
 
 ### [ ] WK-28 [P1][M] Controller disconnect: auto-pause overlay in match, DISCONNECTED slot in lobby, connect toasts
-- Sources: C-07, R-32 (toasts/disconnect), CC-3.4/3.5
-- Area: brawl/menus · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-03, WK-06
+- Sources: C-07, R-32 (toasts/disconnect), CC-3.4/3.5, lobby review L3 (06_19: a lost pad frees its slot instantly — a cable wiggle wipes a pick)
+- Area: brawl/menus · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-03, WK-06 (both done) — pullable
+- Lobby half (L3): greyed bust, 10 s RECONNECT ring, "(A) ON ANY CONTROLLER TO TAKE OVER"; an open RULES flip closes keeping values.
 - Accept (rendered, via `InputRouter.simulate_device_lost`): mid-match pad1 lost -> "P3 CONTROLLER DISCONNECTED" overlay in
   P3's colour; pad1 A resumes; unjoined pad2 A takes over P3; RESUME WITHOUT P3 works; in lobby the slot shows
   RECONNECT ring 10 s then EMPTY. Screens `tools/out/wk/WK-28_*.png`.
 - Status: open
 
 ### [ ] WK-29 [P1][M] One device-aware glyph component (pad circles/pills, key caps) used everywhere
-- Sources: C-23, R-23, C-11 (glyph half), CC-1.6/1.7
-- Area: menus/HUD · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-03
+- Sources: C-23, R-23, C-11 (glyph half), CC-1.6/1.7, lobby review L12 (ModeSelect/ArenaSelect 10a/11a: old key caps + ASCII "< >" beside the lobby's glyph chips)
+- Area: menus/HUD · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-03 (done)
+- Note: the lobby already has PadGlyph chips + the amended CC-1.6 shared-glyph rule (WK-81 f1a9fdd) — generalise THAT component, don't build a second one.
 - Accept (rendered): HintStrip, ControlsLegend, lobby panels, Trials hints show Xbox glyphs after pad input and key caps after
   keyboard input (screenshot pairs); no ASCII "(A)" or "< >" left (grep); Trials no longer says "HOLD A / SPACE".
 - Status: open
@@ -349,7 +402,8 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 
 ### [ ] WK-32 [P1][M] Make the goat pick real: wire CharacterProfiles OR declare cosmetic and rewrite blurbs
 - Sources: D-10, C-16 (roster half), R-14 (roster half) · feel-adjacent: re-run the v2 feel-delta battery if wired
-- Area: brawl · Owner: game-designer (decision) + gameplay-programmer · Deps: WK-20 (lethality baseline first)
+- Area: brawl · Owner: game-designer (decision) + gameplay-programmer · Deps: WK-20a (+ WK-20b if ruled) — lethality baseline first
+- Split when pulled: WK-32a decision (S, game-designer, DECISIONS entry) -> WK-32b wire + battery OR blurb rewrite (S/M).
 - Accept: wired -> `players[i].profile` matches pick for 4 slots and no hero's self-fall rate > 1.5x Standard over 40 stages,
   stat pips visible in the lobby (screenshot); cosmetic -> blurbs rewritten as personality, DECISIONS entry.
 - Status: open
@@ -383,7 +437,9 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 
 ### [ ] WK-37 [P1][M] Ghost goats: eliminated players float, quack and get one non-lethal heckle per stage
 - Sources: D-08, R-07 (spectating half)
-- Area: brawl · Owner: game-designer (spec) + gameplay-programmer · Deps: WK-04 (device per ghost); quack needs WK-53
+- Split: **WK-37a [S] spec** (game-designer, `docs/specs/` entry with the QA criteria below; no game slot — can run in parallel
+  any time) -> **WK-37b [M] build** (gameplay-programmer). `scope-check` on the spec (new system).
+- Area: brawl · Owner: game-designer (spec) + gameplay-programmer · Deps: WK-04 (done); quack needs WK-53; GHOSTS option lives on the RULES panel back (WK-07 done)
 - Accept (rendered): eliminated human's ghost moves from their device within 1.0 s; 40 % alpha, no flame; excluded from camera;
   heckle puff never credits a kill over 20 stages; option GHOSTS ON/OFF in RULES.
 - Status: open
@@ -439,8 +495,10 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Status: open
 
 ### [ ] WK-45 [P2][S] Distinct UI sounds (move/confirm/back/deny/join x4/ready/all-ready/hold-tick)
-- Sources: C-22, CC-9.1
-- Area: audio · Owner: sound-designer · Deps: none · Note: source from the 34 existing samples first; any CC0 download needs the Director to extend DECISIONS ruling (b) to audio (not owner-blocked)
+- Sources: C-22, CC-9.1, lobby review L4 (lobby uses re-pitched powerup/super/click placeholders)
+- Area: audio · Owner: sound-designer · Deps: none · Note: CC0 audio is already allowed (DECISIONS 2026-11-14 ruling b2; licence note in `assets/sfx/LICENSES.md`)
+- Lobby set (L4): `ui_join` (slot-pitched), `ui_ready`, `ui_all_ready` banner sting, `ui_deny`, `ui_hold_tick`, `ui_card_flip`
+  (RULES flip); the per-goat bleat on lock reuses the WK-53 bleat when it exists.
 - Accept: each UI event sets a distinct `AudioManager.last_sfx` id (eval across ModeSelect/Lobby/Pause); join pitch rises P1->P4.
 - Status: open
 
@@ -483,12 +541,13 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 ### [ ] WK-52 [P2][S] KO meta counts human KOs only and moves off the shared lobby; unlock toast becomes a banner card
 - Sources: R-25, R-24 (toast part)
 - Area: menus · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-06
+- Note: the lobby half may be moot — HerdLobby.gd has no KO-meta chip (the old CharacterSelect was deleted). QA re-check; the human-only count + toast-card halves stay.
 - Accept: all-bot match -> counter unchanged (eval); lobby shows no KO chip; unlock toast renders as a card with icon.
 - Status: open
 
 ### [ ] WK-53 [P2][S] Taunt / quack (goat bleat per hero) — needs a bleat sample
 - Sources: D-15 · Binding: pad Y [3] / keyboard per CC-2.2 (Y is unused in gameplay per CC-1.1)
-- Area: brawl/audio · Owner: sound-designer + gameplay-programmer · Deps: none · Note: no bleat in assets/sfx; source/generate one (same ruling note as WK-45)
+- Area: brawl/audio · Owner: sound-designer + gameplay-programmer · Deps: none · Note: no bleat in assets/sfx; source a CC0 one (ruling b2). The bleat is shared with WK-45 (lobby lock) and WK-37 (ghost quack)
 - Accept: taunt -> `last_sfx` starts "bleat_" within 1 frame in COMBAT and on ScoreScreen; 10 presses/s -> <= 3 sounds; "BAAA!" puff in colour (screenshot).
 - Status: open
 
@@ -512,7 +571,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 
 ### [ ] WK-57 [P2][M] Arena scorecard tool (10 bot stages per arena -> stage length, credited share, self-falls, min zoom)
 - Sources: D-16a, R-05 (min camera zoom per arena = the lever that feeds the owner camera rule)
-- Area: tooling · Owner: qa-playtester / tooling · Deps: WK-20 (lethality baseline)
+- Area: tooling · Owner: qa-playtester / tooling · Deps: WK-20a/b (lethality baseline)
 - Accept: `tools/out/arena_scorecard.json` covers all 94 arenas with every metric populated.
 - Status: open
 
@@ -573,6 +632,21 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Accept (rendered): SUNSET BEACH shows a beach; floor tiles visibly crack; goals have a framed net; no letterbox frame.
 - Status: open
 
+### [ ] WK-83 [P2][S] Lobby: "who are we waiting on" nudge + title-safe layout
+- Source: ui-ux-designer lobby review L7 + L9 · Area: menus · Owner: gameplay-programmer (lobby builder) · Deps: none
+- Evidence: L9 code-verified 2026-11-14 — HerdLobby.tscn Header/BackBtn offset_top 22, Footer offset_bottom 1066 (1080 space). L7 is a missing cue (spec).
+- Do: (L7) a READY player pressing A/Start before the banner nudges every still-PICKING panel (8 px, 0.12 s) and flashes its
+  status bar (the RULES-open nudge already exists — reuse `nudge`); (L9) header chips start at y >= 40, footer bottom <= 1030.
+- Accept (rendered 1920x1080): burst shows PICKING panels nudge on a READY player's early Start; header/footer inside the 5 % safe area.
+- Status: open
+
+### [ ] WK-84 [P2][S] READY banner polish (the flattest element at the screen's peak moment)
+- Source: ui-ux-designer lobby review L5 · Area: menus/art · Owner: ui-ux-designer (+ art-director verdict) · Deps: none (font pass WK-17 first is nicer, not required)
+- Do: 6 px chocolate top/bottom border, white 0.22 gloss stripe over the top 30 %, GO glyph 60 px tall (now ~40 px beside 76 px text).
+  Painted ribbon art (E.11) is optional and cut this weekend (see Deferred).
+- Accept (rendered 1080p): banner capture beside the review's 18b; ui-ux Ship verdict.
+- Status: open
+
 ---
 
 ## P3 — nice-to-have
@@ -588,6 +662,8 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 ### [ ] WK-69 [P3][S] Per-slot FLAIR row in each lobby panel (everyone can wear unlocks)
 - Sources: D-30, E.4 FLAIR row · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-06
 - Accept (rendered): P2 equips GOLDEN JETSTREAM and their streak is gold in-match; Sports suppression kept.
+- Status: **likely already built** (fe2a99c/f1a9fdd: per-slot FlairRow, `MatchConfig.flair_ids`, PartyMatch.gd:293). Needs a QA
+  re-check against the Accept line to close — do not close on the code read.
 
 ### [ ] WK-70 [P3][S] Session tally across rematches ("TONIGHT'S CHAMPION")
 - Sources: D-22 · Owner: gameplay-programmer · Deps: WK-07
@@ -611,7 +687,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 - Accept: STURDY -> `eff_knockback_taken() == 0.90`; bounty KO adds 2 (eval).
 
 ### [ ] WK-75 [P3][M] Head-on super CLASH
-- Sources: D-24 · touches the smash licence -> spec first · Owner: game-designer + gameplay-programmer · Deps: WK-20
+- Sources: D-24 · touches the smash licence -> spec first · Owner: game-designer + gameplay-programmer · Deps: WK-20a/b
 - Accept: 10/10 scripted head-on super pairs CLASH with damage_level unchanged; lethality criteria 6 a-d still pass.
 
 ### [ ] WK-76 [P3][M] Bot personalities (per-bot skill, hero playstyle bias, hero names)
@@ -634,18 +710,33 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 ---
 
 ## Done (recent)
-_(none yet — first commit of the run will be WK-01)_
+- WK-01 Start/Esc/P pause, B never pauses, owner gating, no leak on resume — 933a77a (QA 8/8)
+- WK-02 4-fighter cap, HUD hides unused cards — 933a77a
+- WK-03 InputRouter autoload + QA device hooks — 1191757
+- WK-04 one device per human (0 cross-moves) — 1191757
+- WK-05/06 Herd Lobby join/pick/ready, routed; old CharacterSelect deleted — fe2a99c
+- WK-08 goat colour everywhere — 4e7caf6 · WK-10 P# pips, CPU tags (closes L11) — 4e7caf6
+- WK-81 lobby review must-fixes F1-F8 + GO blocked while RULES open (closes L1, L13) — f1a9fdd
+- WK-07 RULES panel flip, per-mode rule memory, lobby persistence, CHANGE SETUP in Pause — f1a9fdd (beyond spec: lobby
+  persistence across round trips and per-mode rules memory shipped in the same slice)
 
 ## Deferred / Cut (this weekend) — every finding not covered by an item above
-- **R-07 (default 3 stocks / sudden-death squeeze)** — owner rulings: LIVES default 1, KILLS 10, no timer sudden-death. Mitigated by WK-20/21/37/56; LIVES stays selectable in RULES (WK-07).
+- **R-07 (default 3 stocks / sudden-death squeeze)** — owner rulings: LIVES default 1, KILLS 10, no timer sudden-death. Mitigated by WK-20a/20b/21/37/56; LIVES stays selectable in RULES (WK-07).
 - **R-05 (raise the minimum zoom)** — owner camera rules 2026-07-10. Mitigated by WK-10 (pip), WK-47 (rim), WK-36 (bubbles), WK-57/58 (cull arenas that force tiny zoom).
 - **R-30 (soft ceiling / top bound)** — changes bounds/framing under owner camera rules; WK-36 magnifier instead.
 - **R-31 (camera punch-in on super hit)** — owner camera rules; the rest of R-31 is WK-51.
 - **R-18 (put BRAWL first in the row)** — owner set the ModeSelect order; default focus moves to BRAWL instead (WK-13).
 - **R-19 (unlock all circuits in versus)** — owner ruling 2026-07-16 (`FREE_CIRCUITS = 3`, 4+ locked). Reopen only on owner reversal.
 - **R-06 (in-combat KO tally / leader crown on cards)** — owner ruling 2026-07-16 (no persistent combat score). Transient credit pop = WK-25; damage/lives = WK-31.
-- **D-17 / C-15 (6-8 player HUD + 2 more skins)** — capped at 4 fighters (WK-02): needs 2 new skins (art) + compact HUD + ScoreScreen row sizing. Revisit after the lobby ships.
-- **D-28 (warm-up pen behind the lobby)** — L, new system; only after WK-05..07 ship and a CD pass asks for it.
+- **D-17 / C-15 (6-8 player HUD + 2 more skins)** — capped at 4 fighters for the whole run (DECISIONS 2026-11-14 ruling b3; WK-02).
+  The lobby has shipped, but the cap is a standing ruling, not a lobby dependency: needs 2 new skins (art) + compact HUD +
+  ScoreScreen row sizing. Revisit only after the weekend run.
+- **D-28 (warm-up pen behind the lobby)** — L, new system. WK-05..07 have shipped; still deferred unless WK-CD1 asks for it.
+- **WK-20b (Lv0 sting/hitstun gate)** — conditional: moves to Won't do if the WK-20a measurement + game-designer ruling say the
+  +25 % knockback did not break grazes/recovery.
+- **Lobby review L5 painted ribbon art (E.11)** — optional art generation; cut this weekend. The code-side banner polish is WK-84.
+- **Lobby review builder deviations accepted by ui-ux** — READY stamp over the portrait (keep, -6°); interim re-pitched lobby
+  sounds until WK-45. Not cuts, recorded so nobody re-opens them.
 - **D-31 (new powerups)** — widening; after WK-49/71/72 make the existing 7 read.
 - **D-04 (HYBRID scoring as default)** — needs owner reversal; recorded as a candidate only (option ships in WK-64).
 - **D-29 (freeze sports widening)** — adopted as policy, no item.
@@ -663,5 +754,8 @@ R-08 12 · R-09 09 · R-10 17,18 · R-11 34,35 · R-12 16 · R-13 07 · R-14 27,
 R-19 Deferred · R-20 60,61 · R-21 14 · R-22 34,44 (+Deferred) · R-23 29 · R-24 05,06,52 · R-25 18,52 · R-26 07 · R-27 41,25,59 ·
 R-28 42 (+Deferred) · R-29 43 · R-30 36 (+Deferred) · R-31 23,51 (+Deferred) · R-32 19,28,44 · R-33 79
 D-01 22,23 · D-02 24,25 · D-03 08 · D-04 15,64 (+Deferred) · D-05 36 · D-06 24 · D-07 26 · D-08 37 · D-09 21,11 · D-10 32 ·
-D-11 62,63 · D-12 73 · D-13 15,54 · D-14 55 · D-15 53 · D-16 57,58,59 · D-17 02 (+Deferred) · D-18 20 · D-19 48 · D-20 49,71,72 ·
+D-11 62,63 · D-12 73 · D-13 15,54 · D-14 55 · D-15 53 · D-16 57,58,59 · D-17 02 (+Deferred) · D-18 20a,20b · D-19 48 · D-20 49,71,72 ·
 D-21 74 · D-22 70 · D-23 56 · D-24 75 · D-25 50,54,78 · D-26 76,72 · D-27 77 · D-28 05 (+Deferred) · D-29 13 · D-30 69 · D-31 Deferred
+(D-18 is now 20a,20b; D-08 is 37a,37b; D-10 is 32a,32b when pulled)
+Lobby review (2026-11-14_lobby_review.md): F1-F8 81 (done) · L1 07/81 (done) · L2 27 · L3 28 · L4 45 (+53 bleat) · L5 84 (+Deferred art) ·
+L6 18 · L7 83 · L8 82 · L9 83 · L10 17 · L11 10 (done) · L12 29 · L13 81 (done)
