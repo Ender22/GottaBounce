@@ -29,6 +29,8 @@ var _pt_left := 0
 var _pt_next := 0.0
 var _pt_pending: Array = []    # {victim, hazard, smashes_before, deadline, f}
 var _out_dir := ""
+var _elim_stage := -1          # WK-37 QA fixture: stage index the `eliminate` seats were last knocked out in
+var _elim_t := 0.0
 
 @onready var _stamp: Label = $Stamp/Label
 
@@ -59,6 +61,8 @@ func _hook(cs: Node) -> void:
 	EventBus.smashed.connect(_on_smashed)
 	EventBus.hazard_shoved.connect(_on_hazard_shoved)
 	KillPipeline.killed.connect(_on_killed)
+	if not EventBus.bleated.is_connected(_on_bleated):
+		EventBus.bleated.connect(_on_bleated)
 	_collect_hazards(cs)
 
 func _collect_hazards(n: Node) -> void:
@@ -112,6 +116,7 @@ func _process(delta: float) -> void:
 		_combat_acc += delta
 	if _combat_frame >= 0:
 		_tick_pendulum_test(players)
+		_tick_eliminate(st)
 		if _combat_acc >= float(cfg.get("seconds", 20.0)):
 			_finish()
 
@@ -201,7 +206,26 @@ func _sample(players: Array, st: String) -> void:
 			var bp: Vector2 = h.ball_pos_at(h.qa_clock())
 			var hs: Vector2 = fin * (h.get_global_transform_with_canvas() * bp)
 			hz.append({"sx": snappedf(hs.x, 0.1), "sy": snappedf(hs.y, 0.1), "v": snappedf(h.ball_speed(), 1.0)})
-	_frames.append({"f": Engine.get_frames_drawn(), "t": snappedf(_game_t, 0.001), "st": st, "p": rows, "hz": hz})
+	# WK-37 ghost goats: per-frame ghost + cloud rows (empty when GHOSTS OFF).
+	var gh: Array = []
+	var cl: Array = []
+	var gd = _scene.get("_ghost_dir") if _scene != null and is_instance_valid(_scene) else null
+	if gd != null and is_instance_valid(gd):
+		for gi in gd.ghosts.keys():
+			var g = gd.ghost_for(int(gi))
+			if g == null:
+				continue
+			var gs: Vector2 = fin * g.get_global_transform_with_canvas().origin
+			gh.append({"i": int(gi), "x": snappedf(g.global_position.x, 0.1), "y": snappedf(g.global_position.y, 0.1),
+				"sx": snappedf(gs.x, 0.1), "sy": snappedf(gs.y, 0.1), "a": snappedf(g.ghost_alpha_now(), 0.01),
+				"ready": gd.puff_ready(g), "frozen": g.frozen})
+		for c in gd.clouds:
+			if is_instance_valid(c):
+				var cs: Vector2 = fin * c.get_global_transform_with_canvas().origin
+				cl.append({"o": int(c.owner_idx), "ph": str(c.phase), "sx": snappedf(cs.x, 0.1), "sy": snappedf(cs.y, 0.1),
+					"t": snappedf(float(c.t), 0.001)})
+	_frames.append({"f": Engine.get_frames_drawn(), "t": snappedf(_game_t, 0.001), "st": st, "p": rows, "hz": hz,
+		"gh": gh, "cl": cl})
 
 ## QA fixture (WK-96): when a pendulum is ~0.12 s from passing the low part of its arc at speed, drop a
 ## living, un-stunned player exactly where the ball will be, velocity zeroed. The ball should SMASH them.
@@ -240,6 +264,27 @@ func _tick_pendulum_test(players: Array) -> void:
 		_pt_next = _game_t + 2.4
 		return
 
+## WK-37 QA fixture (`eliminate=0,1`): 1.5 s into every stage's COMBAT, ring out those seats (their last life) so the
+## recording shows ghosts + 2 living goats. Kill credit stays whatever the sim says (usually none = a self-KO).
+func _tick_eliminate(st: String) -> void:
+	var seats: Array = cfg.get("eliminate", [])
+	if seats.is_empty() or st != "COMBAT":
+		_elim_t = 0.0
+		return
+	var si: int = int(_scene.get("stage_index"))
+	if si == _elim_stage:
+		return
+	_elim_t += get_process_delta_time()
+	if _elim_t < 1.5:
+		return
+	_elim_stage = si
+	var players: Array = _scene.get("players")
+	for k in seats:
+		var i := int(k)
+		if i >= 0 and i < players.size() and is_instance_valid(players[i]) and not players[i].is_dead():
+			players[i].kill(&"ring_out", null)
+	_ev("eliminate_fixture", {"seats": seats})
+
 func _ev(type: String, d: Dictionary) -> void:
 	d["type"] = type
 	d["f"] = Engine.get_frames_drawn()
@@ -270,6 +315,9 @@ func _on_smashed(attacker, victim, impulse) -> void:
 
 func _on_hazard_shoved(player, _dir, magnitude) -> void:
 	_ev("hazard_shoved", {"who": _idx(player), "push": snappedf(float(magnitude), 1.0)})
+
+func _on_bleated(idx, ghost) -> void:
+	_ev("bleated", {"who": int(idx), "ghost": bool(ghost)})
 
 func _on_killed(victim, cause, attacker) -> void:
 	_ev("killed", {"victim": _idx(victim), "cause": str(cause), "attacker": _idx(attacker) if attacker != null else -1})

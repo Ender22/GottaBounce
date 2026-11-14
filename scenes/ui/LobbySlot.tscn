@@ -871,6 +871,85 @@ mouse_filter = 2
 script = ExtResource("2_glyph")
 glyph = "lock"
 
+[node name="Row5" type="Panel" parent="RulesFace"]
+visible = false
+layout_mode = 0
+offset_left = 20.0
+offset_top = 390.0
+offset_right = 400.0
+offset_bottom = 450.0
+pivot_offset = Vector2(190, 36)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("rrow")
+
+[node name="Title" type="Label" parent="RulesFace/Row5"]
+theme_type_variation = &"TextDark"
+layout_mode = 0
+offset_left = 16.0
+offset_right = 224.0
+offset_bottom = 72.0
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 28
+text = "CPU SKILL"
+vertical_alignment = 1
+
+[node name="Pill" type="Panel" parent="RulesFace/Row5"]
+layout_mode = 0
+offset_left = 228.0
+offset_top = 8.0
+offset_right = 368.0
+offset_bottom = 64.0
+pivot_offset = Vector2(70, 28)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("pill")
+
+[node name="Value" type="Label" parent="RulesFace/Row5/Pill"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 40
+text = "MIX"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ChevL" type="Control" parent="RulesFace/Row5/Pill"]
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_top = 12.0
+offset_right = 28.0
+offset_bottom = 44.0
+mouse_filter = 2
+script = ExtResource("3_chev")
+dir = -1
+
+[node name="ChevR" type="Control" parent="RulesFace/Row5/Pill"]
+visible = false
+layout_mode = 0
+offset_left = 112.0
+offset_top = 12.0
+offset_right = 136.0
+offset_bottom = 44.0
+mouse_filter = 2
+script = ExtResource("3_chev")
+
+[node name="Lock" type="Control" parent="RulesFace/Row5/Pill"]
+visible = false
+layout_mode = 0
+offset_left = 6.0
+offset_top = 10.0
+offset_right = 42.0
+offset_bottom = 46.0
+mouse_filter = 2
+script = ExtResource("2_glyph")
+glyph = "lock"
+
 [node name="Footer" type="HBoxContainer" parent="RulesFace"]
 layout_mode = 0
 offset_left = 10.0

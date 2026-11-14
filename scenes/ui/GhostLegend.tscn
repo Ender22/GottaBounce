@@ -1,0 +1,91 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/ui/GhostLegend.gd" id="1_gl"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="3_glyph"]
+
+[sub_resource type="StyleBoxFlat" id="chip_cream"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0.94)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[node name="GhostLegend" type="PanelContainer"]
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_override_styles/panel = SubResource("chip_cream")
+script = ExtResource("1_gl")
+
+[node name="Box" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 32
+text = "GHOST!"
+
+[node name="Gap" type="Control" parent="Box"]
+custom_minimum_size = Vector2(6, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MoveGlyph" type="Control" parent="Box"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("3_glyph")
+glyph = "stick"
+
+[node name="MoveLabel" type="Label" parent="Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardTag"
+theme_override_font_sizes/font_size = 28
+text = "FLOAT"
+
+[node name="PuffGlyph" type="Control" parent="Box"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("3_glyph")
+glyph = "X"
+
+[node name="PuffLabel" type="Label" parent="Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardTag"
+theme_override_font_sizes/font_size = 28
+text = "PUFF"
+
+[node name="BaaGlyph" type="Control" parent="Box"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("3_glyph")
+glyph = "Y"
+
+[node name="BaaLabel" type="Label" parent="Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardTag"
+theme_override_font_sizes/font_size = 28
+text = "BAA"

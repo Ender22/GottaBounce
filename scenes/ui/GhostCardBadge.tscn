@@ -1,0 +1,55 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/ghost.png" id="1_ghost"]
+[ext_resource type="Script" path="res://src/ui/GhostRing.gd" id="2_ring"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="3_theme"]
+
+[node name="GhostCardBadge" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="GhostRing" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_ring")
+
+[node name="Ghost" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("1_ghost")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Shh" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = -10.0
+offset_top = 6.0
+offset_right = 50.0
+offset_bottom = 38.0
+rotation = -0.17
+pivot_offset = Vector2(30, 16)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.341176, 0.360784, 0.388235, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 28
+text = "SHH"
+horizontal_alignment = 1
+vertical_alignment = 1

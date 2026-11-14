@@ -17,6 +17,9 @@ extends Node
 ##   hazard_legacy=1       MovingHazard.legacy_motion = true (pre-WK-96 pendulum, for BEFORE recordings)
 ##   pendulum_test=<N>     QA fixture: drop a player into a pendulum's path N times (WK-96 contact check)
 ##   stamp=0               hide the small REC frame/time stamp (default shown)
+##   ghosts=on|baa|off     WK-37 RULES option (default on = MatchConfig default)
+##   lives=<n>             lives per player (default 1)
+##   eliminate=0,1         WK-37 QA fixture: ring out these seats 1.5 s into every stage (ghost recordings)
 
 const MATCH_SCENE := "res://scenes/Arena.tscn"
 const RECORDER_SCENE := "res://scenes/dev/MatchRecorder.tscn"
@@ -50,6 +53,9 @@ func _ready() -> void:
 	cfg.human_count = 1                     # MatchConfig floor; the recorder swaps this seat to a bot
 	cfg.bot_count = levels.size() - 1
 	cfg.kills_to_win = 99                   # never end the match mid-recording
+	var gm: String = str(args.get("ghosts", "on")).to_lower()
+	cfg.ghosts = MatchConfig.Ghosts.OFF if gm == "off" else (MatchConfig.Ghosts.BAA_ONLY if gm == "baa" else MatchConfig.Ghosts.ON)
+	cfg.lives_per_player = clampi(int(args.get("lives", "1")), 1, 3)
 	var arena: String = str(args.get("arena", ""))
 	if arena != "":
 		if not arena.begins_with("res://"):
@@ -65,6 +71,8 @@ func _ready() -> void:
 		"aim_legacy": not InputBot.aim_sweep_enabled, "hazard_legacy": MovingHazard.legacy_motion,
 		"pendulum_test": int(args.get("pendulum_test", "0")), "stamp": str(args.get("stamp", "1")) != "0",
 		"seed": int(args.get("seed", "-1")),
+		"ghosts": gm,
+		"eliminate": Array(str(args.get("eliminate", "")).split(",", false)).map(func(x): return int(x)),
 	})
 	get_tree().root.add_child.call_deferred(rec)
 	get_tree().change_scene_to_file.call_deferred(MATCH_SCENE)

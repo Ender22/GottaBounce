@@ -29,9 +29,11 @@ var _a_down: StringName = &"move_down"
 var _a_boost: StringName = &"boost"
 var _a_super: StringName = &"super"
 var _a_pow: StringName = &"use_powerup"
+var _a_taunt: StringName = &"taunt"   # WK-37b: the shared taunt edge (ghost bleat now, WK-53 living bleat later)
 
 var _intent := InputIntent.new()
 var _prev_pow := false
+var _prev_taunt := false
 # Menu -> gameplay swallow (CC-5.7 / audit C-19): while true, that action reads as NOT held until it has
 # been seen released once. Armed by swallow_until_release() (PartyMatch.on_pause_resumed).
 var _swallow_boost := false
@@ -48,6 +50,7 @@ func _init(device: int = DEV_ANY, keyboard: bool = true) -> void:
 	_a_boost = _ensure_action(&"boost", device, keyboard)
 	_a_super = _ensure_action(&"super", device, keyboard)
 	_a_pow = _ensure_action(&"use_powerup", device, keyboard)
+	_a_taunt = _ensure_action(&"taunt", device, keyboard)
 
 ## Exactly-one-device provider (WK-04 / audit C-05): "kb" -> keyboard events only (no pad, ever);
 ## "pad:N" -> joypad N only (no keyboard). Any other key -> an UNBOUND provider that reads nothing (a
@@ -126,4 +129,7 @@ func poll() -> InputIntent:
 	it.use_powerup = pow_held and not _prev_pow
 	it.flap = pow_held and not _prev_pow
 	_prev_pow = pow_held
+	var taunt_held := InputMap.has_action(_a_taunt) and Input.is_action_pressed(_a_taunt)
+	it.taunt = taunt_held and not _prev_taunt
+	_prev_taunt = taunt_held
 	return it

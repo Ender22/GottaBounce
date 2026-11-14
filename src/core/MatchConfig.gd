@@ -6,6 +6,9 @@ extends Resource
 ## (blue/green/yellow, mixed L2/3/4), full-pool shuffle rotation, first-to-10, 1 life.
 
 enum ArenaMode { RANDOM_ALL = 0, SINGLE = 1, CIRCUIT = 2 }  # CIRCUIT reserved for Phase 3 (unused now)
+## WK-37 ghost goats (RULES option, BRAWL only): ON = float + bleat + puff cloud; BAA_ONLY = float + bleat (puff
+## presses are duds); OFF = byte-for-byte the pre-WK-37 game (skull card, no ghost entities, no clouds).
+enum Ghosts { ON = 0, BAA_ONLY = 1, OFF = 2 }
 
 ## Hard roster cap: total fighters (humans + bots) in ANY match. = the 4 MatchHUD corner cards
 ## (DECISIONS 2026-11-14 ruling b3; BACKLOG WK-02). The future lobby CPU tray reads this too.
@@ -42,6 +45,9 @@ const MAX_FIGHTERS := 4
 ## stage-end line reads "OOPS!"); 1 = the RULES toggle "SELF-KO −1" (the old rule: −1, floored at 0).
 ## Sports/Trials ignore it.
 @export var self_ko_penalty: int = 0
+## WK-37 (docs/specs/wk37a_ghost_goats_2026-11-14.md): Ghosts.ON (default) / BAA_ONLY / OFF. Sports/Trials ignore it
+## (they never eliminate). RULES row "GHOSTS" on the Herd Lobby panel back; remembered per mode like the other rules.
+@export var ghosts: int = Ghosts.ON
 
 ## Most bots allowed alongside `humans` humans (BOTS stepper max / lobby CPU tray max).
 static func max_bots_for(humans: int) -> int:

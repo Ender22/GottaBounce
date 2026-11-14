@@ -28,7 +28,10 @@ param(
     [ValidateSet("avi", "png")][string]$Format = "avi",
     [switch]$KeepPng,
     [switch]$NoStamp,
-    [switch]$Force
+    [switch]$Force,
+    [ValidateSet("on", "baa", "off")][string]$Ghosts = "on",
+    [int]$Lives = 1,
+    [string]$Eliminate = ""
 )
 $ErrorActionPreference = "Stop"
 $godot = "C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe"
@@ -64,6 +67,10 @@ if ($AimLegacy) { $user += "aim_legacy=1" }
 if ($HazardLegacy) { $user += "hazard_legacy=1" }
 if ($PendulumTest -gt 0) { $user += "pendulum_test=$PendulumTest" }
 if ($NoStamp) { $user += "stamp=0" }
+$user += "ghosts=$Ghosts"
+$user += "lives=$Lives"
+if ($Eliminate -ne "") { $user += "eliminate=$Eliminate" }
+$user += "--gb-port=0"   # WK-130: no automation server in recordings (never steals/binds a port)
 
 $argList = @("--path", "`"$proj`"", "--resolution", "1280x720", "--position", "50,50",
     "--write-movie", "`"$moviePath`"", "--fixed-fps", "$Fps", "--quit-after", "$frames",

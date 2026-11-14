@@ -12,6 +12,14 @@ const CREAM := Color(1.0, 0.968627, 0.921569)
 const GOLD := Color("#ffd23f")
 const ROW_Y0 := 72.0      # RULES back face: first rule row's top (rows are 72 px tall in LobbySlot.tscn)
 const ROW_PITCH := 78.0   # 5 BRAWL rows (WK-20c) fit 72..456 above the DONE/UNDO footer at 462
+# WK-37 (GHOSTS row): 6 rows use a compact layout — 60 px rows, 65 px pitch from y=68 -> last ends at 453 (< footer
+# 462). Titles keep 28 px (WK-18 floor); the value pill is 48 px tall with 32 px text, and widens to fit "BAA ONLY".
+const ROW6_Y0 := 68.0
+const ROW6_PITCH := 65.0
+const ROW6_H := 60.0
+const PILL_RIGHT := 368.0      # pill right edge inside a row (LobbySlot.tscn)
+const PILL_MIN_W := 140.0
+const PILL_CHEV_ROOM := 64.0   # both chevrons (24 px each + gaps) inside the pill
 const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smash / MK8), not see-through glass
 
 @onready var _plate: Panel = $Plate
@@ -46,7 +54,7 @@ const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smas
 @onready var _rules_face: Control = $RulesFace
 @onready var _rules_icon: TextureRect = $RulesFace/ModeIcon
 @onready var _rules_check: Control = $RulesFace/ReadyCheck
-@onready var _rule_rows: Array = [$RulesFace/Row0, $RulesFace/Row1, $RulesFace/Row2, $RulesFace/Row3, $RulesFace/Row4]
+@onready var _rule_rows: Array = [$RulesFace/Row0, $RulesFace/Row1, $RulesFace/Row2, $RulesFace/Row3, $RulesFace/Row4, $RulesFace/Row5]
 @onready var _rules_done_glyph: Control = $RulesFace/Footer/DoneGlyph
 @onready var _rules_undo_glyph: Control = $RulesFace/Footer/UndoGlyph
 
@@ -438,6 +446,9 @@ func show_rules(data: Dictionary) -> void:
 		# BRAWL x5 rows (72 tall) from y=72, 78 apart -> last ends at 456, above the footer (462); WK-20c added
 		# SELF-KO -1. SPORTS x2 keep the old 94 pitch, centred in the band (y = 174, 268).
 		row.position.y = (ROW_Y0 + ROW_PITCH * i) if n > 2 else (174.0 + 94.0 * i)
+		_layout_row(row, n >= 6)
+		if n >= 6:
+			row.position.y = ROW6_Y0 + ROW6_PITCH * i
 		var ps := StyleBoxFlat.new()
 		ps.bg_color = _color
 		ps.border_color = CHOCO
@@ -456,6 +467,7 @@ func refresh_rules(data: Dictionary, changed: int, dir: int) -> void:
 		var row: Panel = _rule_rows[i]
 		(row.get_node("Title") as Label).text = str(r.get("title", ""))
 		(row.get_node("Pill/Value") as Label).text = str(r.get("label", ""))
+		_fit_pill(row)
 		var on: bool = i == focus
 		var locked: bool = bool(r.get("locked", false))
 		var sb := StyleBoxFlat.new()
@@ -482,6 +494,46 @@ func refresh_rules(data: Dictionary, changed: int, dir: int) -> void:
 			if dir != 0:
 				(row.get_node("Pill/ChevR" if dir > 0 else "Pill/ChevL") as Object).call("nudge")
 	_rules_focus = focus
+
+## WK-37: 6-row compact layout (true) or the authored 72 px rows (false). Title stays 28 px; value text 32 / 40 px.
+func _layout_row(row: Panel, compact: bool) -> void:
+	var h: float = ROW6_H if compact else 72.0
+	row.size.y = h
+	row.pivot_offset = Vector2(190.0, h * 0.5)
+	var title: Label = row.get_node("Title")
+	title.offset_bottom = h
+	var pill: Panel = row.get_node("Pill")
+	pill.offset_top = 6.0 if compact else 8.0
+	pill.offset_bottom = h - 6.0 if compact else 64.0
+	var ph: float = pill.offset_bottom - pill.offset_top
+	(pill.get_node("Value") as Label).add_theme_font_size_override("font_size", 32 if compact else 40)
+	for cn in ["ChevL", "ChevR"]:
+		var c: Control = pill.get_node(cn)
+		c.offset_top = (ph - 32.0) * 0.5
+		c.offset_bottom = c.offset_top + 32.0
+	var lk: Control = pill.get_node("Lock")
+	lk.offset_top = (ph - 36.0) * 0.5
+	lk.offset_bottom = lk.offset_top + 36.0
+
+## WK-37: widen a value pill leftwards so a long label ("BAA ONLY") never runs under its chevrons; never narrower than
+## the authored 140 px, never over the row title.
+func _fit_pill(row: Panel) -> void:
+	var pill: Panel = row.get_node("Pill")
+	var val: Label = pill.get_node("Value")
+	var f: Font = val.get_theme_font("font")
+	var fs: int = val.get_theme_font_size("font_size")
+	var tw: float = f.get_string_size(val.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x if f != null else 20.0 * val.text.length()
+	var title: Label = row.get_node("Title")
+	var tf: Font = title.get_theme_font("font")
+	var ttw: float = tf.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title.get_theme_font_size("font_size")).x if tf != null else 120.0
+	var max_w: float = PILL_RIGHT - (title.offset_left + ttw + 14.0)
+	var w: float = clampf(ceilf(tw) + PILL_CHEV_ROOM, PILL_MIN_W, maxf(PILL_MIN_W, max_w))
+	pill.offset_left = PILL_RIGHT - w
+	pill.offset_right = PILL_RIGHT
+	pill.pivot_offset = Vector2(w * 0.5, (pill.offset_bottom - pill.offset_top) * 0.5)
+	var cr: Control = pill.get_node("ChevR")
+	cr.offset_left = w - 28.0
+	cr.offset_right = w - 4.0
 
 ## Shake a row's pill (bound reached / locked value, or UNDO rolling a change back).
 func shake_rule(i: int) -> void:

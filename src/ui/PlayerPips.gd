@@ -91,8 +91,15 @@ func _process(delta: float) -> void:
 		var p = _owners[i]
 		var alive: bool = active and is_instance_valid(p) and not p.is_dead() and p.is_visible_in_tree()
 		if not alive:
-			pip.visible = false
 			_shown[i] = false
+			# WK-37: an eliminated player's GHOST carries their pip (spec §5): full alpha for ghost_pip_full_time after
+			# it appears and whenever it moves again after ghost_pip_idle_after s idle, otherwise ghost_pip_dim_alpha.
+			# Humans only (a CPU's name tag is an intro-only cue, its ghost stays tag-free).
+			var g = _ghost_of(i) if active and fight else null
+			if g != null and _match.is_human_player(i) and not g.frozen:
+				_place_ghost_pip(pip, g, cam_center, z, vp, frame)
+			else:
+				pip.visible = false
 			continue
 		var human: bool = _match.is_human_player(i)
 		if not _shown[i]:
@@ -127,6 +134,32 @@ func _process(delta: float) -> void:
 		pip.position = sp.round()
 		pip.modulate.a = a
 		pip.visible = true
+
+## WK-37: the GhostDirector's ghost for player i (null when ghosts are OFF / none).
+func _ghost_of(i: int):
+	var gd = _match.get("_ghost_dir")
+	if gd == null or not is_instance_valid(gd):
+		return null
+	return gd.ghost_for(i)
+
+func _place_ghost_pip(pip, g, cam_center: Vector2, z: float, vp: Vector2, frame: Rect2) -> void:
+	var centre: Vector2 = (g.global_position - cam_center) * z + vp * 0.5
+	if not frame.has_point(centre):
+		pip.visible = false
+		return
+	var full: bool = g.age < Tuning.ghost_pip_full_time or g.moved_after_idle > 0.0
+	var a: float = 1.0 if full else Tuning.ghost_pip_dim_alpha
+	var lift: float = 44.0 * Tuning.ghost_scale * Tuning.pip_head_clearance
+	var sp: Vector2 = (g.global_position + Vector2(0.0, -lift) - cam_center) * z + vp * 0.5 - Vector2(0.0, Tuning.pip_screen_gap)
+	var flip: bool = sp.y - pip.pip_height() < TOP_MARGIN
+	if flip:
+		sp = (g.global_position + Vector2(0.0, lift) - cam_center) * z + vp * 0.5 + Vector2(0.0, Tuning.pip_screen_gap)
+	pip.set_flipped(flip)
+	var half_w: float = pip.tab_width() * 0.5 + 4.0
+	sp.x = clampf(sp.x, half_w, vp.x - half_w)
+	pip.position = sp.round()
+	pip.modulate.a = move_toward(pip.modulate.a if pip.visible else 0.0, a, 0.08)
+	pip.visible = true
 
 ## Alpha for one pip this frame. Humans never drop below pip_idle_alpha; bots fade to 0 after the intro.
 func _alpha(human: bool, intro: bool, fight: bool, since_go: float, hold: float) -> float:

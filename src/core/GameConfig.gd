@@ -72,6 +72,7 @@ func rules_for(key: String) -> Dictionary:
 		d["kills_to_win"] = 10
 		d["lives_per_player"] = 1
 		d["self_ko_penalty"] = 0   # WK-20c: Ra default (self-KO costs 0); 1 = RULES "SELF-KO −1" ON
+		d["ghosts"] = 0            # WK-37: MatchConfig.Ghosts.ON (0) / BAA_ONLY (1) / OFF (2)
 	var saved: Variant = mode_rules.get(key, {})
 	if typeof(saved) == TYPE_DICTIONARY:
 		for k in (saved as Dictionary).keys():

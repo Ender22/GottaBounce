@@ -60,6 +60,22 @@ func set_dead(i: int, dead: bool) -> void:
 	if i >= 0 and i < _cards.size():
 		_cards[i].set_dead(dead)
 
+## WK-37 ghost goats: card i shows the ghost head (+ the puff ring when `ring`). Off = back to the skull/alive look via
+## set_dead. Presentation only (GhostDirector calls these).
+func set_ghost(i: int, on: bool, ring: bool) -> void:
+	if i >= 0 and i < _cards.size() and _cards[i].has_method("set_ghost"):
+		_cards[i].set_ghost(on, ring)
+
+func set_ghost_ring(i: int, frac: float, hushed: bool, spent: bool) -> void:
+	if i >= 0 and i < _cards.size() and _cards[i].has_method("set_ghost_ring"):
+		_cards[i].set_ghost_ring(frac, hushed, spent)
+
+## WK-37: card i's screen rect (the ghost legend sits beside it). Empty Rect2 for an unused corner.
+func card_rect(i: int) -> Rect2:
+	if i >= 0 and i < _cards.size() and _cards[i].visible:
+		return (_cards[i] as Control).get_global_rect()
+	return Rect2()
+
 func reset_scores() -> void:
 	for c in _cards:
 		c.set_score(0)

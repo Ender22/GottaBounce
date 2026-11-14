@@ -52,3 +52,7 @@ signal drop_tile_hit(tile, broken)
 # put it in; null = team goal (no scoring-team touch). own_goal = soccer only, rare by rule (see
 # SportsMode._credit_goal + Tuning.sports_own_goal_*). Assist/names via SportsMode.last_goal().
 signal goal_scored(team, scorer, own_goal)
+# WK-37b ghost goats — a taunt/bleat happened. player_idx = PartyMatch player index; ghost = true for an eliminated
+# player's ghost (the "ghostly" variant: +3 semitones + echo/low-pass, AudioManager.last_sfx "bleat_ghost_*"). NO subscriber
+# yet: the sample is WK-53 (no placeholder beep — "a fake sound is worse than none"). The "BAAA!" word puff is already drawn.
+signal bleated(player_idx, ghost)

@@ -182,6 +182,10 @@ var _smash_off_stage: Array = [] # per-player: was the LAST smash they received 
 var _combat_active_t: Array = [] # per-player: seconds left in the combat-active window (camera bias)
 var _edge_indicators             # EdgeIndicators overlay (off-screen player chevrons)
 var _ko_blast                    # KOEdgeBlast CanvasLayer (WK-23; QA: _ko_blast.blasts / blast_count)
+# WK-37 ghost goats (docs/specs/wk37a_ghost_goats_2026-11-14.md): the GhostDirector, BRAWL + GHOSTS != OFF only.
+# null with GHOSTS OFF (and in SPORTS/TRIALS) -> every hook below is skipped = byte-for-byte the pre-WK-37 match.
+const GHOST_DIRECTOR := preload("res://src/systems/GhostDirector.gd")
+var _ghost_dir = null
 const OFF_STAGE_GROW := 120.0    # px: "off-stage" = outside _stage_rect grown by this (stats + WK-24 ring)
 
 # level rotation (shuffle-bag) lives in the mode now (BrawlMode)
@@ -230,6 +234,12 @@ func _ready() -> void:
 	bounds = Rect2(-120, -120, 2160, 1380)
 	_level_root = Node2D.new()
 	add_child(_level_root)
+	# WK-37: the ghost layer goes in right after the level root and BEFORE the players, so by tree order clouds and
+	# ghosts draw above the level and below every living goat (spec §5). GHOSTS OFF / non-BRAWL: never created.
+	if _ghosts_enabled():
+		_ghost_dir = GHOST_DIRECTOR.new()
+		_ghost_dir.setup(self, int(_config.ghosts))
+		add_child(_ghost_dir)
 	_load_stage(LEVEL_POOL[0])   # a level exists before the camera/HUD reference _stage_rect
 
 	_camera = CameraController.new()
@@ -639,6 +649,8 @@ func _start_match() -> void:
 ## STAGE_INTRO: rotate to the next level FIRST (spec §3/§6), then the pop-in — everyone suspended &
 ## invisible at the new level's spawns, popped in one at a time with name tags.
 func _begin_stage() -> void:
+	if _ghost_dir != null:
+		_ghost_dir.clear_all()   # WK-37: ghosts/clouds never outlive their stage
 	stage_index += 1
 	round_index = stage_index
 	round_clock = 0.0
@@ -775,6 +787,8 @@ func _bounce_go() -> void:
 		"smashes": [],   # kill-zone spec §8: hit-solidity distribution + recovery correlation feed
 		"self_ko_penalty": self_ko_penalty,   # WK-20c: the self-KO rule this stage was scored under (0 = Ra)
 	}
+	if _ghost_dir != null:
+		_ghost_dir.on_combat_start(_cur_stats)   # WK-37: ghosts_mode / hush / cloud counters (ON / BAA ONLY only)
 	for p in players:
 		p.frozen = false
 		p.fuel = Tuning.fuel_max   # every stage starts on a full tank
@@ -1059,14 +1073,22 @@ func _on_killed(victim, cause, attacker) -> void:
 	# (WK-20c: 0 by default). Score is CUMULATIVE kills.
 	var ai: int = players.find(attacker) if attacker != null else -1
 	var scores_before: Array = scores.duplicate()
-	_mode.on_kill(self, ai, idx, cause)
+	# WK-37 K-2 HAUNTED: no credited attacker + the victim's last surface contact (<= ghost_puff_fence_s) was a ghost
+	# cloud -> the death costs nothing (no self-KO penalty, no self-KO tally) and credits nobody. Living credit stands
+	# (K-3): a credited kill is never haunted. Ghosts never appear as attackers (K-1). OFF: _ghost_dir is null.
+	var haunted: bool = _ghost_dir != null and not (ai >= 0 and ai != idx) and _ghost_dir.is_haunted(idx)
+	if _ghost_dir != null and not rec.is_empty():
+		rec["haunted"] = haunted
+		rec["dt_last_cloud_contact"] = _ghost_dir.dt_last_cloud_contact(idx)
+	if not haunted:
+		_mode.on_kill(self, ai, idx, cause)
 	# WK-25: what this KO actually did to the score (the ScoreScreen kill list + the credit pop read it)
 	var credited: bool = ai >= 0 and ai != idx
 	var ko_cost: int = 0 if credited else int(scores_before[idx]) - int(scores[idx])
 	if not rec.is_empty():
 		rec["credited"] = credited
 		rec["self_ko_cost"] = ko_cost   # points the self-KO took (0 under Ra, or a -1 floored at 0)
-	_credit_pop(victim, ai, idx, credited, ko_cost, scores_before)
+	_credit_pop(victim, ai, idx, credited, ko_cost, scores_before, haunted)
 	# FIRST BLOOD is a BRAWL kill-race moment — never in SPORTS (rocketball/dropshot), where knocking
 	# a rival out of bounds is incidental, not the point (owner 2026-07-19: "killing each other is not the point").
 	if ai >= 0 and ai != idx and not _first_blood_fired \
@@ -1089,6 +1111,8 @@ func _on_killed(victim, cause, attacker) -> void:
 		_respawn_after_death(idx)   # configurable multi-life path (non-default)
 	else:
 		_hud.set_dead(idx, true)
+		if _ghost_dir != null:
+			_ghost_dir.on_eliminated(idx, victim)   # WK-37: a ghost rises ghost_spawn_delay later (cancelled by SD/stage end)
 		# simultaneous-ELIMINATION grouping for the double-KO SD (spec §5)
 		if _recent_dead.size() > 0 and (round_clock - _last_death_clock) <= Tuning.double_ko_window:
 			_recent_dead.append(victim)
@@ -1110,7 +1134,7 @@ func _on_killed(victim, cause, attacker) -> void:
 ## Credited: "+1" in the killer's colour into the killer's card. Uncredited: "OOPS!" (WK-20c Ra, costs 0) or "−N"
 ## when the SELF-KO −1 rule really took a point, in the victim's colour onto the victim's card. Transient, change
 ## only — never a total (owner 2026-07-16). Starts on the KO edge blast (KOEdgeBlast.locate).
-func _credit_pop(victim, ai: int, idx: int, credited: bool, ko_cost: int, scores_before: Array) -> void:
+func _credit_pop(victim, ai: int, idx: int, credited: bool, ko_cost: int, scores_before: Array, haunted := false) -> void:
 	if not _attribution_mode() or _hud == null or not _hud.has_method("credit_pop"):
 		return
 	var loc: Dictionary = _ko_blast.locate(victim) if _ko_blast != null else {}
@@ -1120,6 +1144,8 @@ func _credit_pop(victim, ai: int, idx: int, credited: bool, ko_cost: int, scores
 		_hud.credit_pop(ai, "plus", "+%d" % maxi(1, int(scores[ai]) - int(scores_before[ai])), player_color(ai), loc, meta)
 	elif ko_cost > 0:
 		_hud.credit_pop(idx, "minus", "−%d" % ko_cost, player_color(idx), loc, meta)
+	elif haunted:
+		_hud.credit_pop(idx, "oops", "HAUNTED!", player_color(idx), loc, meta)   # WK-37 K-2: costs nothing
 	else:
 		_hud.credit_pop(idx, "oops", "OOPS!", player_color(idx), loc, meta)
 
@@ -1233,8 +1259,12 @@ func _enter_stage_end(deferred := false) -> void:
 		_cur_stats["survivor_had_contact"] = _stage_winner >= 0 \
 			and _stage_winner < _had_contact.size() and _had_contact[_stage_winner]
 		_cur_stats["motion_health"] = bot_motion_health()   # process gate: per-stage locomotion pathologies
+		if _ghost_dir != null:
+			_ghost_dir.finalize_stats(_cur_stats)   # WK-37 §8.2 ghost telemetry
 		round_stats.append(_cur_stats)
 		_cur_stats = {}
+	if _ghost_dir != null:
+		_ghost_dir.on_stage_end()   # WK-37: ghosts hold still and fade with the KO freeze; clouds go
 	# powerup stage-end sweep (spec §2): all active effects, held slots, and field objects
 	# (balls / rings / bubbles / telegraphs) are cleared — every stage starts clean
 	if _pu_director != null:
@@ -1296,6 +1326,8 @@ func _tick_stage_end(delta: float) -> void:
 ## held boost never skips it). WK-41: the fade-out runs inside the hold, and the next stage (with its intro
 ## card) loads only after the fade, so the two overlays never share a frame.
 func _enter_scoreboard() -> void:
+	if _ghost_dir != null:
+		_ghost_dir.clear_all()   # WK-37: ghosts/clouds are gone before the ScoreScreen (spec §7 / T7)
 	state = "SCOREBOARD"
 	_state_t = 0.0
 	_score_leave_t = -1.0
@@ -1414,8 +1446,13 @@ func _enter_match_end(widx: int) -> void:
 	if not _cur_stats.is_empty():
 		_cur_stats["length_s"] = round_clock
 		_cur_stats["motion_health"] = bot_motion_health()
+		if _ghost_dir != null:
+			_ghost_dir.finalize_stats(_cur_stats)   # WK-37 §8.2 ghost telemetry
 		round_stats.append(_cur_stats)
 		_cur_stats = {}
+	if _ghost_dir != null:
+		_ghost_dir.on_stage_end()      # WK-37: freeze + fade; the ceremony clears them (below)
+		_ghost_dir.remove_ghost(widx)  # a winner on points while dead is respawned for the bow — never two of them
 	var w = players[widx]
 	if is_instance_valid(w):
 		if w.is_dead():   # won on points while dead — bring them back for the bow
@@ -1457,6 +1494,8 @@ func _enter_match_end(widx: int) -> void:
 		var tgt := match_target_kills
 		get_tree().create_timer(VICTORY_DELAY).timeout.connect(func() -> void:
 			if state == "MATCH_END" and _victory != null:
+				if _ghost_dir != null:
+					_ghost_dir.clear_all()   # WK-37: no ghost survives into the ceremony
 				_victory.present(winner, rows, tgt))
 	else:
 		var banner: Dictionary = _mode.match_end_banner(self)
@@ -1712,6 +1751,15 @@ func _attribution_mode() -> bool:
 
 func ko_blast_enabled() -> bool:
 	return _attribution_mode()
+
+## WK-37: ghost goats run in the BRAWL kill race only (SPORTS respawns everyone, TRIALS never eliminates) and only
+## when the RULES option is not OFF.
+func _ghosts_enabled() -> bool:
+	return _config != null and _config.mode_id == &"brawl" and int(_config.ghosts) != MatchConfig.Ghosts.OFF
+
+## QA (gbplay eval): the GhostDirector (null when ghosts are OFF / not BRAWL).
+func ghost_director():
+	return _ghost_dir
 
 ## player_color for every current player, in player order (HUD / chevron setup).
 func player_colors() -> Array:

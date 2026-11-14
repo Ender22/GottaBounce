@@ -558,3 +558,69 @@ var ko_pop_card_bump: float = 0.16        # killer card scale overshoot when a "
 var ko_pop_card_bump_time: float = 0.30   # s
 var ko_pop_card_wobble_deg: float = 7.0   # victim card wobble when an "OOPS!" / "−1" lands
 var ko_pop_card_wobble_time: float = 0.40 # s
+
+# ==================================================================================================
+# --- WK-37 ghost goats (gameplay-programmer, 2026-11-14 · spec docs/specs/wk37a_ghost_goats_2026-11-14.md §8.1,
+# art brief docs/briefs/ghost_goats_2026-11-14.md) — separate block at the END of the file. Eliminated BRAWL players
+# become steerable ghosts (float / bleat / one telegraphed marshmallow puff cloud). Read by src/systems/GhostDirector.gd,
+# src/entities/GhostGoat.gd, src/entities/GhostPuff.gd, src/core/GhostBot.gd. The rules option (ON / BAA ONLY / OFF) is
+# MatchConfig.ghosts, not Tuning. ---
+var ghost_spawn_delay: float = 0.6            # s elimination -> ghost (REAL s; > double_ko_window so an SD revive never un-ghosts)
+var ghost_pop_in_time: float = 0.3            # s pop-in; controllable from its first frame
+var ghost_max_speed: float = 600.0            # px/s float (> air drift 340; ~280-370 screen px/s at play zoom)
+var ghost_hurry_mult: float = 1.5             # x speed while FLY is held (900 px/s)
+var ghost_accel: float = 2400.0               # px/s^2 (full speed in 0.25 s)
+var ghost_damp: float = 4.0                   # /s exponential settle with the stick released (~0.5 s)
+var ghost_bob_amp: float = 6.0                # px visual bob (never a bounce, never squash)
+var ghost_bob_hz: float = 0.8                 # Hz
+var ghost_view_inset: float = 60.0            # SCREEN px the ghost stays inside the visible rect (divided by zoom)
+var ghost_alpha: float = 0.40                 # root modulate.a
+var ghost_alpha_near: float = 0.25            # within ghost_near_radius of any living goat (recede near fights)
+var ghost_near_radius: float = 250.0          # px
+var ghost_alpha_ease: float = 0.2             # s the 0.40 <-> 0.25 change eases over (never snaps; brief §3.5)
+var ghost_scale: float = 0.85                 # x a living goat's body size
+var ghost_puff_arm_delay: float = 1.0         # s after the ghost appears before the first puff arms
+var ghost_puff_cooldown: float = 7.0          # s between puffs (one charge held at most)
+var ghost_puff_max_per_stage: int = 3         # cap per ghost per stage
+var ghost_puff_telegraph: float = 0.5         # s dotted, non-solid warning
+var ghost_puff_life: float = 2.0              # s solid
+var ghost_puff_fade: float = 0.25             # s non-solid exit
+var ghost_puff_size: Vector2 = Vector2(180, 64)   # px collider (art bleeds a little, colliders stay exact)
+var ghost_puff_sink_speed: float = 120.0      # px/s while solid / fading
+var ghost_puff_tier: StringName = &"marshmallow"  # bounce tier (120 px apex, ~620 px/s, +13.3 fuel)
+var ghost_puff_spawn_offset: Vector2 = Vector2(0, 70)  # px below the ghost body
+var ghost_puff_fence_s: float = 2.0           # s K-2 HAUNTED window (last surface contact was a cloud)
+var ghost_puff_refuels: bool = true           # §8.5 knob: false = cloud top still launches but refunds 0 fuel
+var ghost_puff_nudge_max: float = 120.0       # px a cloud blocked by static geometry may be nudged upward before it duds
+var ghost_puff_hush_pop: float = 0.2          # s max: a live cloud pops within this after a hush starts (K-5)
+var ghost_bleat_min_interval: float = 0.4     # s between bleats (shared with WK-53)
+var ghost_bleat_max_per_s: int = 3            # bleats per rolling second (D-15 rate limit)
+var ghost_hush_at_match_point: bool = true    # K-5 switch
+var ghost_legend_time: float = 3.0            # s the "GHOST! FLOAT · PUFF · BAA" line stays by the HUD card
+var ghost_pip_full_time: float = 2.0          # s pip at full alpha after spawn
+var ghost_pip_idle_after: float = 1.5         # s idle after which moving again brings the pip back to full alpha
+var ghost_pip_dim_alpha: float = 0.5          # pip alpha otherwise
+var ghost_orbit_radius: float = 60.0          # px puff-ready mini cloud orbit (world)
+var ghost_orbit_period: float = 2.0           # s
+var ghost_orbit_size: float = 44.0            # px mini cloud width (world)
+var ghost_rim_scale: float = 1.08             # rim layer scale behind the body (brief E2)
+var ghost_tail_sway_deg: float = 8.0          # tail sway at ghost_bob_hz (brief §3)
+var ghost_tail_lean_deg: float = 25.0         # max tail lean opposite velocity.x
+var ghost_word_rise: float = 40.0             # screen px the "BAAA!" puff rises over its life
+var ghost_word_life: float = 0.7              # s
+var ghost_word_alpha: float = 0.6             # ghost variant alpha
+var bot_ghost_puff_rate_mult: float = 0.5     # bot ghosts puff at cooldown / this (14 s)
+var bot_ghost_bleat_mean_interval: float = 8.0  # s Poisson mean, ambient bleats
+var bot_ghost_react_bleat_p: float = 0.5      # chance to bleat 0.3-0.8 s after any KO
+var bot_ghost_hover_dist: float = 500.0       # px from the living centroid
+var bot_ghost_repick_min: float = 3.0         # s hover spot re-pick (uniform min..max)
+var bot_ghost_repick_max: float = 5.0
+var bot_ghost_spacing: float = 200.0          # px min distance between ghosts
+var bot_ghost_drift_mult: float = 0.6         # x ghost speed (no hurry)
+var bot_ghost_puff_lead_min: float = 250.0    # px ahead of the target's velocity
+var bot_ghost_puff_lead_max: float = 350.0
+var bot_ghost_puff_dy: float = 100.0          # px +- target height
+var bot_ghost_puff_give_up: float = 3.0       # s chasing a placement before abandoning that puff
+var bot_ghost_puff_lead_time: float = 1.5     # s before the charge is back that a bot ghost starts flying to its placement
+var bot_ghost_puff_press_dist: float = 120.0  # px: a bot ghost presses PUFF within this of its placement (x2.5 after half the chase)
+var ghost_stuck_secs: float = 6.0             # s zero displacement (away from a hover spot) = a stuck bot ghost (QA)
