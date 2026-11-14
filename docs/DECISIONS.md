@@ -2,6 +2,12 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** GHOST GOATS SHIPPED (WK-37b, spec docs/specs/wk37a_ghost_goats_2026-11-14.md): eliminated Brawl players
+  become ghosts by default (RULES: GHOSTS ON / BAA ONLY / OFF). Ghosts never earn credit; ghost-caused deaths are
+  uncredited and cost nothing; puffs hush at match point and in sudden death; camera framing unchanged (owner rules).
+  Taunt/bleat = pad Y / keyboard J (new `taunt` action). RULES memory stays per-session like the other RULES fields.
+
+
 - **2026-11-14** WK-20a RULINGS (director, on the designer's pre-registered predictions + docs/audit/2026-11-14_wk20a_results.md):
   (1) SELF-KO SCORING = Ra: falling off on your own costs 0 points by default; "SELF-KO -1" becomes a RULES toggle
   (off by default). Data: under -1, 27-32% of matches show a ranking inversion vs kills and the average human loses

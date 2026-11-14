@@ -1147,6 +1147,15 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   legit fall-arrests — consider excluding braking arrests from `_mh_blocked_ascent`. Accept: stuck <= 1.1x pre-WK-127.
 
 
+### [ ] WK-37c [P1][S] Ghost goats follow-ups: bot-ghost stacking, art-director look pass, faintness on wide cameras
+- Source: WK-37b (1186bcf). T11 FAIL: two bots eliminated at the same spot start stacked (200 px spacing 72-93% vs 90%).
+  T9/T10: art-director grade per docs/briefs/ghost_goats_2026-11-14.md R1-R8 — ghosts are faint specks on the wide
+  islands_void camera (tools/out/wk37_ghosts_live.png); faded jetpack until bespoke ghost art. BAAA! bubble can sit over
+  a living goat. Ghost over a platform can't puff (dud wisp only). Public Player.apply_surface_bounce() hook.
+  T12-T15 (human-sim kingmaker, frame time, felt pass) -> next CD playthrough.
+- Accept: T11 spacing >= 90%; art-director Ship; ghosts identifiable in a 4-player recording at zoom 0.46.
+
+
 ## P2 — visible polish gaps
 
 ### [ ] WK-85 [P2][S] Tall arenas: backdrop painting stretches into a murky smear; tall themed platforms gap
