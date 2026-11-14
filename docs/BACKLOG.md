@@ -64,6 +64,50 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept: each sub-item screenshot-verified in tools/out/wk/WK-80_*.png; no PowerupSystem errors across 3 stages.
 - Status: done 5926f10. WK-CD1 re-check: (a) focus restore works for pause -> OPTIONS -> back and lobby -> mode select.
 
+## OWNER CHECK-IN 2026-11-14 (docs/feedback/owner_2026-11-14_checkin.md) — owner feedback jumps its band
+
+### [ ] WK-93 [P0][S] Match video recorder: 20 s at fixed fps, frame-by-frame analysis as standard motion evidence
+- Owner: "do you ever record a video of like 20 seconds of a match then analyze it frame by frame?"
+- Do: `tools/record_match.ps1` (+ doc in run-and-playtest skill): Godot Movie Maker (`--write-movie out/frame.png
+  --fixed-fps 30 --quit-after N`) on a scripted match config (MatchConfig via a tiny boot scene/CLI arg), frames to
+  `tools/out/rec/<name>/`, plus a contact-sheet + per-player trajectory/angle overlay script. Movie Maker renders every
+  frame regardless of machine FPS, so it also sidesteps WK-91 for analysis.
+- Accept: a 20 s 4-bot brawl recording exists with contact sheets; WEEKEND_LOOP + qa-playtester require it for any
+  motion/feel/bot change.
+
+### [ ] WK-94 [P0][S] Bot super-aim spins like crazy — must sweep like a human
+- Owner: "the aiming mechanic looks crazy when the bots use it, it spins like nuts". Lead: game-designer found L1
+  "panic" aim noise is re-rolled EVERY frame (docs/specs/wk20a_measurement_2026-11-14.md §Study B).
+- Do: bot aim = smoothed target angle with max angular speed (Tuning), noise as slow drift not per-frame jitter;
+  verify with WK-93 recording (aim angle per frame plot: no flips > N deg/frame).
+- Accept: recording of 3 bot supers per difficulty shows smooth, readable wind-up; max angular step under cap.
+
+### [ ] WK-95 [P0][M] OWNER RULING: normal flight responsive enough to manoeuvre; super boost = attack, not traversal
+- Owner: "the bots need to rely too much on the super boost because the normal flying isnt responsive enough to
+  maneuver around nicely, we should make that more responsive/effective and consider super boost more just like the
+  way to attack others rather than the way to get around."
+- Do: game-designer spec first (which Tuning constants: thrust accel, air control, turn responsiveness, fuel cost of
+  normal flight, super cost/cooldown; respect hitstun triad/kill target/camera rulings); prediction-first; then
+  gameplay-programmer tunes + bot brain change (super only for attacks / emergency recovery). DECISIONS entry.
+- Accept: WK-93 recordings before/after; bot super usage share for traversal drops (telemetry), humans-sim can
+  navigate a course with normal flight; qa feel note + creative-director sign-off.
+
+### [ ] WK-96 [P0][S] Pendulum hazards pass through players without smashing them
+- Owner: "big swinging pendulums ... went right through a player and didnt smash them". Find the pendulum hazard
+  (grep pendulum in src/ + levels), check collision layers/masks, tunnelling at speed (continuous CD / shape cast),
+  and hit-gating (cooldown/invuln). Accept: WK-93 recording of 5 pendulum contacts -> 5 smashes.
+
+### [ ] WK-97 [P0][S] Black hole level: player sprites render behind the black hole
+- Owner: "on like a black hole level, all the player sprites were behind the black hole". Fix z_index/z_as_relative or
+  CanvasLayer ordering of the black_hole sprite (GravitySource) so players/FX draw in front. Accept: screenshot on
+  Singularity with players passing over the black hole.
+
+### [ ] WK-98 [P1][M] Sports focus track: owner reports Rocketball/Dropshot may be more fun than Brawl
+- Do: game-designer + creative-director sports deep-dive (play both sports rendered; what's fun, what's rough:
+  ball feel, scoring readability, court variety, team lobby WK-27, bots' team play, match flow) -> new WK-1xx sports
+  items; producer weights sports items into Next 10 alongside brawl.
+
+
 ## P0 — broken normal couch play (controls, joining/selecting, roster)
 
 > **SYSTEMIC — input/device model** (C-01..C-07, C-10, C-14, R-01, R-02, R-03, R-32): one global action map, one
