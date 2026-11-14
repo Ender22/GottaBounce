@@ -20,32 +20,33 @@ Standard: `docs/COUCH_CONVENTIONS.md` (CC-x.y). Procedure: `docs/WEEKEND_LOOP.md
 Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 files · M = one full slice · L = split it.
 
 ## In flight (do NOT reassign)
-- WK-09 Pause finish (hold-to-confirm, "PAUSED · P#") · WK-11 end-screen fresh-press gate · WK-80 QA nits — one gameplay-programmer
-- WK-12 painted backdrop on every brawl arena — level-designer
+- WK-24 attacker-colour hits · WK-23 screen-edge KO blast — gameplay-programmer, built, in rendered verification
+- WK-82 lobby hold-B exit — built by the director, verifying
+- WK-86 (CD1-01) powerup spawners stuck on Islands Void's points — same gameplay-programmer, in progress
 
-## Next 10 (producer re-rank 2026-11-14, after WK-01..08/10/81 landed; pull top-down once the in-flight items land)
-Ranking logic: no open P0 remains. P1 ordered by couch impact per cost, depth-first on the core brawl's
-readability (the KO is the climax of the loop and is currently invisible + anonymous: audit D-01/D-02/D-06 =
-design top move #1), then the RECOVER verb (GAME_ESSENCE verb 4: D-18, D-05) and front-end flow, before content.
+## Next 10 (producer re-rank 2026-11-14 after WK-CD1, docs/audit/2026-11-14_cd1_playthrough.md)
+Ranking logic: no open P0. WK-CD1 verdict: front end / couch input SHIP, Brawl in motion FIX. CD order adopted: the S-size
+bug that has overridden every arena since July first (WK-86), then finish the KO-readability run already in flight
+(WK-24/23), then the "who wins and why" study (WK-20a, now incl. the self-KO −1 rule, CD1-02), then dead time (WK-21 +
+WK-41 raised: 9-13 s of overlays per ~15 s fight = 35-40 % of a match). WK-25 now waits on the self-KO ruling (the −1 OOPS
+pop is moot if the rule changes). WK-CD2 sits at 7 = after item 6. WK-36 drops to on-deck #1.
 
-0. WK-CD1 creative-director cold playthrough after WK-09/11/12 land — creative-director (10 items done since seeding; WEEKEND_LOOP
-   says every ~6). Integrated build, 2 simulated pads + keyboard, Title -> Lobby -> Brawl match -> Victory -> REMATCH,
-   plus one Trials and one Sports launch. Findings -> producer re-rank BEFORE item 1 is pulled. Recurs: next one due
-   after item 6 below (WK-CD2), then every ~6 items.
-1. WK-24 [P1][S] Hits carry the attacker's colour (burst, streak, last-touch ring) — gameplay-programmer
-2. ~~WK-22~~ done 5a999db — [P1][S] KO blast sprite strip — art pipeline (art-director brief). Runs in PARALLEL with item 1 (no game slot until the test frame)
-3. WK-23 [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer (deps WK-22)
-4. WK-20a [P1][S] Measure the +25 % knockback side effects + game-designer ruling (no code) — qa-playtester + game-designer
-5. WK-82 [P1][S] Lobby hold-B exit only from a B that changed nothing (one kid un-readying must not eject the room) — gameplay-programmer
-6. WK-21 [P1][S] Adaptive ScoreScreen hold 2.0 / 3.4 s + FLY skips via the WK-11 gate — gameplay-programmer (deps WK-11)
-7. WK-25 [P1][M] KO credit pop (+1 to killer's card / −1 OOPS) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-23)
-8. WK-17 [P1][S] Bundle an OFL display font (DECISIONS b) — ui-ux-designer; unblocks WK-18/34/35
-9. WK-15 [P1][S] Teach the goal: legend on every mode's stage 1, "SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs" — ui-ux-designer + gameplay-programmer
-10. WK-36 [P1][M] Off-screen magnifier bubbles with fuel ring (watch the recovery live) — gameplay-programmer
+1. WK-86 [P1][S] Powerup spawners follow the loaded stage, not Islands Void (CD1-01) — gameplay-programmer — IN PROGRESS
+2. WK-24 [P1][S] Hits carry the attacker's colour (burst, streak, last-touch ring) — gameplay-programmer — IN FLIGHT (verifying)
+3. WK-23 [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer — IN FLIGHT (verifying)
+4. WK-82 [P1][S] Lobby hold-B exit only from a B that changed nothing — director-built — IN FLIGHT (verifying)
+5. WK-20a [P1][M] Who wins and why: +25 % knockback side effects AND the self-KO −1 rule, measured with human-style drivers + game-designer ruling — qa-playtester + game-designer
+6. WK-21 + WK-41 [P1][S+S] Between-stage budget: adaptive ScoreScreen hold + overlays in sequence / one prompt (pull together) — gameplay-programmer + ui-ux-designer
+7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (KO readability, scoring ruling, downtime budget) — creative-director
+8. WK-25 [P1][M] KO credit pop (+1 to killer's card / −1 OOPS per the WK-20a ruling) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-23, WK-20a ruling, WK-89 if confirmed)
+9. WK-17 [P1][S] Bundle an OFL display font + drop fake-bold same-colour outlines on lobby small text (CD1-05) — ui-ux-designer; unblocks WK-18/34/35
+10. WK-15 [P1][S] Teach the goal: legend on every mode's stage 1, "SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs" — ui-ux-designer + gameplay-programmer
 
-On deck (11+, in order): WK-26 super-aim wind-up + "!" (S) · WK-20b knockback fix, only if WK-20a rules it needed (S) ·
-WK-13 BRAWL default focus on ModeSelect (S) · WK-19 rumble only to the concerned pad (S) · WK-53 quack/taunt (S, needs a
-CC0 bleat) · WK-37a ghost-goat spec (S, game-designer, can run in parallel any time) · WK-32a hero wire-or-cosmetic
+On deck (11+, in order): WK-36 off-screen magnifier bubbles (M) · WK-20b / WK-20c conditional builds from the WK-20a
+ruling (S each) · WK-89 round_stats multi-life kill gap, fix if WK-20a's repro confirms (S) · WK-37a ghost-goat spec (S,
+game-designer, parallel any time; matters more with LIVES 3 per CD1) · WK-13 BRAWL default focus on ModeSelect (S) ·
+WK-26 super-aim wind-up + "!" (S) · WK-88 one naming rule for fighters (S) · WK-87 Trials objective off the goal ring (S) ·
+WK-19 rumble only to the concerned pad (S) · WK-53 quack/taunt (S, needs a CC0 bleat) · WK-32a hero wire-or-cosmetic
 decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware glyph component (M).
 
 ---
@@ -61,7 +62,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - (e) Painted backdrop doesn't reach screen edges (pale strips L/B on Daisy Ring, L/R on meadow).
 - (f) Options: focus bar overlaps the "M" of MASTER VOLUME; from pause, Options BACK + hint bar overlap HUD cards.
 - Accept: each sub-item screenshot-verified in tools/out/wk/WK-80_*.png; no PowerupSystem errors across 3 stages.
-- Status: in-progress (gameplay-programmer, with WK-09 + WK-11). Note: (a) "B from CharacterSelect" now means B from the Herd Lobby; (e) overlaps WK-12 (backdrop coverage) — coordinate, don't both edit Backdrop code.
+- Status: done 5926f10. WK-CD1 re-check: (a) focus restore works for pause -> OPTIONS -> back and lobby -> mode select.
 
 ## P0 — broken normal couch play (controls, joining/selecting, roster)
 
@@ -175,6 +176,23 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 > not by the goat. WK-08 lands the shared `player_color()` first; every later identity item reads it.
 > **SYSTEMIC — two visual languages** (R-11, R-22, R-28, R-12): in-match panels are dark-navy dev-look; WK-34/35 own it.
 
+### [ ] WK-86 [P1][S] Powerup spawners follow the loaded stage (every mode has used Islands Void's three points since July)
+- Area: brawl | sports | trials · Owner: gameplay-programmer (fix) + game-designer (no-spawner intent) · Source: creative-director WK-CD1 (CD1-01)
+- Evidence: eval in a live Rocketball match: `_pu_director.points = [(480,900),(2810,600),(5100,780)]` (= `levels/islands_void.json`)
+  while `_pu_points = []`; live bubbles at (480,908) and (5100,777). Same points in Dropshot ((2810,607), outside its 0..2800 court)
+  and Trials ((480,902)). Frames: `tools/out/cd1/rb_edge_crop.png`, `36_crop_edge.png` (bubble outside Rocketball's right wall),
+  `sheet_ds.png` f000/f001, `47_trials_flying.png` + `48_trials_after.png` (`ball_storm` on a bush in Trials lesson 1, P2 grabbed it).
+- Impact: every match in every mode. Brawl's 94 hand-placed spawner layouts have never fired; x=5100 is beyond most blast lines.
+  Sports/Trials get bubbles they were never designed for. Not a weekend regression (code dates from a8de63c / 9fafa66).
+- Root cause: `PartyMatch._ready()` loads `LEVEL_POOL[0]` as a placeholder, `_pu_director.setup(self, _pu_points)` captures that
+  array; every later `_load_stage()` rebinds `_pu_points` to a NEW array the director never sees.
+- Do: push the stage's points into the director on every `_load_stage()` (or have the director read them in `reset()`).
+  game-designer confirms "no spawners = no powerups" for sports courts and Trials courses.
+- Accept (rendered): after a stage change in Brawl, eval `_pu_director.points` equals that arena JSON's `powerup_spawners` on 3
+  arenas, with a bubble screenshot at an arena-specific point; Rocketball, Dropshot and Trials lesson 1 show 0 bubbles over 60 s
+  (or the game-designer's ruling); no bubble outside the camera bounds. The 94-arena re-check rides on WK-57.
+- Status: in-progress (gameplay-programmer, alongside WK-23/24 verification)
+
 ### [x] WK-08 [P1][S] One player = one colour = their goat's colour, everywhere — 4e7caf6
 - Sources: C-08, R-04, D-03 (design audit rated P0)
 - Area: HUD/brawl · Owner: gameplay-programmer · Deps: none
@@ -186,7 +204,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   ScoreScreen row and the Victory row are blue for P1 and pink for P2 (5 screenshots).
 - Status: done 4e7caf6
 
-### [ ] WK-CD1 [P1][M] Creative-director cold playthrough of the integrated build (recurring)
+### [x] WK-CD1 [P1][M] Creative-director cold playthrough of the integrated build (recurring) — done, doc docs/audit/2026-11-14_cd1_playthrough.md
 - Source: WEEKEND_LOOP step 6 (every ~6 items; 10 done since seeding) · Owner: creative-director, then producer re-rank
 - Area: all · Deps: WK-09, WK-11, WK-12 landed (WK-80 if it lands first) · uses the game slot
 - Do: fresh-eyes run vs GAME_ESSENCE: Title -> Herd Lobby with kb + 2 simulated pads -> RULES flip -> Brawl match to Victory ->
@@ -194,7 +212,21 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   in `tools/out/wk/CD1_*.png`; explicitly re-judge the lobby (WK-05..07/81) and identity (WK-08/10) as a player would.
 - Accept: findings file in `docs/feedback/cd_2026-11-14_weekend1.md` (or similar) + producer re-rank committed before Next-10 item 1 is pulled.
   Next instance WK-CD2 after Next-10 item 6.
-- Status: open (waiting on in-flight items)
+- Status: done, doc docs/audit/2026-11-14_cd1_playthrough.md (the doc itself is in ccf1ed1; this re-rank is not committed yet).
+  Verdict: front end / couch input SHIP (owner's pause-on-B and 2-pad character-select complaints verified FIXED on 3 devices),
+  Brawl in motion FIX. No regressions. New findings CD1-01..06 -> WK-86, WK-20a (expanded), WK-87, WK-88, WK-17, WK-89.
+  Re-judged: WK-82, WK-21/41, WK-37, WK-85, WK-43 (notes added on each).
+
+### [ ] WK-CD2 [P1][M] Creative-director cold playthrough #2 (recurring)
+- Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank · Area: all · uses the game slot
+- Deps: Next-10 items 1-6 landed (WK-86, WK-24, WK-23, WK-82, WK-20a ruling, WK-21 + WK-41)
+- Do: the same 3-device cold run as WK-CD1 (pad + kb + pad, full default Brawl to Victory, REMATCH, one 3-lives stage, one
+  Trials + one Rocketball + one Dropshot launch). Re-judge specifically: (1) can you tell who KO'd whom from the screen alone
+  (WK-23/24); (2) does the score economy still let a CPU beat three humans (WK-20a ruling + any WK-20c change); (3) measured
+  STAGE_END -> next COMBAT time against the WK-21/41 budget; (4) powerups appear only where each arena placed them (WK-86).
+- Accept: findings doc in `docs/audit/` with screenshots under `tools/out/cd2/` + producer re-rank before Next-10 item 8 is pulled.
+  Next instance WK-CD3 ~6 items later.
+- Status: open
 
 ### [ ] WK-82 [P1][S] Lobby hold-B exits only from a B press that changed nothing; 6 px ring
 - Source: ui-ux-designer lobby review L8 (docs/audit/2026-11-14_lobby_review.md); producer code re-check 2026-11-14
@@ -208,7 +240,13 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept (rendered, 3 joined): READY P2 holds pad B 2 s -> P2 un-readies, lobby stays, no ring; P2 releases and holds B again
   from PICKING -> leaves the slot only, no ring; P2 (now slotless) presses and holds B 1.0 s -> ring fills (6 px) -> exits; a
   B tap with nobody joined still backs straight out. Screens `tools/out/wk/WK-82_*.png`.
-- Status: open
+- WK-CD1 re-judge (`tools/out/cd1/39_lobby_after_B.png` -> `40_after_holdB.png`): a device that has ALREADY LEFT can still hold B
+  1.5 s and throw a still-PICKING player back to mode select (lobby `[EMPTY, pad:1 PICKING, EMPTY, EMPTY]`). CD proposed counting
+  hold-B only from a joined device, or only when no other slot is joined.
+- Decision (director 2026-11-14): KEEP the Smash convention — a slotless device holding B 1.0 s exits the lobby for everyone
+  (Smash Ultimate behaves this way). The CD's case above is **accepted risk, not a bug**; do not add it to the Accept line.
+  The fix stays scoped to presses that un-ready or leave never arming the ring.
+- Status: in-progress (built by the director, rendered verification pending)
 
 ### [x] WK-09 [P1][S] Pause finish: hold-to-confirm RESTART/QUIT, "PAUSED · P2" header with goat head, context line — 5926f10
 - Sources: C-18, R-09, C-20 (header/context; CONTROLS entry lands with WK-33), C-06 (header part), CC-6.1, CC-7.2
@@ -218,7 +256,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   "REALLY?" double-press; header "PAUSED · P#" + portrait in owner colour; sub-line mode · arena · score.
 - Accept (rendered): hold A 1.0 s on QUIT -> menu; release at 0.5 s -> still paused, ring drained; mashing A x6 never quits;
   pad1 pauses -> header reads P2/P3 per label in that goat's colour. Screens `tools/out/wk/WK-09_*.png`.
-- Status: in-progress (gameplay-programmer, with WK-11 + WK-80)
+- Status: done 5926f10. WK-CD1 re-check: tap does nothing, 1.3 s hold confirms; PAUSED · P1 with goat head (`tools/out/cd1/22_pause_p1.png`, `24_restart_tap.png`).
 
 ### [x] WK-10 [P1][S] Persistent P# pip over every human; bots tagged CPU — 4e7caf6
 - Sources: C-09, R-17, R-05 (pointer part), C-15 (label part), CC-8.3
@@ -234,7 +272,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Evidence: VictoryScreen.gd:234-235/311 (fast-forward arms instantly), PartyMatch.gd:74/849-850 (code, VERIFY rendered)
 - Accept (rendered): hold pad A through the winning KO -> Victory does not REMATCH and ScoreScreen tally is not skipped;
   a fresh A after 1.0 s works; an unjoined pad2 cannot press REMATCH once a lobby exists.
-- Status: in-progress (gameplay-programmer, with WK-09 + WK-80)
+- Status: done 5926f10. WK-CD1 re-check: unjoined pad 2 A ignored on Victory, P3 A started the rematch.
 
 ### [x] WK-12 [P1][S] First impression: every brawl arena gets a painted backdrop (Grassy Expanse first) — 4ba5d88
 - Sources: R-08 (+ STATUS "grass arenas without a backdrop_painting show a plain sky")
@@ -242,12 +280,12 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Evidence: tools/out/cd_audit/17_launch_1.5s.png, 18_launch_3s.png, 26_rematch_1.5s.png vs 22_now.png
 - Accept (rendered): screenshot Grassy Expanse at BOUNCE! shows the meadow painting, not flat grey-blue; grep confirms
   every brawl level JSON has `backdrop_painting`; spot-render 5 previously-bare arenas.
-- Status: in-progress (level-designer)
+- Status: done 4ba5d88. WK-CD1: "better than described" — meadow sky on Grassy Expanse (`tools/out/cd1/12_launch_3.png`).
 
 ### [ ] WK-13 [P1][S] Mode select: BRAWL default focus, equal card heights, player-count chips
 - Sources: R-18, D-29, C-35 · **OWNER-RULED**: card ORDER is owner-set (TRIALS, BRAWL, …) — keep it, change focus only
 - Area: menus · Owner: ui-ux-designer · Deps: none
-- Evidence: tools/out/cd_audit/03_modeselect.png
+- Evidence: tools/out/cd_audit/03_modeselect.png; WK-CD1 2026-11-14: still defaults to TRIALS (carried over unchanged)
 - Accept (rendered): fresh save -> ModeSelect focus on BRAWL; after playing Trials, focus = last-played; all 4 card art panels
   same height; chips read e.g. "2-4 VERSUS", "1-4 CO-OP", "1V1 / 2V2"; Trials has a "SOLO / CO-OP" sub-label.
 - Status: open
@@ -281,7 +319,12 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Area: art/menus · Owner: ui-ux-designer (pick) + art pipeline (import) · Deps: none
 - Do: OFL rounded heavy face (Fredoka / Baloo 2 ExtraBold / Lilita One) + licence file in `assets/fonts/`; theme default
   font replaces the SystemFont chain; check MenuCard auto-shrink and long labels.
-- Accept (rendered): Title, Lobby/CharacterSelect, Pause, ScoreScreen, Victory screenshots all render the bundled face; no text overflow.
+- Merged CD1-05 (creative-director WK-CD1, P3/S): Herd Lobby small text (flavour lines, NONE/flair row, rules summary bar) uses a
+  dark-brown outline on dark-brown text (`outline_size` 4-12 in `LobbySlot.tscn`) that fills in the counters of e/a/g and reads
+  muddy at couch distance (`tools/out/cd1/05_crop_lobbytext.png`); the lobby is also a second type style beside the system-font menus.
+  Drop the outline on dark-on-light body text (or use a light outline) when the bundled face lands — no fake-bold outlines.
+- Accept (rendered): Title, Lobby/CharacterSelect, Pause, ScoreScreen, Victory screenshots all render the bundled face; no text overflow;
+  a 1080p lobby crop of a flavour line + the rules summary bar shows open letter counters (no same-colour outline).
 - Status: open
 
 ### [ ] WK-18 [P1][S] 28 px floor for anything a player reads
@@ -300,15 +343,34 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   (Rumble can't be seen; the call log is the evidence.) Options toggle lands in WK-44.
 - Status: open
 
-### [ ] WK-20a [P1][S] Measure the +25 % knockback side effects, then a game-designer ruling (no code change)
+### [ ] WK-20a [P1][M] Who wins and why: measure the +25 % knockback side effects AND the self-KO −1 rule, then game-designer rulings (no code change)
 - Sources: D-18, R-07 (early KOs), DECISIONS 2026-07-19 watch item · split from WK-20 (producer 2026-11-14: measure before building)
-- Area: brawl · Owner: qa-playtester (measure) + game-designer (ruling) · Deps: none · uses the game slot — serialize with builders
-- Evidence: tools/out/cd_audit/b19_contact.png (2 deaths within ~6 s), d56_brawl_fast/log.json (P1 dead ~4 s in) — audit inference, not yet measured
-- Do: graze s<=0.15 on Lv0 -> log damage_level, `_last_sting_applied`, hitstun; centre hit same; median time-to-first-death
-  and Lv0 non-edge-smash survival rate (victim fuel >= 20) over 20-40 bot stages.
-- Accept: numbers in `tools/out/wk/WK-20a_measure.json` + a contact sheet of 3 recoveries; game-designer writes the ruling in
-  DECISIONS: either "no fix needed" (WK-20b -> Won't do) or the exact WK-20b gate.
+  · **scope expansion 2026-11-14 (director): CD1-02 folded in** — was [S], now [M] (two questions, two driver types)
+- Area: brawl · Owner: qa-playtester (measure) + game-designer (rulings) · Deps: none · uses the game slot — serialize with builders
+- Evidence: tools/out/cd_audit/b19_contact.png (2 deaths within ~6 s), d56_brawl_fast/log.json (P1 dead ~4 s in) — audit inference, not yet measured.
+  CD1-02 (`round_stats`, 11-stage default Brawl, 192 s combat; `tools/out/cd1/m1/`, `sheet_m1_c.png`, `20_victory_4.png`): three
+  human-style drivers lost to one CPU L2 **10-4-2-1**; humans died 27x, **9 self-falls (33 %)**, CPU 6 deaths / **0 self-falls**;
+  credited KOs -> final score P1 5->2, P2 2->1, P3 7->4, CPU 10->10; two humans sat at 0 for ~8 stages. Driver != human (CD's caveat).
+- Impact: "I KO'd five people, I have 2 points, and the robot won" — the owner's "weird prototype" feeling, every default couch night.
+- Do (knockback, unchanged): graze s<=0.15 on Lv0 -> log damage_level, `_last_sting_applied`, hitstun; centre hit same; median
+  time-to-first-death and Lv0 non-edge-smash survival rate (victim fuel >= 20) over 20-40 bot stages.
+- Do (self-KO, new): repeat the default setup (3 humans + CPU SKILL MIX) with **human-style drivers, not only bots** (bots never
+  self-fall, so a bot-only batch will say this is fine); report per-player self-fall share, credited KOs vs final score, CPU win
+  rate. First run one 3-lives stage and compare `round_stats.kills` against `scores` deltas (WK-89 repro) so the numbers are trusted.
+- Ruling: the self-KO −1 is a **studio spec rule** (spec §2 "suicide = −1"), NOT an owner ruling (the owner's 2026-07-03 directive
+  sets KILLS/LIVES/no-timer and is silent on the penalty) — the game-designer decides. Options from the CD: (a) self-KO costs
+  nothing by default, "SELF-KO −1" as a RULES toggle; (b) no penalty until a player has scored once; (c) with 2+ humans, CPU SKILL
+  MIX resolves to L1-L2 only; or keep as-is with evidence.
+- Accept: numbers in `tools/out/wk/WK-20a_measure.json` (both batches) + a contact sheet of 3 recoveries; game-designer writes both
+  rulings in DECISIONS: knockback "no fix needed" (WK-20b -> Won't do) or the exact WK-20b gate; self-KO keep (WK-20c -> Won't do)
+  or the exact WK-20c change.
 - Status: open
+
+### [ ] WK-20c [P1][S] (conditional on WK-20a) Apply the game-designer's self-KO / CPU-mix ruling
+- Source: CD1-02 via WK-20a · Area: brawl · Owner: gameplay-programmer · Deps: WK-20a ruling · WK-25's −1 OOPS pop follows the result
+- Accept: re-run the WK-20a human-style batch: the ruled behaviour holds (eval `scores` deltas on self-falls) and the RULES toggle,
+  if any, persists per mode (WK-07 memory); DECISIONS entry in the same commit.
+- Status: open (BLOCKED until WK-20a ruling)
 
 ### [ ] WK-20b [P1][S] (conditional on WK-20a) Gate sting/escalation/hitstun at Lv0 on the pre-multiplier impulse
 - Sources: D-18 · **OWNER-RULED**: `dmg_launch_mult` array and hitstun triad constants do NOT change; only the impulse fed to the
@@ -318,17 +380,38 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   non-edge smashes on victims with fuel >= 20 survived over 40 stages; lethality battery §9 re-run; rendered contact sheet of 3 recoveries.
 - Status: open (BLOCKED until WK-20a ruling)
 
-### [ ] WK-21 [P1][S] Adaptive ScoreScreen hold (2.0 s normal, 3.4 s on lead change / match point)
-- Sources: D-09, R-07 (dead time) · **OWNER-RULED**: ScoreScreen stays (owner 2026-07-16); `SCORE_HOLD` is the sanctioned knob; `round_end_freeze` and countdown untouched
-- Area: brawl · Owner: gameplay-programmer · Deps: WK-11 (skip uses the fresh-press gate)
-- Accept: median death->next-BOUNCE over 20 non-dramatic stages <= 5.0 s (was ~6.9 s); a lead-change stage holds 3.4 s (eval timestamps + screenshots).
+### [ ] WK-21 [P1][S] Between-stage budget, half 1: adaptive ScoreScreen hold (2.0 s normal, 3.4 s on lead change / match point)
+- Sources: D-09, R-07 (dead time), **WK-CD1 re-judge (worse than described)** · **OWNER-RULED**: ScoreScreen stays (owner 2026-07-16);
+  `SCORE_HOLD` is the sanctioned knob; `round_end_freeze` and countdown untouched
+- Area: brawl · Owner: gameplay-programmer · Deps: WK-11 (done) · Pull together with WK-41 (half 2)
+- Evidence (WK-CD1): STAGE_END -> next COMBAT took **~9-13 s every stage** (banner -> SCOREBOARD -> STAGE_INTRO -> COUNTDOWN) against
+  a median **15 s** of combat (11 stages: 35, 3, 12, 15, 21, 11, 17, 15, 24, 31, 7 s) = **35-40 % of a default match is interstitial**,
+  before eliminated players' watching time. The tuned constants (freeze 1.4 + SCORE_HOLD 3.4 + 4 intro pops ~0.8 + countdown 1.05)
+  sum to ~6.6 s, so 3-6 s per stage is unaccounted for — find it first.
+- Do: log a per-phase timestamp breakdown (STAGE_END, SCOREBOARD, STAGE_INTRO, COUNTDOWN, COMBAT) before changing anything; then
+  the adaptive hold + FLY skip via the WK-11 gate.
+- Accept (shared with WK-41, CD budget): median STAGE_END -> next COMBAT over 20 non-dramatic stages **<= 6 s**, lead-change /
+  match-point stages **<= 8 s**, with the ScoreScreen holding 3.4 s on a lead change (eval timestamps + per-phase table + screenshots).
+  If the budget cannot be met without touching `round_end_freeze` or the countdown, stop and take it to the game-designer —
+  those are owner-ruled.
+- Status: open
+
+### [ ] WK-41 [P1][S] Between-stage budget, half 2: overlays run in sequence; one prompt (countdown ring OR A); SELF-KO label
+- Sources: R-27 (overlap + prompt; names go to WK-59, −1 label pairs with WK-25) · **raised P2 -> P1 2026-11-14** (WK-CD1 downtime
+  measurement, director decision: dead time is ~35-40 % of a match; see WK-21 evidence)
+- Area: brawl/HUD · Owner: ui-ux-designer · Deps: none · Pull together with WK-21
+- Evidence: tools/out/cd_audit/d24_brawl_to_end/f003_STAGE_INTRO.png, d56_brawl_fast/f008_STAGE_INTRO.png; WK-CD1 cadence (WK-21)
+- Do: also look at the STAGE_INTRO card on every stage — CD names it "the other half" of the dead time. The intro card must keep
+  adding 0.0 s and never gate state (ceremony brief); trimming the stage-2+ intro window is in scope, the 3-2-1 beat is not.
+- Accept (rendered): STAGE_END -> SCOREBOARD -> STAGE_INTRO burst shows no frame with two overlays at once; together with WK-21 the
+  between-stage budget (<= 6 s normal, <= 8 s lead change) passes.
 - Status: open
 
 ### [x] WK-22 [P1][S] KO blast sprite strip (art) — 5a999db
 - Sources: D-01 (art half)
 - Area: art · Owner: art pipeline (art-director brief) · Deps: none
 - Accept: `assets/fx/ko_blast_*.png` strip, transparent, toybox style, approved by art-director on a rendered test frame.
-- Status: open
+- Status: done 5a999db
 
 ### [ ] WK-23 [P1][M] Screen-edge KO blast in the victim's colour (the punchline becomes visible)
 - Sources: D-01 (design audit rated P0), R-31 (KO blast-line part) · **OWNER-RULED**: camera rules untouched — presentation only
@@ -337,18 +420,22 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   top = star-KO twinkle, sides/bottom = column; <= 0.6 s, edge-anchored, never in the middle 60 %.
 - Accept (rendered): 20 forced ring-outs across 3 arenas, all 4 edges, burst screenshots at +0.05 s and +0.3 s: 20/20 show a
   victim-coloured blast at the nearest edge.
-- Status: open
+- WK-CD1: still the #1 fantasy gap — "across 11 stages I could rarely tell who killed whom from the screen"; at 0.46-0.62 zoom a KO
+  is a speck leaving the frame.
+- Status: in-progress (built, rendered verification pending)
 
 ### [ ] WK-24 [P1][S] Hits carry the attacker's colour (impact burst, knockback streak, last-touch ring)
 - Sources: D-06, D-02 (part 2 last-touch tag)
 - Area: brawl · Owner: gameplay-programmer · Deps: WK-08
 - Accept (rendered): frame-grab 10 smashes: burst/streak hue = attacker colour 10/10; victim in credit window shows a thin
   attacker-coloured ring; streak value >= 0.8 (launch read kept).
-- Status: open
+- Status: in-progress (built, rendered verification pending; streak = attacker colour per DECISIONS e2394c1)
 
 ### [ ] WK-25 [P1][M] KO credit pop (+1 flies to killer's card, −1 OOPS on self-fall) + ScoreScreen kill list
 - Sources: D-02 (parts 1+3), R-27 (unlabelled "−1"), R-06 (score-visibility half) · **OWNER-RULED**: no persistent combat score — the pop is transient (<= 1.5 s)
-- Area: brawl/HUD · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-23, WK-08
+- Area: brawl/HUD · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-23, WK-08, **WK-20a self-KO ruling** (+ WK-20c if
+  ruled; the −1 OOPS half changes or disappears with the rule) and WK-89 if confirmed (the kill list reads `round_stats`)
+- WK-CD1: "points appear and disappear between overlays"; nothing on screen shows the −1 subtraction (CD1-02).
 - Accept (rendered): 4-bot match, 30 deaths: every credited kill shows a killer-coloured +1 reaching the right card within 1.0 s,
   every uncredited death shows −1/+0 on the victim card (eval `scores` before/after, 0 mismatches); ScoreScreen lists
   "P2 ▶ P3" / "P4 SELF-KO −1".
@@ -398,6 +485,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Sources: R-06 (damage/lives half) · **OWNER-RULED**: no persistent KO score on cards (see Deferred)
 - Area: HUD · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-08
 - Accept (rendered): eval damage_level 0/1/2 on P1 -> card shows three distinct states; fuel bar has an icon; LIVES 3 shows 3 pips.
+- WK-CD1: on a LIVES 3 stage no stock count is shown anywhere (`tools/out/cd1/sheet_m4.png`).
 - Status: open
 
 ### [ ] WK-32 [P1][M] Make the goat pick real: wire CharacterProfiles OR declare cosmetic and rewrite blurbs
@@ -425,7 +513,8 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 ### [ ] WK-35 [P1][M] Toybox panel kit B: Victory final score, Trials objective banner, Sports scoreboard
 - Sources: R-11
 - Area: menus/art · Owner: ui-ux-designer · Deps: WK-34
-- Accept (rendered): same kit on the three screens (screenshots); ui-ux verdict Ship.
+- Accept (rendered): same kit on the three screens (screenshots); ui-ux verdict Ship; the restyled Trials objective panel keeps the
+  WK-87 placement (never over the goal ring).
 - Status: open
 
 ### [ ] WK-36 [P1][M] Off-screen magnifier bubbles (watch the recovery live)
@@ -442,9 +531,13 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Area: brawl · Owner: game-designer (spec) + gameplay-programmer · Deps: WK-04 (done); quack needs WK-53; GHOSTS option lives on the RULES panel back (WK-07 done)
 - Accept (rendered): eliminated human's ghost moves from their device within 1.0 s; 40 % alpha, no flame; excluded from camera;
   heckle puff never credits a kill over 20 stages; option GHOSTS ON/OFF in RULES.
+- WK-CD1 re-judge (matters more than described): a group that raises LIVES to 3 "to play longer" waits LONGER — P3 eliminated
+  ~30 s in, then watched a 1v1 for over a minute (`tools/out/cd1/sheet_m4.png`). Keeps WK-37a high on deck.
 - Status: open
 
 ---
+
+## P2 — visible polish gaps
 
 ### [ ] WK-85 [P2][S] Tall arenas: backdrop painting stretches into a murky smear; tall themed platforms gap
 - Source: WK-12 spot render (tools/out/wk/WK-12_the_summit.png, WK-12_twin_towers.png). Owner: gameplay-programmer + art.
@@ -452,10 +545,43 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   the painting vertically, or a starfield layer for tall space arenas. Themed bodies only draw a 64/128 px strip, so
   96 px+ platforms show an art-less band (perch_line, gauntlet_ridge, zenith, Scrapworks bolt_yard/the_ascent);
   twin_towers pinned to grass as a stopgap. Make themed bodies fill full collider height (as grass earth does).
-- Accept: the_summit + twin_towers + zenith screenshots read as a painted sky with fully skinned platforms.
+- WK-CD1 re-judge (broader than "tall arenas"): the FIRST Trials course shows it too — the bottom ~35 % of the screen is a flat
+  mint-green fill under the painted hills, goats fly through what reads as an unpainted void (`tools/out/cd1/46_trials_go.png`,
+  `48_trials_after.png`). First impression of Trials. If the Trials backdrop needs its own fix, split it off as a separate S.
+- Accept: the_summit + twin_towers + zenith screenshots read as a painted sky with fully skinned platforms; Flight School lesson 1
+  shows no flat fill band below the painting.
+- Status: open
 
+### [ ] WK-87 [P2][S] Trials objective panel never covers the goal ring
+- Area: trials/HUD · Owner: ui-ux-designer · Source: creative-director WK-CD1 (CD1-03)
+- Evidence: `tools/out/cd1/48_trials_after.png` — Flight School lesson 1 "FIRST FLIGHT": the dark "1 of 2 HOME" panel sits top-centre,
+  exactly where the ring ends up once the camera re-frames; only a green arc of the target shows.
+- Impact: the very first Trials instruction is "fly up to the ring" and the ring is hidden. Every new player, lesson 1.
+- Do: move the panel to a corner, or collapse it to a small chip after ~3 s (or reserve a top band via the `camera_focus_points`
+  seam — camera rules are owner-ruled, so prefer the HUD move). WK-35 restyles the same panel later and must keep this placement.
+- Accept (rendered): Flight School lesson 1 at BOUNCE+0 s and +4 s with 1 and 2 players: the goal ring is fully visible in both.
+- Status: open
 
-## P2 — visible polish gaps
+### [ ] WK-88 [P2][S] One naming rule for every fighter in match text (CPU vs VEX vs "VEX — CPU")
+- Area: HUD/brawl · Owner: ui-ux-designer (rule) + gameplay-programmer · Source: creative-director WK-CD1 (CD1-04, CD rated P3;
+  producer rates P2: a couch group asks "who is Vex?") · extends the identity systemic (WK-08/WK-10, both done)
+- Evidence: `tools/out/cd1/m1/f005_STAGE_END.png`, `m1/f029_STAGE_END.png`, `20_victory_4.png` — bot card/pip say CPU, banners say
+  "VEX SURVIVES!" / "P1 +1 · P2 +1 · VEX +1", Victory says "VEX — CPU"; humans are "P1" in banners but "BUTCH P1" on Victory.
+- Do: pick one rule for HUD, pips, banners, ScoreScreen and Victory (e.g. humans "P#" everywhere; CPUs "CPU" + goat colour, or
+  "VEX (CPU)" everywhere). WK-76's "bot tag shows hero name" must follow whatever is chosen; Victory contrast stays in WK-42.
+- Accept (rendered): 2H+2CPU Brawl: HUD card, stage banner, ScoreScreen row and Victory row name each fighter the same way (4 screenshots).
+- Status: open
+
+### [ ] WK-89 [P2][S] `round_stats` may under-record kills when LIVES > 1 (instrumentation — unverified, seen once)
+- Area: tooling/brawl · Owner: qa-playtester (repro) -> gameplay-programmer (fix if confirmed) · Source: creative-director WK-CD1 (CD1-06)
+- Evidence (unverified): Grassy Expanse, LIVES 3, 63.5 s game time, final scores 2-0-5-1, but `round_stats[0].kills` held ONE entry
+  (P1's self-fall at t=1). Seen once, not root-caused.
+- Impact: not player-facing today, but WK-20a, WK-25 (ScoreScreen kill list), WK-55 and WK-57 all decide from `round_stats`; any
+  non-default LIVES measurement would be wrong.
+- Do: the repro runs at the start of the WK-20a session (one 3-lives stage, `kills` vs `scores` deltas). Confirmed -> fix; not
+  reproduced in 3 stages -> Won't do with the numbers.
+- Accept: 3 LIVES-3 stages where `round_stats.kills` count equals the sum of credited + self-fall score events (eval log).
+- Status: open (unverified)
 
 ### [ ] WK-38 [P2][S] Gate the 9090 automation server behind `--gb-dev` AND update run_game.ps1 in the SAME commit; version label only on title + Options
 - Sources: C-28, CC-12.1, CC-8.4 · **WARNING**: landing the gate without `run_game.ps1` passing `-- --gb-dev` breaks gbplay and every later rendered QA — one commit, verify both
@@ -476,18 +602,13 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept (rendered): pad focus never lands on a back button on ModeSelect/ArenaSelect/Options; mouse click on the chip goes back.
 - Status: open
 
-### [ ] WK-41 [P2][S] Between-stage overlays run in sequence; one prompt (countdown ring OR A); SELF-KO label
-- Sources: R-27 (overlap + prompt; names go to WK-59, −1 label pairs with WK-25)
-- Area: brawl/HUD · Owner: ui-ux-designer · Deps: none
-- Evidence: tools/out/cd_audit/d24_brawl_to_end/f003_STAGE_INTRO.png, d56_brawl_fast/f008_STAGE_INTRO.png
-- Accept (rendered): STAGE_END -> SCOREBOARD -> STAGE_INTRO burst shows no frame with two overlays at once.
-- Status: open
-
 ### [ ] WK-42 [P2][S] Victory screen: hide combat HUD, consistent button copy/size, readable CPU name
 - Sources: R-28
 - Area: menus · Owner: ui-ux-designer · Deps: WK-14
 - Evidence: tools/out/cd_audit/25_victory_settled.png
 - Accept (rendered): no HUD corner cards on Victory; buttons equal width, "QUIT TO MENU" copy; winner name contrast >= 4.5:1.
+- WK-CD1: "VEX — CPU" in purple over the yellow burst is hard to read (`tools/out/cd1/20_victory_4.png`) — contrast stays here; the
+  naming rule is WK-88. QUIT TO MENU still lands on the title and clears the lobby (R-26): the label must match the destination.
 - Status: open
 
 ### [ ] WK-43 [P2][S] Trials co-op polish: offset spawns, "GO!" not "FIGHT!", banner backplates, longer first lesson
@@ -495,6 +616,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Area: trials · Owner: level-designer + ui-ux-designer · Deps: none
 - Evidence: tools/out/cd_audit/39_trials_1s.png, 38_trials_circuits.png, 41_contact.png
 - Accept (rendered): 2P course 1 spawns visibly apart; circuit confirm reads "GO!"; COURSE CLEAR has an outline/backplate; course 1 takes >= 4 s of flying for a human-style drive.
+- WK-CD1: the Trials circuit-select footer also says "(A) FIGHT!" in the co-op mode (`tools/out/cd1/44_trials_select.png`) — front-end copy is in scope.
 - Status: open
 
 ### [ ] WK-44 [P2][M] Options rebuild: aligned grid, RUMBLE toggle, SCREEN SHAKE (OFF/LOW/FULL), CONTROLS entry
@@ -728,6 +850,10 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - WK-81 lobby review must-fixes F1-F8 + GO blocked while RULES open (closes L1, L13) — f1a9fdd
 - WK-07 RULES panel flip, per-mode rule memory, lobby persistence, CHANGE SETUP in Pause — f1a9fdd (beyond spec: lobby
   persistence across round trips and per-mode rules memory shipped in the same slice)
+- WK-22 KO blast art, 4 tintable layers — 5a999db
+- WK-09 pause finish · WK-11 end-screen input gate · WK-80 QA nits — 5926f10 (all three re-checked rendered in WK-CD1)
+- WK-12 painted backdrop on every brawl arena — 4ba5d88
+- WK-CD1 creative-director cold playthrough — done, doc docs/audit/2026-11-14_cd1_playthrough.md (owner's two complaints verified fixed; no regressions)
 
 ## Deferred / Cut (this weekend) — every finding not covered by an item above
 - **R-07 (default 3 stocks / sudden-death squeeze)** — owner rulings: LIVES default 1, KILLS 10, no timer sudden-death. Mitigated by WK-20a/20b/21/37/56; LIVES stays selectable in RULES (WK-07).
@@ -740,7 +866,10 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - **D-17 / C-15 (6-8 player HUD + 2 more skins)** — capped at 4 fighters for the whole run (DECISIONS 2026-11-14 ruling b3; WK-02).
   The lobby has shipped, but the cap is a standing ruling, not a lobby dependency: needs 2 new skins (art) + compact HUD +
   ScoreScreen row sizing. Revisit only after the weekend run.
-- **D-28 (warm-up pen behind the lobby)** — L, new system. WK-05..07 have shipped; still deferred unless WK-CD1 asks for it.
+- **D-28 (warm-up pen behind the lobby)** — L, new system. WK-05..07 have shipped; WK-CD1 did not ask for it (lobby rated "the best
+  screen in the game"), so it stays deferred.
+- **WK-CD1 / WK-82 "a slotless device can still eject everyone"** — accepted risk by director decision 2026-11-14 (Smash convention);
+  recorded under WK-82 so nobody re-files it as a bug.
 - **WK-20b (Lv0 sting/hitstun gate)** — conditional: moves to Won't do if the WK-20a measurement + game-designer ruling say the
   +25 % knockback did not break grazes/recovery.
 - **Lobby review L5 painted ribbon art (E.11)** — optional art generation; cut this weekend. The code-side banner polish is WK-84.
@@ -768,3 +897,5 @@ D-21 74 · D-22 70 · D-23 56 · D-24 75 · D-25 50,54,78 · D-26 76,72 · D-27 
 (D-18 is now 20a,20b; D-08 is 37a,37b; D-10 is 32a,32b when pulled)
 Lobby review (2026-11-14_lobby_review.md): F1-F8 81 (done) · L1 07/81 (done) · L2 27 · L3 28 · L4 45 (+53 bleat) · L5 84 (+Deferred art) ·
 L6 18 · L7 83 · L8 82 · L9 83 · L10 17 · L11 10 (done) · L12 29 · L13 81 (done)
+WK-CD1 (2026-11-14_cd1_playthrough.md): CD1-01 86 · CD1-02 20a (scope expansion), 20c, 25 · CD1-03 87 (+35) · CD1-04 88 (+42, 76) ·
+CD1-05 17 (+18) · CD1-06 89 (repro inside 20a) · re-judged: 82 (accepted risk), 21 + 41 (budget, 41 raised to P1), 37, 31, 85, 43, 23, 42 (R-26 label)
