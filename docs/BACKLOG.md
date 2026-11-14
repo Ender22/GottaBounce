@@ -50,7 +50,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 
 ---
 
-### [ ] WK-80 [P1][S] QA nits from WK-01 verification (focus restore, glyph unity, stray errors)
+### [x] WK-80 [P1][S] QA nits from WK-01 verification (focus restore, glyph unity, stray errors) — 5926f10
 - Source: qa-playtester WK-01 pass 2026-11-14. Owner: gameplay-programmer + ui-ux-designer.
 - (a) Backing out of a submenu must restore focus to the item that opened it: PauseMenu `_close_options` focuses
   RESUME (should be OPTIONS); MainMenu back-from-Options lands on PLAY; ModeSelect returns focus to TRIALS after
@@ -210,7 +210,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   B tap with nobody joined still backs straight out. Screens `tools/out/wk/WK-82_*.png`.
 - Status: open
 
-### [ ] WK-09 [P1][S] Pause finish: hold-to-confirm RESTART/QUIT, "PAUSED · P2" header with goat head, context line
+### [x] WK-09 [P1][S] Pause finish: hold-to-confirm RESTART/QUIT, "PAUSED · P2" header with goat head, context line — 5926f10
 - Sources: C-18, R-09, C-20 (header/context; CONTROLS entry lands with WK-33), C-06 (header part), CC-6.1, CC-7.2
 - Area: menus · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-01, WK-08 (colour); owner->player label via WK-04 (fallback kb->P1)
 - Evidence: tools/out/cd_audit/29_quit_confirm.png, 30_after_quit.png, 31_back_at_menu.png (QUIT never fired; `_arm_gen` advances on press AND release)
@@ -228,7 +228,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   full alpha 1 s after respawn; bots show "CPU" during intro only; HUD cards for bots read "CPU", never "P3".
 - Status: done 4e7caf6 (also closes lobby review L11)
 
-### [ ] WK-11 [P1][S] End-screen input gate (fresh presses only, arm >= 1.0 s) + shared menus ignore unjoined devices
+### [x] WK-11 [P1][S] End-screen input gate (fresh presses only, arm >= 1.0 s) + shared menus ignore unjoined devices — 5926f10
 - Sources: C-14, C-06 (shell part), CC-3.3, CC-10.2; resolves D-09 "FLY skips" conflict (a FLY press only counts if it began after the screen appeared)
 - Area: menus · Owner: gameplay-programmer · Deps: WK-03 (joined filter needs WK-06 for real data)
 - Evidence: VictoryScreen.gd:234-235/311 (fast-forward arms instantly), PartyMatch.gd:74/849-850 (code, VERIFY rendered)
@@ -236,7 +236,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   a fresh A after 1.0 s works; an unjoined pad2 cannot press REMATCH once a lobby exists.
 - Status: in-progress (gameplay-programmer, with WK-09 + WK-80)
 
-### [ ] WK-12 [P1][S] First impression: every brawl arena gets a painted backdrop (Grassy Expanse first)
+### [x] WK-12 [P1][S] First impression: every brawl arena gets a painted backdrop (Grassy Expanse first) — 4ba5d88
 - Sources: R-08 (+ STATUS "grass arenas without a backdrop_painting show a plain sky")
 - Area: art/brawl · Owner: level-designer · Deps: none
 - Evidence: tools/out/cd_audit/17_launch_1.5s.png, 18_launch_3s.png, 26_rematch_1.5s.png vs 22_now.png
@@ -445,6 +445,15 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Status: open
 
 ---
+
+### [ ] WK-85 [P2][S] Tall arenas: backdrop painting stretches into a murky smear; tall themed platforms gap
+- Source: WK-12 spot render (tools/out/wk/WK-12_the_summit.png, WK-12_twin_towers.png). Owner: gameplay-programmer + art.
+- the_summit / sky_ladder_brawl (2100+ px tall): space_nebula scaled to cover reads as flat dark navy. Options: tile/parallax
+  the painting vertically, or a starfield layer for tall space arenas. Themed bodies only draw a 64/128 px strip, so
+  96 px+ platforms show an art-less band (perch_line, gauntlet_ridge, zenith, Scrapworks bolt_yard/the_ascent);
+  twin_towers pinned to grass as a stopgap. Make themed bodies fill full collider height (as grass earth does).
+- Accept: the_summit + twin_towers + zenith screenshots read as a painted sky with fully skinned platforms.
+
 
 ## P2 — visible polish gaps
 
