@@ -7,9 +7,13 @@ extends Resource
 
 enum ArenaMode { RANDOM_ALL = 0, SINGLE = 1, CIRCUIT = 2 }  # CIRCUIT reserved for Phase 3 (unused now)
 
+## Hard roster cap: total fighters (humans + bots) in ANY match. = the 4 MatchHUD corner cards
+## (DECISIONS 2026-11-14 ruling b3; BACKLOG WK-02). The future lobby CPU tray reads this too.
+const MAX_FIGHTERS := 4
+
 @export var mode_id: StringName = &"brawl"                  # which GameMode to run (§3 registry key)
 @export var human_count: int = 1                            # local humans (players 0..human_count-1)
-@export var bot_count: int = 3                              # bots; invariant 2 <= humans+bots <= 8
+@export var bot_count: int = 3                              # bots; invariant humans+bots <= MAX_FIGHTERS
 @export var bot_difficulty: int = 0                         # 0 = mixed (Tuning.bot_levels rotation); 1..5 = fixed level
 @export var character_ids: PackedStringArray = PackedStringArray(["bouncer"])   # per-player character; missing -> "bouncer"
 @export var skin_ids: PackedStringArray = PackedStringArray(["pink", "blue", "green", "yellow"])  # per-player color skin
@@ -18,6 +22,21 @@ enum ArenaMode { RANDOM_ALL = 0, SINGLE = 1, CIRCUIT = 2 }  # CIRCUIT reserved f
 @export var circuit_id: StringName = &""                   # used only when arena_mode == CIRCUIT; key into levels/circuits.json
 @export var kills_to_win: int = 10                          # overrides Tuning.match_target_kills for the match
 @export var lives_per_player: int = 1                       # overrides Tuning.lives_per_player for the match
+
+## Most bots allowed alongside `humans` humans (BOTS stepper max / lobby CPU tray max).
+static func max_bots_for(humans: int) -> int:
+	return maxi(0, MAX_FIGHTERS - clampi(humans, 1, MAX_FIGHTERS))
+
+## Defensive roster clamp (WK-02): 1 <= humans <= MAX_FIGHTERS, 0 <= bots <= MAX_FIGHTERS - humans.
+## Trims BOTS first (humans are never dropped). Returns true if anything changed. Does NOT enforce a
+## minimum total (Trials is legitimately 1 human + 0 bots); the Brawl screen owns its own >= 2 rule.
+func clamp_roster() -> bool:
+	var h: int = clampi(human_count, 1, MAX_FIGHTERS)
+	var b: int = clampi(bot_count, 0, max_bots_for(h))
+	var changed: bool = h != human_count or b != bot_count
+	human_count = h
+	bot_count = b
+	return changed
 
 ## Character id for a player slot, falling back to "bouncer" for any index the roster doesn't cover.
 func character_for(i: int) -> String:

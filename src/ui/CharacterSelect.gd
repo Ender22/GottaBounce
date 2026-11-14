@@ -87,7 +87,7 @@ func _ready() -> void:
 		# total in _go_arena, and 3-4 humans force 2V2. The Brawl-only steppers (bots/kills/lives)
 		# stay out of the tray.
 		var cfg0: MatchConfig = GameConfig.match_config
-		var max_h: int = 4
+		var max_h: int = MatchConfig.MAX_FIGHTERS
 		cfg0.human_count = clampi(cfg0.human_count, 1, max_h)
 		var labels: Array = []
 		var vals: Array = []
@@ -105,8 +105,18 @@ func _ready() -> void:
 		_steppers[0].focus_neighbor_top = _steppers[0].get_path_to(_cards[3])
 	else:
 		var cfg: MatchConfig = GameConfig.match_config
-		_add_stepper("HUMANS", ["1", "2", "3", "4"], [1, 2, 3, 4], cfg.human_count - 1, _on_humans)
-		_add_stepper("BOTS", ["0", "1", "2", "3", "4", "5", "6", "7"], [0, 1, 2, 3, 4, 5, 6, 7], cfg.bot_count, _on_bots)
+		# WK-02 roster cap: a stale/over-full config (e.g. an old 2H+3B) is pulled under MAX_FIGHTERS
+		# before the steppers read it; BOTS only ever offers the legal range for the current HUMANS.
+		_clamp_brawl_roster()
+		var h_labels: Array = []
+		var h_vals: Array = []
+		for n in range(1, MatchConfig.MAX_FIGHTERS + 1):
+			h_labels.append(str(n))
+			h_vals.append(n)
+		_add_stepper("HUMANS", h_labels, h_vals, cfg.human_count - 1, _on_humans)
+		var bo: Array = _bots_options(cfg.human_count)
+		_add_stepper("BOTS", bo[0], bo[1], (bo[1] as Array).find(cfg.bot_count), _on_bots)
+		_bots_stepper = _steppers[_steppers.size() - 1]
 		# "MIX" (was "Mixed") keeps the 40px value inside the stepper's width budget (audit P3 type pass)
 		_add_stepper("BOT SKILL", ["MIX", "1", "2", "3", "4", "5"], [0, 1, 2, 3, 4, 5], cfg.bot_difficulty, _on_skill)
 		_add_stepper("KILLS", ["5", "7", "8", "10"], [5, 7, 8, 10], _index_of([5, 7, 8, 10], cfg.kills_to_win, 3), _on_kills)
@@ -348,7 +358,7 @@ var _sports_total := 2   # SPORTS roster total from the TEAMS stepper: 2 = 1v1, 
 
 func _humans_now() -> int:
 	var cfg: MatchConfig = GameConfig.match_config
-	return clampi(cfg.human_count, 1, 4) if cfg != null else 1
+	return clampi(cfg.human_count, 1, MatchConfig.MAX_FIGHTERS) if cfg != null else 1
 
 ## Recolor the pick-cursor flag (+ its label) to the CURRENT picker's slot colour.
 func _refresh_picker_flag() -> void:
@@ -406,7 +416,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		accept_event()
 		_go_arena()
 		return
-	if e.is_action_pressed("menu_random"):   # pad Y (controller-only; was keyboard KEY_R)
+	if e.is_action_pressed("menu_random"):   # pad Y + keyboard R (CC-2.1 / audit C-02)
 		_random_pick()
 
 func _random_pick() -> void:
@@ -438,7 +448,14 @@ func _add_stepper(title: String, labels: Array, vals: Array, idx: int, cb: Calla
 	_steppers.append(st)
 
 func _on_humans(_i: int, v: Variant) -> void:
-	GameConfig.match_config.human_count = int(v)
+	var cfg: MatchConfig = GameConfig.match_config
+	# WK-02: a FULL lobby stays full — humans join by replacing bots (1H+3B -> 2H+2B -> ... -> 4H+0B,
+	# and back down refills with bots). A lobby the player deliberately shrank (BOTS lowered) keeps its
+	# bot count, only trimmed if the new HUMANS value would push the total past MAX_FIGHTERS.
+	var was_full: bool = cfg.human_count + cfg.bot_count >= MatchConfig.MAX_FIGHTERS
+	cfg.human_count = int(v)
+	if was_full:
+		cfg.bot_count = MatchConfig.max_bots_for(cfg.human_count)
 	_enforce_counts(true)
 	_reset_picks()   # picker roster changed — restart the pick round
 
@@ -465,17 +482,41 @@ func _on_kills(_i: int, v: Variant) -> void:
 func _on_lives(_i: int, v: Variant) -> void:
 	GameConfig.match_config.lives_per_player = int(v)
 
-## Invariant 2 <= humans+bots <= 8 (§1.3). Nudge bots to satisfy it and reflect in the stepper.
+## BRAWL roster invariant: 2 <= humans+bots <= MatchConfig.MAX_FIGHTERS (WK-02; was <= 8). Nudge bots
+## to satisfy it; when HUMANS changed, rebuild the BOTS stepper so it only offers the legal range
+## (stepping past the edge then gets the stepper's native reject-shake, never a snap-back).
 func _enforce_counts(humans_changed: bool) -> void:
+	_clamp_brawl_roster()
+	if humans_changed and _bots_stepper != null:
+		var cfg: MatchConfig = GameConfig.match_config
+		var bo: Array = _bots_options(cfg.human_count)
+		_bots_stepper.configure("BOTS", bo[0], bo[1], (bo[1] as Array).find(cfg.bot_count))
+
+var _bots_stepper = null   # BRAWL's BOTS stepper (Stepper.gd, no class_name; null in Trials/Sports guise)
+
+## Clamp the shared config to the BRAWL roster rule: humans 1..MAX, bots in _bots_range(humans).
+func _clamp_brawl_roster() -> void:
 	var cfg: MatchConfig = GameConfig.match_config
-	var total := cfg.human_count + cfg.bot_count
-	if total < 2:
-		cfg.bot_count += (2 - total)
-	elif total > 8:
-		cfg.bot_count -= (total - 8)
-	cfg.bot_count = clampi(cfg.bot_count, 0, 7)
-	if humans_changed:
-		_steppers[1].set_index(cfg.bot_count)   # BOTS stepper vals == index
+	cfg.clamp_roster()
+	var r: Vector2i = _bots_range(cfg.human_count)
+	cfg.bot_count = clampi(cfg.bot_count, r.x, r.y)
+
+## Legal BOTS range for `humans` in BRAWL: at least enough for a 2-fighter match, at most
+## MAX_FIGHTERS - humans (BOTS max = 4 - humans, WK-02).
+func _bots_range(humans: int) -> Vector2i:
+	var hi: int = MatchConfig.max_bots_for(humans)
+	var lo: int = mini(maxi(0, 2 - humans), hi)
+	return Vector2i(lo, hi)
+
+## [labels, vals] for the BOTS stepper given the current HUMANS count.
+func _bots_options(humans: int) -> Array:
+	var r: Vector2i = _bots_range(humans)
+	var labels: Array = []
+	var vals: Array = []
+	for n in range(r.x, r.y + 1):
+		labels.append(str(n))
+		vals.append(n)
+	return [labels, vals]
 
 # ------------------------------------------------------------------ v11 flair (spec §5.4/§5.5)
 

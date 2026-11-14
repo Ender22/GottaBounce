@@ -1,6 +1,6 @@
 extends CanvasLayer
-## FIRST-STAGE CONTROLS LEGEND (match_ceremony brief §2). Four cream chips — MOVE / FLY /
-## SUPER SMASH / POWERUP — with drawn PadGlyph buttons, bottom-center, on stage 1 of every
+## FIRST-STAGE CONTROLS LEGEND (match_ceremony brief §2). Five cream chips — MOVE / FLY /
+## SUPER SMASH / POWERUP / PAUSE — with drawn PadGlyph buttons, bottom-center, on stage 1 of every
 ## Brawl match. Rides the intro/countdown quiet time, holds 4s into COMBAT, then fades.
 ## Charm beat: pressing a listed button press-bounces its chip (the strip answers you).
 ## Early-out: the first use_powerup press in combat fades it immediately (lesson learned).
@@ -14,6 +14,9 @@ const CHIPS := [
 	{"label": "FLY", "action": "boost", "pad": "A"},
 	{"label": "SUPER SMASH", "action": "super", "pad": "X"},
 	{"label": "POWERUP", "action": "use_powerup", "pad": "B"},
+	# Start/Menu pauses — never B (COUCH_CONVENTIONS CC-1.1, audit C-01). No press-bounce: pressing it
+	# pauses the tree, so the strip can't answer anyway.
+	{"label": "PAUSE", "action": "", "pad": "START"},
 ]
 
 @onready var _strip: HBoxContainer = $Root/Strip

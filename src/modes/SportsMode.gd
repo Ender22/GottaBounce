@@ -216,8 +216,10 @@ func _court_unlocked(court_id: String) -> bool:
 ## _teams in the SAME order the runner spawns (plan[i] -> player i), splitting the roster in half. Each
 ## descriptor sets `team` (reused field) + a team colorway skin so teammates read as one side.
 func spawn_plan(_runner, config: MatchConfig) -> Array:
-	var humans: int = maxi(0, config.human_count)
-	var bots: int = maxi(0, config.bot_count)
+	# WK-02 roster cap: clamp BEFORE the even-split math so teams stay balanced (an odd total <= 3 rounds
+	# up to <= 4, so the even clamp below can never exceed MatchConfig.MAX_FIGHTERS).
+	var humans: int = clampi(config.human_count, 0, MatchConfig.MAX_FIGHTERS)
+	var bots: int = clampi(config.bot_count, 0, MatchConfig.MAX_FIGHTERS - humans)
 	var total: int = humans + bots
 	if total < 2:
 		bots += (2 - total)

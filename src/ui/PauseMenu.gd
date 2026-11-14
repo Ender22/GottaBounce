@@ -1,7 +1,12 @@
 extends CanvasLayer
-## PauseMenu overlay (frontend_ux_spec §2.6). Instanced by PartyMatch on menu_back during a live match;
-## freezes the sim (get_tree().paused). RESUME / RESTART / OPTIONS / QUIT TO MENU. Processes while
-## paused (PROCESS_MODE_ALWAYS). Options is hosted in-place (shell-less) and returns here on back.
+## PauseMenu overlay (frontend_ux_spec §2.6). Instanced by PartyMatch on the `pause` action (pad Start /
+## keyboard Esc, P) during a live match; freezes the sim (get_tree().paused). RESUME / RESTART / OPTIONS /
+## QUIT TO MENU. Processes while paused (PROCESS_MODE_ALWAYS). Options is hosted in-place (shell-less)
+## and returns here on back.
+## Couch rules (COUCH_CONVENTIONS CC-1.5 / CC-7.3): the device that pressed pause OWNS the menu — other
+## devices' key/pad events are dropped in _input before focus nav sees them. A confirms the focused item;
+## Start (`pause`) or B (`menu_back`) = RESUME. Resuming tells PartyMatch to swallow held gameplay buttons
+## until release (C-19), so the resume press never boosts / fires a powerup.
 
 const OPTIONS := preload("res://scenes/ui/Options.tscn")
 
@@ -14,14 +19,39 @@ const OPTIONS := preload("res://scenes/ui/Options.tscn")
 
 var match_ref
 var _options: Control = null
+# Device that opened the pause ("kb" / "pad:N", see PartyMatch._device_key). "" = no owner, any device
+# drives the menu (also the fallback if the owner's pad disconnects while paused).
+var _owner_key := ""
 # Destructive-action confirm (ui_audit_2026-07-10 §1.6#2): first press of RESTART / QUIT TO MENU arms
 # the button ("REALLY?"), second press within the window executes; 1.5s or a focus move disarms.
 const CONFIRM_WINDOW := 1.5
 var _armed: Button = null
 var _arm_gen := 0
 
-func setup(m) -> void:
+func setup(m, owner_key: String = "") -> void:
 	match_ref = m
+	_owner_key = owner_key
+	if _owner_key.begins_with("pad:") and not Input.joy_connection_changed.is_connected(_on_joy_changed):
+		Input.joy_connection_changed.connect(_on_joy_changed)
+
+## Owner's pad died mid-pause → release ownership so the menu can't become a dead end.
+## TODO(C-07): the DisconnectOverlay replaces this fallback.
+func _on_joy_changed(device: int, connected: bool) -> void:
+	if not connected and _owner_key == "pad:%d" % device:
+		_owner_key = ""
+
+## Pause-owner gate (CC-1.5). _input runs before GUI focus navigation, so marking a non-owner event
+## handled here stops it moving focus, pressing buttons, or resuming. Mouse events are never gated.
+func _input(e: InputEvent) -> void:
+	if _owner_key == "":
+		return
+	var k := ""
+	if e is InputEventKey:
+		k = "kb"
+	elif e is InputEventJoypadButton or e is InputEventJoypadMotion:
+		k = "pad:%d" % e.device
+	if k != "" and k != _owner_key:
+		get_viewport().set_input_as_handled()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -96,6 +126,9 @@ func _disarm() -> void:
 
 func _do_resume() -> void:
 	get_tree().paused = false
+	# C-19: held A/B/Start must not act in gameplay on the first unpaused tick
+	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("on_pause_resumed"):
+		match_ref.on_pause_resumed()
 	queue_free()
 
 func _do_restart() -> void:
@@ -127,9 +160,18 @@ func _close_options() -> void:
 	call_deferred("_grab", _resume)
 
 func _unhandled_input(e: InputEvent) -> void:
-	if _options != null:
+	if e.is_echo():
 		return
-	if e.is_action_pressed("menu_back"):
+	if _options != null:
+		# Options owns B/Esc (back one level, MenuScreen). Start (or P) resumes straight from Options;
+		# Esc is on both `pause` and `menu_back`, so it stays "back" here.
+		if e.is_action_pressed("pause") and not e.is_action_pressed("menu_back"):
+			get_viewport().set_input_as_handled()
+			_close_options()
+			AudioManager.play_sfx("ui_click", {"pitch": 0.72, "volume_db": -4.0})
+			_do_resume()
+		return
+	if e.is_action_pressed("menu_back") or e.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
 		AudioManager.play_sfx("ui_click", {"pitch": 0.72, "volume_db": -4.0})
 		_do_resume()

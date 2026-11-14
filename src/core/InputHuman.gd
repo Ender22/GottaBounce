@@ -26,6 +26,11 @@ var _a_pow: StringName = &"use_powerup"
 
 var _intent := InputIntent.new()
 var _prev_pow := false
+# Menu -> gameplay swallow (CC-5.7 / audit C-19): while true, that action reads as NOT held until it has
+# been seen released once. Armed by swallow_until_release() (PartyMatch.on_pause_resumed).
+var _swallow_boost := false
+var _swallow_super := false
+var _swallow_pow := false
 
 func _init(device: int = DEV_ANY, keyboard: bool = true) -> void:
 	if device == DEV_ANY and keyboard:
@@ -72,6 +77,17 @@ static func _ensure_action(base: StringName, device: int, keyboard: bool) -> Str
 			InputMap.action_add_event(scoped, pe)
 	return scoped
 
+## Ignore boost / super / powerup until each has been RELEASED once (CC-5.7 / audit C-19). Called when a
+## menu hands control back to gameplay (pause RESUME): the A that confirmed RESUME must not boost, the
+## B / Start that closed the menu must not fire a powerup. Aim (stick) is never swallowed.
+## Super is hold-to-aim / release-to-fire: if this goat was ALREADY aiming when the match paused (the
+## last pre-pause poll had super held), keep that hold continuous — swallowing it would read as a
+## release and fire the super the instant the sim resumes.
+func swallow_until_release() -> void:
+	_swallow_boost = true
+	_swallow_pow = true
+	_swallow_super = not _intent.super_hold
+
 func poll() -> InputIntent:
 	var it := _intent
 	# get_vector applies the actions' deadzone with circular mapping — analog-stick friendly.
@@ -79,10 +95,28 @@ func poll() -> InputIntent:
 	if aim.length() > 1.0:
 		aim = aim.normalized()
 	var pow_held := Input.is_action_pressed(_a_pow)
+	var boost_held := Input.is_action_pressed(_a_boost)
+	var super_held := Input.is_action_pressed(_a_super)
+	# release-gate (C-19): a swallowed action stays "up" until its button is physically released once
+	if _swallow_pow:
+		if pow_held:
+			pow_held = false
+		else:
+			_swallow_pow = false
+	if _swallow_boost:
+		if boost_held:
+			boost_held = false
+		else:
+			_swallow_boost = false
+	if _swallow_super:
+		if super_held:
+			super_held = false
+		else:
+			_swallow_super = false
 
 	it.aim = aim
-	it.boost = Input.is_action_pressed(_a_boost)
-	it.super_hold = Input.is_action_pressed(_a_super)   # held = aiming, release = fire
+	it.boost = boost_held
+	it.super_hold = super_held   # held = aiming, release = fire
 	it.use_powerup = pow_held and not _prev_pow
 	it.flap = pow_held and not _prev_pow
 	_prev_pow = pow_held

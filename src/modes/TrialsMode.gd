@@ -94,7 +94,7 @@ func configure(runner, _config: MatchConfig) -> void:
 ## SURVIVE run all-must-finish; the object-mutation types are single-player-recommended, §1.3).
 func spawn_plan(_runner, config: MatchConfig) -> Array:
 	var out: Array = []
-	var n: int = maxi(1, config.human_count)
+	var n: int = clampi(config.human_count, 1, MatchConfig.MAX_FIGHTERS)   # WK-02 roster cap
 	for i in range(n):
 		out.append({
 			"human": true, "skin": config.skin_for(i), "character": config.character_for(i),

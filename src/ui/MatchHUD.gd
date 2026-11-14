@@ -30,8 +30,16 @@ var _top_busy := false
 func setup(players: Array, colors: Array, skins: Array) -> void:
 	_players = players
 	_cards = [$Root/Card0, $Root/Card1, $Root/Card2, $Root/Card3]
+	# WK-02: one card per REAL fighter; corners with no player are hidden (no ghost "P1" cards, and
+	# no out-of-bounds colors[i]/skins[i] read when fewer than 4 fight). The roster cap
+	# (MatchConfig.MAX_FIGHTERS == 4 == corner count) guarantees a 5th card is never needed.
 	for i in range(_cards.size()):
-		_cards[i].setup(i, colors[i], skins[i])
+		var used: bool = i < players.size()
+		_cards[i].visible = used
+		if used:
+			var col: Color = colors[i] if i < colors.size() else Color.WHITE
+			var skin: String = str(skins[i]) if i < skins.size() else "pink"
+			_cards[i].setup(i, col, skin)
 
 func _process(_delta: float) -> void:
 	# fuel gauges + held-powerup icons track the players live (v0 spec §3 / v1_powerups §2)

@@ -186,6 +186,11 @@ func _ready() -> void:
 	if _config == null:
 		GameConfig.reset_to_defaults()
 		_config = GameConfig.match_config
+	# WK-02 roster cap: no config path (stale setup, CHANGE SETUP round trip, QA eval) may field more
+	# than MatchConfig.MAX_FIGHTERS (= the 4 HUD corners). Bots are trimmed first, humans never.
+	if _config.clamp_roster():
+		push_warning("PartyMatch: roster clamped to %d humans + %d bots (MAX_FIGHTERS=%d)" % [
+			_config.human_count, _config.bot_count, MatchConfig.MAX_FIGHTERS])
 	var mode_script = MODE_REGISTRY.get(_config.mode_id, MODE_REGISTRY[&"brawl"])
 	_mode = mode_script.new()
 	_mode.configure(self, _config)
@@ -219,6 +224,10 @@ func _ready() -> void:
 
 	# spawn per the mode's plan (BRAWL default: 1 pink human + 3 bots, mixed 2/3/4 from Tuning.bot_levels)
 	var plan: Array = _mode.spawn_plan(self, _config)
+	if plan.size() > MatchConfig.MAX_FIGHTERS:
+		# belt-and-braces (WK-02): plans list humans first, so truncation only ever drops bots
+		push_warning("PartyMatch: spawn plan of %d truncated to MAX_FIGHTERS=%d" % [plan.size(), MatchConfig.MAX_FIGHTERS])
+		plan.resize(MatchConfig.MAX_FIGHTERS)
 	for i in range(plan.size()):
 		_spawn_player(i, plan[i])
 
@@ -414,6 +423,8 @@ func _begin_stage() -> void:
 	if not wave.is_empty():
 		_despawn_bots()                       # free the previous wave's (now-dead) bots, compact parallel arrays
 		for desc in wave:
+			if players.size() >= MatchConfig.MAX_FIGHTERS:
+				break                             # WK-02 roster cap holds for wave rosters too
 			_spawn_player(players.size(), desc)   # REUSE the exact runner spawn path (humans-first invariant holds)
 	if _camera != null:
 		_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
@@ -981,21 +992,42 @@ func _on_match_button(id: StringName) -> void:
 		&"menu":
 			get_tree().change_scene_to_file(SHELL_SCENE)
 
-## menu_back during a live match opens the PauseMenu overlay (v1_frontend_shell §5 C8). MATCH_END is
-## handled by _tick_match_end (its menu_back = QUIT-to-menu), so ignore it here.
+## The `pause` action (pad Start/Menu [6] · keyboard Esc / P) during a live match opens the PauseMenu
+## overlay (COUCH_CONVENTIONS CC-1.1 / audit C-01+C-02). Gameplay NEVER reads `menu_back` here: pad B is
+## `use_powerup`, and B-pauses-the-game was the owner's #1 complaint. MATCH_END is handled by
+## _tick_match_end (its menu_back = QUIT-to-menu), so ignore it here.
 func _unhandled_input(e: InputEvent) -> void:
 	if state == "MATCH_END" or state == "BOOT":
 		return
-	if e.is_action_pressed(&"menu_back") and not is_instance_valid(_pause_overlay):
+	if e.is_action_pressed(&"pause") and not e.is_echo() and not is_instance_valid(_pause_overlay):
 		get_viewport().set_input_as_handled()
-		_open_pause()
+		_open_pause(_device_key(e))
 
-func _open_pause() -> void:
+## Device identity from the EVENT CLASS (CC-3.2): Godot reports keyboard events as device 0, the same
+## number as joypad 0, so the device id alone can't tell them apart. "" = mouse/other (no owner).
+## TODO(InputRouter, audit E.8): replace with InputRouter.device_key(e) when that autoload lands.
+static func _device_key(e: InputEvent) -> String:
+	if e is InputEventKey:
+		return "kb"
+	if e is InputEventJoypadButton or e is InputEventJoypadMotion:
+		return "pad:%d" % e.device
+	return ""
+
+## owner_key = the device that pressed pause; only it drives the menu (CC-1.5). "" = any device.
+func _open_pause(owner_key: String = "") -> void:
 	_pause_overlay = PAUSE_SCENE.instantiate()
 	add_child(_pause_overlay)
 	if _pause_overlay.has_method("setup"):
-		_pause_overlay.setup(self)
+		_pause_overlay.setup(self, owner_key)
 	get_tree().paused = true
+
+## Called by PauseMenu right after it unpauses (RESUME / Start / B). CC-5.7 + audit C-19: the button that
+## closed the menu is usually still held — every human provider ignores boost/super/powerup until that
+## button has been RELEASED once, so A-resume never boosts and B-resume never fires a powerup.
+func on_pause_resumed() -> void:
+	for p in players:
+		if is_instance_valid(p) and p.provider != null and p.provider.has_method("swallow_until_release"):
+			p.provider.swallow_until_release()
 
 func _deltas_line() -> String:
 	var parts: Array[String] = []
