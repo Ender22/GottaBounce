@@ -1252,7 +1252,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   `wrecking_yard`, the completability half is covered and only the art-director grade + anchor remain.
 
 
-### [ ] WK-122 [P2][S] Sports courts: area outside the sealed court is a flat blue border + doubled pillar columns
+### [x] WK-122 [P2][S] Sports courts: area outside the sealed court is a flat blue border + doubled pillar columns — e3e11d5
 - Source: WK-107 render (tools/out/wk107/after_f150_kickoff_both_goals.jpg). At zoom 0.60 the view = bounds, so the
   unpainted Zone-A surround (known since session 9) shows as a flat blue frame and a second outer pillar column on
   each side. Paint/extend the stadium interior to the bounds or drop the outer columns. Owner: art pipeline + level.
