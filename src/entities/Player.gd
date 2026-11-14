@@ -153,6 +153,17 @@ var flair: Dictionary = {}
 var _fire_grad_flair: Gradient = null   # neutral-state exhaust flair ramp (null = stock orange)
 var _flair_rainbow := false             # streak marquee: hue-cycle the gradient COLORS only
 var _flair_cycle_hz := 0.9
+# WK-23/24 attribution presentation (audit D-06 / D-02 part 2). READS credit state (last_attacker /
+# _stunned_by), never writes it. identity_resolver = the runner (PartyMatch: color_of_player(p) — which
+# is player_color(i) — and is_off_stage(p)); null (dev/headless) falls back to the skin colour.
+var identity_resolver = null
+var show_last_touch := true             # runner sets false where kill credit is not the point (SPORTS)
+var _touch_ring: Line2D                 # thin attacker-coloured ring: "whose kill this will be"
+var _touch_ring_bg: Line2D              # dark chocolate backing (contrast on any backdrop)
+var _touch_ring_r := -1.0               # radius the ring points were built for
+var _streak_base_grad: Gradient         # stock (or flair) streak gradient — used when no attacker is known
+var _streak_tint_grad: Gradient         # attacker-tinted streak gradient (rebuilt only on colour change)
+var _streak_tint_col := Color(0, 0, 0, 0)
 var _charge_glow: Sprite2D         # §3: super-charge gather halo (additive; null if GLOW_TEX absent)
 var _arrow: Polygon2D
 var _charge_ring: Line2D
@@ -286,6 +297,20 @@ func _ready() -> void:
 	_charge_ring.visible = false
 	_charge_ring.z_index = 5
 	add_child(_charge_ring)
+	# WK-24 last-touch ring (D-02 part 2): thin closed ring in the CREDITED attacker's colour while I am
+	# in the credit window AND (in hitstun OR off-stage). Screen-px width like the fuse ring; sits just
+	# under the fuse ring (z 3) so the super telegraph always wins.
+	_touch_ring_bg = Line2D.new()
+	_touch_ring_bg.closed = true
+	_touch_ring_bg.default_color = Color(0.231373, 0.141176, 0.105882, 0.85)   # theme chocolate
+	_touch_ring_bg.visible = false
+	_touch_ring_bg.z_index = 3
+	add_child(_touch_ring_bg)
+	_touch_ring = Line2D.new()
+	_touch_ring.closed = true
+	_touch_ring.visible = false
+	_touch_ring.z_index = 3
+	add_child(_touch_ring)
 
 	# Smash-detection area: detects other player bodies (layer 1).
 	_hit_area = Area2D.new()
@@ -299,6 +324,7 @@ func _ready() -> void:
 	add_child(_hit_area)
 
 	_apply_flair()   # v11: parameter-cosmetics on the VFX built above (no-op when flair == {})
+	_streak_base_grad = _streak.gradient   # WK-24: restored whenever no attacker tint applies
 
 ## v11 cosmetic flair (§2.3 contract): STREAK keeps its exact width curve, alpha stops (0.0 tail /
 ## 0.95 mid / 1.0 head) and trigger conditions — gradient COLORS are the only delta. FLAME builds an
@@ -441,6 +467,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		if _fire: _fire.emitting = false
 		if _smoke: _smoke.emitting = false
+		_hide_touch_ring()   # WK-24: no last-touch ring through a KO freeze / intro / revive lock
 		_frozen_preaim()
 		return
 	_smash_cd = maxf(0.0, _smash_cd - delta)
@@ -1066,6 +1093,25 @@ func credit_attacker(attacker) -> void:
 		_attacker_timer = Tuning.kill_credit_window_ringout   # v2_kill_shape §3: retain 6.0; kill() gates by cause
 		_attacker_age = 0.0
 
+## WK-23/24: my identity colour — the runner's player_color(i) (WK-08: the colour of the goat skin I
+## wear), or the skin colour directly when no runner is attached (dev / headless harness).
+func identity_color() -> Color:
+	if identity_resolver != null and is_instance_valid(identity_resolver) \
+			and identity_resolver.has_method("color_of_player"):
+		var c: Color = identity_resolver.color_of_player(self)
+		return c
+	return PlayerIdentity.color_for_skin(skin)
+
+## WK-24: the Player who would be CREDITED if I were rung out right now (the same last_attacker record
+## and ring-out window kill() uses; chain hits already hold the launcher via credit_attacker), or null.
+## Presentation read only — never mutates credit state.
+func credit_holder():
+	if last_attacker == null or not is_instance_valid(last_attacker) or not (last_attacker is Player):
+		return null
+	if last_attacker == self or _attacker_age > Tuning.kill_credit_window_ringout:
+		return null
+	return last_attacker
+
 func flash() -> void:
 	_flash_timer = 0.12
 
@@ -1142,6 +1188,7 @@ func mark_dead() -> void:
 	_streak_pts.clear()               # §2: drop the jetstream ribbon on death (no stale trail)
 	if _streak:
 		_streak.visible = false
+	_hide_touch_ring()
 
 func respawn(pos: Vector2) -> void:
 	_dead = false
@@ -1162,6 +1209,7 @@ func respawn(pos: Vector2) -> void:
 	_spin_vel = 0.0
 	last_attacker = null            # a new life never owes kill credit to the old one
 	_attacker_timer = 0.0
+	_hide_touch_ring()              # WK-24: frozen pop-ins skip _update_visual — never carry a stale ring
 	damage_level = 0                # v3 §12.5: a fresh life is always healthy (no carried damage)
 	_dmg_heal_t = 0.0
 	_last_sting_applied = 0.0
@@ -1410,6 +1458,77 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_charge_ring.visible = false
 			if _ring_bg:
 				_ring_bg.visible = false
+	_update_touch_ring(stunned)
+
+## WK-24 last-touch ring (audit D-02 part 2): while a victim holds a live credit record (credit_holder)
+## AND is in hitstun OR off-stage, draw a thin closed ring in the CREDITED attacker's colour — "whose kill
+## this will be", no text. Screen-px width (divided by camera zoom) so it reads at every gameplay zoom.
+## Off-stage comes from the runner (PartyMatch.is_off_stage); no runner = hitstun only.
+func _update_touch_ring(stunned: bool) -> void:
+	if _touch_ring == null:
+		return
+	var holder = credit_holder() if (show_last_touch and not _dead and not frozen) else null
+	var show := false
+	if holder != null:
+		show = stunned or _runner_says_off_stage()
+	if not show:
+		_hide_touch_ring()
+		return
+	var r: float = _radius + Tuning.touch_ring_gap
+	if not is_equal_approx(r, _touch_ring_r):
+		_touch_ring_r = r
+		var pts := PackedVector2Array()
+		for i in range(32):
+			var a := TAU * float(i) / 32.0
+			pts.append(Vector2(cos(a), sin(a)) * r)
+		_touch_ring.points = pts
+		_touch_ring_bg.points = pts
+	var cam := get_viewport().get_camera_2d()
+	var inv_zoom: float = (1.0 / cam.zoom.x) if (cam != null and cam.zoom.x > 0.001) else 1.0
+	var col: Color = holder.identity_color()
+	_touch_ring.default_color = Color(col.r, col.g, col.b, Tuning.touch_ring_alpha)
+	_touch_ring.width = Tuning.touch_ring_screen_width * inv_zoom
+	_touch_ring_bg.width = (Tuning.touch_ring_screen_width + Tuning.touch_ring_outline_extra) * inv_zoom
+	_touch_ring.visible = true
+	_touch_ring_bg.visible = true
+
+func _hide_touch_ring() -> void:
+	if _touch_ring != null:
+		_touch_ring.visible = false
+	if _touch_ring_bg != null:
+		_touch_ring_bg.visible = false
+
+func _runner_says_off_stage() -> bool:
+	if identity_resolver != null and is_instance_valid(identity_resolver) \
+			and identity_resolver.has_method("is_off_stage"):
+		var off: bool = identity_resolver.is_off_stage(self)
+		return off
+	return false
+
+## WK-24: the colour source for my knockback streak — the credited attacker (chain hits = launcher),
+## else the physical stunner, else null (stock / flair streak).
+func _streak_attacker():
+	var src = credit_holder()
+	if src == null and _stunned_by != null and is_instance_valid(_stunned_by) and _stunned_by is Player:
+		src = _stunned_by
+	return src
+
+## WK-24: tint the streak with the attacker's colour. HSV value floored at streak_tint_value_floor (the
+## flair luminance rule — a tinted streak must still read as a hot "launch"), head stop lerped toward
+## white so the ribbon stays brightest at the body. Alpha stops mirror stock (0 tail / mid / 0.95 head).
+## Wins over a cosmetic streak flair: attribution (Pillar 5 readability) beats cosmetics.
+func _apply_streak_tint(col: Color) -> void:
+	if _streak_tint_grad == null or not col.is_equal_approx(_streak_tint_col):
+		_streak_tint_col = col
+		var c := Color.from_hsv(col.h, col.s, maxf(col.v, Tuning.streak_tint_value_floor))
+		var head: Color = c.lerp(Color.WHITE, Tuning.streak_tint_head_white)
+		var g := Gradient.new()
+		g.set_color(0, Color(c.r, c.g, c.b, 0.0))
+		g.set_color(1, Color(head.r, head.g, head.b, 0.95))
+		g.add_point(0.55, Color(c.r, c.g, c.b, Tuning.streak_tint_mid_alpha))
+		_streak_tint_grad = g
+	if _streak.gradient != _streak_tint_grad:
+		_streak.gradient = _streak_tint_grad
 
 ## §2 KNOCKBACK jetstream (v1_vfx_telegraphy.md): a thick white cartoon speed-streak that follows a
 ## LAUNCHED body from the impact point along its flight path. Gated on hitstun + high speed, so a
@@ -1429,10 +1548,16 @@ func _update_streak() -> void:
 			while _streak_pts.size() > STREAK_MAX_POINTS:
 				_streak_pts.remove_at(0)
 		var frac: float = clampf(speed / Tuning.max_speed, 0.0, 1.0)
+		# WK-24: an attributed launch wears the attacker's colour (D-06); otherwise stock / flair below.
+		var tint_src = _streak_attacker()
+		if tint_src != null:
+			_apply_streak_tint(tint_src.identity_color())
+		elif _streak_base_grad != null and _streak.gradient != _streak_base_grad:
+			_streak.gradient = _streak_base_grad
 		# v11 RAINBOW JETSTREAM (§3 marquee): hue-cycle the gradient COLORS only — same points/alphas/
 		# width/trigger as stock. Luminance floor (§2.3): sat 0.6 / value 1.0 at every stop, so the
 		# launch telegraph stays hot-bright at the ribbon head.
-		if _flair_rainbow and _streak.gradient != null and _streak.gradient.get_point_count() >= 3:
+		if tint_src == null and _flair_rainbow and _streak.gradient != null and _streak.gradient.get_point_count() >= 3:
 			var g := _streak.gradient
 			var h := _anim_t * _flair_cycle_hz
 			g.set_color(0, Color(Color.from_hsv(fmod(h + 0.30, 1.0), 0.6, 1.0), 0.0))

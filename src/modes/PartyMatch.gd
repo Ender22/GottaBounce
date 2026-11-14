@@ -153,6 +153,8 @@ var _had_contact: Array = []     # per-player: dealt/received >=1 smash this sta
 var _smash_off_stage: Array = [] # per-player: was the LAST smash they received taken off-stage?
 var _combat_active_t: Array = [] # per-player: seconds left in the combat-active window (camera bias)
 var _edge_indicators             # EdgeIndicators overlay (off-screen player chevrons)
+var _ko_blast                    # KOEdgeBlast CanvasLayer (WK-23; QA: _ko_blast.blasts / blast_count)
+const OFF_STAGE_GROW := 120.0    # px: "off-stage" = outside _stage_rect grown by this (stats + WK-24 ring)
 
 # level rotation (shuffle-bag) lives in the mode now (BrawlMode)
 
@@ -286,6 +288,14 @@ func _ready() -> void:
 	pip_cl.add_child(_pips)
 	_pips.setup(self)
 
+	# WK-23 screen-edge KO blast (audit D-01): its own CanvasLayer above the chevrons/pips (0/1), below the
+	# HUD (10) so corner cards stay on top. Presentation only — subscribes to KillPipeline.killed itself and
+	# never touches the camera. Gated per mode by ko_blast_enabled().
+	_ko_blast = load("res://src/ui/KOEdgeBlast.gd").new()
+	_ko_blast.layer = 5
+	add_child(_ko_blast)
+	_ko_blast.setup(self)
+
 	_start_match()
 
 ## Spawn one player from a mode spawn-plan descriptor (v1_frontend_shell §3.2):
@@ -308,6 +318,10 @@ func _spawn_player(i: int, desc: Dictionary) -> void:
 				p.flair = Settings.flair_item(fid)
 		elif i == 0:
 			p.flair = Settings.equipped_flair_item()
+	# WK-23/24 attribution presentation: the player asks this runner for identity colours (player_color)
+	# and off-stage state. The last-touch ring is a kill-credit cue -> BRAWL only (not SPORTS/TRIALS).
+	p.identity_resolver = self
+	p.show_last_touch = _attribution_mode()
 	add_child(p)
 	p.global_position = _spawn_at(i)
 	players.append(p)
@@ -400,6 +414,10 @@ func _load_stage(path: String) -> void:
 	var data := LevelLoader.load_level(path, _level_root)
 	_spawns = data.get("spawns", [])
 	_pu_points = data.get("powerup_spawners", [])
+	# CD1-01: the director must spawn at THIS level's points (it used to keep the boot placeholder's array
+	# forever). Empty (sports courts / trials courses, by authoring) = no powerups this stage.
+	if _pu_director != null:
+		_pu_director.set_points(_pu_points)
 	bounds = data.get("bounds", Rect2(-120, -120, 2160, 1380))
 	_stage_rect = data.get("play_rect", Rect2(bounds.get_center() - Vector2(900, 160), Vector2(1800, 320)))
 	# ALL-DESTRUCTIBLE arenas (no static platforms — e.g. collapse finales) yield an EMPTY play_rect, which
@@ -632,7 +650,7 @@ func _on_smashed(attacker, victim, _impulse) -> void:
 	if vi >= 0 and vi < _had_contact.size():
 		_had_contact[vi] = true
 		if is_instance_valid(victim):
-			_smash_off_stage[vi] = not _stage_rect.grow(120.0).has_point(victim.global_position)
+			_smash_off_stage[vi] = not _stage_rect.grow(OFF_STAGE_GROW).has_point(victim.global_position)
 
 func _on_super_fired(player, fuel_at_fire, aim_time, auto_fired) -> void:
 	_mark_combat_active(players.find(player))   # camera action-cluster bias (camera_2x_policy §2)
@@ -1190,6 +1208,31 @@ func player_color(i: int) -> Color:
 	if i < 0:
 		return Color.WHITE
 	return PLAYER_COLORS[i % PLAYER_COLORS.size()]
+
+## WK-23/24: identity colour of a Player node (player_color of its index). A node not in `players`
+## (should not happen) falls back to its skin colour.
+func color_of_player(p) -> Color:
+	var i := players.find(p)
+	if i >= 0:
+		return player_color(i)
+	if p != null and is_instance_valid(p) and "skin" in p:
+		return PlayerIdentity.color_for_skin(str(p.skin))
+	return Color.WHITE
+
+## WK-24: is this player off-stage (outside the platform union grown by OFF_STAGE_GROW)? Same rule as
+## the round_stats off_stage flag. Read by Player's last-touch ring.
+func is_off_stage(p) -> bool:
+	if p == null or not is_instance_valid(p):
+		return false
+	return not _stage_rect.grow(OFF_STAGE_GROW).has_point(p.global_position)
+
+## WK-23/24: kill-credit presentation (edge KO blast + last-touch ring) runs in the BRAWL kill race only.
+## SPORTS: knocking a rival out is incidental (owner 2026-07-19); TRIALS: solo courses.
+func _attribution_mode() -> bool:
+	return _config == null or _config.mode_id == &"brawl"
+
+func ko_blast_enabled() -> bool:
+	return _attribution_mode()
 
 ## player_color for every current player, in player order (HUD / chevron setup).
 func player_colors() -> Array:

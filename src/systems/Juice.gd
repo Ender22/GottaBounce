@@ -65,12 +65,97 @@ func _shove_puff(pos: Vector2, dir: Vector2, t: float) -> void:
 	scene.add_child(p)
 	scene.get_tree().create_timer(0.8).timeout.connect(p.queue_free)
 
-func _on_smashed(_attacker, victim, impulse) -> void:
+func _on_smashed(attacker, victim, impulse) -> void:
 	_shake(0.55)
 	if victim != null and is_instance_valid(victim) and victim.has_method("flash"):
 		victim.flash()
 	_rumble(0.9, 0.8, 0.10)
 	_hitstop(clampf(impulse.length() / Tuning.super_boost_impulse_full, 0.0, 1.0))
+	# WK-24 (D-06): the impact burst wears the ATTACKER's identity colour. `attacker` here is already the
+	# CREDITED one (Player emits smashed with attacker_for_credit: chain hits = the launcher).
+	if victim != null and is_instance_valid(victim):
+		var dir: Vector2 = impulse.normalized() if impulse.length() > 0.01 else Vector2.UP
+		var z: float = _camera.zoom.x if (_camera != null and _camera.zoom.x > 0.001) else 1.0
+		var back: float = Player.BODY_RADIUS + Tuning.hit_burst_offset * Tuning.hit_burst_screen_px / z
+		_hit_burst(victim.global_position - dir * back, dir, _identity_color(attacker))
+
+const KO_CORE_TEX := "res://assets/fx/ko_blast_core.png"
+const FX_TINT_SHADER := "res://assets/shaders/fx_tint.gdshader"
+var _fx_tint_mat: ShaderMaterial = null
+
+## Identity colour of a fighter (WK-08 player_color via Player.identity_color), white when unknown.
+func _identity_color(p) -> Color:
+	if p != null and is_instance_valid(p) and p.has_method("identity_color"):
+		var c: Color = p.identity_color()
+		return c
+	return Color.WHITE
+
+## Shared gradient-map tint material (fx_tint.gdshader): colour = the sprite's self_modulate.
+func _tint_material() -> ShaderMaterial:
+	if _fx_tint_mat == null and ResourceLoader.exists(FX_TINT_SHADER):
+		_fx_tint_mat = ShaderMaterial.new()
+		_fx_tint_mat.shader = load(FX_TINT_SHADER)
+	return _fx_tint_mat
+
+## WK-24 impact burst: a chunky toybox starburst (the KO-blast core art, small) + a spray of sparks along
+## the launch, both in the attacker's colour. Sized in SCREEN px (world = px / zoom) so it reads at every
+## gameplay zoom. The starburst runs on the REAL clock (rendered QA: a hit-stop-held burst sat on top of
+## the victim); the sparks stay on scaled time so the freeze still holds a spray.
+func _hit_burst(pos: Vector2, dir: Vector2, col: Color) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var z: float = _camera.zoom.x if (_camera != null and _camera.zoom.x > 0.001) else 1.0
+	# sparks: attacker-coloured, sprayed along the impulse (normal blend keeps the hue honest)
+	var p := CPUParticles2D.new()
+	p.global_position = pos
+	p.z_index = 10
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = maxi(1, Tuning.hit_burst_sparks)
+	p.lifetime = 0.35
+	p.direction = dir
+	p.spread = 55.0
+	p.gravity = Vector2.ZERO
+	p.initial_velocity_min = Tuning.hit_burst_spark_speed * 0.4
+	p.initial_velocity_max = Tuning.hit_burst_spark_speed
+	p.damping_min = 900.0
+	p.damping_max = 1600.0
+	p.scale_amount_min = 3.0
+	p.scale_amount_max = 6.0
+	if ResourceLoader.exists(SPARK_TEX):
+		p.texture = load(SPARK_TEX)
+		p.scale_amount_min = 0.35
+		p.scale_amount_max = 0.7
+	var bright: Color = col.lerp(Color.WHITE, 0.25)
+	var grad := Gradient.new()
+	grad.set_color(0, Color(bright.r, bright.g, bright.b, 1.0))
+	grad.set_color(1, Color(col.r, col.g, col.b, 0.0))
+	p.color_ramp = grad
+	scene.add_child(p)
+	scene.get_tree().create_timer(0.9).timeout.connect(p.queue_free)
+	# starburst (tinted greyscale art)
+	if not ResourceLoader.exists(KO_CORE_TEX):
+		return
+	var tex: Texture2D = load(KO_CORE_TEX)
+	var s := Sprite2D.new()
+	s.texture = tex
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	s.material = _tint_material()
+	s.self_modulate = col
+	s.global_position = pos
+	s.rotation = randf_range(-0.35, 0.35)
+	s.z_index = 11
+	var k: float = Tuning.hit_burst_screen_px / maxf(1.0, float(tex.get_width())) / z
+	s.scale = Vector2.ONE * k * 0.5
+	scene.add_child(s)
+	var t: float = maxf(0.05, Tuning.hit_burst_time)
+	var tw := s.create_tween().set_ignore_time_scale(true)
+	tw.tween_property(s, "scale", Vector2.ONE * k * 1.1, t * 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(s, "scale", Vector2.ONE * k * 0.9, t * 0.7)
+	tw.parallel().tween_property(s, "modulate:a", 0.0, t * 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(s.queue_free)
 
 ## Bounce juice: shake + (on big launches) a light rumble + a small dust puff at the contact point,
 ## all scaled by how hard you launched off the surface.

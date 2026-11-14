@@ -506,11 +506,14 @@ func _resolve_locks() -> void:
 		AudioManager.play_sfx("super_fire", {"volume_db": -12.0, "pitch": 1.25, "pitch_var": 0.05})
 	_after_change()
 
-## B: READY -> PICKING -> EMPTY (CC-4.3). Every B press also starts the hold-to-exit ring. A tap with
-## nobody joined backs straight out; with people joined, leaving needs the hold (CC-6.2).
+## B: READY -> PICKING -> EMPTY (CC-4.3). Only a B press that changed NOTHING (a device with no slot)
+## arms the hold-to-exit ring (WK-82): holding B to un-ready or leave must never eject the whole lobby.
+## A tap with nobody joined backs straight out; with people joined, leaving needs the hold (CC-6.2).
 func _on_back_press(key: String, si: int) -> void:
-	_hold_b[key] = Time.get_ticks_msec()
+	_hold_b.erase(key)
 	_hold_ticks = 0
+	if si < 0:
+		_hold_b[key] = Time.get_ticks_msec()
 	if si >= 0:
 		var s: Dictionary = slots[si]
 		if s["state"] == S_READY:

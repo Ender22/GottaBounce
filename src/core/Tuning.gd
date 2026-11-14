@@ -153,6 +153,49 @@ var hitstop_recover: float = 0.12
 var shake_max_offset: float = 22.0
 var trauma_decay: float = 1.4
 
+# --- Attacker-colour hits (WK-24 · audit D-06 / D-02 part 2) — presentation only, no sim value ---
+# A landed smash carries the CREDITED attacker's identity colour (PartyMatch.player_color): an impact
+# starburst + sparks at the contact, the victim's knockback streak, and a thin "last-touch" ring around a
+# victim who is in the credit window AND (in hitstun OR off-stage). Chain hits = the credited launcher.
+var hit_burst_screen_px: float = 84.0        # impact starburst size in SCREEN px (world size = px / zoom).
+                                             #   120 hid the victim in rendered QA (WK-24 sheet) — keep it small
+var hit_burst_offset: float = 0.45           # burst centre sits (body radius + this * burst size) behind the
+                                             #   victim along the impact, i.e. on the attacker side, so the
+                                             #   victim's flash/tumble stays readable on top of the hit
+var hit_burst_time: float = 0.24             # s starburst pop + fade on the REAL clock (hitstop can't hold it
+                                             #   over the victim)
+var hit_burst_sparks: int = 18               # attacker-tinted sparks sprayed along the impulse
+var hit_burst_spark_speed: float = 900.0     # px/s max spark speed (min = 40% of this)
+var streak_tint_value_floor: float = 0.8     # knockback streak HSV value floor (flair rule: launch read kept)
+var streak_tint_head_white: float = 0.30     # head stop = attacker colour lerped this far toward white
+var streak_tint_mid_alpha: float = 0.80      # mid-stop alpha of the tinted streak (stock white = 0.65)
+var touch_ring_screen_width: float = 4.0     # last-touch ring line width, SCREEN px
+var touch_ring_outline_extra: float = 3.0    # dark chocolate backing ring = width + this (contrast on any bg)
+var touch_ring_gap: float = 10.0             # ring radius = body radius + this (world px)
+var touch_ring_alpha: float = 0.90
+
+# --- Screen-edge KO blast (WK-23 · audit D-01 · brief docs/briefs/ko_blast_2026-11-14.md) ---
+# Presentation only (INV-12): a CanvasLayer pinned to the viewport edge where the victim left the screen,
+# in the VICTIM's colour. Never moves the camera (owner camera rules). Sizes are SCREEN px at a 1080p
+# reference and scale with viewport height. Nothing may reach into the middle 60% (MatchHUD prime directive).
+var ko_blast_duration: float = 0.6           # s (real time — ignores hitstop) whole blast lifetime cap
+var ko_blast_core_px: float = 300.0          # starburst diameter at its settled scale (pops 0.4 -> 1.15 -> 1.0)
+var ko_blast_ring_px: float = 260.0          # shockwave base diameter; expands 0.3 -> 1.6 of this (~420 max)
+var ko_blast_column_width_px: float = 300.0  # plume width across the edge
+var ko_blast_column_depth_px: float = 420.0  # plume depth into the screen (also capped by the frac below)
+var ko_blast_column_depth_frac: float = 0.19 # ... and by this fraction of the viewport axis (outer-20% band)
+var ko_blast_star_px: float = 110.0          # top-edge star-KO twinkle size
+var ko_blast_star_inset_px: float = 90.0     # star centre sits this far inside the top edge
+var ko_blast_star_white: float = 0.55        # star tint = victim colour lerped this far to white (pops on the core)
+var ko_blast_edge_margin_x_px: float = 330.0 # along-edge clamp on TOP/BOTTOM edges: clear the HUD corner cards
+var ko_blast_edge_margin_y_px: float = 200.0 # along-edge clamp on LEFT/RIGHT edges (cards are ~265x125 px)
+var ko_blast_edge_band_px: float = 80.0      # a death this close to (or past) a screen edge counts as an edge KO.
+                                             #   Rendered QA: on void-floor arenas the zoomed-out camera puts the
+                                             #   bottom kill line just INSIDE the frame — the in-world burst got cut
+                                             #   off at the edge and no edge blast fired. Mid-screen deaths keep the
+                                             #   in-world burst.
+var ko_blast_ref_height: float = 1080.0      # px sizes above are authored at this viewport height
+
 # --- Camera (OWNER RULES 2026-07-10 — docs/feedback/owner_2026-07-10_camera_rules.md) ---
 # Camera bounds per level = the platform-union AABB (LevelLoader play_rect) grown by this pad on
 # every side. An in-bounds living player is on-screen 100% of frames (the camera zooms out as far

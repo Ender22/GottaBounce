@@ -28,6 +28,17 @@ func setup(arena_ref, spawn_points: Array) -> void:
 	if points.is_empty():
 		push_warning("PowerupSpawnDirector: level has no powerup_spawner objects — spawning disabled")
 
+## CD1-01: the runner calls this on EVERY stage load with that level's `powerup_spawner` points (setup()
+## only ever saw the boot placeholder level, so every mode used to spawn at islands_void's points).
+## Zero points = spawning disabled for this stage — the AUTHORED off-switch for SPORTS courts and TRIALS
+## courses (docs/specs/v5_sports_mode.md §5 "zero powerup_spawners ... TRIALS' trick"), not an error.
+func set_points(spawn_points: Array) -> void:
+	points = spawn_points.duplicate()
+	_last_point = -1
+	_cancel_telegraph()
+	if points.is_empty():
+		_stopped = true
+
 ## Round start (called at BOUNCE!): fresh clock, spawning armed.
 func reset() -> void:
 	_timer = Tuning.pu_first_spawn
