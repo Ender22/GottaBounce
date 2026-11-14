@@ -131,11 +131,11 @@ func _id_tier(item: Variant) -> Dictionary:
 	return {"id": str(item), "tier": 1}
 
 # The 6-goat skin roster (owner 2026-07-16: a bot must NEVER wear a human's color). Order = bot
-# preference when picking a free skin; humans' picks always come from CharacterSelect via config.
+# preference when picking a free skin; humans' picks always come from the Herd Lobby via config.
 const SKIN_ROSTER: Array[String] = ["blue", "green", "yellow", "purple", "orange", "pink"]
 
 ## Per-slot descriptors: humans first, then bots (today's spawn order). Human skin/character indexed
-## from the config (their CharacterSelect picks); BOT skins are assigned from SKIN_ROSTER excluding
+## from the config (their Herd Lobby picks); BOT skins are assigned from SKIN_ROSTER excluding
 ## every human pick and preferring unused skins (owner 2026-07-16 — the config's default skin tail
 ## could duplicate a human's color). Bot level = Tuning.bot_levels rotation when difficulty 0, else fixed.
 func spawn_plan(_runner, config: MatchConfig) -> Array:

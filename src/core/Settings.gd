@@ -59,7 +59,7 @@ var sports_wins: int = 0        # Sports matches WON by a human — "sports_wins
 var circuits_cleared: PackedStringArray = PackedStringArray()   # ids of circuits WON (mastery set)
 var pending_unlock: String = ""                                 # one id to celebrate next ArenaSelect (consume-once)
 var equipped_flair: String = ""                                 # v11: equipped flair item id ("" = stock look)
-var pending_flair_unlock: String = ""                           # v11: one id to celebrate next CharacterSelect (consume-once)
+var pending_flair_unlock: String = ""                           # v11: one id to celebrate next Herd Lobby entry (consume-once)
 var _circuit_plays: Dictionary = {}                             # circuit_id -> matches played on it (pity path)
 var _circuit_order: Array = []                                  # cached unlock chain from circuits.json
 
@@ -352,7 +352,7 @@ func set_equipped_flair(id: String) -> void:
 	equipped_flair = id
 	_save()
 
-## Return + clear the one-shot pending flair unlock (drives the CharacterSelect celebration —
+## Return + clear the one-shot pending flair unlock (drives the Herd Lobby celebration —
 ## twin of take_pending_unlock). Empty if none.
 func take_pending_flair_unlock() -> String:
 	var p := pending_flair_unlock

@@ -10,7 +10,7 @@ const MATCH_SCENE := "res://scenes/Arena.tscn"
 const SCREENS := {
 	"main": preload("res://scenes/ui/MainMenu.tscn"),
 	"mode": preload("res://scenes/ui/ModeSelect.tscn"),
-	"character": preload("res://scenes/ui/CharacterSelect.tscn"),
+	"lobby": preload("res://scenes/ui/HerdLobby.tscn"),   # WK-06: the Herd Lobby replaced CharacterSelect
 	"arena": preload("res://scenes/ui/ArenaSelect.tscn"),
 	"options": preload("res://scenes/ui/Options.tscn"),
 }
@@ -22,6 +22,9 @@ var _cur: Control = null
 var _cur_key := ""
 var _stack: Array[String] = []
 var _busy := false
+## Direction of the screen change in progress (true = go_forward). HerdLobby reads it: coming back from
+## ArenaSelect keeps everyone READY, coming forward from ModeSelect un-readies (CC-4.7).
+var nav_forward := true
 
 func _ready() -> void:
 	# a fresh config on cold boot so an untouched flow reproduces today's default boot (C7)
@@ -30,12 +33,14 @@ func _ready() -> void:
 	# menu theme takes over on EVERY shell landing (boot + quit-to-menu) — gameplay music must
 	# never keep playing under the front-end (owner 2026-07-17).
 	AudioManager.play_menu_music()
-	# CHANGE SETUP deep-link (match_ceremony brief §3): land straight on CharacterSelect with the
-	# match_config intact (players keep their picks); back-nav stack seeded so B walks home sanely.
+	# CHANGE SETUP deep-link (match_ceremony brief §3): land straight in the Herd Lobby with the
+	# match_config + lobby intact (same players, same devices, same goats — nobody READY, WK-07 / CC-4.7);
+	# back-nav stack seeded so B walks home sanely.
 	if GameConfig.resume_setup:
 		GameConfig.resume_setup = false
+		GameConfig.lobby_unready()
 		_stack = ["main", "mode"]
-		_show("character", true)
+		_show("lobby", true)
 	else:
 		_show("main", true)
 
@@ -55,6 +60,9 @@ func go_back() -> void:
 # ------------------------------------------------------------------ screen swap + transition
 func _show(key: String, forward: bool) -> void:
 	_busy = true
+	nav_forward = forward
+	if key == "main":
+		GameConfig.clear_lobby()   # QUIT TO TITLE / back to title forgets who joined (CC-4.7)
 	var old := _cur
 	var screen: Control = (SCREENS[key] as PackedScene).instantiate()
 	_screen_layer.add_child(screen)

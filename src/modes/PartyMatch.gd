@@ -283,8 +283,15 @@ func _spawn_player(i: int, desc: Dictionary) -> void:
 	# v11 cosmetic flair (§2.3): the equipped item rides the human P1 entity ONLY, and is suppressed
 	# whole-mode in SPORTS (team-read is sacred). Set before add_child so Player._ready can apply it.
 	# Pure presentation — Player re-parameterizes existing VFX channels, never physics/Tuning.
-	if i == 0 and bool(desc.get("human", false)) and _config != null and not SportsMode.is_sports_mode(_config.mode_id):
-		p.flair = Settings.equipped_flair_item()
+	# WK-06 (audit §E.12): when the Herd Lobby wrote per-human flair_ids, each human wears their own pick
+	# (locked / unknown ids resolve to none); otherwise the legacy rule — Settings.equipped_flair on human 0.
+	if bool(desc.get("human", false)) and _config != null and not SportsMode.is_sports_mode(_config.mode_id):
+		if not _config.flair_ids.is_empty():
+			var fid: String = _config.flair_for(i)
+			if fid != "" and Settings.is_flair_unlocked(fid):
+				p.flair = Settings.flair_item(fid)
+		elif i == 0:
+			p.flair = Settings.equipped_flair_item()
 	add_child(p)
 	p.global_position = _spawn_at(i)
 	players.append(p)

@@ -77,7 +77,9 @@ func activate(c: Control) -> void:
 		_show_toast("Coming soon!")
 		return
 	GameConfig.match_config.mode_id = StringName(str(m.get("id", "brawl")))
-	shell.go_forward("character")
+	# CC-4.8: the device that confirmed the mode card is auto-joined as P1 by the Herd Lobby.
+	GameConfig.lobby_autojoin_key = InputRouter.last_device_key
+	shell.go_forward("lobby")
 
 func _show_toast(text: String) -> void:
 	_toast.text = text

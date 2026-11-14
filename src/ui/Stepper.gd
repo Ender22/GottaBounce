@@ -24,9 +24,6 @@ var vals: Array = []
 var index := 0
 var accent: Color = Color("#ffd23f")   # focus/edit accent (owning screen may set per-stepper)
 var editing := false
-var accept_override: Callable = Callable()   # owning screen may intercept a BROWSE-mode accept
-                                             # (CharacterSelect: ALL-READY launches instead of editing);
-                                             # return true = press handled, false = enter edit normally
 
 var _plate: Panel
 var _sb_idle: StyleBoxFlat
@@ -178,9 +175,6 @@ func _gui_input(e: InputEvent) -> void:
 			accept_event()   # no focus wandering mid-edit
 	else:
 		if e.is_action_pressed("ui_accept") or e.is_action_pressed("menu_accept"):
-			if accept_override.is_valid() and bool(accept_override.call()):
-				accept_event()   # screen took the press (e.g. ALL-READY launch)
-				return
 			_set_editing(true)
 			accept_event()
 		# left/right NOT consumed while browsing -> focus flows to the neighbouring setting

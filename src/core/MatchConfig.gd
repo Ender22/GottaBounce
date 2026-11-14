@@ -21,7 +21,10 @@ const MAX_FIGHTERS := 4
 ## WK-04 (audit §E.2): the lobby slot NUMBER each human shows ("P3" even if compacted to human index 1).
 ## Empty / short -> index + 1. Name tags / HUD read label_for(i), never the raw index (WK-10).
 @export var human_labels: PackedInt32Array = PackedInt32Array()
-@export var bot_difficulty: int = 0                         # 0 = mixed (Tuning.bot_levels rotation); 1..5 = fixed level
+## WK-06 (audit §E.2/E.12): per-human cosmetic flair id ("" = none), compacted like human_devices. EMPTY =
+## legacy rule (Settings.equipped_flair rides human 0 only). PartyMatch still suppresses flair in SPORTS.
+@export var flair_ids: PackedStringArray = PackedStringArray()
+@export var bot_difficulty: int = 0                        # 0 = mixed (Tuning.bot_levels rotation); 1..5 = fixed level
 @export var character_ids: PackedStringArray = PackedStringArray(["bouncer"])   # per-player character; missing -> "bouncer"
 @export var skin_ids: PackedStringArray = PackedStringArray(["pink", "blue", "green", "yellow"])  # per-player color skin
 @export var arena_mode: int = ArenaMode.RANDOM_ALL          # RANDOM_ALL = shuffle-bag over the pool; SINGLE = one arena
@@ -56,6 +59,12 @@ func label_for(i: int) -> int:
 	if i >= 0 and i < human_labels.size() and human_labels[i] > 0:
 		return human_labels[i]
 	return i + 1
+
+## Flair id for human `i` from the lobby, "" if none / not written (see flair_ids).
+func flair_for(i: int) -> String:
+	if i >= 0 and i < flair_ids.size():
+		return str(flair_ids[i])
+	return ""
 
 ## Character id for a player slot, falling back to "bouncer" for any index the roster doesn't cover.
 func character_for(i: int) -> String:

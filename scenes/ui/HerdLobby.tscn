@@ -1,0 +1,842 @@
+[gd_scene load_steps=14 format=3 uid="uid://herdlobby0001"]
+
+[ext_resource type="Script" path="res://src/ui/HerdLobby.gd" id="1_lobby"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ModeContextChip.tscn" id="3_chip"]
+[ext_resource type="PackedScene" path="res://scenes/ui/LobbySlot.tscn" id="4_slot"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="5_glyph"]
+[ext_resource type="Script" path="res://src/ui/Backdrop.gd" id="6_backdrop"]
+[ext_resource type="Script" path="res://src/ui/Chevron.gd" id="7_chev"]
+
+[sub_resource type="StyleBoxFlat" id="chip_cream"]
+content_margin_left = 22.0
+content_margin_top = 8.0
+content_margin_right = 22.0
+content_margin_bottom = 8.0
+bg_color = Color(1, 0.968627, 0.921569, 0.95)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0.12, 0.07, 0.05, 0.3)
+shadow_size = 5
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="cpu_chip"]
+content_margin_left = 6.0
+content_margin_top = 2.0
+content_margin_right = 14.0
+content_margin_bottom = 2.0
+bg_color = Color(0.231373, 0.141176, 0.105882, 0.1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.231373, 0.141176, 0.105882, 0.6)
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+
+[sub_resource type="StyleBoxFlat" id="band"]
+bg_color = Color(1, 0.823529, 0.247059, 1)
+border_width_top = 7
+border_width_bottom = 7
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 10
+shadow_offset = Vector2(0, 8)
+
+[sub_resource type="StyleBoxFlat" id="band_amber"]
+bg_color = Color(1, 0.556863, 0.164706, 0.97)
+border_width_top = 6
+border_width_bottom = 6
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 8
+shadow_offset = Vector2(0, 6)
+
+[sub_resource type="StyleBoxFlat" id="rules_row"]
+bg_color = Color(1, 1, 1, 0.06)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 1, 0.12)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="HerdLobby" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_lobby")
+
+[node name="StandaloneBackdrop" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_backdrop")
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0784314, 0.0784314, 0.156863, 0.5)
+
+[node name="Header" type="Control" parent="."]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 110.0
+mouse_filter = 2
+
+[node name="BackBtn" type="Button" parent="Header"]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 22.0
+offset_right = 268.0
+offset_bottom = 88.0
+focus_mode = 0
+theme_type_variation = &"ShellBtn"
+
+[node name="Row" type="HBoxContainer" parent="Header/BackBtn"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BackGlyph" type="Control" parent="Header/BackBtn/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "B"
+
+[node name="BackLabel" type="Label" parent="Header/BackBtn/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 36
+text = "BACK"
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 0
+offset_left = 380.0
+offset_right = 1540.0
+offset_bottom = 110.0
+theme_type_variation = &"BannerTop"
+theme_override_font_sizes/font_size = 64
+text = "CHOOSE YOUR GOAT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ModeChip" parent="Header" instance=ExtResource("3_chip")]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -364.0
+offset_top = 19.0
+offset_right = -48.0
+offset_bottom = 91.0
+grow_horizontal = 0
+
+[node name="Roster" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_top = 122.0
+offset_right = 1920.0
+offset_bottom = 232.0
+mouse_filter = 2
+theme_override_constants/separation = 22
+alignment = 1
+
+[node name="Slots" type="Control" parent="."]
+layout_mode = 0
+offset_top = 262.0
+offset_right = 1920.0
+offset_bottom = 792.0
+mouse_filter = 2
+
+[node name="Slot1" parent="Slots" instance=ExtResource("4_slot")]
+offset_left = 72.0
+offset_right = 492.0
+
+[node name="Slot2" parent="Slots" instance=ExtResource("4_slot")]
+offset_left = 524.0
+offset_right = 944.0
+
+[node name="Slot3" parent="Slots" instance=ExtResource("4_slot")]
+offset_left = 976.0
+offset_right = 1396.0
+
+[node name="Slot4" parent="Slots" instance=ExtResource("4_slot")]
+offset_left = 1428.0
+offset_right = 1848.0
+
+[node name="CpuRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_top = 810.0
+offset_right = 1920.0
+offset_bottom = 900.0
+mouse_filter = 2
+alignment = 1
+
+[node name="CpuTray" type="PanelContainer" parent="CpuRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("chip_cream")
+
+[node name="Row" type="HBoxContainer" parent="CpuRow/CpuTray"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="CpuTitle" type="Label" parent="CpuRow/CpuTray/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 34
+text = "CPUs"
+vertical_alignment = 1
+
+[node name="LBGlyph" type="Control" parent="CpuRow/CpuTray/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "LB"
+
+[node name="Minus" type="Control" parent="CpuRow/CpuTray/Row"]
+custom_minimum_size = Vector2(26, 34)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("7_chev")
+dir = -1
+
+[node name="Cpu1" type="PanelContainer" parent="CpuRow/CpuTray/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("cpu_chip")
+
+[node name="Box" type="HBoxContainer" parent="CpuRow/CpuTray/Row/Cpu1"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Head" type="TextureRect" parent="CpuRow/CpuTray/Row/Cpu1/Box"]
+custom_minimum_size = Vector2(64, 60)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Tag" type="Label" parent="CpuRow/CpuTray/Row/Cpu1/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 28
+text = "CPU L2"
+vertical_alignment = 1
+
+[node name="Cpu2" type="PanelContainer" parent="CpuRow/CpuTray/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("cpu_chip")
+
+[node name="Box" type="HBoxContainer" parent="CpuRow/CpuTray/Row/Cpu2"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Head" type="TextureRect" parent="CpuRow/CpuTray/Row/Cpu2/Box"]
+custom_minimum_size = Vector2(64, 60)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Tag" type="Label" parent="CpuRow/CpuTray/Row/Cpu2/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 28
+text = "CPU L3"
+vertical_alignment = 1
+
+[node name="Cpu3" type="PanelContainer" parent="CpuRow/CpuTray/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("cpu_chip")
+
+[node name="Box" type="HBoxContainer" parent="CpuRow/CpuTray/Row/Cpu3"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Head" type="TextureRect" parent="CpuRow/CpuTray/Row/Cpu3/Box"]
+custom_minimum_size = Vector2(64, 60)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Tag" type="Label" parent="CpuRow/CpuTray/Row/Cpu3/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 28
+text = "CPU L4"
+vertical_alignment = 1
+
+[node name="NoCpu" type="Label" parent="CpuRow/CpuTray/Row"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.6)
+theme_override_font_sizes/font_size = 30
+text = "NONE"
+vertical_alignment = 1
+
+[node name="Plus" type="Control" parent="CpuRow/CpuTray/Row"]
+custom_minimum_size = Vector2(26, 34)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("7_chev")
+
+[node name="RBGlyph" type="Control" parent="CpuRow/CpuTray/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "RB"
+
+[node name="RulesRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_top = 912.0
+offset_right = 1920.0
+offset_bottom = 978.0
+mouse_filter = 2
+alignment = 1
+
+[node name="RulesBar" type="PanelContainer" parent="RulesRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("chip_cream")
+
+[node name="Row" type="HBoxContainer" parent="RulesRow/RulesBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="RulesText" type="Label" parent="RulesRow/RulesBar/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "FIRST TO 10 KOs  ·  1 LIFE  ·  CPU SKILL MIX"
+vertical_alignment = 1
+
+[node name="Gap" type="Control" parent="RulesRow/RulesBar/Row"]
+custom_minimum_size = Vector2(18, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ViewGlyph" type="Control" parent="RulesRow/RulesBar/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "VIEW"
+
+[node name="ViewLabel" type="Label" parent="RulesRow/RulesBar/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "RULES"
+vertical_alignment = 1
+
+[node name="ReadyBanner" type="Control" parent="."]
+visible = false
+layout_mode = 0
+offset_top = 690.0
+offset_right = 1920.0
+offset_bottom = 790.0
+mouse_filter = 2
+
+[node name="Band" type="Panel" parent="ReadyBanner"]
+layout_mode = 0
+offset_left = -100.0
+offset_right = 2020.0
+offset_bottom = 100.0
+rotation = -0.0349066
+pivot_offset = Vector2(1060, 50)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("band")
+
+[node name="Row" type="HBoxContainer" parent="ReadyBanner/Band"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(1060, 50)
+mouse_filter = 2
+theme_override_constants/separation = 26
+alignment = 1
+
+[node name="Text" type="Label" parent="ReadyBanner/Band/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 16
+theme_override_font_sizes/font_size = 76
+text = "READY TO FIGHT!"
+vertical_alignment = 1
+
+[node name="GoWrap" type="Control" parent="ReadyBanner/Band/Row"]
+custom_minimum_size = Vector2(140, 66)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="GoGlyph" type="Control" parent="ReadyBanner/Band/Row/GoWrap"]
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 44.0
+scale = Vector2(1.5, 1.5)
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "START"
+
+[node name="HintBanner" type="Control" parent="."]
+visible = false
+layout_mode = 0
+offset_top = 700.0
+offset_right = 1920.0
+offset_bottom = 780.0
+mouse_filter = 2
+
+[node name="Band" type="Panel" parent="HintBanner"]
+layout_mode = 0
+offset_left = -100.0
+offset_right = 2020.0
+offset_bottom = 80.0
+rotation = -0.0349066
+pivot_offset = Vector2(1060, 40)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("band_amber")
+
+[node name="Row" type="HBoxContainer" parent="HintBanner/Band"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="HintGlyph" type="Control" parent="HintBanner/Band/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "RB"
+
+[node name="HintText" type="Label" parent="HintBanner/Band/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 46
+text = "ADD A CPU, OR GRAB A FRIEND"
+vertical_alignment = 1
+
+[node name="Footer" type="Control" parent="."]
+layout_mode = 0
+offset_top = 996.0
+offset_right = 1920.0
+offset_bottom = 1066.0
+mouse_filter = 2
+
+[node name="HintRow" type="HBoxContainer" parent="Footer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="GJoin" type="HBoxContainer" parent="Footer/HintRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Glyph" type="Control" parent="Footer/HintRow/GJoin"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "A"
+
+[node name="Label" type="Label" parent="Footer/HintRow/GJoin"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "JOIN / READY"
+vertical_alignment = 1
+
+[node name="GBack" type="HBoxContainer" parent="Footer/HintRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Glyph" type="Control" parent="Footer/HintRow/GBack"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "B"
+
+[node name="Label" type="Label" parent="Footer/HintRow/GBack"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "BACK OUT"
+vertical_alignment = 1
+
+[node name="GRandom" type="HBoxContainer" parent="Footer/HintRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Glyph" type="Control" parent="Footer/HintRow/GRandom"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "Y"
+
+[node name="Label" type="Label" parent="Footer/HintRow/GRandom"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "RANDOM"
+vertical_alignment = 1
+
+[node name="GFlair" type="HBoxContainer" parent="Footer/HintRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Glyph" type="Control" parent="Footer/HintRow/GFlair"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "stick"
+
+[node name="Label" type="Label" parent="Footer/HintRow/GFlair"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "GOAT / FLAIR"
+vertical_alignment = 1
+
+[node name="GGo" type="HBoxContainer" parent="Footer/HintRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Glyph" type="Control" parent="Footer/HintRow/GGo"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "START"
+
+[node name="Label" type="Label" parent="Footer/HintRow/GGo"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "GO!"
+vertical_alignment = 1
+
+[node name="GHold" type="HBoxContainer" parent="Footer/HintRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="Glyph" type="Control" parent="Footer/HintRow/GHold"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "B"
+
+[node name="Label" type="Label" parent="Footer/HintRow/GHold"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "HOLD: EXIT"
+vertical_alignment = 1
+
+[node name="RulesModal" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="RulesModal"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.05, 0.03, 0.08, 0.5)
+
+[node name="Card" type="PanelContainer" parent="RulesModal"]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 220.0
+offset_right = 1410.0
+offset_bottom = 840.0
+pivot_offset = Vector2(450, 310)
+mouse_filter = 2
+theme_type_variation = &"MatchEndPanel"
+
+[node name="VBox" type="VBoxContainer" parent="RulesModal/Card"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="RulesModal/Card/VBox"]
+layout_mode = 2
+theme_type_variation = &"BannerTop"
+text = "RULES · P1"
+horizontal_alignment = 1
+
+[node name="Row1" type="Panel" parent="RulesModal/Card/VBox"]
+custom_minimum_size = Vector2(0, 88)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("rules_row")
+
+[node name="Title" type="Label" parent="RulesModal/Card/VBox/Row1"]
+layout_mode = 0
+offset_left = 28.0
+offset_right = 420.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 36
+text = "CPU SKILL"
+vertical_alignment = 1
+
+[node name="ChevL" type="Control" parent="RulesModal/Card/VBox/Row1"]
+layout_mode = 0
+offset_left = 450.0
+offset_top = 24.0
+offset_right = 486.0
+offset_bottom = 64.0
+mouse_filter = 2
+script = ExtResource("7_chev")
+dir = -1
+
+[node name="Value" type="Label" parent="RulesModal/Card/VBox/Row1"]
+layout_mode = 0
+offset_left = 492.0
+offset_right = 714.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
+theme_override_font_sizes/font_size = 44
+text = "MIX"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ChevR" type="Control" parent="RulesModal/Card/VBox/Row1"]
+layout_mode = 0
+offset_left = 720.0
+offset_top = 24.0
+offset_right = 756.0
+offset_bottom = 64.0
+mouse_filter = 2
+script = ExtResource("7_chev")
+
+[node name="Row2" type="Panel" parent="RulesModal/Card/VBox"]
+custom_minimum_size = Vector2(0, 88)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("rules_row")
+
+[node name="Title" type="Label" parent="RulesModal/Card/VBox/Row2"]
+layout_mode = 0
+offset_left = 28.0
+offset_right = 420.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 36
+text = "KOs TO WIN"
+vertical_alignment = 1
+
+[node name="ChevL" type="Control" parent="RulesModal/Card/VBox/Row2"]
+layout_mode = 0
+offset_left = 450.0
+offset_top = 24.0
+offset_right = 486.0
+offset_bottom = 64.0
+mouse_filter = 2
+script = ExtResource("7_chev")
+dir = -1
+
+[node name="Value" type="Label" parent="RulesModal/Card/VBox/Row2"]
+layout_mode = 0
+offset_left = 492.0
+offset_right = 714.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
+theme_override_font_sizes/font_size = 44
+text = "10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ChevR" type="Control" parent="RulesModal/Card/VBox/Row2"]
+layout_mode = 0
+offset_left = 720.0
+offset_top = 24.0
+offset_right = 756.0
+offset_bottom = 64.0
+mouse_filter = 2
+script = ExtResource("7_chev")
+
+[node name="Row3" type="Panel" parent="RulesModal/Card/VBox"]
+custom_minimum_size = Vector2(0, 88)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("rules_row")
+
+[node name="Title" type="Label" parent="RulesModal/Card/VBox/Row3"]
+layout_mode = 0
+offset_left = 28.0
+offset_right = 420.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 36
+text = "LIVES"
+vertical_alignment = 1
+
+[node name="ChevL" type="Control" parent="RulesModal/Card/VBox/Row3"]
+layout_mode = 0
+offset_left = 450.0
+offset_top = 24.0
+offset_right = 486.0
+offset_bottom = 64.0
+mouse_filter = 2
+script = ExtResource("7_chev")
+dir = -1
+
+[node name="Value" type="Label" parent="RulesModal/Card/VBox/Row3"]
+layout_mode = 0
+offset_left = 492.0
+offset_right = 714.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
+theme_override_font_sizes/font_size = 44
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ChevR" type="Control" parent="RulesModal/Card/VBox/Row3"]
+layout_mode = 0
+offset_left = 720.0
+offset_top = 24.0
+offset_right = 756.0
+offset_bottom = 64.0
+mouse_filter = 2
+script = ExtResource("7_chev")
+
+[node name="Spacer" type="Control" parent="RulesModal/Card/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Hint" type="HBoxContainer" parent="RulesModal/Card/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="MoveGlyph" type="Control" parent="RulesModal/Card/VBox/Hint"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "stick"
+
+[node name="MoveLabel" type="Label" parent="RulesModal/Card/VBox/Hint"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "CHANGE"
+vertical_alignment = 1
+
+[node name="Gap" type="Control" parent="RulesModal/Card/VBox/Hint"]
+custom_minimum_size = Vector2(30, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DoneGlyph" type="Control" parent="RulesModal/Card/VBox/Hint"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "B"
+
+[node name="DoneLabel" type="Label" parent="RulesModal/Card/VBox/Hint"]
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "DONE"
+vertical_alignment = 1
+
+[node name="UnlockBanner" type="Label" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0)
+layout_mode = 0
+offset_left = 288.0
+offset_top = 380.0
+offset_right = 1632.0
+offset_bottom = 700.0
+mouse_filter = 2
+theme_type_variation = &"BannerTop"
+text = "FLAIR UNLOCKED"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2

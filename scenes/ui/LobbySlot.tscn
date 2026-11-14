@@ -1,0 +1,443 @@
+[gd_scene load_steps=10 format=3 uid="uid://lobbyslot0001"]
+
+[ext_resource type="Script" path="res://src/ui/LobbySlot.gd" id="1_slot"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="2_glyph"]
+[ext_resource type="Script" path="res://src/ui/Chevron.gd" id="3_chev"]
+
+[sub_resource type="StyleBoxFlat" id="plate"]
+bg_color = Color(1, 0.968627, 0.921569, 0.92)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+shadow_color = Color(0.12, 0.07, 0.05, 0.35)
+shadow_size = 8
+shadow_offset = Vector2(0, 6)
+
+[sub_resource type="StyleBoxFlat" id="badge"]
+bg_color = Color(1, 0.968627, 0.921569, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="disc"]
+bg_color = Color(1, 0.372549, 0.658824, 0.22)
+corner_radius_top_left = 120
+corner_radius_top_right = 120
+corner_radius_bottom_right = 120
+corner_radius_bottom_left = 120
+
+[sub_resource type="StyleBoxFlat" id="banner"]
+bg_color = Color(1, 0.372549, 0.658824, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="stamp"]
+bg_color = Color(0.329412, 0.788235, 0.290196, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 6
+shadow_offset = Vector2(0, 5)
+
+[sub_resource type="StyleBoxFlat" id="taken"]
+bg_color = Color(0.231373, 0.141176, 0.105882, 0.92)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.968627, 0.921569, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 12.0
+content_margin_right = 12.0
+
+[sub_resource type="StyleBoxFlat" id="row"]
+bg_color = Color(0.231373, 0.141176, 0.105882, 0.1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.231373, 0.141176, 0.105882, 0.0)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="LobbySlot" type="Control"]
+custom_minimum_size = Vector2(420, 530)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 420.0
+offset_bottom = 530.0
+mouse_filter = 2
+script = ExtResource("1_slot")
+
+[node name="Plate" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("plate")
+
+[node name="BustWell" type="Control" parent="."]
+layout_mode = 0
+offset_top = 58.0
+offset_right = 420.0
+offset_bottom = 288.0
+mouse_filter = 2
+
+[node name="Disc" type="Panel" parent="BustWell"]
+layout_mode = 0
+offset_left = 90.0
+offset_top = 6.0
+offset_right = 330.0
+offset_bottom = 226.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("disc")
+
+[node name="Silhouette" type="TextureRect" parent="BustWell"]
+modulate = Color(0.231373, 0.141176, 0.105882, 0.25)
+layout_mode = 0
+offset_left = 90.0
+offset_top = 10.0
+offset_right = 330.0
+offset_bottom = 220.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Bust" type="TextureRect" parent="BustWell"]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 0.0
+offset_right = 340.0
+offset_bottom = 230.0
+pivot_offset = Vector2(130, 200)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ChevL" type="Control" parent="BustWell"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 86.0
+offset_right = 66.0
+offset_bottom = 142.0
+mouse_filter = 2
+script = ExtResource("3_chev")
+dir = -1
+
+[node name="ChevR" type="Control" parent="BustWell"]
+layout_mode = 0
+offset_left = 354.0
+offset_top = 86.0
+offset_right = 402.0
+offset_bottom = 142.0
+mouse_filter = 2
+script = ExtResource("3_chev")
+
+[node name="TakenChip" type="Label" parent="BustWell"]
+visible = false
+layout_mode = 0
+offset_left = 90.0
+offset_top = 176.0
+offset_right = 330.0
+offset_bottom = 222.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("taken")
+text = "TAKEN BY P2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Header" type="Control" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 420.0
+offset_bottom = 60.0
+mouse_filter = 2
+
+[node name="PBadge" type="Panel" parent="Header"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 100.0
+offset_bottom = 58.0
+pivot_offset = Vector2(42, 23)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("badge")
+
+[node name="PLabel" type="Label" parent="Header/PBadge"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 32
+text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DeviceName" type="Label" parent="Header"]
+layout_mode = 0
+offset_left = 108.0
+offset_top = 14.0
+offset_right = 330.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.85)
+theme_override_font_sizes/font_size = 26
+text = "KEYBOARD"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="DeviceIcon" type="Control" parent="Header"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 14.0
+offset_right = 404.0
+offset_bottom = 58.0
+mouse_filter = 2
+script = ExtResource("2_glyph")
+glyph = "kb"
+
+[node name="NameBanner" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 290.0
+offset_right = 396.0
+offset_bottom = 352.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("banner")
+
+[node name="Name" type="Label" parent="NameBanner"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 52
+text = "POGO"
+horizontal_alignment = 1
+vertical_alignment = 1
+clip_text = true
+
+[node name="Blurb" type="Label" parent="."]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 356.0
+offset_right = 402.0
+offset_bottom = 424.0
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/line_spacing = -4
+theme_override_font_sizes/font_size = 28
+text = "Can't stop boinging. Won't stop boinging."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="FlairRow" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 428.0
+offset_right = 400.0
+offset_bottom = 472.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("row")
+
+[node name="FlairTitle" type="Label" parent="FlairRow"]
+layout_mode = 0
+offset_left = 12.0
+offset_right = 84.0
+offset_bottom = 44.0
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.7)
+theme_override_font_sizes/font_size = 22
+text = "FLAIR"
+vertical_alignment = 1
+
+[node name="FChevL" type="Control" parent="FlairRow"]
+layout_mode = 0
+offset_left = 84.0
+offset_top = 8.0
+offset_right = 106.0
+offset_bottom = 36.0
+mouse_filter = 2
+script = ExtResource("3_chev")
+dir = -1
+
+[node name="FlairValue" type="Label" parent="FlairRow"]
+layout_mode = 0
+offset_left = 106.0
+offset_right = 352.0
+offset_bottom = 44.0
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 26
+text = "NONE"
+horizontal_alignment = 1
+vertical_alignment = 1
+clip_text = true
+
+[node name="FChevR" type="Control" parent="FlairRow"]
+layout_mode = 0
+offset_left = 352.0
+offset_top = 8.0
+offset_right = 374.0
+offset_bottom = 36.0
+mouse_filter = 2
+script = ExtResource("3_chev")
+
+[node name="Status" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 478.0
+offset_right = 400.0
+offset_bottom = 522.0
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="StatusGlyph" type="Control" parent="Status"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_glyph")
+glyph = "A"
+
+[node name="StatusText" type="Label" parent="Status"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "LOCK IN"
+vertical_alignment = 1
+
+[node name="Stamp" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 90.0
+offset_top = 200.0
+offset_right = 330.0
+offset_bottom = 284.0
+rotation = -0.10472
+pivot_offset = Vector2(120, 42)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 54
+theme_override_styles/normal = SubResource("stamp")
+text = "READY!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="JoinPrompt" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="JoinBox" type="VBoxContainer" parent="JoinPrompt"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 300.0
+offset_right = 400.0
+offset_bottom = 440.0
+pivot_offset = Vector2(190, 70)
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Row1" type="HBoxContainer" parent="JoinPrompt/JoinBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Press" type="Label" parent="JoinPrompt/JoinBox/Row1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 44
+text = "PRESS"
+vertical_alignment = 1
+
+[node name="JoinGlyph" type="Control" parent="JoinPrompt/JoinBox/Row1"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_glyph")
+glyph = "A"
+
+[node name="Row2" type="Label" parent="JoinPrompt/JoinBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 44
+text = "TO JOIN"
+horizontal_alignment = 1
+
+[node name="KbHint" type="HBoxContainer" parent="JoinPrompt"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 456.0
+offset_right = 400.0
+offset_bottom = 504.0
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="KbGlyph" type="Control" parent="JoinPrompt/KbHint"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_glyph")
+glyph = "key:ENTER"
+
+[node name="KbText" type="Label" parent="JoinPrompt/KbHint"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 28
+text = "KEYBOARD"
+vertical_alignment = 1

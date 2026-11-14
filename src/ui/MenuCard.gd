@@ -1,5 +1,5 @@
 extends Button
-## Reusable selectable tile (frontend_ux_spec §1.2 primitive 2) used by ModeSelect / CharacterSelect /
+## Reusable selectable tile (frontend_ux_spec §1.2 primitive 2) used by ModeSelect /
 ## ArenaSelect. A flat Button wearing the MenuCard styleboxes (press + focus for free), with a colored
 ## key-art plate (gradient), a sprite/art slot, a big name, an optional tagline, a focus glow + accent
 ## border driven by MenuScreen, an optional "SOON" ribbon, and a lock-in check stamp.

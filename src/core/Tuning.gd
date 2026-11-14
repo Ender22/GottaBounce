@@ -169,6 +169,17 @@ var input_buffer: float = 0.10               # seconds
 # seen-order) at |axis| >= this. Keeps resting-stick drift on an idle couch pad from flipping glyphs/ownership.
 var input_activity_axis: float = 0.5
 
+# --- Herd Lobby (WK-05/06 · audit §E.4/E.5/E.10 · CC-4.x/5.3) — menu feel, not player feel ---
+var lobby_repeat_delay: float = 0.40       # s a held D-pad/stick direction waits before auto-repeat (per device)
+var lobby_repeat_rate: float = 0.09        # s between auto-repeat steps once repeating
+var lobby_stick_press: float = 0.5         # LS strength that counts as a direction press (hysteresis high)
+var lobby_stick_release: float = 0.3       # LS strength below which the direction is released (hysteresis low)
+var lobby_banner_guard: float = 0.35       # READY banner must be visible this long before a proceed press counts
+var lobby_hold_exit: float = 1.0           # s of held B / Esc that exits the lobby (fill ring)
+var lobby_hold_ring_show: float = 0.12     # s of hold before the ring appears (taps never flash it)
+var lobby_entry_grace: float = 0.30        # s after the lobby appears before input counts (= shell transition lock)
+var lobby_random_spin: float = 0.6         # s the Y/R random portrait spin runs before landing
+
 # --- v1 kill-race match / stage loop (docs/specs/v1_party_killrace.md §7) ---
 var intro_pop_stagger: float = 0.20    # s between STAGE_INTRO spawn pop-ins (pacing6: 0.35->0.20, 4 pops in 0.8s)
 var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat (LEAVE — the 3-2-1 is iconic/tight)

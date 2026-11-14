@@ -2,7 +2,7 @@ extends PanelContainer
 ## ModeContextChip — shared header chip answering "what am I configuring?" (frontend_ui_audit
 ## 2026-07-10 §3.4; owner defect class A). A cream rounded chip: [mode diorama mini 56x56] + the
 ## mode name in the mode's accent color. Reads GameConfig.match_config.mode_id at _ready so the
-## same instance drops into ArenaSelect, CharacterSelect, and the future SPORTS court select.
+## same instance drops into ArenaSelect, the Herd Lobby, and the future SPORTS court select.
 
 const MODES := {
 	&"brawl": {"name": "BRAWL", "color": Color("#ff5fa8")},
