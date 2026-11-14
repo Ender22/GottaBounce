@@ -1364,6 +1364,17 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
 - Status: open. Next-10 #3 after re-rank #6, lane G. Depth-first: this finishes the ghost slice that just shipped.
 
 
+### [ ] WK-53b [P2][S] Living-goat taunt (Player.gd hook) + ScoreScreen taunts
+- Source: WK-53a. Hook: Player._physics_process right after  (~l.548), before stun clears it:
+  . AudioManager already handles living
+  bleats + rate limit. ScoreScreen taunts need PartyMatch to poll each human's taunt during STAGE_END/SCOREBOARD.
+  After WK-128 releases Player.gd.
+
+### [ ] WK-132 [P1][S] Bounce SFX hog the voice pool (~19/s, 7-14 of 14 voices, 0.95 s ring) and silence other sounds
+- Source: WK-53a sound-designer. Cap concurrent bounce voices (~5) and/or shorten the bounce tail; smash/KO/bleat must
+  never be starved. Owner: sound-designer. Accept: busy-arena run (vortex/pinball) — 0 dropped priority sounds.
+
+
 ## P2 — visible polish gaps
 
 ### [x] WK-130 [P2][S] Per-agent automation port: parallel rendered games without hijacking or killing each other — 1a91a55
@@ -1530,7 +1541,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
 - Accept: all-bot match -> counter unchanged (eval); lobby shows no KO chip; unlock toast renders as a card with icon.
 - Status: open
 
-### [ ] WK-53 [P1][S] Taunt / bleat sample (ghost bleat now, living-goat taunt after WK-128) — raised P2 -> P1 at re-rank #6
+### [~] WK-53 [P1][S] Taunt / bleat sample — (a) ghost bleats done 2fa94cd; (b) living taunt pending: (ghost bleat now, living-goat taunt after WK-128) — raised P2 -> P1 at re-rank #6
 - Sources: D-15 · Binding: pad Y [3] / keyboard per CC-2.2 (Y is unused in gameplay per CC-1.1)
 - Area: brawl/audio · Owner: sound-designer + gameplay-programmer · Deps: none · Note: no bleat in assets/sfx; source a CC0 one (ruling b2). The bleat is shared with WK-45 (lobby lock) and WK-37 (ghost quack)
 - Accept: taunt -> `last_sfx` starts "bleat_" within 1 frame in COMBAT and on ScoreScreen; 10 presses/s -> <= 3 sounds; "BAAA!" puff in colour (screenshot).
