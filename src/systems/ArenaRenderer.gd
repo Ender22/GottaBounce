@@ -33,10 +33,18 @@ const DUSK_BODY_TINT := Color("#E8C79E")
 # --- enclosed INTERIORS (themed_platforms_and_interiors §B): an opaque full-bleed painting behind the
 # sealed-arena plastic shell, drawn IN PLACE OF the flat teal gradient (sheen + vignette stay on top).
 # Mirrors PAINTINGS. Per-level knob "interior_painting". Missing/absent -> today's teal/sheen/vignette.
+# WK-122: "housing" = the painting's own edge tones (top, bottom; sampled + a touch darker for the vignette).
+# In FRAME fill (below) the Layer-0 safety net takes these instead of sky_top/sky_bottom, so camera shake or
+# an over-wide shot past the painting's edge shows more dark stadium, never a flat blue band.
 const INTERIORS := {
-	"arena_stadium": { "path": "res://assets/bg/interior_arena_stadium.png" },
+	"arena_stadium": { "path": "res://assets/bg/interior_arena_stadium.png",
+		"housing": ["#0c1217", "#0b1513"] },
 	"silo_cavern": { "path": "res://assets/bg/interior_silo_cavern.png" },
 }
+# WK-122: per-level knob "interior_fill": "shell" (the painting is clipped to the play AABB; Zone-A
+# housing shows outside it) or "frame" (the painting covers the whole camera frame edge-to-edge: a sports
+# court reads as one stadium, no letterbox). Absent -> "frame" on kill_shape "sports_court", else "shell".
+const FRAME_MARGIN_FRAC := 0.04   # frame fill grows past the 16:9 game view + 16:10 thumb view by this
 const SKY_TEX := "res://assets/bg/sky_grass_day.png"
 const HILLS_TEX := "res://assets/bg/hills_far.png"
 const CLOUD_TEXES: Array[String] = ["res://assets/bg/cloud_a.png", "res://assets/bg/cloud_b.png"]
@@ -255,6 +263,13 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 	var grad_rect := brect.grow(pad)
 	var sky_top := Color(str(json.get("sky_top", "#3a6ea5")))
 	var sky_bot := Color(str(json.get("sky_bottom", "#bfe3ff")))
+	# WK-122: frame-filled interiors recolour the safety net to the painting's edge tones (no blue band).
+	var frame_fill := enclosed and _interior_fills_frame(json)
+	if frame_fill:
+		var housing: Array = INTERIORS[str(json["interior_painting"])].get("housing", [])
+		if housing.size() == 2:
+			sky_top = Color(str(housing[0]))
+			sky_bot = Color(str(housing[1]))
 	var g := Polygon2D.new()
 	g.polygon = PackedVector2Array([grad_rect.position, Vector2(grad_rect.end.x, grad_rect.position.y),
 		grad_rect.end, Vector2(grad_rect.position.x, grad_rect.end.y)])
@@ -265,7 +280,7 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 	# Enclosed backdrop (Zone B interior shell): suppress the entire meadow parallax stack below and
 	# paint a dim glossy interior clipped to the play AABB instead. paint_void() still draws on top.
 	if enclosed:
-		_build_enclosed_interior(play_rect, json)
+		_build_enclosed_interior(play_rect, json, _court_frame_rect(brect) if frame_fill else Rect2())
 		return
 
 	# Open-sky backdrop (docs/briefs/circuit_theming_plan.md §3.1): suppress the meadow PNG parallax
@@ -406,11 +421,16 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 ## (the Layer-0 gradient) for free, because this is clipped to play_rect. All code-drawn gradients
 ## (same toolkit as paint_void) — no assets, adapts to any axis-aligned enclosed box. World-static
 ## (added directly, not a parallax layer). paint_void() draws on top at z >= -8.
-func _build_enclosed_interior(play_rect: Rect2, json: Dictionary = {}) -> void:
+func _build_enclosed_interior(play_rect: Rect2, json: Dictionary = {}, frame: Rect2 = Rect2()) -> void:
 	if play_rect.size.x <= 0.0 or play_rect.size.y <= 0.0:
 		return
 	# grow a touch so the shell meets the inner wall faces / lid underside with no seam
 	var shell := play_rect.grow(16.0)
+	# WK-122 FRAME fill (sports courts): the painting covers the whole camera frame at its own aspect
+	# (uniform cover, centred, no stretch), the vignette spans the frame, the sheen stays on the court.
+	if frame.size.x > 0.0 and _build_frame_interior(frame, str(json.get("interior_painting", ""))):
+		_add_sheen(shell)
+		return
 
 	# Zone B WALL. Painted interior (§B) IN PLACE OF the flat teal gradient when interior_painting is set
 	# and the file loads: an opaque full-bleed painting stretched-to-fill `shell` (centered=false, exact
@@ -442,8 +462,12 @@ func _build_enclosed_interior(play_rect: Rect2, json: Dictionary = {}) -> void:
 		add_child(_gradient_sprite(shell, bg, GradientTexture2D.FILL_LINEAR,
 			Vector2(0, 0), Vector2(0, 1), Vector2i(4, 256), -92))
 
-	# Gloss sheen — soft white radial highlight near the upper-centre (curved-plastic tell), z -91.
-	# A wide ellipse: ~70% interior width x ~45% interior height, centred at ~30% height.
+	_add_sheen(shell)
+	_add_vignette(shell)
+
+## Gloss sheen — soft white radial highlight near the upper-centre (curved-plastic tell), z -91.
+## A wide ellipse: ~70% interior width x ~45% interior height, centred at ~30% height.
+func _add_sheen(shell: Rect2) -> void:
 	var sheen_w := shell.size.x * 0.70
 	var sheen_h := shell.size.y * 0.45
 	var sheen_c := shell.get_center()
@@ -455,14 +479,53 @@ func _build_enclosed_interior(play_rect: Rect2, json: Dictionary = {}) -> void:
 	add_child(_gradient_sprite(sheen_rect, sg, GradientTexture2D.FILL_RADIAL,
 		Vector2(0.5, 0.5), Vector2(1.0, 0.5), Vector2i(256, 256), -91))
 
-	# Vignette — radial darkening (transparent centre -> #0A1720 a0.45 in the corners), sells the
-	# cylinder curvature + focuses the centre. Over the interior, z -91 (above shell, below platforms).
+## Vignette — radial darkening (transparent centre -> #0A1720 a0.45 in the corners), sells the
+## cylinder curvature + focuses the centre. Over the interior, z -91 (above shell, below platforms).
+func _add_vignette(rect: Rect2) -> void:
 	var vg := Gradient.new()
 	vg.offsets = PackedFloat32Array([0.0, 1.0])
 	var vc := Color("#0A1720")
 	vg.colors = PackedColorArray([Color(vc.r, vc.g, vc.b, 0.0), Color(vc.r, vc.g, vc.b, 0.45)])
-	add_child(_gradient_sprite(shell, vg, GradientTexture2D.FILL_RADIAL,
+	add_child(_gradient_sprite(rect, vg, GradientTexture2D.FILL_RADIAL,
 		Vector2(0.5, 0.5), Vector2(1.0, 1.0), Vector2i(256, 256), -91))
+
+## WK-122: does this level's interior painting fill the whole camera frame (see INTERIORS / interior_fill)?
+func _interior_fills_frame(json: Dictionary) -> bool:
+	if not INTERIORS.has(str(json.get("interior_painting", ""))):
+		return false
+	var dflt := "frame" if str(json.get("kill_shape", "")) == "sports_court" else "shell"
+	return str(json.get("interior_fill", dflt)) == "frame"
+
+## WK-122: the world rect a frame-filled interior must cover. Sports frame the whole bounds at a fixed
+## zoom (SportsMode.camera_framing = bounds; PartyMatch fits it to 1920x1080), so: bounds widened to the
+## 16:9 game view, then heightened to the 16:10 ThumbBaker court shot, then grown FRAME_MARGIN_FRAC for
+## camera shake. (A court smaller than the CAM_MAX_ZOOM view would also need covering — none are; the
+## dark Layer-0 housing catches any spill.)
+static func _court_frame_rect(brect: Rect2) -> Rect2:
+	var w := maxf(brect.size.x, brect.size.y * 16.0 / 9.0)
+	var h := maxf(brect.size.y, w / 1.6)
+	var r := Rect2(brect.get_center() - Vector2(w, h) * 0.5, Vector2(w, h))
+	return r.grow(maxf(w, h) * FRAME_MARGIN_FRAC)
+
+## WK-122: paint the interior over `frame` at the painting's own aspect (uniform scale-to-cover, centred,
+## z -93) + the vignette over the frame. Returns false (caller falls back to the shell path) if missing.
+func _build_frame_interior(frame: Rect2, iid: String) -> bool:
+	var ipath := str(INTERIORS[iid]["path"])
+	if not ResourceLoader.exists(ipath):
+		return false
+	var tex: Texture2D = load(ipath)
+	if tex == null or tex.get_width() <= 0:
+		return false
+	var sc := maxf(frame.size.x / float(tex.get_width()), frame.size.y / float(tex.get_height()))
+	var sp := Sprite2D.new()
+	sp.texture = tex
+	sp.centered = true
+	sp.position = frame.get_center()
+	sp.scale = Vector2(sc, sc)
+	sp.z_index = -93
+	add_child(sp)
+	_add_vignette(frame)
+	return true
 
 ## Open-sky backdrop (docs/briefs/circuit_theming_plan.md §3.1): the Layer-0 sky gradient (driven by
 ## sky_top/sky_bottom, painted before this call) IS the whole visible sky. This suppresses the meadow

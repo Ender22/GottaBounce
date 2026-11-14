@@ -48,6 +48,14 @@ func _bake_all() -> void:
 	for id in _arena_ids():
 		entries.append({"id": id, "path": "res://levels/%s.json" % id})
 	entries.append_array(_court_entries())
+	# WK-122: optional id-prefix filter so one family can be re-baked without touching the rest:
+	#   <exe> --path . res://tools/ThumbBaker.tscn -- --only=court_
+	var only := ""
+	for a in OS.get_cmdline_user_args():
+		if str(a).begins_with("--only="):
+			only = str(a).substr(7)
+	if only != "":
+		entries = entries.filter(func(e: Dictionary) -> bool: return str(e["id"]).begins_with(only))
 	print("[ThumbBaker] baking %d arenas/courts -> %s" % [entries.size(), OUT_DIR])
 	var ok := 0
 	var fail: Array[String] = []
@@ -124,6 +132,10 @@ func _bake_one(id: String, path: String) -> bool:
 	var mx: float = maxf(pr.size.x * 0.14, 220.0)
 	var my: float = maxf(pr.size.y * 0.20, 220.0)
 	var view := Rect2(pr.position - Vector2(mx, my), pr.size + Vector2(mx * 2.0, my * 2.0))
+	# WK-122: a sports court is framed like the game frames it (SportsMode.camera_framing = the bounds),
+	# fitted to 16:10 below -- the court fills the card and the edge-to-edge stadium covers the whole shot.
+	if id.begins_with("court_"):
+		view = data.get("bounds", view)
 	if view.size.x / view.size.y < TARGET_ASPECT:
 		var nw: float = view.size.y * TARGET_ASPECT
 		view.position.x -= (nw - view.size.x) * 0.5
