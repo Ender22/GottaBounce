@@ -41,9 +41,9 @@ and tuning work, so its findings can re-rank WK-108/109. WK-90 moves above WK-10
 ruling, and WK-CD2 no longer waits for it. Sports items: 6 of 10.
 
 1. WK-95e [P1][M] (in progress) Bot stuck/underside regressions + HOT ruling + feel sign-off (owner flight ruling follow-through) — gameplay-programmer + game-designer + creative-director
-2. WK-104 [P1][M] (in progress) Sports: ball frozen until GO (SP-02 bug) + kickoff lottery fix (SP-05, game-designer A/B) — gameplay-programmer (+ game-designer ruling)
-3. WK-105 [P1][M] (in progress) Sports: ball-strike / goal / tile / hole sounds + hit reaction (SP-01) — sound-designer + gameplay-programmer
-4. WK-106 [P1][M] (in progress) Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03, supersedes WK-16) — ui-ux-designer + gameplay-programmer
+2. ~~WK-104~~ done 5f34080 — [P1][M] (in progress) Sports: ball frozen until GO (SP-02 bug) + kickoff lottery fix (SP-05, game-designer A/B) — gameplay-programmer (+ game-designer ruling)
+3. ~~WK-105~~ done 5f34080 — [P1][M] (in progress) Sports: ball-strike / goal / tile / hole sounds + hit reaction (SP-01) — sound-designer + gameplay-programmer
+4. ~~WK-106~~ done 5f34080 — [P1][M] (in progress) Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03, supersedes WK-16) — ui-ux-designer + gameplay-programmer
 5. WK-107 [P1][S] LONG HAUL crops both goals: shrink the court to fit at 0.60 (SP-04) — level-designer (+ gameplay-programmer for the load-time check)
 6. WK-20a [P1][M] Who wins and why: knockback side effects + self-KO −1, human-style drivers, post-WK-95 build (after WK-95e (a)) -> game-designer rulings — qa-playtester + game-designer
 7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (flight + super, sports after WK-104/105/106, KO readability, scoring) — creative-director
@@ -218,7 +218,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 > smash rate -> WK-108 · fuel (LONG HAUL 16-20 %) -> WK-99 · Dropshot rally length (10.7 / 14.5 s) and bot aim (2.63°/tick) -> WK-CD2 (7).
 > Screen on for every timing number.
 
-### [ ] WK-104 [P1][M] Sports: ball frozen until GO (SP-02 bug) + kickoff lottery fix (SP-05)
+### [x] WK-104 [P1][M] Sports: ball frozen until GO (SP-02 bug) + kickoff lottery fix (SP-05) — 5f34080
 - Area: sports · Owner: gameplay-programmer (+ game-designer ruling for (b)) · Source: WK-98 SP-02 + SP-05 (creative-director 2026-11-14)
 - Evidence: (a) 4 of ~56 kickoffs logged a touch in STAGE_INTRO/COUNTDOWN; M6 stage 9: a stale-overlap touch drifted the ball to BLUE's
   spawn and BLUE scored an own goal 0.3 s after GO (`tools/out/sports/logs/m6.json` t 64.49 -> 66.64; M1 `logs/m1b.json` t 166.7/167.8).
@@ -235,7 +235,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Commit (a) as soon as it passes. Do not hold the bug fix for the (b) ruling.
 - Status: in-progress (Next-10 #2)
 
-### [ ] WK-105 [P1][M] Sports: ball strike, goal, tile and hole-fall sounds + hit reaction (SP-01)
+### [x] WK-105 [P1][M] Sports: ball strike, goal, tile and hole-fall sounds + hit reaction (SP-01) — 5f34080
 - Area: sports | audio · Owner: sound-designer + gameplay-programmer · Source: WK-98 SP-01
 - Evidence: 0 SFX on 88 ball touches in M3; no SFX within 0.6 s of any goal or point in any match; `AudioManager.SFX` has no ball, goal,
   crowd, whistle or tile keys; `Ball.gd` has no FX; Dropshot hole falls play the brawl `death` sting (8x in M4).
@@ -250,7 +250,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   goal/point; `death` never fires in a sports mode; a WK-93 recording frame shows squash + impact ring on a strike.
 - Status: in-progress (Next-10 #3)
 
-### [ ] WK-106 [P1][M] Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03; supersedes WK-16)
+### [x] WK-106 [P1][M] Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03; supersedes WK-16) — 5f34080
 - Area: sports | HUD · Owner: ui-ux-designer + gameplay-programmer · Source: WK-98 SP-03 + R-12 (WK-16, merged here)
 - Evidence: 32/62 Rocketball goals (52 %) last touched by the conceding team, never said on screen; banner is always
   `GOAL!   RED n — m BLUE`. Bug: `SportsHUD._process` flashes only when `last_scoring_team` changes, so a team's second goal in a row has no
