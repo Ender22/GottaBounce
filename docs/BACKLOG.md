@@ -39,7 +39,7 @@ pop is moot if the rule changes). WK-CD2 sits at 7 = after item 6. WK-36 drops t
 6. WK-21 + WK-41 [P1][S+S] Between-stage budget: adaptive ScoreScreen hold + overlays in sequence / one prompt (pull together) — gameplay-programmer + ui-ux-designer
 7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (KO readability, scoring ruling, downtime budget) — creative-director
 8. WK-25 [P1][M] KO credit pop (+1 to killer's card / −1 OOPS per the WK-20a ruling) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-23, WK-20a ruling, WK-89 if confirmed)
-9. WK-17 [P1][S] Bundle an OFL display font + drop fake-bold same-colour outlines on lobby small text (CD1-05) — ui-ux-designer; unblocks WK-18/34/35
+9. ~~WK-17~~ done 5672f04 — [P1][S] Bundle an OFL display font + drop fake-bold same-colour outlines on lobby small text (CD1-05) — ui-ux-designer; unblocks WK-18/34/35
 10. WK-15 [P1][S] Teach the goal: legend on every mode's stage 1, "SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs" — ui-ux-designer + gameplay-programmer
 
 On deck (11+, in order): WK-36 off-screen magnifier bubbles (M) · WK-20b / WK-20c conditional builds from the WK-20a
@@ -314,7 +314,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept (rendered): goal in Rocketball and point in Dropshot each show one scoring-team-coloured burst + score tick, nothing clipped by posts.
 - Status: open
 
-### [ ] WK-17 [P1][S] Bundle a real display font (OFL) — NOT blocked (DECISIONS ruling b)
+### [x] WK-17 [P1][S] Bundle a real display font (OFL) — NOT blocked (DECISIONS ruling b) — 5672f04
 - Sources: C-32, R-10, CC-12.3, STATUS "real FONT", lobby review L10
 - Area: art/menus · Owner: ui-ux-designer (pick) + art pipeline (import) · Deps: none
 - Do: OFL rounded heavy face (Fredoka / Baloo 2 ExtraBold / Lilita One) + licence file in `assets/fonts/`; theme default
@@ -553,6 +553,15 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   backdrops? particle counts? physics?); check renderer setting (Forward+/Mobile/Compatibility) and vsync; A/B the top 3
   suspects. Recommend fixes with evidence.
 - Accept: report with attribution; follow-up fix item(s) filed; target >= 55 fps average at 1080p on this machine.
+
+
+### [ ] WK-92 [P2][S] Font follow-ups from WK-17 grade
+- Source: ui-ux-designer WK-17 verdict (tools/out/wk/WK-17_*). Owner: gameplay-programmer.
+- (1) Victory winner name: chocolate ribbon behind it like StageIntroCard (yellow Puff over gold rays is weakest);
+  (2) MATCH POINT top banner overlaps the leaving StageIntroCard ribbon ~0.2 s — delay show_top until intro exit;
+  (3) Rocketball card "(Okay" sidebearing — drop parentheses; (4) the ✓ on menu cards still uses a system font —
+  swap for PadGlyph's drawn check. Small-text floor items stay in WK-18.
+- Accept: screenshots of Victory (Puff winner), MATCH POINT stage intro, ModeSelect.
 
 
 ## P2 — visible polish gaps
