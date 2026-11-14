@@ -20,8 +20,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **Continue builders via SendMessage** (keeps their context) for follow-up slices — far cheaper than re-briefing.
 
 ## Engine / game facts discovered
-- Frame hitches (~0.5 s every ~15 s, 16 FPS median on the studio machine) freeze physics-tick timers (Godot caps
-  8 physics ticks/frame) -> every between-stage timer and hit-stop stretches. WK-91 (P0). Headless doesn't show it.
+- **DISPLAY OFF = BOGUS PERF DATA.** When the laptop screen sleeps (15-min AC timeout) Windows Modern Standby caps a
+  windowed game to ~30 Hz with ~500 ms present() stalls, then can freeze it entirely. All "16 FPS / 0.5 s hitch" data
+  from 12:08-15:50 was this. The game really runs ~120 fps at 1080p. The director now runs a keep-awake script
+  (SetThreadExecutionState, scratchpad/keepawake.ps1, background task) for the session. Before trusting any perf or
+  timing number, confirm the screen was on (fps ~120). Physics-tick timers stretch under real hitches (8 ticks/frame).
 - `create_timer(t, true, false, true)` in Godot 4.7 fires after ~3 frames regardless of t -> hit-stop is
   frame-rate dependent (WK-90).
 - gbplay's simulated pads do NOT appear in `get_connected_joypads()` -> key devices off input EVENTS

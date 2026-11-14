@@ -583,7 +583,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 
 ---
 
-### [ ] WK-90 [P1][S] Hit-stop fires after ~3 frames regardless of duration (Godot 4.7 timer arg quirk) — design call first
+### [ ] WK-90 [P1][S] (RE-MEASURE with screen on first) Hit-stop fires after ~3 frames regardless of duration (Godot 4.7 timer arg quirk) — design call first
 - Source: WK-23/24 programmer, 2026-11-14. `Juice._hitstop` uses `create_timer(t, true, false, true)`, which in 4.7 fires
   after ~3 frames whatever `t` is (reproduced outside eval). Designed 30-100 ms freeze + 120 ms ease-out actually lasts a
   few frames: ~0.1 s at 120 FPS, ~0.75 s at 16 FPS — so hit feel is FRAME-RATE DEPENDENT today.
@@ -592,7 +592,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   fix the timer call so duration is real-time and FPS-independent.
 - Accept: freeze duration within ±10 ms of the Tuning value at 30 and 60 FPS (eval timestamps); qa feel note.
 
-### [ ] WK-91 [P0][M] Performance: 16-30 FPS at 1920x1080 on the studio machine (~90 draw calls)
+### [x] WK-91 [P0][M] Performance: 16-30 FPS at 1920x1080 on the studio machine (~90 draw calls) — da8337b
 - Source: WK-23/24 programmer, 2026-11-14 (not caused by the new FX). A couch party game must hold 60.
 - RAISED TO P0 (WK-21 rendered pass): ~12-20 frames of 500-620 ms every ~15 s even mid-combat with no eval
   traffic, same at 720p and 1080p (not fill-rate), machine CPU 9%, headless peaks 45-87 ms. Hitches freeze
