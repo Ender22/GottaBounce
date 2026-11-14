@@ -27,9 +27,9 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 5. ~~WK-05~~ done fe2a99c — Herd Lobby slice 1: press-A-to-join panels, independent goat cycling
 6. ~~WK-06~~ done fe2a99c — Herd Lobby slice 2: ready / banner / Start proceeds / devices carry into the match
 7. WK-81 Lobby review must-fixes + WK-07 Herd Lobby slice 3: RULES panel + lobby persistence + CHANGE SETUP
-8. WK-08 One player = one colour = their goat's colour, everywhere
+8. ~~WK-08~~ done 4e7caf6 — One player = one colour = their goat's colour, everywhere
 9. WK-09 Pause menu finish: hold-to-confirm RESTART/QUIT + "PAUSED · P2" header
-10. WK-10 Persistent P# pip over humans, CPU tags on bots
+10. ~~WK-10~~ done 4e7caf6 — Persistent P# pip over humans, CPU tags on bots
 
 ---
 
@@ -156,7 +156,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 > not by the goat. WK-08 lands the shared `player_color()` first; every later identity item reads it.
 > **SYSTEMIC — two visual languages** (R-11, R-22, R-28, R-12): in-match panels are dark-navy dev-look; WK-34/35 own it.
 
-### [ ] WK-08 [P1][S] One player = one colour = their goat's colour, everywhere
+### [x] WK-08 [P1][S] One player = one colour = their goat's colour, everywhere — 4e7caf6
 - Sources: C-08, R-04, D-03 (design audit rated P0)
 - Area: HUD/brawl · Owner: gameplay-programmer · Deps: none
 - Evidence: tools/out/cd_audit/17_launch_1.5s.png, d23_brawl_play/f016_SCOREBOARD.png, d23_contact1.png ("P5 SURVIVES!" purple), 25_victory_settled.png
@@ -177,7 +177,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   pad1 pauses -> header reads P2/P3 per label in that goat's colour. Screens `tools/out/wk/WK-09_*.png`.
 - Status: open
 
-### [ ] WK-10 [P1][S] Persistent P# pip over every human; bots tagged CPU
+### [x] WK-10 [P1][S] Persistent P# pip over every human; bots tagged CPU — 4e7caf6
 - Sources: C-09, R-17, R-05 (pointer part), C-15 (label part), CC-8.3
 - Area: HUD/brawl · Owner: gameplay-programmer · Deps: WK-08; uses `human_labels` from WK-04 when present
 - Evidence: tools/out/cd_audit/21_after_resume.png (no tags after intro), 45_rocketball_1s.png (bot tagged "P2"), d56_contact.png

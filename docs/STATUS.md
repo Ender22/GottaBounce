@@ -14,7 +14,7 @@ accessibility-specialist, sound-designer, performance-analyst) + skills (ux-revi
 soak-test, scope-check) — `docs/reference/CCGS_IMPORT.md`. `.claude/settings.json` deny rules block push /
 destructive git / recursive deletes (they match whole command text — reword commit messages that mention them).
 DONE: WK-01 Start/Esc/P pause, B never pauses, pause-owner gating, no input leak on resume (933a77a, QA 8/8);
-WK-02 4-fighter cap + HUD hides unused cards (933a77a). DONE: WK-03 InputRouter + WK-04 one device per human (0 cross-moves, rendered) (1191757). DONE: WK-05/06 Herd Lobby: per-controller join/pick/ready, routed, old CharacterSelect deleted (fe2a99c). NEXT: WK-05..07 Herd Lobby (Smash-style per-pad join/select/ready).
+WK-02 4-fighter cap + HUD hides unused cards (933a77a). DONE: WK-03 InputRouter + WK-04 one device per human (0 cross-moves, rendered) (1191757). DONE: WK-05/06 Herd Lobby: per-controller join/pick/ready, routed, old CharacterSelect deleted (fe2a99c). DONE: WK-08 goat colour everywhere + WK-10 P# pips / CPU tags (4e7caf6). NEXT: WK-05..07 Herd Lobby (Smash-style per-pad join/select/ready).
 
 **OWNER BATCH 2026-07-19 (4 asks, all shipped + rendered-verified):**
 1. **Title layout** — Backdrop bobbers rearranged per owner ("big, at the sides, facing each other"):
