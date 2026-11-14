@@ -67,6 +67,18 @@ func on_stage_ready(_runner) -> void:
 func on_combat_start(_runner) -> void:
 	pass
 
+## Additive seam (WK-124): seconds the runner holds the STAGE_END freeze before it moves on. Default =
+## Tuning.round_end_freeze (owner-ruled) -> BRAWL/TRIALS/GAUNTLET byte-for-byte. SPORTS returns its own
+## goal freeze (the goal banner rides on over the kickoff reset instead).
+func stage_end_freeze(_runner) -> float:
+	return Tuning.round_end_freeze
+
+## Additive seam (WK-124): seconds between STAGE_INTRO pop-ins (the intro lasts players x this). Default =
+## Tuning.intro_pop_stagger -> every other mode unchanged. SPORTS fits all pop-ins into a fixed window so a
+## 2v2 restart is no longer than a 1v1.
+func intro_pop_stagger(_runner) -> float:
+	return Tuning.intro_pop_stagger
+
 ## Between-stage SCORE SCREEN opt-in (owner 2026-07-16). When true, the runner inserts a SCOREBOARD
 ## state after the STAGE_END freeze (skippable, auto-advancing) before loading the next level.
 ## Default false -> TRIALS/SPORTS keep their exact current stage flow (byte-for-byte parity).

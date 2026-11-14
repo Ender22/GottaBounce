@@ -468,6 +468,13 @@ var sports_kickoff_toss_max: float = 900.0     # px/s upward release speed (high
 var sports_kickoff_hang_gravity: float = 1.0   # gravity fraction until the first touch (0 = RL-style held ball)
 var sports_kickoff_hang_s: float = 2.0         # s: an untouched hang drops to normal gravity after this
 var sports_assist_window: float = 3.0          # s: a teammate's touch this soon before the scorer's = ASSIST
+# WK-124 goal -> GO restart (WK-98 PROTECT: <= 2.8 s game time). Was round_end_freeze 1.4 + intro 0.2 x players
+# (0.8 in 2v2) + countdown 1.05 = 3.25 s in 2v2 (2.85 s in 1v1, where the 2.8 s was first measured). Now a sports-only
+# freeze + a fixed-width pop-in window: 1.2 + 0.4 + 1.05 = 2.65 s for any team size. The countdown is untouched.
+# The goal banner is NOT shortened: SportsHUD keeps it up across the freeze AND the pop-in (1.6 s on screen, was
+# 1.4 s), popping out as the "3" lands. A match-winning goal keeps the full round_end_freeze (no restart follows).
+var sports_goal_freeze: float = 1.2            # s STAGE_END freeze after a goal/point (BRAWL keeps round_end_freeze)
+var sports_intro_pop_window: float = 0.4       # s the whole kickoff pop-in takes (stagger = min(intro_pop_stagger, this / n))
 # WK-106 goal credit (sound-designer/coordinator ruling: OWN GOAL must be rare + earned, not the raw last touch,
 # which read OWN GOAL on 54% of bot goals). A defender's last touch is an OWN GOAL only if it came within
 # own_goal_window s of the goal, ADDED >= own_goal_push px/s of velocity toward their own goal, and no attacker

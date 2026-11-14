@@ -26,6 +26,8 @@ var _top_tw: Tween
 var _flash_tw: Tween
 var _pop_tw: Tween
 var _goal_sub_color: Variant = null   # WK-106: scorer-line colour for the NEXT show_center (set by goal_scored)
+var _goal_banner_next := false        # WK-124: the NEXT show_center is the goal banner (set by goal_scored)
+var _goal_banner_live := false        # WK-124: the goal banner is up and rides over the kickoff reset
 
 @onready var _red_score: Label = $Root/ScoreChip/ChipBox/Scores/RedScore
 @onready var _blue_score: Label = $Root/ScoreChip/ChipBox/Scores/BlueScore
@@ -71,6 +73,7 @@ func setup(_players: Array, _colors: Array, _skins: Array) -> void:
 
 func reset_scores() -> void:
 	_goal_sub_color = null
+	_goal_banner_next = false
 	_red_score.text = "0"
 	_blue_score.text = "0"
 
@@ -103,6 +106,7 @@ func _on_goal_scored(team: int, scorer, own_goal: bool) -> void:
 	_goal_sub_color = RED if credited_team == 0 else BLUE
 	if scorer == null:
 		_goal_sub_color = RED if t == 0 else BLUE
+	_goal_banner_next = true
 	_goal_flash(t)
 	_score_pop(t)
 
@@ -141,6 +145,15 @@ func _score_pop(team: int) -> void:
 
 # ------------------------------------------------------------------ CENTER banner (countdown / GOAL freeze)
 func show_center(text: String, color: Color, hold: float, sub := "") -> void:
+	# WK-124: the goal banner (the show_center right after goal_scored) stays up across the goal freeze AND the
+	# kickoff pop-in, popping out as the countdown's "3" replaces it. The runner's hold only covers the (now
+	# shorter) freeze; the readable time grows from 1.4 s to 1.6 s while the restart shrinks.
+	_goal_banner_live = _goal_banner_next
+	_goal_banner_next = false
+	var mode = _runner._mode if _runner != null else null
+	if _goal_banner_live and hold >= 0.0 and mode != null and mode.has_method("goal_banner_span"):
+		var span: float = float(mode.goal_banner_span(_runner))
+		hold = maxf(hold, span - POP_IN - POP_OUT)
 	_center_prompt.visible = false
 	_center_text.text = text
 	_center_text.add_theme_color_override("font_color", color)
@@ -166,9 +179,18 @@ func show_center(text: String, color: Color, hold: float, sub := "") -> void:
 		_center_tw.tween_interval(hold)
 		_center_tw.tween_property(_center_box, "modulate:a", 0.0, POP_OUT)
 		_center_tw.parallel().tween_property(_center_box, "scale", Vector2(1.25, 1.25), POP_OUT)
-		_center_tw.tween_callback(hide_center)
+		_center_tw.tween_callback(_hide_center_now)
 
+## The runner hides the centre banner when it loads the next kickoff (PartyMatch._begin_stage, called while the
+## state is still STAGE_END). WK-124: the goal banner deliberately overlaps that reset, so that one call is ignored
+## while it is up; its own tween (or the "3" beat / match-end panel) takes it down.
 func hide_center() -> void:
+	if _goal_banner_live and _runner != null and str(_runner.state) == "STAGE_END":
+		return
+	_hide_center_now()
+
+func _hide_center_now() -> void:
+	_goal_banner_live = false
 	if _center_tw != null and _center_tw.is_valid():
 		_center_tw.kill()
 	_center_box.visible = false

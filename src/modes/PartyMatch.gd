@@ -705,11 +705,12 @@ func _begin_stage() -> void:
 
 func _tick_intro(delta: float) -> void:
 	_state_t += delta
-	while _popped < players.size() and _state_t >= Tuning.intro_pop_stagger * float(_popped):
+	var stagger: float = _mode.intro_pop_stagger(self)   # WK-124: mode seam (default Tuning.intro_pop_stagger)
+	while _popped < players.size() and _state_t >= stagger * float(_popped):
 		_pop_in(_popped)
 		_popped += 1
 	# last pop at (n-1)*stagger, plus one more stagger as a beat = ~1.4s total (spec §1)
-	if _popped >= players.size() and _state_t >= Tuning.intro_pop_stagger * float(players.size()):
+	if _popped >= players.size() and _state_t >= stagger * float(players.size()):
 		_start_countdown()
 
 func _pop_in(i: int) -> void:
@@ -1249,7 +1250,7 @@ func _enter_stage_end(deferred := false) -> void:
 	# popped out when the score screen arrives. A deferred end already spent double_ko_window of the freeze, and
 	# the full-length banner used to be cut mid-hold by the score screen. round_end_freeze itself is unchanged.
 	var sub: String = str(banner.get("subline", _deltas_line()))   # BRAWL: KO tally + survivor (WK-15 / D-04)
-	_hud.show_center(txt, col, maxf(0.05, Tuning.round_end_freeze - _state_t - 0.35), sub)
+	_hud.show_center(txt, col, maxf(0.05, _mode.stage_end_freeze(self) - _state_t - 0.35), sub)   # WK-124 seam
 	_hud.animate_scores(scores.duplicate())
 	# WK-41 (BRAWL ceremony path only): the stage is over, so drop stale top-band announcer lines (TWO LEFT!, a
 	# queued FIRST BLOOD!). They would sit on top of the STAGE_END banner. The audio announcer is unaffected.
@@ -1261,7 +1262,7 @@ func _enter_stage_end(deferred := false) -> void:
 
 func _tick_stage_end(delta: float) -> void:
 	_state_t += delta
-	if _state_t < Tuning.round_end_freeze:
+	if _state_t < _mode.stage_end_freeze(self):   # WK-124 seam (default Tuning.round_end_freeze)
 		return
 	# Safety match-end check (spec §2): normally the match already ended on the winning kill; this
 	# only catches a strict leader that appeared without a live match-end check (defensive).

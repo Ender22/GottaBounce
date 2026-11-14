@@ -484,6 +484,25 @@ func on_combat_start(runner) -> void:
 	# go_live = unfreeze + accept touches (SP-02); hang off (normal beach-ball float) -> the serve is unchanged
 	_ball.go_live(Vector2(side * DROPSHOT_SERVE_SPEED_X, DROPSHOT_SERVE_SPEED_DOWN), 1.0, 0.0)
 
+## WK-124: the goal freeze (Tuning.sports_goal_freeze). The match-winning goal keeps the full round_end_freeze
+## (nothing restarts after it, so it costs no restart time). match_winner() is live here: the runner asks while in
+## STAGE_END, after stage_end_banner() has already counted the goal.
+func stage_end_freeze(runner) -> float:
+	if match_winner(runner) >= 0:
+		return Tuning.round_end_freeze
+	return Tuning.sports_goal_freeze
+
+## WK-124: every kickoff pop-in fits in Tuning.sports_intro_pop_window (2v2 pops 0.1 s apart, 1v1 keeps 0.2 s),
+## so a 2v2 restart is no longer than a 1v1's.
+func intro_pop_stagger(runner) -> float:
+	var n: int = maxi(1, int(runner.players.size()))
+	return minf(Tuning.intro_pop_stagger, Tuning.sports_intro_pop_window / float(n))
+
+## WK-124: seconds from the goal (STAGE_END entry) to the first countdown beat = the goal freeze + the pop-in. The
+## SportsHUD holds the goal banner across this whole span, so it overlaps the kickoff reset and leaves on the "3".
+func goal_banner_span(runner) -> float:
+	return stage_end_freeze(runner) + intro_pop_stagger(runner) * float(int(runner.players.size()))
+
 ## DROPSHOT serve point: dead-centre of the court, up in the top gap ABOVE the net peak (owner 2026-07-19).
 func _dropshot_serve_point(runner) -> Vector2:
 	var b: Rect2 = runner.bounds
