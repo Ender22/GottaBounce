@@ -3,7 +3,8 @@ extends CanvasLayer
 ## PartyMatch on the `pause` action (pad Start / keyboard Esc, P) during a live match; freezes the sim
 ## (get_tree().paused). Processes while paused (PROCESS_MODE_ALWAYS).
 ##
-## Look (WK-09): the lobby's cream plate + chocolate rim, with an OWNER BAND in the pausing player's goat
+## Look (WK-09, kit-ified in WK-34: ToyPanel / ToyRibbon / ToyDisc / ToyPill / ToyChip / ToyRule theme types — the
+## same Toybox panel kit as Options and the ScoreScreen): the lobby's cream plate + chocolate rim, with an OWNER BAND in the pausing player's goat
 ## colour — their goat portrait in a cream medallion and "PAUSED · P2" — then a context line (mode · arena ·
 ## target) and compact score chips. Focus = a full style swap to the owner's colour (CC-5.1: RESUME is NOT
 ## permanently "primary"-styled any more).
@@ -57,6 +58,11 @@ func setup(m, owner_key: String = "") -> void:
 		InputRouter.device_lost.connect(_on_device_lost)
 	if is_node_ready():
 		_apply_owner()
+	# WK-34: the paused arena reads as one clean plate — the corner HUD cards and the controls legend hide for the
+	# whole pause (the legend's chips used to peek out under the plate's bottom edge). _do_resume restores them;
+	# restart / quit / change setup leave the scene, so nothing to restore there.
+	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("set_match_overlays_hidden"):
+		match_ref.set_match_overlays_hidden(true)
 
 ## Owner's pad died mid-pause → release ownership so the menu can't become a dead end. Router signal, so
 ## InputRouter.simulate_device_lost() exercises the same path. TODO(C-07): DisconnectOverlay replaces this.
@@ -138,11 +144,11 @@ func _apply_context() -> void:
 		var d: Dictionary = ch
 		var chip: PanelContainer = _chip_tpl.duplicate()
 		chip.visible = true
+		_scores.add_child(chip)   # in the tree first: the ToyChip theme style only resolves inside the themed Root
 		var sb: StyleBoxFlat = (chip.get_theme_stylebox("panel") as StyleBoxFlat).duplicate()
 		sb.bg_color = d.get("color", NEUTRAL)
 		chip.add_theme_stylebox_override("panel", sb)
 		(chip.get_node("Label") as Label).text = str(d.get("text", ""))
-		_scores.add_child(chip)
 	_scores.visible = not chips.is_empty()
 
 ## Hint strip in the OWNER's device glyphs (CC-1.6: a prompt that belongs to one player uses their device).
@@ -258,12 +264,11 @@ func _open_options() -> void:
 	_options.process_mode = Node.PROCESS_MODE_ALWAYS
 	_options.setup(null)
 	if _options.has_method("set_pause_host"):
-		_options.set_pause_host(_owner_key)   # WK-80(c): "START Resume" in its hint bar, owner's glyphs
+		# WK-80(c): "START Resume" in its hint bar, owner's glyphs. WK-34: its header ribbon wears the owner colour.
+		_options.set_pause_host(_owner_key, _owner_color)
 	_options.back_requested.connect(_close_options)
 	_menu.visible = false
-	# WK-80(f): HUD corner cards / legend must not show through Options' BACK + hint bar
-	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("set_match_overlays_hidden"):
-		match_ref.set_match_overlays_hidden(true)
+	# WK-80(f): the HUD corner cards / legend are already hidden for the whole pause (WK-34, setup())
 	if _options.has_method("enter"):
 		_options.enter()
 
@@ -272,8 +277,6 @@ func _close_options() -> void:
 		_options.queue_free()
 		_options = null
 	_menu.visible = true
-	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("set_match_overlays_hidden"):
-		match_ref.set_match_overlays_hidden(false)
 	call_deferred("_grab", _options_btn)   # WK-80(a): back out of a submenu -> focus the item that opened it
 
 func _unhandled_input(e: InputEvent) -> void:

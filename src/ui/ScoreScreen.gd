@@ -10,8 +10,13 @@ extends CanvasLayer
 ## (the finish line IS the "first to N" teaching device, replacing the pips) + big tally + this
 ## stage's +/- delta chip (WK-20c: or a non-scoring "OOPS!" chip for a self-KO that cost nothing).
 ## Bars animate from the pre-stage score to the new truth, staggered.
+##
+## WK-34 Toybox panel kit A: a cream ToyPanel with a gold ToyRibbon "SCORES" header (it turns DANGER red at match
+## point), each player row in a ToyRow well, light chocolate-rimmed race tracks (ToyBarTrack), chocolate
+## TextDark numbers, goat-colour ToyName names (chocolate outline: CC-8.2 on any colour), white ToyKillChip kill
+## chips. Same kit as the PauseMenu and Options; every player-facing text >= 28 px (WK-18).
 
-const BAR_PAD := 3.0
+const BAR_PAD := 6.0
 const ROW_STAGGER := 0.12
 const FILL_TIME := 0.5
 const GOLD := Color("#ffd23f")
@@ -19,12 +24,15 @@ const DANGER := Color("#ff4b3a")
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 ## WK-20c: the non-scoring "OOPS!" chip (self-KO under the default rule) — a cool neutral, never the -1 red.
 const OOPS_COLOR := Color(0.62, 0.74, 0.92)
+## WK-34: red text on the cream plate needs to be a shade darker than the DANGER fill to stay >= 4.5:1-ish.
+const DANGER_TEXT := Color("#d6301f")
 
 @onready var _root: Control = $Root
 @onready var _panel: PanelContainer = $Root/Center/Panel
+@onready var _ribbon: PanelContainer = $Root/Center/Panel/Box/Ribbon
 @onready var _sub: Label = $Root/Center/Panel/Box/Sub
 @onready var _rows_box: VBoxContainer = $Root/Center/Panel/Box/Rows
-@onready var _template: HBoxContainer = $Root/Center/Panel/Box/Rows/RowTemplate
+@onready var _template: PanelContainer = $Root/Center/Panel/Box/Rows/RowTemplate
 # WK-41 (R-27): ONE prompt — a countdown ring, because the screen auto-advances. The old "(A) CONTINUE" hint
 # promised a wait that never happened. A (or FLY) still skips after the guard; it is just not advertised.
 @onready var _ring: Control = $Root/Center/Panel/Box/Prompt/Ring
@@ -60,10 +68,12 @@ func present(rows: Array, target: int, kills: Array = []) -> void:
 			leader = int(r["pn"])
 	if match_point and leader > 0:
 		_sub.text = "MATCH POINT — FIRST TO %d" % target
-		_sub.add_theme_color_override("font_color", DANGER)
+		_sub.add_theme_color_override("font_color", DANGER_TEXT)
+		_set_ribbon(DANGER)
 	else:
 		_sub.text = "FIRST TO %d KOs" % target
-		_sub.add_theme_color_override("font_color", Color.WHITE)
+		_sub.add_theme_color_override("font_color", CHOCO)
+		_set_ribbon(GOLD)
 	var built: Array = []
 	for r in rows:
 		built.append(_build_row(r, target))
@@ -132,6 +142,8 @@ func _build_kill_list(kills: Array) -> Array:
 			(more.get_node("H/" + nm) as CanvasItem).visible = false
 		var ml: Label = more.get_node("H/KName")
 		ml.text = "+%d MORE" % (n - shown)
+		ml.add_theme_color_override("font_color", CHOCO)   # WK-34: neutral chip text on the white kill chip
+		ml.add_theme_constant_override("outline_size", 0)
 		more.modulate.a = 0.0
 		out.append(more)
 	_kill_list.visible = n > 0
@@ -167,7 +179,7 @@ func _build_kill_chip(e: Dictionary) -> Control:
 		tag.visible = true
 		if kind == "minus":
 			tag.text = "SELF-KO −%d" % maxi(1, int(e.get("cost", 1)))
-			tag.add_theme_color_override("font_color", Color(0.95, 0.55, 0.5))
+			tag.add_theme_color_override("font_color", DANGER)
 		else:
 			tag.text = "OOPS!"
 			tag.add_theme_color_override("font_color", OOPS_COLOR)
@@ -181,34 +193,34 @@ func _set_head(tr: TextureRect, skin: String) -> void:
 
 ## Duplicate the hidden template row and fill its identity slots. Returns the animation handles.
 func _build_row(r: Dictionary, target: int) -> Dictionary:
-	var row: HBoxContainer = _template.duplicate()
+	var row: PanelContainer = _template.duplicate()
 	row.visible = true
 	_rows_box.add_child(row)
 	var color: Color = r["color"]
-	var head: TextureRect = row.get_node("Head")
+	var head: TextureRect = row.get_node("H/Head")
 	var head_path := "res://assets/characters/bouncer_%s_idle.png" % str(r["skin"])
 	if ResourceLoader.exists(head_path):
 		head.texture = load(head_path)
-	var name_l: Label = row.get_node("NameBox/PName")
+	var name_l: Label = row.get_node("H/NameBox/PName")
 	name_l.text = str(r.get("name", "P%d" % int(r["pn"])))   # WK-88 (CC-8.5): "P3" / "VEX"
 	name_l.add_theme_color_override("font_color", color)
-	var sub_l: Label = row.get_node("NameBox/PSub")
+	var sub_l: Label = row.get_node("H/NameBox/PSub")
 	sub_l.text = str(r.get("sub", ""))                          # small tag: goat name / "CPU"
 	sub_l.visible = sub_l.text != ""
-	var fill: Panel = row.get_node("BarSlot/BarFill")
+	var fill: Panel = row.get_node("H/BarSlot/BarFill")
 	var fill_sb: StyleBoxFlat = StyleBoxFlat.new()
 	fill_sb.bg_color = color
-	fill_sb.set_corner_radius_all(7)
+	fill_sb.set_corner_radius_all(8)
 	fill.add_theme_stylebox_override("panel", fill_sb)
-	var score_l: Label = row.get_node("Score")
+	var score_l: Label = row.get_node("H/Score")
 	var delta: int = int(r["delta"])
 	var from_score: int = maxi(0, int(r["score"]) - delta)
 	score_l.text = str(from_score)
-	var delta_l: Label = row.get_node("Delta")
+	var delta_l: Label = row.get_node("H/Delta")
 	var oops: bool = delta == 0 and bool(r.get("oops", false))
 	if delta != 0:
 		delta_l.text = "%+d" % delta
-		delta_l.add_theme_color_override("font_color", GOLD if delta > 0 else Color(0.75, 0.45, 0.4))
+		delta_l.add_theme_color_override("font_color", GOLD if delta > 0 else DANGER)
 		delta_l.modulate.a = 0.0
 	elif oops:
 		# WK-20c (Ra): a self-KO that cost nothing — a non-scoring reaction chip, never a number
@@ -221,7 +233,7 @@ func _build_row(r: Dictionary, target: int) -> Dictionary:
 		"from": from_score, "to": int(r["score"]), "target": maxi(1, target), "delta": delta, "oops": oops}
 
 func _animate_row(h: Dictionary, delay: float) -> void:
-	var slot: Control = (h["row"] as Control).get_node("BarSlot")
+	var slot: Control = (h["row"] as Control).get_node("H/BarSlot")
 	var inner_w: float = maxf(0.0, slot.size.x - BAR_PAD * 2.0)
 	var inner_h: float = maxf(0.0, slot.size.y - BAR_PAD * 2.0)
 	var fill: Panel = h["fill"]
@@ -243,3 +255,11 @@ func _animate_row(h: Dictionary, delay: float) -> void:
 		delta_l.scale = Vector2(1.6, 1.6)
 		tw.parallel().tween_property(delta_l, "modulate:a", 1.0, 0.15)
 		tw.parallel().tween_property(delta_l, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## WK-34: the header ribbon's fill (gold normally, DANGER red at match point).
+func _set_ribbon(c: Color) -> void:
+	var base: StyleBox = _ribbon.get_theme_stylebox("panel")
+	if base is StyleBoxFlat:
+		var sb: StyleBoxFlat = (base as StyleBoxFlat).duplicate()
+		sb.bg_color = c
+		_ribbon.add_theme_stylebox_override("panel", sb)

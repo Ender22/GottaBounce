@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://optionscr00001"]
+[gd_scene load_steps=5 format=3 uid="uid://optionscr00001"]
 
 [ext_resource type="Script" path="res://src/ui/OptionsScreen.gd" id="1_opt"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="4_glyph"]
 
 [node name="Options" type="Control"]
 layout_mode = 3
@@ -22,88 +23,121 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.0784314, 0.0784314, 0.156863, 0.55)
-
-[node name="Header" type="Control" parent="."]
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 0.12
-grow_horizontal = 2
-mouse_filter = 2
-
-[node name="BackBtn" type="Button" parent="Header"]
-custom_minimum_size = Vector2(180, 64)
-layout_mode = 1
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 64.0
-offset_top = -32.0
-offset_right = 244.0
-offset_bottom = 32.0
-focus_mode = 2
-theme_type_variation = &"ShellBtn"
-text = "< BACK"
-
-[node name="Title" type="Label" parent="Header"]
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 260.0
-offset_right = -260.0
-mouse_filter = 2
-theme_type_variation = &"BannerTop"
-text = "OPTIONS"
-horizontal_alignment = 1
-vertical_alignment = 1
+color = Color(0.141176, 0.0823529, 0.0588235, 0.45)
 
 [node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(1060, 0)
 layout_mode = 1
-anchor_left = 0.23
+anchors_preset = 8
+anchor_left = 0.5
 anchor_top = 0.5
-anchor_right = 0.77
+anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = &"MatchEndPanel"
+theme_type_variation = &"ToyPanel"
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 24
-alignment = 1
+theme_override_constants/separation = 16
 
-[node name="Footer" type="Control" parent="."]
+[node name="Ribbon" type="PanelContainer" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRibbon"
+
+[node name="Row" type="HBoxContainer" parent="Panel/VBox/Ribbon"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="BackChip" type="Button" parent="Panel/VBox/Ribbon/Row"]
+custom_minimum_size = Vector2(196, 66)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ToyBackChip"
+
+[node name="Inner" type="HBoxContainer" parent="Panel/VBox/Ribbon/Row/BackChip"]
 layout_mode = 1
-anchor_top = 0.9
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Glyph" type="Control" parent="Panel/VBox/Ribbon/Row/BackChip/Inner"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("4_glyph")
+glyph = "B"
+
+[node name="Label" type="Label" parent="Panel/VBox/Ribbon/Row/BackChip/Inner"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 34
+text = "BACK"
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="Panel/VBox/Ribbon/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ToyRibbonTitle"
+text = "OPTIONS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Balance" type="Control" parent="Panel/VBox/Ribbon/Row"]
+custom_minimum_size = Vector2(196, 0)
+layout_mode = 2
 mouse_filter = 2
 
-[node name="HintBox" type="HBoxContainer" parent="Footer"]
-layout_mode = 1
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 96.0
-offset_top = -24.0
-offset_right = 1200.0
-offset_bottom = 24.0
+[node name="Rows" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
 mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Rule" type="Panel" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRule"
+
+[node name="FooterRow" type="HBoxContainer" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Balance" type="Control" parent="Panel/VBox/FooterRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HintBox" type="HBoxContainer" parent="Panel/VBox/FooterRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+alignment = 1
 script = ExtResource("3_hint")
-hints = PackedStringArray("< >|Adjust", "B|Back")
+hints = PackedStringArray("< >|Adjust")
+dark_text = true
 
-[node name="Version" type="Label" parent="Footer"]
-layout_mode = 1
-anchor_left = 0.7
-anchor_top = 0.5
-anchor_right = 1.0
-anchor_bottom = 0.5
-offset_top = -24.0
-offset_right = -64.0
-offset_bottom = 24.0
+[node name="Version" type="Label" parent="Panel/VBox/FooterRow"]
+modulate = Color(1, 1, 1, 0.55)
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+size_flags_vertical = 8
 mouse_filter = 2
-modulate = Color(1, 1, 1, 0.6)
-theme_type_variation = &"Hint"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 22
 text = "v0.1"
 horizontal_alignment = 2
-vertical_alignment = 1
+vertical_alignment = 2

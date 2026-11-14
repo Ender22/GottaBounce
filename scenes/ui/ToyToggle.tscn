@@ -3,18 +3,11 @@
 [ext_resource type="Script" path="res://src/ui/ToyToggle.gd" id="1_toggle"]
 
 [node name="ToyToggle" type="Control"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 92)
 focus_mode = 2
 script = ExtResource("1_toggle")
 
-[node name="AccentBar" type="ColorRect" parent="."]
-layout_mode = 1
-anchor_bottom = 1.0
-offset_right = 6.0
-mouse_filter = 2
-color = Color(1, 0.372549, 0.658824, 0)
-
-[node name="HBox" type="HBoxContainer" parent="."]
+[node name="Well" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,41 +15,57 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-offset_left = 32.0
-offset_right = -20.0
+theme_type_variation = &"ToyRow"
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_right = -26.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
 
 [node name="Label" type="Label" parent="HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 34
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "FULLSCREEN"
 vertical_alignment = 1
 
+[node name="State" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
+text = "OFF"
+horizontal_alignment = 2
+vertical_alignment = 1
+
 [node name="Pill" type="Control" parent="HBox"]
-custom_minimum_size = Vector2(76, 44)
+custom_minimum_size = Vector2(96, 52)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="Track" type="Panel" parent="HBox/Pill"]
-custom_minimum_size = Vector2(72, 40)
 layout_mode = 0
-offset_top = 2.0
-offset_right = 72.0
-offset_bottom = 42.0
+offset_right = 96.0
+offset_bottom = 52.0
 mouse_filter = 2
 theme_type_variation = &"ToyToggleTrack"
 
 [node name="Knob" type="Panel" parent="HBox/Pill/Track"]
-custom_minimum_size = Vector2(32, 32)
 layout_mode = 0
-offset_left = 4.0
-offset_top = 4.0
-offset_right = 36.0
-offset_bottom = 36.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 46.0
+offset_bottom = 46.0
 mouse_filter = 2
 theme_type_variation = &"ToyToggleKnob"

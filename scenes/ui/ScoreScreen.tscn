@@ -39,72 +39,86 @@ mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="Root/Center"]
 layout_mode = 2
-theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+theme_type_variation = &"ToyPanel"
 
 [node name="Box" type="VBoxContainer" parent="Root/Center/Panel"]
-custom_minimum_size = Vector2(860, 0)
+custom_minimum_size = Vector2(900, 0)
 layout_mode = 2
-theme_override_constants/separation = 14
+mouse_filter = 2
+theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="Root/Center/Panel/Box"]
+[node name="Ribbon" type="PanelContainer" parent="Root/Center/Panel/Box"]
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
-theme_type_variation = &"BannerCenter"
-theme_override_font_sizes/font_size = 52
+mouse_filter = 2
+theme_type_variation = &"ToyRibbon"
+
+[node name="Title" type="Label" parent="Root/Center/Panel/Box/Ribbon"]
+layout_mode = 2
+theme_type_variation = &"ToyRibbonTitle"
+theme_override_font_sizes/font_size = 64
 text = "SCORES"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Sub" type="Label" parent="Root/Center/Panel/Box"]
 layout_mode = 2
-theme_type_variation = &"BannerSub"
-theme_override_font_sizes/font_size = 30
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 34
 text = "FIRST TO 10 KOs"
 horizontal_alignment = 1
 
 [node name="Rows" type="VBoxContainer" parent="Root/Center/Panel/Box"]
 layout_mode = 2
-theme_override_constants/separation = 12
+mouse_filter = 2
+theme_override_constants/separation = 8
 
-[node name="RowTemplate" type="HBoxContainer" parent="Root/Center/Panel/Box/Rows"]
+[node name="RowTemplate" type="PanelContainer" parent="Root/Center/Panel/Box/Rows"]
 visible = false
 layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRow"
+
+[node name="H" type="HBoxContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 14
 
-[node name="Head" type="TextureRect" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
-custom_minimum_size = Vector2(54, 54)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-mouse_filter = 2
-
-[node name="NameBox" type="VBoxContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
-custom_minimum_size = Vector2(124, 0)
+[node name="Head" type="TextureRect" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
+custom_minimum_size = Vector2(58, 58)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = -6
+expand_mode = 1
+stretch_mode = 5
 
-[node name="PName" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/NameBox"]
+[node name="NameBox" type="VBoxContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
+custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
-theme_type_variation = &"CardName"
-theme_override_font_sizes/font_size = 30
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = -8
+
+[node name="PName" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/NameBox"]
+layout_mode = 2
+theme_type_variation = &"ToyName"
 text = "P1"
 
-[node name="PSub" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/NameBox"]
+[node name="PSub" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/NameBox"]
+modulate = Color(1, 1, 1, 0.72)
 layout_mode = 2
-theme_type_variation = &"CardName"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"TextDark"
 text = "CPU"
 
-[node name="BarSlot" type="Control" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
-custom_minimum_size = Vector2(430, 32)
+[node name="BarSlot" type="Control" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
+custom_minimum_size = Vector2(420, 36)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 
-[node name="BarBG" type="Panel" parent="Root/Center/Panel/Box/Rows/RowTemplate/BarSlot"]
+[node name="BarBG" type="Panel" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/BarSlot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -112,31 +126,30 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"FuelBG"
+theme_type_variation = &"ToyBarTrack"
 
-[node name="BarFill" type="Panel" parent="Root/Center/Panel/Box/Rows/RowTemplate/BarSlot"]
+[node name="BarFill" type="Panel" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/BarSlot"]
 layout_mode = 0
-offset_left = 3.0
-offset_top = 3.0
-offset_right = 3.0
-offset_bottom = 29.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 6.0
+offset_bottom = 30.0
 mouse_filter = 2
 
-[node name="Score" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+[node name="Score" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
 custom_minimum_size = Vector2(72, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
-theme_override_font_sizes/font_size = 38
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 46
 text = "0"
 horizontal_alignment = 2
 
-[node name="Delta" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
-custom_minimum_size = Vector2(88, 0)
+[node name="Delta" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"CardName"
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"ToyName"
 text = ""
 
 [node name="KillList" type="HFlowContainer" parent="Root/Center/Panel/Box"]
@@ -151,12 +164,12 @@ alignment = 1
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"KillChip"
+theme_type_variation = &"ToyKillChip"
 
 [node name="H" type="HBoxContainer" parent="Root/Center/Panel/Box/KillList/KillTemplate"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 8
 
 [node name="KHead" type="TextureRect" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
 custom_minimum_size = Vector2(42, 42)
@@ -169,7 +182,7 @@ stretch_mode = 5
 [node name="KName" type="Label" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"CardName"
+theme_type_variation = &"ToyName"
 theme_override_font_sizes/font_size = 30
 text = "P2"
 
@@ -184,7 +197,7 @@ color = Color(0.231373, 0.141176, 0.105882, 1)
 polygon = PackedVector2Array(4, 7, 28, 21, 4, 35)
 
 [node name="Fill" type="Polygon2D" parent="Root/Center/Panel/Box/KillList/KillTemplate/H/Arrow"]
-color = Color(1, 0.97, 0.9, 1)
+color = Color(1, 0.823529, 0.247059, 1)
 polygon = PackedVector2Array(8, 13.5, 20, 21, 8, 28.5)
 
 [node name="VHead" type="TextureRect" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
@@ -198,7 +211,7 @@ stretch_mode = 5
 [node name="VName" type="Label" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"CardName"
+theme_type_variation = &"ToyName"
 theme_override_font_sizes/font_size = 30
 text = "P3"
 
@@ -206,15 +219,21 @@ text = "P3"
 visible = false
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"CardName"
+theme_type_variation = &"ToyName"
 theme_override_font_sizes/font_size = 30
 text = "OOPS!"
 
-[node name="Prompt" type="HBoxContainer" parent="Root/Center/Panel/Box"]
-modulate = Color(1, 1, 1, 0.9)
+[node name="Rule" type="Panel" parent="Root/Center/Panel/Box"]
+custom_minimum_size = Vector2(0, 5)
 layout_mode = 2
-alignment = 1
+mouse_filter = 2
+theme_type_variation = &"ToyRule"
+
+[node name="Prompt" type="HBoxContainer" parent="Root/Center/Panel/Box"]
+layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 12
+alignment = 1
 
 [node name="Ring" type="Control" parent="Root/Center/Panel/Box/Prompt"]
 custom_minimum_size = Vector2(72, 72)
@@ -226,6 +245,7 @@ script = ExtResource("3_ring")
 [node name="PromptLabel" type="Label" parent="Root/Center/Panel/Box/Prompt"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"Hint"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 32
 text = "NEXT STAGE"
 vertical_alignment = 1

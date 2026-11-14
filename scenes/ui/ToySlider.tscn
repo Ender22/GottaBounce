@@ -3,18 +3,11 @@
 [ext_resource type="Script" path="res://src/ui/ToySlider.gd" id="1_slider"]
 
 [node name="ToySlider" type="Control"]
-custom_minimum_size = Vector2(0, 88)
+custom_minimum_size = Vector2(0, 92)
 focus_mode = 2
 script = ExtResource("1_slider")
 
-[node name="AccentBar" type="ColorRect" parent="."]
-layout_mode = 1
-anchor_bottom = 1.0
-offset_right = 6.0
-mouse_filter = 2
-color = Color(1, 0.372549, 0.658824, 0)
-
-[node name="HBox" type="HBoxContainer" parent="."]
+[node name="Well" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,58 +15,67 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 24
-offset_left = 32.0
-offset_right = -20.0
+theme_type_variation = &"ToyRow"
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_right = -26.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 28
 
 [node name="Label" type="Label" parent="HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 34
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "MASTER VOLUME"
 vertical_alignment = 1
 
 [node name="SliderArea" type="Control" parent="HBox"]
-custom_minimum_size = Vector2(380, 44)
+custom_minimum_size = Vector2(400, 48)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="Track" type="Panel" parent="HBox/SliderArea"]
-custom_minimum_size = Vector2(380, 16)
 layout_mode = 0
-offset_top = 14.0
-offset_right = 380.0
-offset_bottom = 30.0
+offset_top = 10.0
+offset_right = 400.0
+offset_bottom = 38.0
 mouse_filter = 2
-theme_type_variation = &"ToyTrack"
+theme_type_variation = &"ToyBarTrack"
 
 [node name="Fill" type="Panel" parent="HBox/SliderArea"]
 layout_mode = 0
-offset_top = 14.0
+offset_left = 5.0
+offset_top = 15.0
 offset_right = 200.0
-offset_bottom = 30.0
+offset_bottom = 33.0
 mouse_filter = 2
 theme_type_variation = &"ToyFill"
 
 [node name="Knob" type="Panel" parent="HBox/SliderArea"]
-custom_minimum_size = Vector2(36, 36)
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 0
-offset_top = 4.0
-offset_right = 36.0
-offset_bottom = 40.0
+offset_top = 2.0
+offset_right = 44.0
+offset_bottom = 46.0
 mouse_filter = 2
 theme_type_variation = &"ToyKnob"
 
 [node name="Value" type="Label" parent="HBox"]
-custom_minimum_size = Vector2(96, 0)
+custom_minimum_size = Vector2(108, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"StepValue"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1

@@ -1,94 +1,9 @@
-[gd_scene load_steps=12 format=3 uid="uid://pausemenu00001"]
+[gd_scene load_steps=5 format=3 uid="uid://pausemenu00001"]
 
 [ext_resource type="Script" path="res://src/ui/PauseMenu.gd" id="1_pause"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HoldButton.tscn" id="4_hold"]
-
-[sub_resource type="StyleBoxFlat" id="plate"]
-content_margin_left = 44.0
-content_margin_top = 34.0
-content_margin_right = 44.0
-content_margin_bottom = 30.0
-bg_color = Color(1, 0.968627, 0.921569, 0.97)
-border_width_left = 5
-border_width_top = 5
-border_width_right = 5
-border_width_bottom = 5
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 26
-corner_radius_top_right = 26
-corner_radius_bottom_right = 26
-corner_radius_bottom_left = 26
-shadow_color = Color(0.12, 0.07, 0.05, 0.4)
-shadow_size = 14
-shadow_offset = Vector2(0, 8)
-
-[sub_resource type="StyleBoxFlat" id="owner_band"]
-bg_color = Color(1, 0.372549, 0.658824, 1)
-border_width_left = 5
-border_width_top = 5
-border_width_right = 5
-border_width_bottom = 5
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 26
-corner_radius_top_right = 26
-corner_radius_bottom_right = 26
-corner_radius_bottom_left = 26
-
-[sub_resource type="StyleBoxFlat" id="disc"]
-bg_color = Color(1, 0.968627, 0.921569, 1)
-border_width_left = 5
-border_width_top = 5
-border_width_right = 5
-border_width_bottom = 5
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 80
-corner_radius_top_right = 80
-corner_radius_bottom_right = 80
-corner_radius_bottom_left = 80
-shadow_color = Color(0.12, 0.07, 0.05, 0.3)
-shadow_size = 6
-shadow_offset = Vector2(0, 4)
-
-[sub_resource type="StyleBoxFlat" id="pill"]
-content_margin_left = 18.0
-content_margin_top = 2.0
-content_margin_right = 18.0
-content_margin_bottom = 4.0
-bg_color = Color(1, 0.968627, 0.921569, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-
-[sub_resource type="StyleBoxFlat" id="chip"]
-content_margin_left = 14.0
-content_margin_top = 2.0
-content_margin_right = 14.0
-content_margin_bottom = 3.0
-bg_color = Color(1, 0.372549, 0.658824, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="rule"]
-bg_color = Color(0.231373, 0.141176, 0.105882, 0.16)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 20
@@ -133,7 +48,7 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("plate")
+theme_type_variation = &"ToyPanel"
 
 [node name="VBox" type="VBoxContainer" parent="Root/Menu/Panel"]
 layout_mode = 2
@@ -144,7 +59,7 @@ theme_override_constants/separation = 14
 custom_minimum_size = Vector2(0, 132)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("owner_band")
+theme_type_variation = &"ToyRibbon"
 
 [node name="Header" type="HBoxContainer" parent="Root/Menu/Panel/VBox/OwnerBand"]
 layout_mode = 2
@@ -170,7 +85,7 @@ offset_right = 8.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("disc")
+theme_type_variation = &"ToyDisc"
 
 [node name="Portrait" type="TextureRect" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Medallion"]
 layout_mode = 1
@@ -211,7 +126,7 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_styles/panel = SubResource("pill")
+theme_type_variation = &"ToyPill"
 
 [node name="OwnerLabel" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header/OwnerPill"]
 layout_mode = 2
@@ -242,7 +157,7 @@ alignment = 1
 visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("chip")
+theme_type_variation = &"ToyChip"
 
 [node name="Label" type="Label" parent="Root/Menu/Panel/VBox/Scores/ChipTemplate"]
 layout_mode = 2
@@ -258,7 +173,7 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(0, 5)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("rule")
+theme_type_variation = &"ToyRule"
 
 [node name="Buttons" type="VBoxContainer" parent="Root/Menu/Panel/VBox"]
 layout_mode = 2
@@ -297,7 +212,7 @@ text = "QUIT TO MENU"
 custom_minimum_size = Vector2(0, 5)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("rule")
+theme_type_variation = &"ToyRule"
 
 [node name="HintBox" type="HBoxContainer" parent="Root/Menu/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
