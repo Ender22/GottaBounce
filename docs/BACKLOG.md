@@ -717,10 +717,10 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Status: built — awaiting rendered verification (gameplay-programmer, with WK-15/WK-88; uncommitted VictoryScreen/MenuCard/PadGlyph edits).
 
 
-### [ ] WK-99 [P2][S] Pendulum follow-ups: Trials pendulum courses now smash; art-director grade; boost-arrow flick
+### [ ] WK-103 [P2][S] Pendulum follow-ups: Trials pendulum courses now smash; art-director grade; boost-arrow flick
 - Source: WK-96 builder. Pendulums smash in ALL modes incl. Trials (course_04_pendulum_pass, swing_mines, wrecking_yard
   — untested; levels can opt out with "contact": "shove"). Peak speed 3800 -> 2650 px/s (feel unjudged). Bot normal-boost
-  arrow still flicks >30 deg on 7-13% of frames (fold into WK-95 bot brain). Art-director grade of the new swing
+  arrow still flicks >30 deg on 7-13% of frames (folded into WK-95 build brief). Art-director grade of the new swing
   (tools/out/rec/wk96_pendulum_after/swing_60-162_sheet.png).
 - Accept: Trials pendulum courses completable (recording), art-director Ship.
 
