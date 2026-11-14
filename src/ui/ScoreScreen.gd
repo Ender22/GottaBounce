@@ -28,13 +28,21 @@ const OOPS_COLOR := Color(0.62, 0.74, 0.92)
 # WK-41 (R-27): ONE prompt — a countdown ring, because the screen auto-advances. The old "(A) CONTINUE" hint
 # promised a wait that never happened. A (or FLY) still skips after the guard; it is just not advertised.
 @onready var _ring: Control = $Root/Center/Panel/Box/Prompt/Ring
+# WK-25 (audit D-02 part 3): this stage's kill list under the race bars — one compact chip per KO, in order.
+@onready var _kill_list: HFlowContainer = $Root/Center/Panel/Box/KillList
+@onready var _kill_template: PanelContainer = $Root/Center/Panel/Box/KillList/KillTemplate
+const KILL_LIST_MAX := 8          # more KOs than this (multi-life rules) collapse into a "+N MORE" chip
+const KILL_STAGGER := 0.07
 
 var _tw: Tween
+var _present_gen := 0   # bumps per present(); a superseded call stops after its layout wait
 
 ## rows: [{pn:int, name:String, sub:String, color:Color, skin:String, score:int, delta:int, oops:bool}],
 ## target = kills_to_win. `oops` (WK-20c, optional) = a self-KO this stage that cost nothing.
 ## pn = 1-based player index (row identity); name/sub = CC-8.5 identity (WK-88): "P3"+"POGO" / "VEX"+"CPU".
-func present(rows: Array, target: int) -> void:
+## kills (WK-25, optional): this stage's KOs in order — {kind:"ko"|"oops"|"minus", v_name, v_color, v_skin,
+## k_name, k_color, k_skin (kind "ko" only), cost (kind "minus")} — shown as "P2 ▶ P3" / "P4 OOPS!" chips.
+func present(rows: Array, target: int, kills: Array = []) -> void:
 	visible = true
 	_root.modulate.a = 1.0
 	for c in _rows_box.get_children():
@@ -59,6 +67,7 @@ func present(rows: Array, target: int) -> void:
 	var built: Array = []
 	for r in rows:
 		built.append(_build_row(r, target))
+	var kill_chips: Array = _build_kill_list(kills)
 	if _tw != null and _tw.is_valid():
 		_tw.kill()
 	# pop the panel, then let the bars race
@@ -69,10 +78,21 @@ func present(rows: Array, target: int) -> void:
 	_tw = create_tween()
 	_tw.tween_property(_panel, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# bars animate AFTER layout has sized the row slots (one frame)
+	_present_gen += 1
+	var gen: int = _present_gen
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if gen != _present_gen:
+		return   # WK-25: a newer present() replaced these rows/chips during the wait (they are freed)
 	for i in range(built.size()):
 		_animate_row(built[i], float(i) * ROW_STAGGER)
+	# the kill list lands right after the bars start racing (it explains the deltas they show)
+	var k0: float = float(built.size()) * ROW_STAGGER + 0.1
+	for j in range(kill_chips.size()):
+		var chip: Control = kill_chips[j]
+		var tw := create_tween()
+		tw.tween_interval(k0 + float(j) * KILL_STAGGER)
+		tw.tween_property(chip, "modulate:a", 1.0, 0.14)
 
 ## Fade out over Tuning.scoreboard_fade_out. PartyMatch starts this INSIDE the hold and only loads the next stage
 ## (and its intro card) once the fade has finished — WK-41: the overlays run in sequence, never on top of each other.
@@ -92,6 +112,72 @@ func set_countdown(remaining: float) -> void:
 ## True while any part of the screen is actually on screen (QA overlay audit; a finished fade = false).
 func is_showing() -> bool:
 	return visible and _root.modulate.a > 0.02
+
+## WK-25: rebuild the kill-list chips from the template (hidden when the stage had no KOs). Chips start
+## transparent and are faded in by present(). Returns the chip nodes.
+func _build_kill_list(kills: Array) -> Array:
+	for c in _kill_list.get_children():
+		if c != _kill_template:
+			c.queue_free()
+	var out: Array = []
+	var n: int = kills.size()
+	var shown: int = n if n <= KILL_LIST_MAX else KILL_LIST_MAX - 1
+	for i in range(shown):
+		out.append(_build_kill_chip(kills[i]))
+	if n > shown:
+		var more: PanelContainer = _kill_template.duplicate()
+		more.visible = true
+		_kill_list.add_child(more)
+		for nm in ["KHead", "Arrow", "VHead", "VName", "Tag"]:
+			(more.get_node("H/" + nm) as CanvasItem).visible = false
+		var ml: Label = more.get_node("H/KName")
+		ml.text = "+%d MORE" % (n - shown)
+		more.modulate.a = 0.0
+		out.append(more)
+	_kill_list.visible = n > 0
+	return out
+
+func _build_kill_chip(e: Dictionary) -> Control:
+	var chip: PanelContainer = _kill_template.duplicate()
+	chip.visible = true
+	_kill_list.add_child(chip)
+	var kind: String = str(e.get("kind", "ko"))
+	var k_head: TextureRect = chip.get_node("H/KHead")
+	var k_name: Label = chip.get_node("H/KName")
+	var arrow: Control = chip.get_node("H/Arrow")
+	var v_head: TextureRect = chip.get_node("H/VHead")
+	var v_name: Label = chip.get_node("H/VName")
+	var tag: Label = chip.get_node("H/Tag")
+	if kind == "ko":
+		_set_head(k_head, str(e.get("k_skin", "")))
+		k_name.text = str(e.get("k_name", "?"))
+		k_name.add_theme_color_override("font_color", e.get("k_color", Color.WHITE))
+		_set_head(v_head, str(e.get("v_skin", "")))
+		v_name.text = str(e.get("v_name", "?"))
+		v_name.add_theme_color_override("font_color", e.get("v_color", Color.WHITE))
+		tag.visible = false
+	else:
+		# self-KO: the faller's head + name, then the WK-20c chip text ("OOPS!" costs nothing; "SELF-KO −1" did)
+		_set_head(k_head, str(e.get("v_skin", "")))
+		k_name.text = str(e.get("v_name", "?"))
+		k_name.add_theme_color_override("font_color", e.get("v_color", Color.WHITE))
+		arrow.visible = false
+		v_head.visible = false
+		v_name.visible = false
+		tag.visible = true
+		if kind == "minus":
+			tag.text = "SELF-KO −%d" % maxi(1, int(e.get("cost", 1)))
+			tag.add_theme_color_override("font_color", Color(0.95, 0.55, 0.5))
+		else:
+			tag.text = "OOPS!"
+			tag.add_theme_color_override("font_color", OOPS_COLOR)
+	chip.modulate.a = 0.0
+	return chip
+
+func _set_head(tr: TextureRect, skin: String) -> void:
+	var path := "res://assets/characters/bouncer_%s_idle.png" % skin
+	if skin != "" and ResourceLoader.exists(path):
+		tr.texture = load(path)
 
 ## Duplicate the hidden template row and fill its identity slots. Returns the animation handles.
 func _build_row(r: Dictionary, target: int) -> Dictionary:

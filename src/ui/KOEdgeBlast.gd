@@ -48,17 +48,9 @@ func _on_killed(victim, _cause, _attacker) -> void:
 		return
 	if _match.has_method("ko_blast_enabled") and not _match.ko_blast_enabled():
 		return
-	var cam = _match._camera
-	if cam == null or not is_instance_valid(cam):
-		return
-	var vp: Vector2 = get_viewport().get_visible_rect().size
-	var z: float = cam.zoom.x
-	var sp: Vector2 = (victim.global_position - cam.get_screen_center_position()) * z + vp * 0.5
-	var k: float = vp.y / Tuning.ko_blast_ref_height
-	var margins := Vector2(Tuning.ko_blast_edge_margin_x_px, Tuning.ko_blast_edge_margin_y_px) * k
-	var info: Dictionary = classify(sp, vp, margins, Tuning.ko_blast_edge_band_px * k)
-	if info.is_empty():
-		return   # died well inside the frame: the in-world death burst is visible already
+	var info: Dictionary = locate(victim)
+	if info.is_empty() or str(info.get("edge", "")) == "":
+		return   # no camera, or died well inside the frame: the in-world death burst is visible already
 	var idx: int = _match.players.find(victim)
 	var col: Color = _match.player_color(idx) if idx >= 0 else Color.WHITE
 	if idx < 0 and victim.has_method("identity_color"):
@@ -70,6 +62,27 @@ func _on_killed(victim, _cause, _attacker) -> void:
 		"color": "#" + col.to_html(false), "msec": Time.get_ticks_msec()})
 	if blasts.size() > QA_LOG_MAX:
 		blasts.remove_at(0)
+
+## Where a KO happened on screen, with the blast's own edge rule. Returns {} without a camera, else
+## {sp, edge, anchor, inward}: `sp` = the victim's screen point; `edge` = "" when it died well inside the frame
+## (no blast), else the blast's classify() result (anchor ON the viewport edge, inward = into the screen).
+## WK-25: the KO credit pop starts from here, so it spawns on the very blast this fires.
+func locate(victim) -> Dictionary:
+	if _match == null or not is_instance_valid(_match) or victim == null or not is_instance_valid(victim):
+		return {}
+	var cam = _match._camera
+	if cam == null or not is_instance_valid(cam):
+		return {}
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var z: float = cam.zoom.x
+	var sp: Vector2 = (victim.global_position - cam.get_screen_center_position()) * z + vp * 0.5
+	var k: float = vp.y / Tuning.ko_blast_ref_height
+	var margins := Vector2(Tuning.ko_blast_edge_margin_x_px, Tuning.ko_blast_edge_margin_y_px) * k
+	var info: Dictionary = classify(sp, vp, margins, Tuning.ko_blast_edge_band_px * k)
+	if info.is_empty():
+		return {"sp": sp, "edge": ""}
+	info["sp"] = sp
+	return info
 
 ## Which viewport edge a screen-space death point `sp` left through, or {} when it is well inside the frame.
 ## A point within `band` px of an edge counts as leaving through it (the kill line can sit just inside the
@@ -145,11 +158,16 @@ func fire(info: Dictionary, col: Color) -> void:
 const MAX_STEP := 0.1   # 10 fps floor: low-FPS machines still play it at ~real speed (1/30 stretched it at 16 fps)
 var _live: Array = []
 var _last_us := 0
+var _movie: bool = Engine.get_write_movie_path() != ""   # WK-93 Movie Maker run -> frame clock
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var now := Time.get_ticks_usec()
 	var dt: float = clampf(float(now - _last_us) / 1000000.0, 0.0, MAX_STEP)
 	_last_us = now
+	if _movie:
+		# WK-25: under Movie Maker (WK-93 recordings) wall time runs ~4x slower than the fixed-fps game clock, so
+		# the wall clock would play this ~3x too fast on film. Use the frame's UNSCALED delta (hit-stop excluded).
+		dt = delta / maxf(Engine.time_scale, 0.05)
 	for i in range(_live.size() - 1, -1, -1):
 		var b: Dictionary = _live[i]
 		if not is_instance_valid(b["root"]):

@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://src/ui/KOCreditChip.gd" id="2_chip"]
+
+[node name="KOCreditChip" type="PanelContainer"]
+offset_right = 120.0
+offset_bottom = 72.0
+mouse_filter = 2
+theme = ExtResource("1_theme")
+theme_type_variation = &"CreditChip"
+script = ExtResource("2_chip")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+theme_type_variation = &"CreditChipLabel"
+text = "+1"
+horizontal_alignment = 1
+vertical_alignment = 1

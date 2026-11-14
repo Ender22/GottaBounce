@@ -139,6 +139,77 @@ theme_type_variation = &"CardName"
 theme_override_font_sizes/font_size = 28
 text = ""
 
+[node name="KillList" type="HFlowContainer" parent="Root/Center/Panel/Box"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+alignment = 1
+
+[node name="KillTemplate" type="PanelContainer" parent="Root/Center/Panel/Box/KillList"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"KillChip"
+
+[node name="H" type="HBoxContainer" parent="Root/Center/Panel/Box/KillList/KillTemplate"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="KHead" type="TextureRect" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="KName" type="Label" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 30
+text = "P2"
+
+[node name="Arrow" type="Control" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
+custom_minimum_size = Vector2(30, 42)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Back" type="Polygon2D" parent="Root/Center/Panel/Box/KillList/KillTemplate/H/Arrow"]
+color = Color(0.231373, 0.141176, 0.105882, 1)
+polygon = PackedVector2Array(4, 7, 28, 21, 4, 35)
+
+[node name="Fill" type="Polygon2D" parent="Root/Center/Panel/Box/KillList/KillTemplate/H/Arrow"]
+color = Color(1, 0.97, 0.9, 1)
+polygon = PackedVector2Array(8, 13.5, 20, 21, 8, 28.5)
+
+[node name="VHead" type="TextureRect" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VName" type="Label" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 30
+text = "P3"
+
+[node name="Tag" type="Label" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 30
+text = "OOPS!"
+
 [node name="Prompt" type="HBoxContainer" parent="Root/Center/Panel/Box"]
 modulate = Color(1, 1, 1, 0.9)
 layout_mode = 2

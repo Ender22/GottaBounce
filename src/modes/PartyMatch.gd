@@ -196,6 +196,7 @@ var _recent_dead: Array = []    # simultaneous-elimination group (double-KO SD, 
 var _last_death_clock := 0.0
 var _revived_this_stage := false # one sudden-death revive max per stage (no recursion)
 var _stage_deltas: Array = []   # applied kill deltas this stage (for the STAGE_END sub-line)
+var _stage_kills: Array = []     # WK-25: this stage's kill records (snapshot at STAGE_END) -> ScoreScreen kill list
 var _stage_self_kos: Array = []  # WK-20c: self-KOs per player this stage (BrawlMode.on_kill) -> "OOPS!" when they cost 0
 ## WK-20c (Ra): points a BRAWL self-KO costs (MatchConfig.self_ko_penalty via BrawlMode.configure). 0 = default.
 var self_ko_penalty := 0
@@ -1031,10 +1032,11 @@ func _on_killed(victim, cause, attacker) -> void:
 	if state != "COMBAT" and state != "SUDDEN_DEATH":
 		return
 	# stage_stats kill record: off_stage = the killing smash connected while the victim was off-stage
+	var rec: Dictionary = {}
 	if not _cur_stats.is_empty():
 		var ki: int = players.find(attacker) if attacker != null else -1
 		var kills: Array = _cur_stats["kills"]
-		kills.append({
+		rec = {
 			"killer": ki, "victim": idx,
 			"off_stage": _smash_off_stage[idx] if idx < _smash_off_stage.size() else false,
 			"blast_edge": _classify_blast_edge(victim),   # v2_kill_shape §6: which bound the victim crossed (K1)
@@ -1048,13 +1050,22 @@ func _on_killed(victim, cause, attacker) -> void:
 			"hazard_contact_dt_s": (victim.hazard_contact_dt_s() if is_instance_valid(victim) and victim.has_method("hazard_contact_dt_s") else 9999.0),
 			"hazard_assisted": (is_instance_valid(victim) and victim.has_method("hazard_contact_dt_s") and victim.hazard_contact_dt_s() <= 1.5),
 			"t": round_clock,
-		})
+		}
+		kills.append(rec)
 		_cur_stats["end_cause"] = str(cause)   # the stage-deciding death overwrites last
 	# kill credit vs suicide (spec §2), delegated to the mode's scoring hook. Every cause counts; dead
 	# attackers still score ("beyond the grave"); being killed is never -1; a self-KO costs self_ko_penalty
 	# (WK-20c: 0 by default). Score is CUMULATIVE kills.
 	var ai: int = players.find(attacker) if attacker != null else -1
+	var scores_before: Array = scores.duplicate()
 	_mode.on_kill(self, ai, idx, cause)
+	# WK-25: what this KO actually did to the score (the ScoreScreen kill list + the credit pop read it)
+	var credited: bool = ai >= 0 and ai != idx
+	var ko_cost: int = 0 if credited else int(scores_before[idx]) - int(scores[idx])
+	if not rec.is_empty():
+		rec["credited"] = credited
+		rec["self_ko_cost"] = ko_cost   # points the self-KO took (0 under Ra, or a -1 floored at 0)
+	_credit_pop(victim, ai, idx, credited, ko_cost, scores_before)
 	# FIRST BLOOD is a BRAWL kill-race moment — never in SPORTS (rocketball/dropshot), where knocking
 	# a rival out of bounds is incidental, not the point (owner 2026-07-19: "killing each other is not the point").
 	if ai >= 0 and ai != idx and not _first_blood_fired \
@@ -1093,6 +1104,23 @@ func _on_killed(victim, cause, attacker) -> void:
 		_decide_stage_end(false)   # nobody left — decide immediately (double-KO SD or NOBODY SURVIVES)
 	elif ne == 1:
 		_end_check = Tuning.double_ko_window   # the survivor might still be mid-double-KO
+
+## WK-25 KO CREDIT POP (audit D-02 part 1) — BRAWL only (the kill race; SPORTS/TRIALS have no MatchHUD pop).
+## Credited: "+1" in the killer's colour into the killer's card. Uncredited: "OOPS!" (WK-20c Ra, costs 0) or "−N"
+## when the SELF-KO −1 rule really took a point, in the victim's colour onto the victim's card. Transient, change
+## only — never a total (owner 2026-07-16). Starts on the KO edge blast (KOEdgeBlast.locate).
+func _credit_pop(victim, ai: int, idx: int, credited: bool, ko_cost: int, scores_before: Array) -> void:
+	if not _attribution_mode() or _hud == null or not _hud.has_method("credit_pop"):
+		return
+	var loc: Dictionary = _ko_blast.locate(victim) if _ko_blast != null else {}
+	var meta := {"killer": ai, "victim": idx, "credited": credited,
+		"score_before": scores_before.duplicate(), "score_after": scores.duplicate()}
+	if credited:
+		_hud.credit_pop(ai, "plus", "+%d" % maxi(1, int(scores[ai]) - int(scores_before[ai])), player_color(ai), loc, meta)
+	elif ko_cost > 0:
+		_hud.credit_pop(idx, "minus", "−%d" % ko_cost, player_color(idx), loc, meta)
+	else:
+		_hud.credit_pop(idx, "oops", "OOPS!", player_color(idx), loc, meta)
 
 ## v2_kill_shape §6: classify which blast line the victim crossed at death, for the kill-SHAPE
 ## measurement (K1: edges >= 60% / pit <= 30%). Derived from the victim's last-frame position vs
@@ -1198,6 +1226,7 @@ func _enter_stage_end(deferred := false) -> void:
 	# the double-KO wait already elapsed since the last death — it counts as freeze time
 	_state_t = Tuning.double_ko_window if deferred else 0.0
 	# finalize the round_stats record
+	_stage_kills = (_cur_stats.get("kills", []) as Array).duplicate(true) if not _cur_stats.is_empty() else []
 	if not _cur_stats.is_empty():
 		_cur_stats["length_s"] = round_clock
 		_cur_stats["survivor_had_contact"] = _stage_winner >= 0 \
@@ -1292,11 +1321,39 @@ func _enter_scoreboard() -> void:
 			"delta": d,
 			"oops": stage_display_oops(i),   # WK-20c: non-scoring self-KO chip ("OOPS!") when delta is 0
 		})
-	_score_screen.present(rows, match_target_kills)
+	_score_screen.present(rows, match_target_kills, _kill_list_entries())
 	_score_screen.set_countdown(1.0)
 	_score_skip = false
 	if _score_gate != null:
 		_score_gate.open(Tuning.scoreboard_skip_guard)
+
+## WK-25 (audit D-02 part 3): who KO'd whom this stage, in order, for the ScoreScreen kill list. CC-8.5 names +
+## identity colours + goat skins. kind: "ko" (credited), "oops" (self-KO that cost nothing, WK-20c Ra) or "minus"
+## (the SELF-KO −1 rule took `cost` points).
+func _kill_list_entries() -> Array:
+	var out: Array = []
+	for r in _stage_kills:
+		var rd: Dictionary = r
+		var v: int = int(rd.get("victim", -1))
+		var ki: int = int(rd.get("killer", -1))
+		if v < 0 or v >= players.size():
+			continue
+		var credited: bool = bool(rd.get("credited", ki >= 0 and ki != v))
+		var e := {"v_name": player_name(v), "v_color": player_color(v), "v_skin": _skin_of(v)}
+		if credited and ki >= 0 and ki < players.size():
+			e["kind"] = "ko"
+			e["k_name"] = player_name(ki)
+			e["k_color"] = player_color(ki)
+			e["k_skin"] = _skin_of(ki)
+		else:
+			var cost: int = int(rd.get("self_ko_cost", 0))
+			e["kind"] = "minus" if cost > 0 else "oops"
+			e["cost"] = cost
+		out.append(e)
+	return out
+
+func _skin_of(i: int) -> String:
+	return str(players[i].skin) if i >= 0 and i < players.size() and is_instance_valid(players[i]) else "pink"
 
 ## WK-21 dramatic-hold test, in priority order. "lead_change" = the leader SET (everyone tied at the top score,
 ## top score > 0) differs from this stage's BOUNCE! baseline, and there WAS a leader before. A first lead out of

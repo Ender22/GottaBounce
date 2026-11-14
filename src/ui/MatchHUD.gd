@@ -26,6 +26,7 @@ var _top_busy := false
 @onready var _match_panel: PanelContainer = $Root/CenterC/MatchPanel
 @onready var _match_text: Label = $Root/CenterC/MatchPanel/MatchBox/MatchText
 @onready var _match_sub: Label = $Root/CenterC/MatchPanel/MatchBox/MatchSub
+@onready var _pops = $Root/CreditPops   # WK-25 KOCreditPop.gd (last child of Root: drawn over the cards)
 
 func setup(players: Array, colors: Array, skins: Array) -> void:
 	_players = players
@@ -63,6 +64,22 @@ func reset_scores() -> void:
 	for c in _cards:
 		c.set_score(0)
 		c.set_dead(false)
+	if _pops != null:
+		_pops.clear()
+
+## WK-25 KO credit pop (audit D-02): a transient "+1" / "OOPS!" / "−1" chip that flies from the KO edge blast into
+## card `card_idx` (killer for "+1", victim otherwise). kind: "plus" | "oops" | "minus". loc =
+## KOEdgeBlast.locate(victim). Shows the CHANGE only, never a total (owner 2026-07-16: no persistent combat score).
+func credit_pop(card_idx: int, kind: String, text: String, color: Color, loc: Dictionary, meta: Dictionary = {}) -> void:
+	if _pops == null or card_idx < 0 or card_idx >= _cards.size() or not _cards[card_idx].visible:
+		return
+	var m := meta.duplicate()
+	m["card"] = card_idx
+	_pops.pop(kind, _cards[card_idx], text, color, loc, m)
+
+## QA: the credit-pop log (KOCreditPop.pops) — gbplay eval reads this.
+func credit_pops() -> Array:
+	return _pops.pops if _pops != null else []
 
 ## ROUND_END: every card animates its pips toward the new truth, tick-tick (spec §1).
 func animate_scores(new_scores: Array) -> void:

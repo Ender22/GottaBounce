@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=30 format=3]
+[gd_resource type="Theme" load_steps=32 format=3]
 
 [ext_resource type="FontFile" uid="uid://chv67g8s80h1u" path="res://assets/fonts/lilitaone/LilitaOne-Regular.ttf" id="1_font_display"]
 [ext_resource type="FontFile" uid="uid://ddt1gwlfsoby1" path="res://assets/fonts/fredoka/Fredoka-Variable.ttf" id="2_font_body"]
@@ -340,6 +340,41 @@ shadow_color = Color(0.12, 0.07, 0.05, 0.35)
 shadow_size = 3
 shadow_offset = Vector2(0, 2)
 
+[sub_resource type="StyleBoxFlat" id="credit_chip"]
+content_margin_left = 18.0
+content_margin_top = 2.0
+content_margin_right = 18.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 26
+corner_radius_top_right = 26
+corner_radius_bottom_right = 26
+corner_radius_bottom_left = 26
+shadow_color = Color(0.12, 0.07, 0.05, 0.4)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="kill_chip"]
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 14.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 0.08)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.22)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
 [resource]
 default_font = ExtResource("1_font_display")
 default_font_size = 28
@@ -497,3 +532,12 @@ PipEmpty/base_type = &"Panel"
 PipEmpty/styles/panel = SubResource("StyleBoxFlat_pip_empty")
 PlayerCard/base_type = &"Panel"
 PlayerCard/styles/panel = SubResource("StyleBoxFlat_card")
+CreditChip/base_type = &"PanelContainer"
+CreditChip/styles/panel = SubResource("credit_chip")
+CreditChipLabel/base_type = &"Label"
+CreditChipLabel/colors/font_color = Color(1, 1, 1, 1)
+CreditChipLabel/colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+CreditChipLabel/constants/outline_size = 12
+CreditChipLabel/font_sizes/font_size = 54
+KillChip/base_type = &"PanelContainer"
+KillChip/styles/panel = SubResource("kill_chip")

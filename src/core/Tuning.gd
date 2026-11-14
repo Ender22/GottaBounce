@@ -528,3 +528,24 @@ func bounce_height_for(tier: StringName) -> float:
 		&"trampoline": return bounce_height_trampoline
 		&"spring": return bounce_height_spring
 		_: return bounce_height_marshmallow
+
+# ==================================================================================================
+# --- WK-25 KO CREDIT POP (gameplay-programmer, 2026-11-14 · audit D-02 parts 1+3) — separate block, kept at
+# the END of the file so it never collides with other in-flight Tuning edits. A transient (<= 1.5 s) credit
+# chip: it pops out of the WK-23 edge blast and flies into a corner card, which bumps. Owner ruling 2026-07-16
+# (no persistent combat score) holds: the chip shows only the change ("+1" / "OOPS!" / "−1"), never a total,
+# and nothing lingers. All times are REAL seconds (the KO hit-stop never stretches them). Read by
+# src/ui/KOCreditPop.gd. Arrival = delay + in + hold + fly (0.82 s; the WK-25 accept bar is <= 1.0 s). ---
+var ko_pop_delay: float = 0.10            # s after the KO before the chip appears (the blast core peaks at 0.07 s)
+var ko_pop_in_time: float = 0.16          # s chip pop-in on the blast (scale 0.3 -> 1.15 -> 1.0)
+var ko_pop_hold: float = 0.14             # s the chip sits on the blast before it flies
+var ko_pop_fly_time: float = 0.42         # s flight to the card (eased, routed along the screen border)
+var ko_pop_absorb_time: float = 0.12      # s a "+1" shrinks into the killer's card
+var ko_pop_drop_time: float = 0.45        # s an "OOPS!" / "−1" falls off the victim's card
+var ko_pop_drop_px: float = 150.0         # px (at 1080p) that fall travels
+var ko_pop_start_inset_px: float = 112.0  # px (at 1080p) inside the KO edge where the chip spawns (on the starburst)
+var ko_pop_fly_scale: float = 0.78        # chip scale on arrival at the card (shrinks in flight)
+var ko_pop_card_bump: float = 0.16        # killer card scale overshoot when a "+1" lands
+var ko_pop_card_bump_time: float = 0.30   # s
+var ko_pop_card_wobble_deg: float = 7.0   # victim card wobble when an "OOPS!" / "−1" lands
+var ko_pop_card_wobble_time: float = 0.40 # s
