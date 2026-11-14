@@ -50,7 +50,7 @@ and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 6. WK-37a [P1][S] Ghost-goat spec (no game slot, can run in parallel now): the dead are 48 % of a weaker player's match — game-designer
 7. ~~WK-18~~ done 2aa8f87 — [P1][S] 28 px floor for anything a player reads (HUD, legend, lobby badges, sports score bug) — ui-ux-designer
 8. WK-111 [P1][M] Sports end screen frames the winning team + stat strip + MVP (SP-09; raised P2 -> P1 by CD2) — ui-ux-designer + gameplay-programmer
-9. WK-25 [P1][M] KO credit pop (+1 to the killer's card, −1 OOPS if the rule survives) + ScoreScreen kill list; after the WK-20a/20c ruling — gameplay-programmer + ui-ux-designer
+9. ~~WK-25~~ done 2eef67e — [P1][M] KO credit pop (+1 to the killer's card, −1 OOPS if the rule survives) + ScoreScreen kill list; after the WK-20a/20c ruling — gameplay-programmer + ui-ux-designer
 10. WK-34 [P1][M] Toybox panel kit A: Pause, in-match Options, ScoreScreen (first half of "one finished look"; WK-35 follows) — ui-ux-designer
 
 On deck (11+, in order): WK-35 panel kit B incl. sports scoreboard + CD2-06 pip-over-banner (M, after WK-34) · WK-90 hit-stop re-measure
@@ -910,7 +910,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   attacker-coloured ring; streak value >= 0.8 (launch read kept).
 - Status: done 4d5d356 (streak = attacker colour per DECISIONS e2394c1)
 
-### [ ] WK-25 [P1][M] KO credit pop (+1 flies to killer's card, −1 OOPS on self-fall) + ScoreScreen kill list
+### [x] WK-25 [P1][M] KO credit pop (+1 flies to killer's card, −1 OOPS on self-fall) + ScoreScreen kill list — 2eef67e
 - Sources: D-02 (parts 1+3), R-27 (unlabelled "−1"), R-06 (score-visibility half) · **OWNER-RULED**: no persistent combat score — the pop is transient (<= 1.5 s)
 - Area: brawl/HUD · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-23, WK-08, **WK-20a self-KO ruling** (+ WK-20c if
   ruled; the −1 OOPS half changes or disappears with the rule) and WK-89 if confirmed (the kill list reads `round_stats`)
