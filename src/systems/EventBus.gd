@@ -37,3 +37,15 @@ signal powerup_picked(player, id)     # a bubble was collected into the held slo
 signal hazard_shoved(player, dir, magnitude)
 # WK-96: a moving hazard's ball crossed Tuning.pendulum_whoosh_speed (one per fast pass) — audio cue only.
 signal hazard_whoosh(hazard, pos, speed)
+
+# --- SPORTS juice (WK-105 / SP-01) --- the Ball emits, AudioManager + Juice subscribe.
+# A player struck the sports ball. impact_speed = |delta-v| the touch gave the ball (px/s, after the
+# cap); is_power = the super-active / hitstun power shot (BALL_SMASH_MULT). One per accepted touch.
+signal ball_struck(ball, player, impact_speed, is_power)
+# WK-106 (SP-03) — THE goal event (one place; audio/juice/HUD hook here). Emitted ONCE per goal/point by
+# SportsMode at the moment the goal registers (STAGE_END entry, the tick the latched goal_zone is polled).
+# team = the team AWARDED the goal (0 RED / 1 BLUE). scorer = the credited Player: the scoring team's last
+# toucher (blocks/deflections by defenders don't steal it), or on an own goal the CONCEDING player who clearly
+# put it in; null = team goal (no scoring-team touch). own_goal = soccer only, rare by rule (see
+# SportsMode._credit_goal + Tuning.sports_own_goal_*). Assist/names via SportsMode.last_goal().
+signal goal_scored(team, scorer, own_goal)

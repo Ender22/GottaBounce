@@ -32,6 +32,19 @@ const SFX := {
 	"match_win":         ["res://assets/sfx/rewardCheer.mp3"],
 	"ui_click":          ["res://assets/sfx/btnClick_Start.mp3"],
 	"explode":           ["res://assets/sfx/explosion_01.mp3"],
+	# --- SPORTS (WK-105 / SP-01). Kenney CC0 + owner library; provenance in assets/sfx/LICENSES.md ---
+	"ball_hit":          ["res://assets/sfx/kenney_impactPunch_medium_000.ogg", "res://assets/sfx/kenney_impactPunch_medium_001.ogg",
+	                      "res://assets/sfx/kenney_impactPunch_medium_002.ogg", "res://assets/sfx/kenney_impactPunch_medium_003.ogg",
+	                      "res://assets/sfx/kenney_impactPunch_medium_004.ogg"],
+	"ball_body":         ["res://assets/sfx/kenney_impactSoft_heavy_000.ogg", "res://assets/sfx/kenney_impactSoft_heavy_001.ogg"],
+	"ball_power":        ["res://assets/sfx/kenney_impactPunch_heavy_000.ogg", "res://assets/sfx/kenney_impactPunch_heavy_002.ogg",
+	                      "res://assets/sfx/kenney_impactPunch_heavy_004.ogg"],
+	"goal_red":          ["res://assets/sfx/kenney_jingles_SAX02.ogg"],   # rising sax run: RED's goal
+	"goal_blue":         ["res://assets/sfx/kenney_jingles_SAX10.ogg"],   # rising sax run: BLUE's goal
+	"goal_crowd":        ["res://assets/sfx/rewardCheer.mp3"],
+	"own_goal":          ["res://assets/sfx/kenney_jingles_SAX07.ogg"],   # descending wah-wah-waaah
+	"own_goal_groan":    ["res://assets/sfx/awNo.mp3"],
+	"sports_fall":       ["res://assets/sfx/lower.mp3"],                  # slide-whistle whoop down a hole
 }
 const MUSIC_GAMEPLAY := [
 	"res://assets/music/gameplay_1.mp3", "res://assets/music/gameplay_2.mp3",
@@ -57,6 +70,29 @@ var _thrust_db := THRUST_OFF_DB
 var sfx_fired := 0
 var last_sfx := ""
 var thrust_active := false
+var sfx_counts := {}             # event key -> times played (QA: sports evidence logs counts by type)
+var ball_strikes_seen := 0       # every EventBus.ball_struck received (heard or rate-limited)
+var ball_strikes_heard := 0      # strikes that produced a sound
+
+# --- SPORTS mix / rate-limit (WK-105). Touch loudness rides the |delta-v| the touch gave the ball. ---
+# Measured (2v2 L3 bots, 77 touches): |delta-v| min 342 / median 2237 / max 3872 — a touch that REVERSES
+# a fast ball reads ~2x its exit speed, so the range spans to ~2x the cap; median lands mid-scale.
+const BALL_IMPACT_LO := 800.0    # px/s -> soft tap (a nudge / dribble carry)
+const BALL_IMPACT_HI := 3800.0   # px/s -> full thwack (a fast ball sent straight back)
+const BALL_DB_SOFT := -15.0      # soft tap sits well under the music bed
+const BALL_DB_HARD := -5.0       # a full thwack sits level with bounces
+const BALL_DB_POWER := -1.0      # power shot: the loudest ball sound, still below the goal stinger
+const BALL_GAP_SOFT := 0.04      # min s between touch sounds: merges only true flams (two goats on the
+                                 # ball in the same few ticks); Ball's per-player 0.12 s touch cd bounds a
+                                 # dribble, and BALL_REPEAT_DUCK keeps a dribble/scrum under the mix
+const BALL_GAP_HARD := 0.03      # a hard hit may follow quickly (a real second strike)
+const BALL_REPEAT_WINDOW := 0.3  # a touch within this of the last heard one is a dribble/scrum ...
+const BALL_REPEAT_DUCK := -5.0   # ... and is ducked so it never machine-guns over the mix
+const BOUNCE_MIN_GAP := 0.04     # global floor between bounce sounds (s)
+const BOUNCE_DB_SPORTS := -8.0   # bounce level in sports (brawl keeps -4)
+var _bounce_last_t := -10.0
+var _ball_last_t := -10.0        # clock (s) of the last heard touch
+var _ball_last_amt := 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS   # sounds still fire while the game is paused / hitstop
@@ -99,12 +135,14 @@ func _ready() -> void:
 	EventBus.first_blood.connect(_on_first_blood)
 	EventBus.two_left.connect(_on_two_left)
 	EventBus.hazard_whoosh.connect(_on_hazard_whoosh)   # WK-96 pendulum pass
+	EventBus.ball_struck.connect(_on_ball_struck)       # WK-105 sports ball touch
+	EventBus.goal_scored.connect(_on_goal_scored)       # WK-105 goal/point stinger (WK-106 signal)
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
 
 ## Fire a one-shot SFX by event key. opts: {pitch: float, pitch_var: float, volume_db: float,
-## path: String (force a specific stream)}. Round-robins the pool so overlapping sounds coexist.
+## path: String (force a specific stream), protect: bool (WK-105: never voice-stolen while playing)}. Round-robins the pool so overlapping sounds coexist.
 func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	var path: String = str(opts.get("path", ""))
 	if path == "":
@@ -116,6 +154,7 @@ func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	if stream == null:
 		return
 	var pl := _grab()
+	pl.set_meta("protect", bool(opts.get("protect", false)))
 	pl.stream = stream
 	var pitch: float = float(opts.get("pitch", 1.0))
 	var pvar: float = float(opts.get("pitch_var", 0.06))
@@ -124,6 +163,7 @@ func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	pl.play()
 	sfx_fired += 1
 	last_sfx = name
+	sfx_counts[name] = int(sfx_counts.get(name, 0)) + 1
 
 func _grab() -> AudioStreamPlayer:
 	# prefer a free voice; otherwise steal the next in round-robin (oldest-ish)
@@ -132,6 +172,13 @@ func _grab() -> AudioStreamPlayer:
 		if not _pool[idx].playing:
 			_next = (idx + 1) % _pool.size()
 			return _pool[idx]
+	# all busy: steal round-robin, but skip voices flagged `protect` (goal stingers / crowd) so a burst
+	# of bounces can't cut a goal call short; if every voice is protected, steal anyway.
+	for i in range(_pool.size()):
+		var idx2 := (_next + i) % _pool.size()
+		if not bool(_pool[idx2].get_meta("protect", false)):
+			_next = (idx2 + 1) % _pool.size()
+			return _pool[idx2]
 	var p := _pool[_next]
 	_next = (_next + 1) % _pool.size()
 	return p
@@ -188,7 +235,15 @@ func _on_surface_bounced(surface, _player, _normal, _contact) -> void:
 			pitch = clampf(sqrt(ref / maxf(h, 1.0)), 0.8, 1.35)
 		elif surface.has_meta("bumper"):
 			pitch = 1.25   # bumpers ping bright
-	play_sfx("bounce", {"pitch": pitch, "pitch_var": 0.08, "volume_db": -4.0})
+	# WK-105 mix: bounces fire ~18/s with 4 goats on a sports court (2219 in a 120 s Dropshot) and stacked
+	# the master over 0 dB; a 40 ms global floor merges same-instant multi-goat hits, and in SPORTS the
+	# bounce sits 4 dB lower so the BALL touch is the hero sound there.
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if now - _bounce_last_t < BOUNCE_MIN_GAP:
+		return
+	_bounce_last_t = now
+	var db: float = BOUNCE_DB_SPORTS if _sports_active() else -4.0
+	play_sfx("bounce", {"pitch": pitch, "pitch_var": 0.08, "volume_db": db})
 
 func _on_smashed(_attacker, _victim, impulse) -> void:
 	# volume scaled by hit solidity (impulse magnitude vs a full super blast)
@@ -253,11 +308,78 @@ func _on_first_blood(_ai) -> void:
 func _on_two_left() -> void:
 	play_sfx("two_left", {"volume_db": -2.0})
 
-func _on_killed(_victim, cause, _attacker) -> void:
+func _on_killed(victim, cause, _attacker) -> void:
+	# SPORTS (WK-105): nobody "dies" in sports. A goat that drops out of the court (a Dropshot hole, a
+	# rare knock out of bounds) gets the comedic slide-whistle whoop, never the brawl death sting. An
+	# in-bounds hazard KO there keeps a quieter death pop until WK-112 turns hazards into stuns.
+	if _sports_active():
+		if _out_of_court(victim):
+			play_sfx("sports_fall", {"volume_db": -4.0, "pitch_var": 0.08})
+		else:
+			play_sfx("death", {"volume_db": -8.0, "pitch_var": 0.1})
+		return
 	# off-screen / ring-out kills get the whoosh-out; other causes just the death pop
 	if str(cause) == "ring_out":
 		play_sfx("death_whoosh", {"volume_db": -3.0})
 	play_sfx("death", {"volume_db": -3.0, "pitch_var": 0.1})
+
+# --------------------------------------------------------------------- sports (WK-105 / SP-01)
+
+## Ball touch: one "thwock" per accepted strike, pitch DOWN + volume UP with impact (soft tap = bright
+## and quiet, hard hit = deep and loud), a small random pitch spread, a low body thump layered on hard
+## hits, and a distinct heavier hit on the power shot. Rate-limited: a soft touch inside the gap after
+## the last heard touch is swallowed unless it is clearly harder (dribbles never machine-gun).
+func _on_ball_struck(_ball, _player, impact, is_power) -> void:
+	ball_strikes_seen += 1
+	var t: float = clampf(inverse_lerp(BALL_IMPACT_LO, BALL_IMPACT_HI, float(impact)), 0.0, 1.0)
+	var now: float = Time.get_ticks_msec() / 1000.0
+	var gap: float = lerpf(BALL_GAP_SOFT, BALL_GAP_HARD, t)
+	var since: float = now - _ball_last_t
+	if not bool(is_power) and since < gap and t < _ball_last_amt + 0.25:
+		return
+	var duck: float = BALL_REPEAT_DUCK * (1.0 - t) if since < BALL_REPEAT_WINDOW else 0.0
+	_ball_last_t = now
+	_ball_last_amt = t
+	ball_strikes_heard += 1
+	if bool(is_power):
+		play_sfx("ball_power", {"volume_db": BALL_DB_POWER, "pitch": 0.92, "pitch_var": 0.05})
+		play_sfx("ball_body", {"volume_db": -6.0, "pitch": 0.9, "pitch_var": 0.04})
+		return
+	play_sfx("ball_hit", {"volume_db": lerpf(BALL_DB_SOFT, BALL_DB_HARD, t) + duck,
+		"pitch": lerpf(1.3, 0.92, t), "pitch_var": 0.06})
+	if t > 0.55:
+		# sub-heavy layer (~110 Hz centroid): kept low, it eats master headroom invisibly
+		play_sfx("ball_body", {"volume_db": lerpf(-16.0, -9.0, (t - 0.55) / 0.45), "pitch_var": 0.05})
+
+## Goal / point (EventBus.goal_scored, WK-106: emitted once per goal at STAGE_END entry, the tick the
+## latched goal_zone is polled). team = the team AWARDED the goal. Each team has its own rising sax run +
+## the crowd + a net-bulge thump; an OWN GOAL (soccer only, SportsMode's credit) gets the descending
+## wah-wah + an "aww no" + a muted crowd instead. Dropshot points never arrive as own goals.
+func _on_goal_scored(team, _scorer, own_goal) -> void:
+	last_goal_own = bool(own_goal)
+	if bool(own_goal):
+		play_sfx("own_goal", {"volume_db": 4.0, "pitch_var": 0.0, "protect": true})
+		play_sfx("own_goal_groan", {"volume_db": -9.0, "pitch_var": 0.04, "protect": true})
+		play_sfx("goal_crowd", {"volume_db": -9.0, "pitch": 0.85, "pitch_var": 0.0, "protect": true})
+		return
+	play_sfx("goal_red" if int(team) == 0 else "goal_blue", {"volume_db": 4.0, "pitch_var": 0.0, "protect": true})
+	play_sfx("goal_crowd", {"volume_db": -2.0, "pitch_var": 0.03, "protect": true})
+	play_sfx("ball_body", {"volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.0})   # net-bulge thump
+
+var last_goal_own := false       # QA: was the most recent voiced goal an own goal
+
+func _sports_active() -> bool:
+	return not get_tree().get_nodes_in_group("sports_ball").is_empty()
+
+## True when the victim is outside the running match's court bounds (fell through a hole / knocked out).
+func _out_of_court(victim) -> bool:
+	if victim == null or not is_instance_valid(victim) or not (victim is Node2D):
+		return true
+	var scene := get_tree().current_scene
+	if scene == null or not ("bounds" in scene):
+		return true
+	var b: Rect2 = scene.bounds
+	return not b.has_point((victim as Node2D).global_position)
 
 # --------------------------------------------------------------------- thrust loop (read-only poll)
 

@@ -5,6 +5,7 @@
   "kill_shape": "sports_court",
   "backdrop": "enclosed",
   "interior_painting": "arena_stadium",
+  "kickoff": {"ball": {"x": 1000, "y": 380}, "slots_1v1": [{"x": 440, "y": 380}], "slots_2v2": [{"x": 449, "y": 283}, {"x": 449, "y": 477}]},
   "design_intent": "SPORTS calm court #2 (v8_sports_courts.md tier 1, SIZE variety). A SMALL/TIGHT (2000x1200) strict-mirror two-goal pitch: short lanes, close walls -> fast possession swaps, wall-carom bank shots, constant contact. NO hazards, NO powerup_spawners (SYM-6, SC-CALM-CLEAN). SYMMETRY (SC-SYM, the CD #7 fix): every element is a vertical-axis mirror about centre x=1000 -- both mid bumpers sit at the SAME y=520 so gravity treats both halves identically. FLIGHT GATE (GAME_ESSENCE Rule A): centre x=1000; nearest inner spawn x=1440/560 -> 440px to centre (> 395 trampoline drift); centre-to-far-goal 1000->240 = 760px (> 527 spring drift), so reaching the ball and pressing it to the far goal REQUIRE boost. Full-width TRAMPOLINE floor (y1000) + bumper ceiling/walls -> no flat standable ground (Pillar 2). Goal mouth y470..730 each end (centre y=600); goal_zone just inside, back wall seals the pocket.",
   "sky_top": "#123a5c",
   "sky_bottom": "#1f6ea8",

@@ -18,6 +18,17 @@ func setup(cam: CameraController) -> void:
 	EventBus.exploded.connect(_on_exploded)
 	EventBus.hazard_shoved.connect(_on_hazard_shoved)
 	KillPipeline.killed.connect(_on_killed)
+	EventBus.ball_struck.connect(_on_ball_struck)   # WK-105 sports strike juice
+
+## WK-105 (SP-01): only the POWER SHOT (super-active / hitstun striker) gets a hit-stop beat (~60 ms at
+## strength 0.45 via the shared _hitstop curve), a light camera kick and a rumble tap — normal touches
+## stay fluid (the ball's own squash/flash/sparks carry them). WK-90 re-measures the hitstop curve.
+func _on_ball_struck(_ball, _player, _impact, is_power) -> void:
+	if not bool(is_power):
+		return
+	_hitstop(0.45)
+	_shake(0.3)
+	_rumble(0.6, 0.5, 0.12)
 
 func _on_exploded(center, radius) -> void:
 	_shake(0.9)   # Heavy (FEEL §4.1)

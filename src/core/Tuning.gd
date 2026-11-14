@@ -455,6 +455,29 @@ var dropshot_ball_radius: float = 84.0         # bigger, reads "beach ball" (soc
 var dropshot_ball_max_speed: float = 1900.0    # slower cap: rallies stay readable/chaseable
 var dropshot_serve_offset_frac: float = 0.25   # kickoff x offset from court centre (fraction of bounds width)
 
+# --- WK-104 (SP-02/SP-05) ROCKETBALL kickoff. The ball is GHOSTED (frozen, no player/hazard contact) through
+# STAGE_INTRO/COUNTDOWN and released on GO at the court's JSON "kickoff.ball" spot; every seat spawns at the same
+# distance from it (JSON "kickoff" slots, team 1 mirrored). Release = an upward ref-drop toss (random in
+# [min, max] px/s) with gravity scaled by hang_gravity until the first touch or hang_s elapses, so the ball
+# stays near the spot while both teams converge (contested first touch, no free run). Read by SportsMode. ---
+# A/B (headless, 4 L3 bots, CENTER PITCH 2v2): held ball (toss 0, hang_gravity 0) 22.5% goals <4 s after GO;
+# this TIP-OFF (toss 700-900, normal gravity: ball rises ~150-250 px, players meet it on the way down) 10-17%;
+# legacy 30%. Contact from below sends the ball UP, not straight at a goal mouth.
+var sports_kickoff_toss_min: float = 700.0     # px/s upward release speed (low end of the random toss)
+var sports_kickoff_toss_max: float = 900.0     # px/s upward release speed (high end)
+var sports_kickoff_hang_gravity: float = 1.0   # gravity fraction until the first touch (0 = RL-style held ball)
+var sports_kickoff_hang_s: float = 2.0         # s: an untouched hang drops to normal gravity after this
+var sports_assist_window: float = 3.0          # s: a teammate's touch this soon before the scorer's = ASSIST
+# WK-106 goal credit (sound-designer/coordinator ruling: OWN GOAL must be rare + earned, not the raw last touch,
+# which read OWN GOAL on 54% of bot goals). A defender's last touch is an OWN GOAL only if it came within
+# own_goal_window s of the goal, ADDED >= own_goal_push px/s of velocity toward their own goal, and no attacker
+# touched it in the deflect_window s before it. Anything else (a block/failed save, a deflection, a stale
+# touch) credits the scoring team's last toucher (Rocket League / FIFA). Headless 2v2 L3: OWN 54% -> ~25%; the
+# rest are bots driving it into their own net at ~1900 px/s (SP-06 bot pathing, not a credit problem).
+var sports_deflect_window: float = 0.35        # s: a defender touch this soon after an attacker's = deflection
+var sports_own_goal_push: float = 700.0        # px/s goalward velocity the defender's touch must ADD
+var sports_own_goal_window: float = 1.0        # s: the defender's touch must be this close to the goal
+
 # --- WK-94 bot super-aim sweep (owner 2026-11-14: "the aiming mechanic looks crazy when the bots use it,
 # it spins like nuts"). A bot's aim is a human stick: the emitted super-aim direction rotates toward the
 # solution at no more than this many rad/s, and all aim error is a slow drift (never per-frame re-rolls).

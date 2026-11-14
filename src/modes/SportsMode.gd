@@ -41,6 +41,18 @@ var _last_scored_stage: int = -1       # idempotency guard: increment at most on
 var _ball: Ball = null                 # the live stage ball (freed + re-created each kickoff)
 var _court_set_cache: Dictionary = {}  # parsed sports_courts.json (lazy; {by_id, default_path, rotate})
 
+# --- WK-104 (SP-05) fair kickoff formation, read from the court JSON's optional top-level "kickoff" block:
+#   "kickoff": { "ball": {"x","y"}, "slots_1v1": [{"x","y"}], "slots_2v2": [{"x","y"}, {"x","y"}] }
+# Slots are TEAM 0's (LEFT) spots; team 1 is mirrored about ball.x, so the two teams are symmetric by
+# construction. Every slot is authored at the SAME distance from the ball (checked at load), so no seat —
+# human or CPU — starts closer. Within a team, seats rotate through the slots by stage parity. Courts with no
+# block keep the legacy spawn placement + centre ball (still ghosted until GO, SP-02). Soccer only. ---
+var _kickoff: Dictionary = {}          # {ball: Vector2, slots: {1: [Vector2], 2: [Vector2, Vector2]}} or {}
+
+# --- WK-106 (SP-03) goal credit: built once per goal in stage_end_banner, read by the HUD/banner. ---
+var _last_goal: Dictionary = {}        # {team, scorer_idx, own_goal, assist_idx, scorer_name, assist_name, count}
+var _goal_count: int = 0               # goals this match (HUD flash/pop keys off goal_scored, this is QA)
+
 # --- SPORT VARIANT (owner 2026-07-18 item 5, DROPSHOT) ---
 # The court JSON declares its sport via a top-level "sport" field ("soccer" default | "dropshot").
 # DROPSHOT = volleyball-like: floaty beach ball (Ball.configure_dropshot), a solid centre NET wall
@@ -161,9 +173,12 @@ func configure(runner, config: MatchConfig) -> void:
 	var want: String = str(config.single_arena_path).strip_edges() if config != null else ""
 	_arena_path = _resolve_court(want)
 	_sport = _read_sport(_arena_path)
+	_kickoff = _read_kickoff(_arena_path) if _sport == "soccer" else {}
 	_team_scores = [0, 0]
 	_last_scoring_team = -1
 	_last_scored_stage = -1
+	_last_goal = {}
+	_goal_count = 0
 
 ## Resolve a court SELECTION to an arena PATH via the court-set (v8_sports_courts.md §4.2), keeping the
 ## CD #7 robustness fallback: SPORTS is an ENCLOSED-court mode, so ANY unresolved / locked / missing
@@ -199,6 +214,42 @@ func _read_sport(path: String) -> String:
 		if typeof(parsed) == TYPE_DICTIONARY:
 			return str((parsed as Dictionary).get("sport", "soccer"))
 	return "soccer"
+
+## WK-104: parse the court's optional "kickoff" block (see _kickoff). Returns {} when absent/malformed so the
+## legacy placement runs. Warns (never fails) if a court's slots are not equidistant from the ball — the
+## fairness contract the formation exists for.
+func _read_kickoff(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+	var k: Variant = (parsed as Dictionary).get("kickoff", null)
+	if typeof(k) != TYPE_DICTIONARY:
+		return {}
+	var kd := k as Dictionary
+	var bv: Variant = kd.get("ball", null)
+	if typeof(bv) != TYPE_DICTIONARY:
+		return {}
+	var ball := Vector2(float((bv as Dictionary).get("x", 0.0)), float((bv as Dictionary).get("y", 0.0)))
+	var slots := {}
+	for n in [1, 2]:
+		var raw: Variant = kd.get("slots_%dv%d" % [n, n], null)
+		if typeof(raw) != TYPE_ARRAY or (raw as Array).size() < n:
+			continue
+		var arr: Array = []
+		for s in (raw as Array):
+			if typeof(s) == TYPE_DICTIONARY:
+				arr.append(Vector2(float((s as Dictionary).get("x", 0.0)), float((s as Dictionary).get("y", 0.0))))
+		if arr.size() < n:
+			continue
+		var d0: float = (arr[0] as Vector2).distance_to(ball)
+		for v in arr:
+			if absf((v as Vector2).distance_to(ball) - d0) > 4.0:
+				push_warning("SportsMode: %s kickoff slots_%dv%d are not equidistant from the ball (%.0f vs %.0f px)" \
+					% [path, n, n, (v as Vector2).distance_to(ball), d0])
+		slots[n] = arr
+	return {"ball": ball, "slots": slots}
 
 ## Parse + cache sports_courts.json into {by_id: {id->court dict}, default_path, rotate: {key->[ids]}}.
 ## Absent / malformed file -> a safe stub whose default_path is DEFAULT_ARENA (back-compat).
@@ -372,13 +423,21 @@ func on_stage_ready(runner) -> void:
 ## GO! (dropshot only): unfreeze the ball held above the net and serve it toward the LAST SCORER's half,
 ## so the team that just scored must make the first touch (owner 2026-07-19 pressure inversion). Before
 ## the first point (no scorer) the side alternates by stage parity so neither team owns the opener.
+## ROCKETBALL (WK-104 SP-02/SP-05): the ghosted kickoff ball goes live on GO with the ref-drop release —
+## an upward toss (random in Tuning.sports_kickoff_toss_min..max, no sideways bias) and gravity scaled by
+## sports_kickoff_hang_gravity until the first touch, so both teams converge on a contested ball.
 func on_combat_start(runner) -> void:
-	if _sport != "dropshot" or not is_instance_valid(_ball):
+	if not is_instance_valid(_ball):
+		return
+	if _sport != "dropshot":
+		var toss: float = randf_range(minf(Tuning.sports_kickoff_toss_min, Tuning.sports_kickoff_toss_max),
+			maxf(Tuning.sports_kickoff_toss_min, Tuning.sports_kickoff_toss_max))
+		_ball.go_live(Vector2(0.0, -toss), Tuning.sports_kickoff_hang_gravity, Tuning.sports_kickoff_hang_s)
 		return
 	var serve_team: int = _last_scoring_team if _last_scoring_team >= 0 else int(runner.stage_index) % 2
 	var side: float = -1.0 if serve_team == 0 else 1.0   # team 0 defends the LEFT half, team 1 the RIGHT
-	_ball.freeze = false
-	_ball.linear_velocity = Vector2(side * DROPSHOT_SERVE_SPEED_X, DROPSHOT_SERVE_SPEED_DOWN)
+	# go_live = unfreeze + accept touches (SP-02); hang off (normal beach-ball float) -> the serve is unchanged
+	_ball.go_live(Vector2(side * DROPSHOT_SERVE_SPEED_X, DROPSHOT_SERVE_SPEED_DOWN), 1.0, 0.0)
 
 ## DROPSHOT serve point: dead-centre of the court, up in the top gap ABOVE the net peak (owner 2026-07-19).
 func _dropshot_serve_point(runner) -> Vector2:
@@ -417,7 +476,10 @@ func match_winner(runner) -> int:
 	return -1
 
 ## Read the latched goal_zone -> scoring team = the OTHER team; increment _team_scores ONCE here
-## (idempotent per stage via _last_scored_stage). Returns the GOAL! banner in the scoring team's color.
+## (idempotent per stage via _last_scored_stage), credit the goal (WK-106) and emit THE goal event
+## (EventBus.goal_scored — audio/juice/HUD hook it). Returns the ONE goal banner (WK-16): headline
+## "GOAL!" / "OWN GOAL!" / "POINT!" + a scorer line, all in the awarded team's colour. The score itself
+## is the HUD chip (it pops on the goal), so the banner no longer repeats "RED n — m BLUE".
 func stage_end_banner(runner) -> Dictionary:
 	var defending: int = _latched_defending_team(runner)
 	var scoring: int = 1 - defending if defending >= 0 else _last_scoring_team
@@ -427,8 +489,118 @@ func stage_end_banner(runner) -> Dictionary:
 		_last_scored_stage = int(runner.stage_index)
 		_team_scores[scoring] = int(_team_scores[scoring]) + 1
 		_last_scoring_team = scoring
-	return {"text": "%s   RED %d — %d BLUE" % [goal_word(), int(_team_scores[0]), int(_team_scores[1])],
-		"color": TEAM_COLORS[scoring]}
+		_goal_count += 1
+		_last_goal = _credit_goal(runner, scoring)
+		var scorer = null
+		var si: int = int(_last_goal["scorer_idx"])
+		if si >= 0 and si < runner.players.size() and is_instance_valid(runner.players[si]):
+			scorer = runner.players[si]
+		EventBus.goal_scored.emit(scoring, scorer, bool(_last_goal["own_goal"]))
+	return {"text": _goal_headline(), "color": TEAM_COLORS[scoring], "subline": _goal_subline()}
+
+## WK-106 (SP-03) goal credit from Ball.touch_log (live touches only). Rocket League / FIFA convention:
+##  * the scoring team's LAST TOUCHER scores — even when a defender touched it after (a block, a failed save,
+##    a deflection, or a stale touch the ball wandered in from);
+##  * OWN GOAL (soccer only) is reserved for a defender CLEARLY putting it in: their last touch came within
+##    Tuning.sports_own_goal_window of the goal, ADDED >= sports_own_goal_push px/s toward their own goal, and no
+##    attacker touched it in the sports_deflect_window before (else it is that attacker's deflected shot);
+##  * nobody on the scoring team touched it and it is not an own goal -> a team goal (scorer -1).
+## DROPSHOT: the point goes to the scoring team's last toucher (a failed save is never an "own goal").
+## ASSIST (not on own goals): the touch just before the scorer's final run of touches, if it is a different
+## teammate within Tuning.sports_assist_window of that run (an opponent touch in between = no assist).
+func _credit_goal(runner, scoring: int) -> Dictionary:
+	var out := {"team": scoring, "scorer_idx": -1, "own_goal": false, "assist_idx": -1,
+		"scorer_name": "", "assist_name": "", "count": _goal_count}
+	var tlog: Array = _ball.touch_log() if is_instance_valid(_ball) else []
+	var goal_t: float = _ball.ball_clock() if is_instance_valid(_ball) else 0.0
+	# the scoring team's most recent touch (the default scorer) and the very last touch overall
+	var att: int = -1
+	var last: int = -1
+	for i in range(tlog.size() - 1, -1, -1):
+		var ti: int = _touch_idx(runner, tlog[i])
+		if ti < 0:
+			continue
+		if last < 0:
+			last = i
+		if int(_teams[ti]) == scoring:
+			att = i
+			break
+	if _sport != "dropshot" and last >= 0 and last != att and _is_own_goal_touch(runner, tlog, last, att, goal_t, scoring):
+		out["scorer_idx"] = _touch_idx(runner, tlog[last])
+		out["own_goal"] = true
+	elif att >= 0:
+		out["scorer_idx"] = _touch_idx(runner, tlog[att])
+		var si: int = int(out["scorer_idx"])
+		var run_t: float = float((tlog[att] as Dictionary)["t"])
+		var j: int = att
+		while j >= 0 and _touch_idx(runner, tlog[j]) == si:
+			run_t = float((tlog[j] as Dictionary)["t"])
+			j -= 1
+		if j >= 0:
+			var aj: int = _touch_idx(runner, tlog[j])
+			if aj >= 0 and aj != si and int(_teams[aj]) == scoring 					and run_t - float((tlog[j] as Dictionary)["t"]) <= Tuning.sports_assist_window:
+				out["assist_idx"] = aj
+	if int(out["scorer_idx"]) >= 0:
+		out["scorer_name"] = str(runner.player_name(int(out["scorer_idx"])))
+	if int(out["assist_idx"]) >= 0:
+		out["assist_name"] = str(runner.player_name(int(out["assist_idx"])))
+	return out
+
+## WK-106: did the defender's touch tlog[last] clearly put the ball in? (see _credit_goal). `att` = index of the
+## scoring team's latest touch (-1 none). Goalward = toward the conceding team's own goal from the ball's spot.
+func _is_own_goal_touch(runner, tlog: Array, last: int, att: int, goal_t: float, scoring: int) -> bool:
+	var e: Dictionary = tlog[last]
+	var t: float = float(e.get("t", 0.0))
+	if goal_t - t > Tuning.sports_own_goal_window:
+		return false   # a stale touch the ball wandered in from — not "putting it in"
+	if att >= 0 and t - float((tlog[att] as Dictionary).get("t", -1e9)) <= Tuning.sports_deflect_window:
+		return false   # a deflection of an attacker's shot -> the shooter's goal
+	var own_goal_pos: Vector2 = _own_goal_center(runner, 1 - scoring)
+	if own_goal_pos == Vector2.INF:
+		return true
+	var pos: Vector2 = e.get("pos", own_goal_pos)
+	var dir: Vector2 = (own_goal_pos - pos).normalized()
+	var vin: Vector2 = e.get("vin", Vector2.ZERO)
+	var vout: Vector2 = e.get("vout", Vector2.ZERO)
+	return (vout - vin).dot(dir) >= Tuning.sports_own_goal_push
+
+## Player index of a touch-log entry (-1 if the player is gone or has no team).
+func _touch_idx(runner, entry: Variant) -> int:
+	if typeof(entry) != TYPE_DICTIONARY:
+		return -1
+	var p = (entry as Dictionary).get("p", null)
+	if p == null or not is_instance_valid(p):
+		return -1
+	var idx: int = runner.players.find(p)
+	return idx if idx >= 0 and idx < _teams.size() else -1
+
+## The goal banner headline (WK-106): "OWN GOAL!" on a soccer own goal, else the sport's goal word.
+func _goal_headline() -> String:
+	if bool(_last_goal.get("own_goal", false)):
+		return "OWN GOAL!"
+	return goal_word()
+
+## The goal banner's one scorer line (WK-88 names: humans "P#", CPUs by goat name):
+##   "P1 SCORES!  ·  ASSIST VEX"  |  own goal: "BUTCH SCORES FOR RED!"  |  nobody touched it: "RED SCORES!"
+func _goal_subline() -> String:
+	var team: int = int(_last_goal.get("team", 0))
+	var who: String = str(_last_goal.get("scorer_name", ""))
+	if who == "":
+		return "%s SCORES!" % TEAM_NAMES[team]
+	if bool(_last_goal.get("own_goal", false)):
+		return "%s SCORES FOR %s!" % [who, TEAM_NAMES[team]]
+	var line := "%s SCORES!" % who
+	var assist: String = str(_last_goal.get("assist_name", ""))
+	if assist != "":
+		line += "  ·  ASSIST %s" % assist
+	return line
+
+## WK-106: the last goal's credit (see _credit_goal) — {} before the first goal. HUD / QA read this.
+func last_goal() -> Dictionary:
+	return _last_goal
+
+func goal_count() -> int:
+	return _goal_count
 
 ## WK-15 (CC-11.1 / D-13): the stage-1 goal chip above the controls legend — the sport's one-line rule.
 func goal_line(_runner) -> String:
@@ -584,14 +756,21 @@ func _spawn_ball(runner) -> void:
 		# countdown; on GO (on_combat_start) it launches toward the team that scored last, so the pressure
 		# to make the first touch is on the scorers.
 		_ball.global_position = _dropshot_serve_point(runner)
-		_ball.freeze = true
+	elif not _kickoff.is_empty():
+		_ball.global_position = _kickoff["ball"]   # WK-104: the court's authored kickoff spot
 	else:
 		_ball.global_position = _kickoff_center(runner)
+	# WK-104 (SP-02): GHOSTED until GO in EVERY sport — frozen (no fall/drift through the intro) and not live
+	# (ignores player overlaps + hazard punts). on_combat_start -> Ball.go_live releases it.
+	_ball.freeze = true
+	_ball.live = false
 
 ## Snap each player to a mirrored end by team: team 0 -> the LEFT spawns, team 1 -> the RIGHT spawns.
 ## The runner's _spawn_at uses a fixed spawns[i % n] mapping that CANNOT satisfy both 1v1 and 2v2 team
 ## sides at once, so the team-aware placement is done here (spec §1 "both teams spawn at mirrored ends").
 func _place_teams(runner) -> void:
+	if _place_kickoff_formation(runner):
+		return
 	var spawns: Array = runner._spawns.duplicate()
 	if spawns.size() < 2 or _teams.is_empty():
 		return
@@ -613,6 +792,36 @@ func _place_teams(runner) -> void:
 		p.global_position = pos
 		if p.has_method("respawn"):
 			p.velocity = Vector2.ZERO
+
+## WK-104 (SP-05) fair kickoff: place each team on the court's authored kickoff slots (team 0 as authored,
+## team 1 mirrored about the ball's x), all equidistant from the ball. Seats rotate through their team's
+## slots by stage parity so nobody owns a slot. False (legacy placement runs) when the court has no block or
+## a team's size has no slot set (e.g. a defensive 3v3 overfill).
+func _place_kickoff_formation(runner) -> bool:
+	if _kickoff.is_empty() or _teams.is_empty():
+		return false
+	var count: Array = [0, 0]
+	for i in range(mini(runner.players.size(), _teams.size())):
+		count[int(_teams[i])] = int(count[int(_teams[i])]) + 1
+	var slots: Dictionary = _kickoff["slots"]
+	for t in range(2):
+		if int(count[t]) > 0 and not slots.has(int(count[t])):
+			return false
+	var ball: Vector2 = _kickoff["ball"]
+	var within: Array = [0, 0]
+	for i in range(mini(runner.players.size(), _teams.size())):
+		var p = runner.players[i]
+		if not is_instance_valid(p):
+			continue
+		var t: int = int(_teams[i])
+		var arr: Array = slots[int(count[t])]
+		var pos: Vector2 = arr[(int(within[t]) + int(runner.stage_index)) % arr.size()]
+		within[t] = int(within[t]) + 1
+		if t == 1:
+			pos.x = 2.0 * ball.x - pos.x   # mirror: symmetric by construction
+		p.global_position = pos
+		p.velocity = Vector2.ZERO
+	return true
 
 ## Kickoff centre: the middle of the pitch. Uses bounds centre X (symmetric court) and the stage-rect
 ## centre Y (mid-air over the bouncy floor) so the ball falls onto the floor and bounces = constant motion.

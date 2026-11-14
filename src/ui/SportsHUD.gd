@@ -3,7 +3,10 @@ extends CanvasLayer
 ## Built from SportsHUD.tscn + assets/ui/theme.tres. The score readout is ONE compact color-coded
 ## pill TOP-CENTER — red number | dash | blue number with a tiny "TO N" cap line — replacing the two
 ## huge side panels that ate the screen. Navy chip, chocolate outline, chunky type (theme grammar).
-## Full-screen team-colored flash + "GOAL!"/"POINT!" (mode goal_word) on last_scoring_team change.
+## WK-106 / WK-16: ONE goal banner. On EVERY goal (EventBus.goal_scored) the HUD fires a full-screen
+## team-coloured flash (tint only — no second headline) and pops the scoring team's chip digit; the banner
+## itself is the runner's centre banner (SportsMode.stage_end_banner: "GOAL!" / "OWN GOAL!" + scorer line),
+## whose scorer line this HUD tints in the credited player's team colour.
 ## It fills the SAME method surface PartyMatch calls on a HUD (setup / reset_scores / hide_center
 ## / set_dead / show_center / animate_scores / show_top / show_match_end / show_match_buttons) so the
 ## runner drives it unchanged; the per-player-pip ones are no-ops. Team scores poll runner._mode each frame.
@@ -21,13 +24,13 @@ var _runner   # PartyMatch (untyped so mode/state member access is dynamic — n
 var _center_tw: Tween
 var _top_tw: Tween
 var _flash_tw: Tween
-var _shown_scoring := -2   # last last_scoring_team we flashed for (-2 = uninitialized)
+var _pop_tw: Tween
+var _goal_sub_color: Variant = null   # WK-106: scorer-line colour for the NEXT show_center (set by goal_scored)
 
 @onready var _red_score: Label = $Root/ScoreChip/ChipBox/Scores/RedScore
 @onready var _blue_score: Label = $Root/ScoreChip/ChipBox/Scores/BlueScore
 @onready var _cap: Label = $Root/ScoreChip/ChipBox/CapLabel
 @onready var _flash: ColorRect = $Root/GoalFlash
-@onready var _flash_label: Label = $Root/GoalFlashLabel
 
 @onready var _center_box: VBoxContainer = $Root/CenterC/CenterBox
 @onready var _center_text: Label = $Root/CenterC/CenterBox/CenterText
@@ -56,16 +59,18 @@ func _ready() -> void:
 	add_child(_gate)
 	_gate.verb.connect(_on_match_verb)
 	_flash.visible = false
-	_flash_label.visible = false
 	_red_score.add_theme_color_override("font_color", RED)
 	_blue_score.add_theme_color_override("font_color", BLUE)
+	# WK-106: THE goal event (one per goal, same-team repeats included) drives the flash + score pop.
+	if not EventBus.goal_scored.is_connected(_on_goal_scored):
+		EventBus.goal_scored.connect(_on_goal_scored)
 
 # ------------------------------------------------------------------ runner-called HUD surface
 func setup(_players: Array, _colors: Array, _skins: Array) -> void:
 	pass   # SPORTS shows TEAM scores (polled), not per-player cards
 
 func reset_scores() -> void:
-	_shown_scoring = -2
+	_goal_sub_color = null
 	_red_score.text = "0"
 	_blue_score.text = "0"
 
@@ -88,12 +93,18 @@ func _process(_delta: float) -> void:
 		_red_score.text = str(int(scores[0]))
 		_blue_score.text = str(int(scores[1]))
 	_cap.text = "TO %d" % cap
-	# GOAL flash on a scoring-team change
-	var last: int = int(mode.last_scoring_team())
-	if last != _shown_scoring:
-		if last >= 0 and _shown_scoring != -2:
-			_goal_flash(last)
-		_shown_scoring = last
+
+## WK-106: every goal -> team flash + chip pop, and remember the scorer-line colour for the banner the runner
+## shows right after (stage_end_banner emits this synchronously, then PartyMatch calls show_center).
+## Own goal: the line names the conceding player, so it is tinted in THEIR team's colour.
+func _on_goal_scored(team: int, scorer, own_goal: bool) -> void:
+	var t: int = clampi(team, 0, 1)
+	var credited_team: int = (1 - t) if own_goal else t
+	_goal_sub_color = RED if credited_team == 0 else BLUE
+	if scorer == null:
+		_goal_sub_color = RED if t == 0 else BLUE
+	_goal_flash(t)
+	_score_pop(t)
 
 func _goal_flash(team: int) -> void:
 	var col: Color = RED if team == 0 else BLUE
@@ -101,26 +112,32 @@ func _goal_flash(team: int) -> void:
 		_flash_tw.kill()
 	_flash.color = Color(col.r, col.g, col.b, 0.0)
 	_flash.visible = true
-	var word := "GOAL!"
-	if _runner != null and _runner._mode != null and _runner._mode.has_method("goal_word"):
-		word = str(_runner._mode.goal_word())
-	_flash_label.text = word
-	_flash_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-	_flash_label.visible = true
-	_flash_label.modulate.a = 1.0
-	_flash_label.reset_size()
-	_flash_label.pivot_offset = _flash_label.size * 0.5
-	_flash_label.scale = Vector2(0.4, 0.4)
 	_flash_tw = create_tween()
-	_flash_tw.set_parallel(true)
 	_flash_tw.tween_property(_flash, "color:a", 0.45, 0.10)
-	_flash_tw.tween_property(_flash_label, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_flash_tw.chain().tween_interval(0.5)
-	_flash_tw.chain().tween_property(_flash, "color:a", 0.0, 0.3)
-	_flash_tw.parallel().tween_property(_flash_label, "modulate:a", 0.0, 0.3)
-	_flash_tw.chain().tween_callback(func() -> void:
-		_flash.visible = false
-		_flash_label.visible = false)
+	_flash_tw.tween_interval(0.5)
+	_flash_tw.tween_property(_flash, "color:a", 0.0, 0.3)
+	_flash_tw.tween_callback(func() -> void: _flash.visible = false)
+
+## WK-16 "score tick": the scoring team's chip digit punches up (scale + white flash) and settles.
+func _score_pop(team: int) -> void:
+	var lbl: Label = _red_score if team == 0 else _blue_score
+	var other: Label = _blue_score if team == 0 else _red_score
+	if _runner != null and _runner._mode != null and _runner._mode.has_method("team_scores"):
+		var sc: Array = _runner._mode.team_scores()
+		if sc.size() >= 2:
+			_red_score.text = str(int(sc[0]))
+			_blue_score.text = str(int(sc[1]))
+	if _pop_tw != null and _pop_tw.is_valid():
+		_pop_tw.kill()
+	other.scale = Vector2.ONE
+	other.modulate = Color.WHITE
+	lbl.pivot_offset = lbl.size * 0.5
+	lbl.scale = Vector2(1.9, 1.9)
+	lbl.modulate = Color(2.2, 2.2, 2.2, 1.0)
+	_pop_tw = create_tween()
+	_pop_tw.set_parallel(true)
+	_pop_tw.tween_property(lbl, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_pop_tw.tween_property(lbl, "modulate", Color.WHITE, 0.5)
 
 # ------------------------------------------------------------------ CENTER banner (countdown / GOAL freeze)
 func show_center(text: String, color: Color, hold: float, sub := "") -> void:
@@ -129,6 +146,13 @@ func show_center(text: String, color: Color, hold: float, sub := "") -> void:
 	_center_text.add_theme_color_override("font_color", color)
 	_center_sub.text = sub
 	_center_sub.visible = sub != ""
+	# WK-106: the goal banner's scorer line in the credited player's team colour (consumed once); every
+	# other centre line (countdown, BOUNCE!) stays the theme's white.
+	if _goal_sub_color != null and sub != "":
+		_center_sub.add_theme_color_override("font_color", _goal_sub_color)
+	else:
+		_center_sub.remove_theme_color_override("font_color")
+	_goal_sub_color = null
 	if _center_tw != null and _center_tw.is_valid():
 		_center_tw.kill()
 	_center_box.visible = true
