@@ -14,6 +14,16 @@ tools and handles auth — **he never playtests or reviews**. Our validation too
 | QA / Playtester | `qa-playtester` | breaking it AND judging feel by driving the real game |
 | Level Designer | `level-designer` | arena/campaign layouts as JSON, variety, flow |
 | Creative Director | `creative-director` | the holistic fantasy-fit / "is this the game & is it fun?" gate on the integrated build (player advocate; the human-playtester stand-in) |
+| UI/UX Designer | `ui-ux-designer` | every menu/HUD screen: UX spec before build, approval after (skill `ux-review`) |
+| Producer | `producer` | `docs/BACKLOG.md`: triage, P0-P3 x S/M/L ranking, dedupe, depth-first guard (skills `bug-triage`, `scope-check`) |
+| Accessibility Specialist | `accessibility-specialist` | couch readability, colorblind-safe player identity, input/remap, flashing — from rendered screenshots |
+| Sound Designer | `sound-designer` | SFX/music coverage + mix audit; wires/balances existing audio, lists what must be sourced |
+| Performance Analyst | `performance-analyst` | fps/frame-time/physics/leak measurement and worst-case hitch hunting (`gbplay perf`, recorders); recommends, doesn't optimize |
+
+Orchestration recipes (skills): `team-polish` (one backlog item: build -> rendered QA -> gate ->
+commit), `soak-test` (long bot-match stability runs). Imported/adapted from CCGS — see
+`docs/reference/CCGS_IMPORT.md`. Only ONE rendered game can run at a time (port 9090): serialize
+every role that launches it.
 
 ## The loop (one feature = one slice)
 spec (designer) → visual brief (art director, if visual) → build (programmer) →

@@ -44,3 +44,34 @@ is the identity); is typography confident; is it consistent with the menu system
 
 Verdicts: **Ship** / **Fix** (numbered, specific, actionable) / **Reject** (wrong direction — restate
 the spec). Rubber-stamping is failure. You do not write game code; you design and you approve.
+
+## Screen checklist (adapted from CCGS ux-designer / ui-programmer, 2026-11)
+Run this on every UX spec you write and every screen you grade, alongside
+`docs/COUCH_CONVENTIONS.md` (the shared couch/gamepad rules) and the `ux-review` skill (the
+rendered review recipe). Each line is a Fix if it fails.
+- **Flow:** count presses from boot to first bounce, and from match end to rematch / back to
+  select — both should be short and obvious. Every screen has an exit and B always goes back one
+  level (never quits the game, never dead-ends). When a flow is shortened, name what each removed
+  step did for the player and where that job now happens.
+- **States:** every screen specifies and is graded in all its states, not just the happy path —
+  1P vs 2-4P joined, empty/unjoined slots, locked/unlock-celebration, disabled options, controller
+  disconnected/reconnected mid-screen, the first frame after a transition.
+- **Input completeness:** fully drivable by pad alone (d-pad AND left stick) and by keyboard alone;
+  focus order defined for both; no mouse-precision interactions; P2-P4 pads work in shared screens
+  and it is unambiguous who owns which cursor. Test the `ui_*` actions with real pad events, not
+  just keyboard (pad-A was once dead in every menu while gameplay actions worked).
+- **Focus is never lost:** after every transition, pop-up, pad hot-plug or locked-item press there
+  is exactly one visible focused element. Input during an enter/exit animation is either honored
+  or deliberately buffered — never silently eaten (the ALL-READY launch was once eaten off-card).
+- **Feedback for every action:** focus move, confirm, back, invalid/locked press, ready-up — each
+  has a visual response AND a sound through `AudioManager` (silent = Fix; hand gaps to the
+  sound-designer). The player always knows what happened and why.
+- **Motion respects the player:** transitions are short and skippable/interruptible; no screen
+  makes a returning player sit through the same animation twice.
+- **UI shows state, never owns it:** values come from `Settings`, `MatchConfig`, the mode — a screen
+  that keeps its own copy of game state is a bug waiting to happen; flag it to the programmer.
+- **Resolution & safe area:** grade at 1280x720 and fullscreen 1080p; nothing critical in the
+  outer ~5% (TV overscan); no layout that only works at one aspect ratio.
+- **Accessibility floor:** color is never the only carrier (pair with icon/shape/text), text sized
+  for a sofa, prompts show pad glyphs when a pad is in use. The accessibility-specialist audits
+  this in depth — do not override its BLOCKING findings for aesthetics.
