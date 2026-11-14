@@ -20,46 +20,50 @@ Standard: `docs/COUCH_CONVENTIONS.md` (CC-x.y). Procedure: `docs/WEEKEND_LOOP.md
 Legend: `[ ]` open · `[~]` attempted · `[x]` done · `[>]` merged into another item · Size S = one pass, 1-2 files · M = one full slice · L = split it.
 
 ## In flight (do NOT reassign)
-- **In progress:** WK-95e bot regressions + HOT ruling (gameplay-programmer + game-designer; `InputBot.gd`) · WK-104 ball frozen until
-  GO + kickoff fix (gameplay-programmer; `Ball.gd`, `SportsMode.gd`) · WK-105 sports juice + audio (sound-designer + gameplay-programmer;
-  `AudioManager.gd`, `Ball.gd`, `EventBus.gd`, `SportsMode.gd`) · WK-106 scorer / OWN GOAL banner + flash on every goal (ui-ux-designer +
-  gameplay-programmer; `SportsHUD`, `SportsMode.gd`) · WK-87 Trials objective panel (ui-ux-designer; `TrialsHUD.gd/.tscn`, uncommitted) ·
-  WK-100 display-off pre-flight (tooling; `run_game.ps1`, `record_match.ps1`, `gbplay.py`, `display_check.ps1`, uncommitted).
-- **Watch out (shared files):** WK-104, WK-105 and WK-106 all touch `SportsMode.gd`; WK-104 and WK-105 both touch `Ball.gd`. Commit them
-  in sequence and stage hunks per item (lesson dbc09c9). WK-108 (sports bots) waits for WK-95e: both edit `InputBot.gd`. WK-100 touches
-  `run_game.ps1`: never land it while a QA session holds the game.
+- **In progress:** WK-108 sports bots + the CD2-03 kickoff-goal measurement with human-style drivers (gameplay-programmer, game-designer
+  for the kickoff rule; `InputBot.gd`, `SportsMode.gd`, maybe `Ball.gd`) · WK-20a "who wins and why" measurement (qa-playtester; results
+  pending, then the game-designer rulings in DECISIONS; game slot) · WK-123 Flight School teaches the super + co-op HOME parking +
+  Refuel Ridge gap (level-designer; `levels/trials/*` JSON, plus a gameplay-programmer assist if HOME parking needs `TrialsMode`/`Player` code).
+- **Watch out (shared files):** WK-108 and WK-124 (restart time) both touch `SportsMode.gd`: land WK-124 after WK-108, or stage hunks per item
+  (lesson dbc09c9). WK-123's HOME-parking half may touch `TrialsMode.gd`. Nothing else in flight edits it. WK-20a holds the game slot during
+  its batches, so builders verify around it.
 - **Measurement validity:** perf/timing/feel numbers count only with the display awake (~120 fps). See WEEKEND_LESSONS
-  "DISPLAY OFF = BOGUS PERF DATA" and WK-100.
+  "DISPLAY OFF = BOGUS PERF DATA" and WK-100. **New (WK-CD2, CD2-05):** one 1080p `gbplay screenshot` freezes the game ~1.25 s
+  (`phase_log.stall_ms` 1254 / 1281 / 937). Any duration measured across a screenshot burst is wrong: read game time from
+  `phase_log.tick_s` / `round_stats`, and judge motion from WK-93 recordings.
 
-## Next 10 (producer re-rank 2026-11-14 #4, after the WK-98 sports deep-dive)
-Ranking logic: no P0 is open. The owner says sports "may be more fun than brawl", and WK-98 agrees (verdict FIX, not RETHINK). So the
-sports top moves get real weight: the three already being built (WK-104/105/106) sit right under WK-95e, the owner flight ruling's
-follow-through. WK-107 (LONG HAUL crops both goals) is next because it is S and JSON-only. Then the brawl "who wins and why" measurement
-(WK-20a), now on the post-WK-95 build. WK-CD2 is overdue (19 items since WK-CD1), so it runs as soon as its deps land, before more bot
-and tuning work, so its findings can re-rank WK-108/109. WK-90 moves above WK-109: power-shot hit-stop (SP-01/07) runs through the
-`Juice._hitstop` timer that WK-90 says fires after ~3 frames whatever the duration. WK-25 drops to on-deck #1: it is blocked on the WK-20a
-ruling, and WK-CD2 no longer waits for it. Sports items: 6 of 10.
+## Next 10 (producer re-rank 2026-11-14 #5, after WK-CD2 cold playthrough #2)
+Done since re-rank #4: WK-104/105/106 (5f34080), WK-87/100 (843c6c2), WK-95e (a362ad4, HOT rule ON by director ruling), WK-121 (a1ada05),
+WK-107 (834ecda), WK-CD2 (aa78b3e, `docs/audit/2026-11-14_cd2_playthrough.md`).
+Ranking logic: no P0 is open. CD2's verdict is "FIX, much closer than CD1": flight SHIP, front end SHIP, sports one fairness fix plus an end
+screen away from SHIP, Brawl FIX on pacing and score economy. The list follows CD2's five gaps in order: (1) brawl pacing/scoring, (2) teach
+the super, (3) sports as the showcase, (4) one finished look, (5) couch readability. The three in-flight items lead. Blocked brawl follow-ups
+sit right behind WK-20a so the ruling flows straight into a build. Within the rest, S beats M (impact per cost). WK-90 and WK-109 drop to on
+deck #2/#3: the power shot matters, but kickoff fairness, the restart regression and the end screen are what CD2 says stand between sports
+and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 
-1. ~~WK-95e~~ done a362ad4 — [P1][M] (in progress) Bot stuck/underside regressions + HOT ruling + feel sign-off (owner flight ruling follow-through) — gameplay-programmer + game-designer + creative-director
-2. ~~WK-104~~ done 5f34080 — [P1][M] (in progress) Sports: ball frozen until GO (SP-02 bug) + kickoff lottery fix (SP-05, game-designer A/B) — gameplay-programmer (+ game-designer ruling)
-3. ~~WK-105~~ done 5f34080 — [P1][M] (in progress) Sports: ball-strike / goal / tile / hole sounds + hit reaction (SP-01) — sound-designer + gameplay-programmer
-4. ~~WK-106~~ done 5f34080 — [P1][M] (in progress) Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03, supersedes WK-16) — ui-ux-designer + gameplay-programmer
-5. ~~WK-107~~ done 834ecda — [P1][S] LONG HAUL crops both goals: shrink the court to fit at 0.60 (SP-04) — level-designer (+ gameplay-programmer for the load-time check)
-6. WK-20a [P1][M] Who wins and why: knockback side effects + self-KO −1, human-style drivers, post-WK-95 build (after WK-95e (a)) -> game-designer rulings — qa-playtester + game-designer
-7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (flight + super, sports after WK-104/105/106, KO readability, scoring) — creative-director
-8. WK-108 [P1][M] Sports bots: route around the ball, keep goal, (L4+) cross (SP-06) — gameplay-programmer (after WK-95e, WK-104)
-9. WK-90 [P1][S] Hit-stop duration: re-measure at 120 fps with the screen on, game-designer ruling, then fix (now also gates WK-105/109 power-shot hit-stop) — game-designer -> gameplay-programmer
-10. WK-109 [P1][S] Power shot gets real dynamic range: split the ball cap, trim the touch floor (SP-07, A/B) — game-designer -> gameplay-programmer (after WK-105, WK-90)
+1. WK-123 [P1][M] (in progress) Flight School lessons 2-3 require the super (CD2-01) + co-op HOME players stop blocking (CD2-02) + Refuel Ridge gap (WK-95f d) — level-designer (+ gameplay-programmer for HOME parking)
+2. WK-20a [P1][M] (in progress) Who wins and why: CPU share, self-KO −1, stage length and first-death time, human-style drivers -> game-designer rulings — qa-playtester + game-designer
+3. WK-108 [P1][M] (in progress) Sports bots route/keep goal + kickoff goals ≤ 10 % with human-style drivers (CD2-03 folded in) — gameplay-programmer + game-designer
+4. WK-20c / WK-20b [P1][S] Apply whatever the WK-20a ruling calls for (self-KO / CPU mix / Lv0 gate); BLOCKED on the ruling, pulled the moment it lands — gameplay-programmer
+5. WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT regression, now 3.27 s) — gameplay-programmer + ui-ux-designer
+6. WK-37a [P1][S] Ghost-goat spec (no game slot, can run in parallel now): the dead are 48 % of a weaker player's match — game-designer
+7. WK-18 [P1][S] 28 px floor for anything a player reads (HUD, legend, lobby badges, sports score bug) — ui-ux-designer
+8. WK-111 [P1][M] Sports end screen frames the winning team + stat strip + MVP (SP-09; raised P2 -> P1 by CD2) — ui-ux-designer + gameplay-programmer
+9. WK-25 [P1][M] KO credit pop (+1 to the killer's card, −1 OOPS if the rule survives) + ScoreScreen kill list; after the WK-20a/20c ruling — gameplay-programmer + ui-ux-designer
+10. WK-34 [P1][M] Toybox panel kit A: Pause, in-match Options, ScoreScreen (first half of "one finished look"; WK-35 follows) — ui-ux-designer
 
-On deck (11+, in order): WK-25 KO credit pop (M, after the WK-20a ruling) · WK-66a Dropshot/goal nets readable (P1 M, art; SP-13) ·
-WK-26 super-aim wind-up sound + "!" (S) · WK-110 sports MATCH POINT / GOLDEN GOAL + GOALS rule (M) · WK-111 sports end screen frames the
-winners + stat strip (M, after WK-106) · WK-113 sports legend off the floor + smash teaching line (S) · WK-112 sports hazards stun, not kill
-(S) · WK-99 fuel super-ready notch, now incl. sports (M) · WK-120 sports FORMAT 2V2 default with 2+ humans (S) · WK-114 cross-mode court
-unlock gates (S) · WK-13 BRAWL default focus (S) · WK-37a ghost-goat spec (S, no game slot) · WK-31 HUD danger state (M) · WK-116 sports
-rally long tail (S, measure first) · WK-28 controller disconnect (M) · WK-19 rumble per pad (S) · WK-53 quack/taunt (S) · WK-32a hero
-decision (S) · WK-14 singular focus (S) · WK-29 glyph component (M) · WK-65 court cards + Dropshot mode card (M) · WK-35 panel kit B incl.
-sports scoreboard (M).
-WK-89 runs inside the WK-20a session; it is not pulled on its own.
+On deck (11+, in order): WK-35 panel kit B incl. sports scoreboard + CD2-06 pip-over-banner (M, after WK-34) · WK-90 hit-stop re-measure
++ ruling (S; gates WK-109) · WK-109 power shot dynamic range (S, after WK-90) · WK-37b ghost-goat build (M, after 37a + scope-check) ·
+WK-26 super-aim wind-up sound + "!" (S) · WK-31 HUD danger state + stocks (M) · WK-85 Trials lesson 1 / Islands Void mint fill (S) ·
+WK-66a nets readable (M, art) · WK-122 sports court surround (S) · WK-110 MATCH POINT / GOLDEN GOAL (M) · WK-95f Trials sweep remainder (S) ·
+WK-13 BRAWL default focus (S) · WK-42 Victory hides HUD cards (S) · WK-125 lobby auto-joins the confirming pad (S) · WK-113 sports legend
+off the floor (S) · WK-112 sports hazards stun (S) · WK-99 fuel super-ready notch (M) · WK-120 FORMAT 2V2 default (S) · WK-114 court unlock
+gates (S) · WK-116 sports rally tail + Dropshot rally watch (S, measure) · WK-54 per-player legend holds until FLY + SUPER used (S) ·
+WK-28 controller disconnect (M) · WK-19 rumble per pad (S) · WK-53 quack/taunt (S) · WK-32a hero decision (S) · WK-14 singular focus (S) ·
+WK-29 glyph component (M) · WK-65 court cards + Dropshot mode card (M) · WK-126 (unverified) bot orbit loops re-check (S).
+WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs inside the WK-20a session; it is not pulled on its own.
+
 
 ---
 
@@ -98,16 +102,43 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept: recording of 3 bot supers per difficulty shows smooth, readable wind-up; max angular step under cap.
 - Status: done 9a2ee3f. WK-98 confirmed it in sports: 5 recordings, aim capped at 2.63°/tick, 0 jumps over 15° (§6.7).
 
-### [ ] WK-95f [P2][S] WK-95 leftovers: Refuel Ridge skip-one-pad gap, ORBIT/cannon/s3 Trials sweep, feel sign-off
-- From WK-95e (a362ad4): (d) level-designer +80 px merged gap on n2_refuel_ridge per WK-95 spec; Trials ORBIT set (g6),
-  cannon courses and s3 soccer trials unchecked under the new flight; (e) creative-director 6-question feel check ->
-  WK-CD2. Sports bot stuck ~29/min (pre 23) moved into WK-108.
-- Accept: recordings of the at-risk Trials courses completed by a boost-only driver; CD2 feel verdict.
+### [ ] WK-123 [P1][M] Flight School must teach the super; co-op HOME goats stop blocking partners; Refuel Ridge gap
+- Area: trials · Owner: level-designer (JSON) + game-designer (lesson intent) + gameplay-programmer (HOME parking, if it needs code)
+- Source: creative-director WK-CD2 (CD2-01 P1/S-M, CD2-02 P2/S) + WK-95f (d) · owner WK-95 ruling follow-through ("super = the attack")
+- Evidence (CD2-01): a FLY-only point-and-go pilot clears `tut_02_super_shot` in 1.72 s with 31 % fuel left (`tools/out/cd2/47_t2_flyonly.png`,
+  "1 of 2 HOME"); `tut_03_sky_ladder` clears on FLY alone from a bounce apex in 3.3 s (from a standing start it falls ~600 px short). The
+  `tut_03` design_intent premise (cap 760, tank dies 1000 px short) is stale since WK-95 (cap 800, bounce speed kept along the thrust).
+- Evidence (CD2-02): co-op `tut_02`/`tut_03`: twice in three lessons a HOME P1 falling back down the shared column reversed P2's super from
+  −2,339 / −3,000 px/s to +518 / +696 px/s within 0.3 s; with P1 moved aside the same input cleared lesson 3 in 1.2 s. Both players spawn at
+  the same x (WK-43 covers spawn offsets only).
+- Impact: the game's only super tutorial ends with the player never having fired one, so newcomers learn the super is optional (CD2 §2 Q2);
+  in co-op a perfect super dies on the partner. Every new player, first minutes of Trials.
+- Do: (a) each of `tut_02`-`tut_04` fails when you use only the verb it is not teaching. Preferred: teach the super as a HIT (smash a crate /
+  DestructibleBlock / target off a ledge), or a ring past a gap only the 0.45 s / 1,260 px burst crosses; else lift `tut_03`'s ring above the
+  post-WK-95 flight ceiling INCLUDING a bounce start. Refresh the design_intent text. (b) Once HOME, a goat parks in or behind the ring: frozen,
+  non-colliding, celebrating (also shows who is done); fallback: no player-vs-player contact in Trials. (c) WK-95f (d): +80 px merged gap on
+  `n2_refuel_ridge` per the WK-95 spec.
+- Re-sized (producer): three S pieces in one Trials pass = M. If (a) needs a new target entity, or (b) needs Player/TrialsMode code, split (b)
+  out as WK-123b [S] for the gameplay-programmer rather than stall (a)'s JSON.
+- Accept (rendered): the FLY-only pilot FAILS `tut_02`, `tut_03` (from a bounce apex AND from standing) and `tut_04`; the same lessons clear
+  with a human-style driver that uses X; 2P co-op lesson 3 recording: P1 HOME is parked and P2's super reaches the ring; Refuel Ridge
+  recording shows the skip-one-pad gap demands a refuel; lesson screenshots under `tools/out/wk/WK-123_*.png`, LOOKED at.
+- Status: in-progress (level-designer, assigned 2026-11-14 by the director; Next-10 #1)
+
+### [ ] WK-95f [P2][S] WK-95 leftovers: ORBIT/cannon/s3 Trials sweep under the new flight
+- From WK-95e (a362ad4): Trials ORBIT set (g6), cannon courses and s3 soccer trials unchecked under the new flight. Sports bot stuck
+  ~29/min (pre 23) moved into WK-108. (d) Refuel Ridge gap moved into WK-123 (2026-11-14 re-rank #5). (e) feel sign-off: DONE by WK-CD2,
+  verdict SHIP for flight (`docs/audit/2026-11-14_cd2_playthrough.md` §2).
+- CD2 add: the sweep's Accept also checks "flight-only fails" wherever a course is meant to teach or require the super (Flight School
+  itself is WK-123).
+- Accept: recordings of the at-risk Trials courses completed by a boost-only driver (0 newly impossible), and any super-gated course still
+  fails without X.
+- Status: open (on deck)
 
 ### [x] WK-95e [P1][M] WK-95 follow-ups: bot stuck/underside regressions, HOT ruling, creative-director feel sign-off — a362ad4
 - Source: WK-95 build report (commit 4135884). Owner: gameplay-programmer (bots) + game-designer (ruling) + creative-director.
-- Status: in-progress (Next-10 #1). Sports note: the sports stuck/min regression (23 -> 33) is in scope here, not in WK-108; WK-108
-  starts only after this lands (both edit `InputBot.gd`). Watch that sports bots keep the super as a body-check (WK-98 §6.3).
+- Status: done a362ad4 (HOT rule ON per director ruling; traversal supers 9.8 %). Feel sign-off (e): WK-CD2 SHIP for flight. The residual
+  sports stuck/min (~29 vs 23) moved into WK-108.
 - (a) Bot motion regressions vs before: stuck episodes/stage 1.87 -> 2.59 (+38%), underside bounces 3.37 -> 3.83; sports
   stuck/min 23 -> 33. Fix in the bot brain, verify with a 160-stage batch + recordings (target <= 1.1x before).
 - (b) game-designer ruling on `InputBot.wk95_hot_stopdist` (HOT recovery requires a full brake can't stop before the
@@ -145,7 +176,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - WK-95d [P0][M] Side-effect gates + sign-off — qa-playtester + level-designer + creative-director. Deps: 95b, 95c. Accept: PadHopper
   C1-C4, KO pacing D, sports E (owner's fun-flagged mode: mandatory), Trials sweep F (0 newly impossible courses), after-recordings G,
   creative-director feel check §10 SHIP. On a miss, walk the §9 ladder one knob at a time; Phase 2 `super_hit_refund` only if C4 fails.
-- Status: done 4135884 (M1-M9 pass; bot traversal supers 27.6 -> 13 %). Follow-ups in WK-95e.
+- Status: done 4135884 (M1-M9 pass; bot traversal supers 27.6 -> 13 %). Follow-ups in WK-95e. WK-CD2 verdict: SHIP for flight, humans
+  and bots (point-and-hold crossed 1,640 px in 2.0 s; bots 37-63 % alive time on normal boost, ~90 % of supers are attacks). Tutorial
+  hole -> WK-123.
 
 ### [x] WK-96 [P0][M] Pendulums: pass through players without smashing them AND motion looks stiff/poor quality — 9a2ee3f
 - Area: brawl (hazards) · Owner: gameplay-programmer (+ art-director on the look) · Source: owner_2026-11-14_checkin.md (ask 4 + follow-up)
@@ -207,7 +240,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   holds the game. Rec 1(c), setting the AC display timeout to Never, is owner machine setup: BLOCKED (owner), not studio work.
 - Accept: with the display forced off (or a stubbed 506 event), each tool prints the warning; with the display on, run_game + a gbplay
   screenshot still work unchanged.
-- Status: in-progress (tooling; uncommitted `run_game.ps1`, `record_match.ps1`, `gbplay.py`, new `tools/display_check.ps1`).
+- Status: done 843c6c2 (warning in run/record/perf tools). WK-CD2 ran with `gbplay perf` reporting display on, valid, 120-121 fps.
 
 
 ## SPORTS — WK-98 deep-dive (docs/audit/2026-11-14_sports_deepdive.md) — owner ask 6: "maybe more fun than the brawl", items jump their band
@@ -216,7 +249,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 > above the floor (flight required) · CCD on the ball · true-entry goal detection (centre-in-rect) · the Dropshot serve rule (frozen
 > above the net, served at the last scorer, alternating by stage parity on the opener) · crack-then-break tiles with "bounce on the
 > breaking hit" · beach ball float (gravity 0.35, restitution 0.93, cap 1900) · the touch floor (a nudge always moves the ball) · bot
-> supporter/cover logic (`SUPPORT_HOLD_FRAC`) · WK-27 colourway teams (cross-team hues ≥ 90° apart) · the 2.8 s goal-to-kickoff restart.
+> supporter/cover logic (`SUPPORT_HOLD_FRAC`) · WK-27 colourway teams (cross-team hues ≥ 90° apart) · the 2.8 s goal-to-kickoff restart
+> (**WK-CD2: currently 3.27 s game time, soft regression -> WK-124**).
 > Every sports item's Accept implicitly includes "PROTECT list unchanged".
 > **POST-WK-95 RE-CHECKS (WK-98 §6):** WK-98 judged the uncommitted WK-95 tree. Each consumer re-measures its own number on the current
 > build first, with the WK-98 harness (`tools/out/sports/logs/human.py` + `monitor.gd`, M2 BOX 2v2 + M4 BEACH 2v2): kickoff goals < 4 s
@@ -239,7 +273,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept: (a) 30 rendered bot kickoffs: 0 touches outside COMBAT, ball at GO = spawn ±1 px. (b) 40 rendered kickoffs (bots L3 + one
   human-style driver): goals within 4 s of GO ≤ 10 %; median CENTER PITCH rally 8-20 s; WK-93 recording of 3 kickoffs looked at.
 - Commit (a) as soon as it passes. Do not hold the bug fix for the (b) ruling.
-- Status: in-progress (Next-10 #2)
+- Status: done 5f34080 for (a) (frozen until GO, verified again by WK-CD2) and the fair kickoff toss. (b)'s Accept is NOT met: the commit
+  reported 22-26 % kickoff goals and blamed bot pathing; WK-CD2 (CD2-03) measured **3 of 10 goals within 3 s of GO, all by human-style
+  seats** (`tools/out/cd2/rb/phase.json`, `rb/r016`-`r020`), so bot routing alone will not fix it. The (b) Accept moves into WK-108 (b2).
 
 ### [x] WK-105 [P1][M] Sports: ball strike, goal, tile and hole-fall sounds + hit reaction (SP-01) — 5f34080
 - Area: sports | audio · Owner: sound-designer + gameplay-programmer · Source: WK-98 SP-01
@@ -254,7 +290,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   hand-roll a second timer (WK-90 owns the timer bug).
 - Accept: rendered Rocketball + Dropshot match: a sports SFX within 1 frame of ≥ 95 % of touches; horn + crowd within 0.1 s of every
   goal/point; `death` never fires in a sports mode; a WK-93 recording frame shows squash + impact ring on a strike.
-- Status: in-progress (Next-10 #3)
+- Status: done 5f34080 (hole-fall puff, tile crack/break sounds and the master limiter followed in WK-121 a1ada05). Audio not judged by ear
+  in WK-CD2.
 
 ### [x] WK-106 [P1][M] Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03; supersedes WK-16) — 5f34080
 - Area: sports | HUD · Owner: ui-ux-designer + gameplay-programmer · Source: WK-98 SP-03 + R-12 (WK-16, merged here)
@@ -269,7 +306,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   a goal counter. Mouth flash in the scoring team's colour. Score-digit pop. Expose per-player credit for WK-111 (end-screen stats).
 - Accept (rendered): 5 goals in a row incl. same-team repeats and one own goal: each shows exactly one banner naming the scorer or
   "OWN GOAL", the flash fires on all 5, mouth flash in team colour; one Dropshot point shows the same single banner, nothing clipped by posts.
-- Status: in-progress (Next-10 #4)
+- Status: done 5f34080. WK-CD2: the GOAL! / POINT! banner names scorer + assist with a full-screen team flash (`tools/out/cd2/rb/r016`,
+  `ds/d017`). Side effect to watch: its banner hold is the likely cause of the +0.47 s restart regression (WK-124).
 
 ### [x] WK-107 [P1][S] LONG HAUL crops both goals: shrink the court so it fits at the 0.60 sports floor (SP-04) — 834ecda
 - Area: sports | levels · Owner: level-designer (JSON) + gameplay-programmer (load-time check) · Source: WK-98 SP-04
@@ -289,7 +327,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   a goat-readability screenshot at ~0.53.
 - Accept: LONG HAUL screenshot at 1920x1080 shows both goal back-walls and the ceiling/floor fully inside the frame; flight check passes;
   the load-time check prints nothing for all 11 courts.
-- Status: open (Next-10 #5)
+- Status: done 834ecda (re-cut to 3200x1800, both goals on screen at 0.60, JSON only). The flat surround now visible at 0.60 -> WK-122.
 
 ### [ ] WK-108 [P1][M] (+ sports bot stuck ~29/min vs 23 pre-WK-95: make bot 'danger'/out-of-arena look-ahead mode-aware in enclosed courts; keep supporter/ball targets below the ceiling) Sports bots: route around the ball, keep goal, (L4+) cross (SP-06)
 - Area: sports (bots) · Owner: gameplay-programmer (`InputBot` / `SportsMode.bot_objective`) · Source: WK-98 SP-06
@@ -300,10 +338,18 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Do: (a) ball-avoid waypoint (offset perpendicular to ball->goal by ~1.6x(ball + body radius), prefer over the top; commit to `behind`
   only once the segment clears the ball); (b) keeper role for rank ≥ 1 with the ball in the own third (hold goal-mouth centre, challenge
   inside 400 px); (c) optional L4-5 cross. Keep `SUPPORT_HOLD_FRAC` behaviour (PROTECT). Re-measure §6.2/6.3 first.
-- Deps: WK-95e landed (shares `InputBot.gd`); WK-104 landed (kickoff formation changes positions).
+- Deps: WK-95e landed (shares `InputBot.gd`); WK-104 landed (kickoff formation changes positions). Both done.
+- **(b2) CD2-03 folded in (re-rank #5, director): kickoff goals with human-style players.** Evidence: CENTER PITCH 2v2 (3 human-sim + 1 CPU),
+  10 goals, rallies 8.3, 4.3, 14.0, 15.4, 12.2, **2.9, 1.75, 1.9**, 9.3, 10.5 s game time; 3 of 10 within 3 s of GO, all scored by human seats
+  (`tools/out/cd2/rb/phase.json`, `rb/r016`-`r020`). Median rally 8.8 s is in band. So this is a kickoff RULE / formation problem, not bot
+  pathing. Do: game-designer A/B on the current build, measured with HUMAN-STYLE drivers (the CD2 HumanSim pattern, posting real per-device
+  events), not only bots: the deep-dive's (c) keeper + midfield formation, or "first touch can't score" (ball dead until it crosses the centre
+  line, or a goal within 1.5 s of GO is disallowed). DECISIONS entry. Commit (b2) separately from the routing work (own hunks).
 - Accept: 10 bot-only 2v2 WK-93 recordings: CPU own goals ≤ 15 % of goals; supporter within 300 px of the goal mouth ≥ 70 % of
-  own-third time; motion health (stuck/min) no worse than the post-WK-95e number.
-- Status: open (Next-10 #8)
+  own-third time; motion health (stuck/min) no worse than the post-WK-95e number (~29/min; pre-WK-95 23). **(b2):** 40 rendered kickoffs
+  with at least two human-style seats: goals within 4 s of GO ≤ 10 % (game time from `phase_log.tick_s`, no screenshot bursts, see CD2-05);
+  median CENTER PITCH rally 8-20 s; restart time unchanged or better (WK-124).
+- Status: in-progress (Next-10 #3; gameplay-programmer + game-designer for (b2))
 
 ### [ ] WK-109 [P1][S] Power shot gets real dynamic range: split the ball cap, trim the touch floor (SP-07)
 - Area: sports (feel) · Owner: game-designer (A/B ruling) -> gameplay-programmer · Source: WK-98 SP-07 · feel-protect: A/B before shipping;
@@ -316,7 +362,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Deps: WK-105 (`ball_struck` signal, strike FX), WK-90 (hit-stop timer is real).
 - Accept: touch-speed histogram < 10 % of normal touches near the cap; power shots visibly exceed it; median normal touch 1300-1600 px/s;
   DECISIONS entry; creative-director replay confirms a super header reads as THE big moment. Touch floor still moves the ball (PROTECT).
-- Status: open (Next-10 #10)
+- Status: open (on deck #3 after re-rank #5, behind WK-90; CD2 lists it in the sports-showcase group but not on the path to SHIP)
 
 ### [ ] WK-110 [P2][M] Sports tension: MATCH POINT / GOLDEN GOAL banners + GOALS rule stepper (SP-08)
 - Area: sports | menus · Owner: game-designer + gameplay-programmer + ui-ux-designer · Source: WK-98 SP-08
@@ -328,7 +374,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept: rules screenshot with the GOALS row; at 5-4 and 5-5 (cap 6) screenshots show "MATCH POINT — RED" and "GOLDEN GOAL".
 - Status: open (on deck)
 
-### [ ] WK-111 [P2][M] Sports end screen: frame the winning team, panel to the lower third, per-player stat strip + MVP (SP-09)
+### [ ] WK-111 [P1][M] Sports end screen: frame the winning team, panel to the lower third, per-player stat strip + MVP (SP-09)
 - Area: sports | menus · Owner: ui-ux-designer + gameplay-programmer · Source: WK-98 SP-09
 - Evidence: `tools/out/sports/evidence/sp_end_zoom_into_wall.png` (LONG HAUL: `MATCH_END_ZOOM` 1.1 punch on the representative winner =
   goal pillars + void, winners hidden behind the panel); `m6_rb2v2_bowl/end.png` (same on the bowl ledges); panel says only
@@ -336,9 +382,11 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Do: for sports, frame the winning team bounds-clamped (zoom ≤ 0.92) + team-colour confetti; panel in the lower third; stat strip from
   WK-106 credit (goals, assists, own goals, power shots) + one MVP chip. End-of-match presentation only, not the in-play camera.
   REMATCH / CHANGE SETUP already work (keep).
-- Deps: WK-106 (credit data).
+- Deps: WK-106 (credit data) — done 5f34080.
+- Raised P2 -> P1 (re-rank #5): WK-CD2 names it a creative-director fantasy gap, one of two things between sports and SHIP ("a
+  winning-team celebration with stats"); the punch-zoom still lands on a wall. The owner flagged sports as the fun mode (WK-98).
 - Accept: Rocketball and Dropshot end screenshots show the winning goats, no void, a stat row per player.
-- Status: open (on deck)
+- Status: open (Next-10 #8)
 
 ### [ ] WK-112 [P2][S] Sports hazards knock and stun instead of killing; bombs off the kickoff lines (SP-10)
 - Area: sports | levels · Owner: game-designer (ruling) + level-designer · Source: WK-98 SP-10
@@ -385,7 +433,10 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   pressure" goal-mouth growth after 30 s without a goal (visible net extension + crowd chant), a springier sports floor, or LONG HAUL
   mid-field bumpers. DECISIONS entry. Otherwise Won't do with the numbers.
 - Accept: 10 CENTER + LONG HAUL rallies, none over 45 s, median 8-20 s.
-- Status: open (BLOCKED until WK-104 + WK-107)
+- WK-CD2 data: CENTER PITCH 2v2 rallies max 15.4 s, median 8.8 s (game time). **Dropshot watch (CD2 soft regression):** median rally 14.5 s
+  (range 9-26 s, 11 points, SUNSET BEACH 2v2) vs the deep-dive's 10.7 s on the same court, the effect WK-98 §6.6 predicted from easier
+  hovering under the ball. Monitor only: act (game-designer ruling) if the Dropshot median crosses ~20 s. Re-check in the same measurement.
+- Status: open (unblocked: WK-104 5f34080 + WK-107 834ecda landed; measure LONG HAUL post re-cut + Dropshot before ruling)
 
 ### [ ] WK-117 [P3][S] Sports words, not brawl words: "KICK OFF!" / "SERVE!" / "PLAY!" (SP-16)
 - Area: sports | menus · Owner: ui-ux-designer · Source: WK-98 SP-16
@@ -416,7 +467,31 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   scope: the Dropshot FORMAT default (Rocketball too is a ui-ux call; a FORMAT the players already set for that mode wins, per WK-07
   per-mode memory) and an optional ribbon, also a ui-ux call.
 - Accept: 2 humans join a fresh Dropshot lobby -> FORMAT reads 2V2 (screenshot); a remembered 1V1 is kept.
+- WK-CD2 confirmed in play: with two humans the sports lobby fell back to 1V1, CPUs NONE (`tools/out/cd2/27_after_holdB.png`); a third
+  joiner flipped it to 2V2.
 - Status: open (on deck)
+
+### [x] WK-121 [P2][S] Master limiter (peaks ≤ −1 dBFS, were +10.4) + sports hole falls get a sand puff, not the KO freeze + Dropshot tile crack/break sounds — a1ada05
+- Area: audio | sports · Owner: sound-designer + gameplay-programmer · Source: WEEKEND_LESSONS "master bus clips" + WK-105 follow-ups
+- Files: `default_bus_layout.tres`, `Juice.gd`, `AudioManager.gd`, `EventBus.gd`, `Ball.gd`, `DropTile.gd`, CC0 Kenney impact samples
+  (`assets/sfx/LICENSES.md`).
+- Note: filed retroactively by the producer (re-rank #5); the work landed before a backlog entry existed. Closed on the commit plus the
+  builder's peak measurement; WK-CD2 did not judge audio by ear. The numeric half of WK-79 (no SFX clipping) is partly covered by it:
+  re-check, don't redo.
+- Status: done a1ada05
+
+### [ ] WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT-list regression)
+- Area: sports · Owner: gameplay-programmer (+ ui-ux-designer: the scorer banner must still read) · Source: creative-director WK-CD2 §4 soft regression
+- Evidence: Rocketball goal -> next GO = **3.27 s game time** (STAGE_END 1.41 + INTRO 0.81 + COUNTDOWN 1.06), from `tools/out/cd2/rb/phase.json`
+  `phase_log.tick_s` (game time, not the screenshot-stalled wall clock). WK-98 PROTECT says 2.8 s. +0.47 s, probably the WK-106 banner hold.
+- Impact: every goal and every point in the owner's fun mode: ~10 restarts per match, ~5 s of extra waiting each match. Small per goal, but
+  the PROTECT list exists so the loop stays snappy.
+- Do: find where the +0.47 s comes from in the phase log before changing anything. Prefer overlapping the WK-106 banner with STAGE_INTRO, or
+  trimming the sports STAGE_END hold, over shortening the countdown. Sports-only path; brawl phase timings byte-identical.
+- Deps: land after WK-108 (both touch `SportsMode.gd`) or stage hunks per item.
+- Accept: 10 goals (Rocketball) + 5 points (Dropshot), game-time phase log: median goal -> GO ≤ 2.8 s; a burst shows the scorer banner fully
+  readable (name + assist) before it leaves; brawl STAGE_END -> COMBAT unchanged (4.8 / 6.2 s designed).
+- Status: open (Next-10 #5)
 
 
 ## P0 — broken normal couch play (controls, joining/selecting, roster)
@@ -546,7 +621,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept (rendered): after a stage change in Brawl, eval `_pu_director.points` equals that arena JSON's `powerup_spawners` on 3
   arenas, with a bubble screenshot at an arena-specific point; Rocketball, Dropshot and Trials lesson 1 show 0 bubbles over 60 s
   (or the game-designer's ruling); no bubble outside the camera bounds. The 94-arena re-check rides on WK-57.
-- Status: done 4d5d356. WK-CD2 re-judges it as item (4) (powerups only at each arena's own points).
+- Status: done 4d5d356. WK-CD2 verified: no bubbles in sports or Trials; Brawl bubbles inside each arena's own layout.
 
 ### [x] WK-08 [P1][S] One player = one colour = their goat's colour, everywhere — 4e7caf6
 - Sources: C-08, R-04, D-03 (design audit rated P0)
@@ -572,7 +647,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   Brawl in motion FIX. No regressions. New findings CD1-01..06 -> WK-86, WK-20a (expanded), WK-87, WK-88, WK-17, WK-89.
   Re-judged: WK-82, WK-21/41, WK-37, WK-85, WK-43 (notes added on each).
 
-### [ ] WK-CD2 [P1][M] Creative-director cold playthrough #2 (recurring)
+### [x] WK-CD2 [P1][M] Creative-director cold playthrough #2 (recurring) — aa78b3e
 - Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank · Area: all · uses the game slot
 - Deps (re-rank 2026-11-14 #4): WK-95e landed (its feel sign-off (e) folds into this run), WK-104/105/106 landed, WK-20a ruling written.
   WK-25 is NO LONGER a dep (CD2 is overdue: 19 items since WK-CD1). Item (1) is judged with WK-23/24 and says whether WK-25 is still
@@ -587,7 +662,23 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   rally length vs 10.7 / 14.5 s; bot aim smoothness). Use WK-93 recordings for (1), (5), (6) and (7).
 - Accept: findings doc in `docs/audit/` with screenshots under `tools/out/cd2/` + producer re-rank before Next-10 item 8 is pulled.
   Next instance WK-CD3 ~6 items later.
-- Status: open (Next-10 #7)
+- Status: done aa78b3e, doc `docs/audit/2026-11-14_cd2_playthrough.md`, evidence `tools/out/cd2/`, recordings `tools/out/rec/cd2_*`.
+  Verdict FIX, much closer than CD1: flight SHIP (WK-95/95e(e) closed), front end + couch input SHIP, sports one kickoff fix + an end screen
+  from SHIP, Brawl FIX on pacing and score economy (WK-20a is the critical path). Owner check-in asks WK-94/95/96/97 verified FIXED, WK-98
+  agreed. No functional regressions. New findings: CD2-01 -> WK-123 · CD2-02 -> WK-123 · CD2-03 -> WK-108 (b2) · CD2-04 -> WK-125 ·
+  CD2-05 -> tooling lesson (Measurement validity note above; no game item) · CD2-06 -> WK-35. Soft regressions: restart 3.27 s -> WK-124;
+  Dropshot rally 14.5 s -> watch in WK-116. Watch item: bot orbit loops -> WK-126 (unverified). Re-judged: 20a, 21/41, 25, 37, 85, 86, 87,
+  88, 42, 13, 120 (notes on each). Producer re-rank #5 done (this file).
+
+### [ ] WK-CD3 [P1][M] Creative-director cold playthrough #3 (recurring)
+- Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank · Area: all · uses the game slot
+- When: ~6 items after re-rank #5, ideally once the WK-20a ruling + its WK-20c/20b build and WK-123 have landed.
+- Re-judge specifically: (1) Brawl stage length, first-death time, CPU share and dead-time share vs CD2 (median 11.6 s; CPU 10-6-4-2; P1
+  dead 48 % of combat frames); (2) can a newcomer clear Flight School without firing a super (WK-123); (3) Rocketball kickoff goals with
+  human-style seats and the restart time (WK-108 b2, WK-124); (4) sports end screen (WK-111); (5) bot orbit loops at --follow zoom (WK-126).
+  Game-time numbers only (`phase_log.tick_s`), never wall clock across screenshot bursts (CD2-05).
+- Accept: findings doc in `docs/audit/` with screenshots under `tools/out/cd3/` + producer re-rank.
+- Status: open (on deck, scheduled)
 
 ### [x] WK-82 [P1][S] Lobby hold-B exits only from a B press that changed nothing; 6 px ring — 4d5d356
 - Source: ui-ux-designer lobby review L8 (docs/audit/2026-11-14_lobby_review.md); producer code re-check 2026-11-14
@@ -646,7 +737,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 ### [ ] WK-13 [P1][S] Mode select: BRAWL default focus, equal card heights, player-count chips
 - Sources: R-18, D-29, C-35 · **OWNER-RULED**: card ORDER is owner-set (TRIALS, BRAWL, …) — keep it, change focus only
 - Area: menus · Owner: ui-ux-designer · Deps: none
-- Evidence: tools/out/cd_audit/03_modeselect.png; WK-CD1 2026-11-14: still defaults to TRIALS (carried over unchanged)
+- Evidence: tools/out/cd_audit/03_modeselect.png; WK-CD1 2026-11-14: still defaults to TRIALS (carried over unchanged); WK-CD2: still TRIALS
 - Accept (rendered): fresh save -> ModeSelect focus on BRAWL; after playing Trials, focus = last-played; all 4 card art panels
   same height; chips read e.g. "2-4 VERSUS", "1-4 CO-OP", "1V1 / 2V2"; Trials has a "SOLO / CO-OP" sub-label.
 - Status: open
@@ -693,7 +784,10 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   desaturates to 0.6 and shows the MenuCard check ("taken" reads from the sofa).
 - Accept (rendered): theme tokens CardTag/CardName/HintStrip/ControlsLegend/FLAIR >= 28 px; screenshots of the 5 affected screens
   at 1080p show no overflow; KO meta chip readable; lobby with 2 locked goats shows 28 px badges + desaturated medallions.
-- Status: open
+- Re-rank #5: pulled into the Next 10 as the cheap (S) half of CD2 gap #5 "couch readability of state". Deps (WK-17) done. Include the sports
+  score bug's "TO 6" (~14 px, SP-18) if it is a token change; the full scoreboard restyle stays in WK-35. WK-31 (stocks/danger on the card)
+  is the M follow-up, on deck.
+- Status: open (Next-10 #7)
 
 ### [ ] WK-19 [P1][S] Rumble goes only to the concerned player's pad
 - Sources: C-10, R-32 (rumble part), CC-3.6
@@ -729,12 +823,27 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   The WK-95 PadHopper and the wk20a HumanSim share driver code: reuse it, do not fork it.
 - Re-ranked 2026-11-14 #4 (Next-10 #6): WK-95 has landed (4135884), but WK-95e (a) is still changing the bot brain (stuck/underside
   regressions). CPU behaviour feeds the self-fall and KO numbers, so start the measurement after WK-95e (a) lands, not before.
-- Status: open (Next-10 #6; game slot)
+- **WK-CD2 data (post-WK-95e build, `tools/out/cd2/m1/stats.json`, `log.json`; 3 human-sim + 1 CPU L2, 12 stages):** the CPU won again,
+  **10-6-4-2**, but self-KO −1 is no longer the main cause: humans self-fell **6 of 33 deaths (18 %, CD1 33 %)**. The CPU simply out-fought
+  them: **13 credited KOs vs 4 / 8 / 5**, and died 6 times vs the humans' 10-12. Stages got SHORTER: median **11.6 s** (CD1 15 s, about
+  −23 %; WK-95 predicted +0-15 %), 4 of 12 under 10 s; Islands Void had 4 KOs at 2.0-3.0 s; the 3-LIVES pendulum stage burned 11 of 12
+  lives in one stage. Between-stage time is ~30 % of a match because stages shrank (WK-21/41 budget itself is met). Human-sim P1 was dead
+  **48 % of all combat frames**.
+- **Outcome list expanded (CD2):** add **stage length** (median, share under 10 s) and **first-death time** to the measured outcomes, next to
+  CPU win share, credited KOs vs score and self-fall share. Drivers must be human-style (CD2 HumanSim pattern) as well as bots.
+- **Ruling guard (producer):** CD2 calls the owner's +25 % knockback (`dmg_launch_mult`, DECISIONS 2026-07-19) "the knob to test first".
+  Measuring it is fine. Changing the array is OWNER-RULED (ruling (c)): the owner's value stays and only what feeds it may change (WK-20b's
+  Lv0 gate, LIVES/score rules, CPU mix, arena-level knobs). If the data says the array itself is the problem, the game-designer writes that
+  up as a recommendation for the owner and the studio works the feeding knobs meanwhile. Do not silently revert it.
+- Status: in-progress (Next-10 #2; qa-playtester measuring, results pending -> game-designer rulings; game slot)
 
 ### [ ] WK-20c [P1][S] (conditional on WK-20a) Apply the game-designer's self-KO / CPU-mix ruling
 - Source: CD1-02 via WK-20a · Area: brawl · Owner: gameplay-programmer · Deps: WK-20a ruling · WK-25's −1 OOPS pop follows the result
 - Accept: re-run the WK-20a human-style batch: the ruled behaviour holds (eval `scores` deltas on self-falls) and the RULES toggle,
   if any, persists per mode (WK-07 memory); DECISIONS entry in the same commit.
+- Re-rank #5 (Next-10 #4, shared slot with WK-20b): CD2 shows the CPU wins on credited KOs, not self-falls, so the CPU-mix half (option c)
+  may matter more than the −1 half. Whatever the ruling says, the Accept adds: median stage length and CPU win share on the human-style
+  batch move toward the ruling's target (numbers in the commit). If the ruling picks a pacing change, size it then: it may not be S.
 - Status: open (BLOCKED until WK-20a ruling)
 
 ### [ ] WK-20b [P1][S] (conditional on WK-20a) Gate sting/escalation/hitstun at Lv0 on the pre-multiplier impulse
@@ -762,6 +871,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Status: done 43b6abc (designed 4.8 s normal / 6.2 s lead change). The wall-clock budget was "blocked on WK-91" only
   because of display-off data: with the screen on, the perf audit measured 4.78 / 6.18 s, wall = tick (PASS,
   docs/audit/2026-11-14_perf_wk91.md). Option A (UI timers on the real clock) is retired, not needed.
+  WK-CD2: budget met in game time (~4.1-4.5 s per stage). But stages shrank to a median 11.6 s, so interstitials are still ~30 % of a match.
+  The remaining fix is stage length (WK-20a), not more overlay trimming: do not reopen this item for it.
 
 ### [x] WK-41 [P1][S] Between-stage budget, half 2: overlays run in sequence; one prompt (countdown ring OR A); SELF-KO label — 43b6abc
 - Sources: R-27 (overlap + prompt; names go to WK-59, −1 label pairs with WK-25) · **raised P2 -> P1 2026-11-14** (WK-CD1 downtime
@@ -789,7 +900,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   victim-coloured blast at the nearest edge.
 - WK-CD1: still the #1 fantasy gap — "across 11 stages I could rarely tell who killed whom from the screen"; at 0.46-0.62 zoom a KO
   is a speck leaving the frame.
-- Status: done 4d5d356. WK-CD2 re-judges "can you tell who KO'd whom" (item 1).
+- Status: done 4d5d356. WK-CD2 re-judge: delivered, "now the best fix in Brawl". In `tools/out/cd2/rec_ko_f426-452.png` a blue impact +
+  blue streak (P2 smashes PUFF) and a pink edge blast (P1's death) tell who KO'd whom from the screen alone.
 
 ### [x] WK-24 [P1][S] Hits carry the attacker's colour (impact burst, knockback streak, last-touch ring) — 4d5d356
 - Sources: D-06, D-02 (part 2 last-touch tag)
@@ -806,7 +918,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept (rendered): 4-bot match, 30 deaths: every credited kill shows a killer-coloured +1 reaching the right card within 1.0 s,
   every uncredited death shows −1/+0 on the victim card (eval `scores` before/after, 0 mismatches); ScoreScreen lists
   "P2 ▶ P3" / "P4 SELF-KO −1".
-- Status: open (on deck #1, re-rank 2026-11-14 #4; blocked on the WK-20a ruling). WK-CD2 no longer waits for it.
+- WK-CD2: still worth doing, "as a cherry on top" now that WK-23/24 read: the score still changes only on the scoreboard, and a self-fall's
+  −1 is still invisible.
+- Status: open (Next-10 #9 after re-rank #5; blocked on the WK-20a ruling and WK-20c if ruled).
 
 ### [ ] WK-26 [P1][S] Super-aim wind-up sound + "!" over the targeted goat
 - Sources: D-07
@@ -815,7 +929,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   the correct target >= 9/10 within 2 frames (rendered screenshots of 3).
 - Re-ranked 2026-11-14 into Next-10 #9: the WK-95 owner ruling makes the super THE attack, so its telegraph carries more weight.
   Build after WK-94 commits (the "!" must follow the smoothed aim target, not the old per-frame jitter).
-- Status: open (on deck #3 after re-rank #4: pushed out of the Next 10 by the sports top moves; WK-94 is done, so it is pullable)
+- WK-CD2 gap #5: "a super wind-up has no audio or '!' on the target". Bot aim is now a slow, readable sweep (WK-94 verified), so the "!"
+  will track cleanly.
+- Status: open (on deck after re-rank #5, right behind the WK-90/109/37b group; pullable)
 
 ### [x] WK-27 [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team — a4955e7
 - Sources: C-16 (sports half), C-31, R-14 (sports half), E.6, lobby review L2 (17a/17b: ZIGGY/PUFF still selectable in ROCKETBALL)
@@ -859,7 +975,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Area: HUD · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-08
 - Accept (rendered): eval damage_level 0/1/2 on P1 -> card shows three distinct states; fuel bar has an icon; LIVES 3 shows 3 pips.
 - WK-CD1: on a LIVES 3 stage no stock count is shown anywhere (`tools/out/cd1/sheet_m4.png`).
-- Status: open
+- WK-CD2 gap #5: the HUD card still shows only fuel, no stocks, no danger level. The M follow-up to WK-18 (Next-10 #7).
+- Status: open (on deck)
 
 ### [ ] WK-32 [P1][M] Make the goat pick real: wire CharacterProfiles OR declare cosmetic and rewrite blurbs
 - Sources: D-10, C-16 (roster half), R-14 (roster half) · feel-adjacent: re-run the v2 feel-delta battery if wired
@@ -881,7 +998,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Area: menus/art · Owner: ui-ux-designer · Deps: WK-17
 - Accept (rendered): the three screens use the cream/chocolate frame + header ribbon + shell buttons; no dark-navy plate;
   nothing overlaps HUD cards. art-director/ui-ux verdict.
-- Status: open
+- WK-CD2 gap #4 "one finished look": navy dev panels are still the scoreboard, final score, Options, Trials objective and sports end card;
+  with the front end at Mario-Kart quality they now stand out more. Kit A is the first half; WK-35 follows on deck #1.
+- Status: open (Next-10 #10)
 
 ### [ ] WK-35 [P1][M] Toybox panel kit B: Victory final score, Trials objective banner, Sports scoreboard
 - Sources: R-11, WK-98 SP-18 (merged)
@@ -890,9 +1009,14 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   or crests. The kit-B sports scoreboard gets team-colour halves, RED/BLUE labels or goat crests, and keeps WK-106's score-digit pop.
   Producer note: if WK-34 stalls while sports stays the owner focus, split the sports scoreboard out as its own S/M item rather than
   wait on the whole kit.
+- **Merged CD2-06 (creative-director WK-CD2, P3/S; separable, can ship alone):** at Brawl STAGE_END the surviving player's P# pip draws on
+  top of the banner sub-line "P1 +1 · P2 +1 · P3 +1 · P1 SURVIVED" (`tools/out/cd2/m1/h012_STAGE_END.png`). Hide pips during the STAGE_END
+  banner, or put the banner on a layer above them (WK-41's one-overlay-at-a-time ordering). Identity overlay ordering, so it rides with the
+  banner restyle here.
 - Accept (rendered): same kit on the three screens (screenshots); ui-ux verdict Ship; the restyled Trials objective panel keeps the
-  WK-87 placement (never over the goal ring); the sports scoreboard text meets the 28 px floor (WK-18).
-- Status: open (kept P1 by WK-98 §4)
+  WK-87 placement (never over the goal ring); the sports scoreboard text meets the 28 px floor (WK-18); a STAGE_END frame with a surviving
+  human shows no pip over the banner text (CD2-06).
+- Status: open (kept P1 by WK-98 §4; on deck #1 after re-rank #5, after WK-34)
 
 ### [x] WK-36 [P1][M] Off-screen magnifier bubbles (watch the recovery live) — a4955e7
 - Sources: D-05, R-30 · **OWNER-RULED**: camera framing untouched (owner rules 2026-07-10) — EdgeIndicators upgrade only
@@ -910,7 +1034,11 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   heckle puff never credits a kill over 20 stages; option GHOSTS ON/OFF in RULES.
 - WK-CD1 re-judge (matters more than described): a group that raises LIVES to 3 "to play longer" waits LONGER — P3 eliminated
   ~30 s in, then watched a 1v1 for over a minute (`tools/out/cd1/sheet_m4.png`). Keeps WK-37a high on deck.
-- Status: open
+- WK-CD2 re-judge (matters more): human-sim P1 was dead **48 % of all combat frames** across the match (4,378 dead vs 4,671 alive,
+  `tools/out/cd2/m1/`). With 6-12 s stages, "watch the others" is half the evening for a weaker player. CD2 gap #1 pairs it with WK-20a.
+- Re-rank #5: WK-37a (spec, S, no game slot) enters the Next 10 at #6 and can run in parallel with WK-20a. The spec should read the WK-20a
+  numbers once they exist (a pacing ruling that lengthens stages changes how much ghost time there is). WK-37b build stays on deck behind it.
+- Status: open (WK-37a Next-10 #6; WK-37b on deck)
 
 ---
 
@@ -927,7 +1055,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   (screen on, 30/60/120 fps caps); no code change until the game-designer rules on those numbers. Hit-feel must stay stable through
   WK-95, so measure on the post-95b build.
 - Area: brawl (feel) · Source: gameplay-programmer 2026-11-14 + performance-analyst perf_wk91 rec 2
-- Status: open (Next-10 #9; evidence pending re-measure. Re-rank #4: also gates the WK-105 and WK-109 power-shot hit-stop)
+- Status: open (on deck #2 after re-rank #5; evidence pending re-measure. Gates the WK-109 power-shot hit-stop: pull it right before WK-109)
 
 ### [x] WK-91 [P0][M] Performance: 16-30 FPS at 1920x1080 on the studio machine (~90 draw calls) — da8337b
 - Source: WK-23/24 programmer, 2026-11-14 (not caused by the new FX). A couch party game must hold 60.
@@ -962,14 +1090,20 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   — untested; levels can opt out with "contact": "shove"). Peak speed 3800 -> 2650 px/s (feel unjudged). Bot normal-boost
   arrow still flicks >30 deg on 7-13% of frames (folded into WK-95 build brief). Art-director grade of the new swing
   (tools/out/rec/wk96_pendulum_after/swing_60-162_sheet.png).
-- Accept: Trials pendulum courses completable (recording), art-director Ship.
+- WK-CD2: the swing reads well (29 contacts -> 11 smashes on Pendulum Heights, `tools/out/rec/cd2_brawl_pendulum/sheet.png`). Cosmetic
+  add for the art-director grade: the chain hangs from a cloud (no visible anchor).
+- Accept: Trials pendulum courses completable (recording), art-director Ship (incl. a visible anchor).
+- Status: open
 
 
 ### [ ] WK-122 [P2][S] Sports courts: area outside the sealed court is a flat blue border + doubled pillar columns
 - Source: WK-107 render (tools/out/wk107/after_f150_kickoff_both_goals.jpg). At zoom 0.60 the view = bounds, so the
   unpainted Zone-A surround (known since session 9) shows as a flat blue frame and a second outer pillar column on
   each side. Paint/extend the stadium interior to the bounds or drop the outer columns. Owner: art pipeline + level.
+- WK-CD2 gap #4: sports courts read as "a dark stadium in a flat letterbox". This is the cheap (S) half; the painted stadium / real beach
+  is WK-66.
 - Accept: screenshot of LONG HAUL + CENTER PITCH with no flat-colour border.
+- Status: open (on deck)
 
 
 ## P2 — visible polish gaps
@@ -985,7 +1119,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   `48_trials_after.png`). First impression of Trials. If the Trials backdrop needs its own fix, split it off as a separate S.
 - Accept: the_summit + twin_towers + zenith screenshots read as a painted sky with fully skinned platforms; Flight School lesson 1
   shows no flat fill band below the painting.
-- Status: open
+- WK-CD2: still visible. The bottom third of Trials lesson 1 AND of Islands Void (a default Brawl arena) is flat mint fill. Part of CD2 gap #4.
+  Split suggestion stands: the Trials/Islands Void fill band is the S worth pulling first; the tall-arena tiling can follow.
+- Status: open (on deck)
 
 ### [x] WK-87 [P2][S] Trials objective panel never covers the goal ring — 843c6c2
 - Area: trials/HUD · Owner: ui-ux-designer · Source: creative-director WK-CD1 (CD1-03)
@@ -995,7 +1131,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Do: move the panel to a corner, or collapse it to a small chip after ~3 s (or reserve a top band via the `camera_focus_points`
   seam — camera rules are owner-ruled, so prefer the HUD move). WK-35 restyles the same panel later and must keep this placement.
 - Accept (rendered): Flight School lesson 1 at BOUNCE+0 s and +4 s with 1 and 2 players: the goal ring is fully visible in both.
-- Status: in-progress (ui-ux-designer; uncommitted `TrialsHUD.gd/.tscn`). Listed under In flight, outside the Next-10 ranking.
+- Status: done 843c6c2. WK-CD2 verified: ring top-right, panel top-centre (`tools/out/cd2/43_t1_go.png`).
 
 ### [x] WK-88 [P2][S] One naming rule for every fighter in match text (CPU vs VEX vs "VEX — CPU") — a4955e7
 - Area: HUD/brawl · Owner: ui-ux-designer (rule) + gameplay-programmer · Source: creative-director WK-CD1 (CD1-04, CD rated P3;
@@ -1005,7 +1141,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Do: pick one rule for HUD, pips, banners, ScoreScreen and Victory (e.g. humans "P#" everywhere; CPUs "CPU" + goat colour, or
   "VEX (CPU)" everywhere). WK-76's "bot tag shows hero name" must follow whatever is chosen; Victory contrast stays in WK-42.
 - Accept (rendered): 2H+2CPU Brawl: HUD card, stage banner, ScoreScreen row and Victory row name each fighter the same way (4 screenshots).
-- Status: done a4955e7. Also governs the WK-106 scorer / OWN GOAL banner names.
+- Status: done a4955e7. Also governs the WK-106 scorer / OWN GOAL banner names. WK-CD2 verified: "PUFF" / "PUFF CPU" consistent across
+  banners, pause chips and the victory plate (`tools/out/cd2/10_victory_b.png`).
 
 ### [ ] WK-89 [P2][S] `round_stats` may under-record kills when LIVES > 1 (instrumentation — unverified, seen once)
 - Area: tooling/brawl · Owner: qa-playtester (repro) -> gameplay-programmer (fix if confirmed) · Source: creative-director WK-CD1 (CD1-06)
@@ -1044,7 +1181,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept (rendered): no HUD corner cards on Victory; buttons equal width, "QUIT TO MENU" copy; winner name contrast >= 4.5:1.
 - WK-CD1: "VEX — CPU" in purple over the yellow burst is hard to read (`tools/out/cd1/20_victory_4.png`) — contrast stays here; the
   naming rule is WK-88. QUIT TO MENU still lands on the title and clears the lobby (R-26): the label must match the destination.
-- Status: open
+- WK-CD2: the combat HUD cards are still visible behind the victory screen (`tools/out/cd2/10_victory_b.png`); naming is now consistent (WK-88).
+- Status: open (on deck)
 
 ### [ ] WK-43 [P2][S] Trials co-op polish: offset spawns, "GO!" not "FIGHT!", banner backplates, longer first lesson
 - Sources: R-29
@@ -1053,6 +1191,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept (rendered): 2P course 1 spawns visibly apart; circuit confirm reads "GO!"; COURSE CLEAR has an outline/backplate; course 1 takes >= 4 s of flying for a human-style drive.
 - WK-CD1: the Trials circuit-select footer also says "(A) FIGHT!" in the co-op mode (`tools/out/cd1/44_trials_select.png`) — front-end copy is in scope.
 - The sports court select has the same "FIGHT!" footer (WK-117, WK-98 SP-16): do the footer copy for both modes in one pass.
+- WK-CD2: the co-op blocking bug (CD2-02, same-column spawns + HOME goats colliding) went to WK-123 with the director's assignment, not
+  here. If WK-123 parks HOME goats, the offset-spawn half here is still wanted (it is about the start, not the finish). Coordinate: WK-123
+  edits the same Flight School JSON.
 - Status: open
 
 ### [ ] WK-44 [P2][M] Options rebuild: aligned grid, RUMBLE toggle, SCREEN SHAKE (OFF/LOW/FULL), CONTROLS entry
@@ -1122,7 +1263,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Sources: D-13b, D-13c, D-25b
 - Area: HUD · Owner: ui-ux-designer · Deps: WK-15, WK-29
 - Accept (rendered): fresh save, 2 humans: legend persists until both used FLY + SUPER (logged) or 12 s; tips suppressed after 3 matches.
-- Status: open
+- WK-CD2 gap #2 "teach the game it now is" lists it after WK-123: once Flight School forces the super, this carries the lesson into Brawl.
+- Status: open (on deck)
 
 ### [ ] WK-55 [P2][M] Post-match awards from `round_stats` (HEADBANGER, KAMIKAZE, SNIPER, …)
 - Sources: D-14
@@ -1216,6 +1358,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Evidence: tools/out/cd_audit/45_rocketball_1s.png, 51_dropshot_start.png, 52_dropshot_4s.png; WK-98 SP-12: every court uses the same
   dark stadium backdrop.
 - Accept (rendered): SUNSET BEACH shows a beach; floor tiles visibly crack; no letterbox frame.
+- WK-CD2 gap #4: still "a dark stadium in a flat letterbox, and SUNSET BEACH has no beach". The letterbox half is WK-122 (S, pull first).
 - Status: open
 
 ### [ ] WK-83 [P2][S] Lobby: "who are we waiting on" nudge + title-safe layout
@@ -1232,6 +1375,18 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   Painted ribbon art (E.11) is optional and cut this weekend (see Deferred).
 - Accept (rendered 1080p): banner capture beside the review's 18b; ui-ux Ship verdict.
 - Status: open
+
+### [ ] WK-125 [P2][S] Lobby auto-joins the device that confirmed the mode, even when other players carried over
+- Area: menus · Owner: gameplay-programmer (lobby builder) · Source: creative-director WK-CD2 (CD2-04, CD rated P3; producer P2: it is the
+  owner's own complaint surface, "2 users using 2 controllers totally cant select their character")
+- Evidence: from an empty lobby the confirming pad becomes P1 automatically. After P1 backed out of the Rocketball lobby (P2, P3 still joined)
+  and confirmed DROPSHOT, P1's pad was NOT seated: its slot read "PRESS A TO JOIN" while the other two showed READY
+  (`tools/out/cd2/30_ds_lobby.png`).
+- Impact: one extra press plus a "why am I not in?" moment on every CHANGE SETUP / hold-B round trip into another mode.
+- Do: on lobby entry, auto-join the confirming device if it is not already seated, whatever else carried over (WK-05's rule, applied always).
+- Accept (rendered): P1 holds B out of a Rocketball lobby with P2 + P3 joined, confirms DROPSHOT on its pad: lobby shows P1 seated PICKING
+  next to P2/P3; empty-lobby auto-join still works; a device that is already seated is not duplicated.
+- Status: open (on deck)
 
 ---
 
@@ -1286,6 +1441,8 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 
 ### [ ] WK-78 [P3][M] BRAWL SCHOOL trials circuit (teaches smash-to-ring-out, stomp, finishing)
 - Sources: D-25c · new content -> `scope-check` · Owner: level-designer · Deps: WK-15
+- WK-CD2 gap #2: "then consider a short BRAWL SCHOOL, because nothing teaches the actual Brawl win condition". The CD says "consider", after
+  WK-123. It stays P3 (widening, new content, depth-first). Revisit at WK-CD3 once Flight School teaches the super.
 - Accept: 4 courses complete via injected human-style input; rendered screenshots.
 
 ### [ ] WK-79 [P3][S] Audio mix pass (loudness numbers, menu vs hit weight)
@@ -1312,6 +1469,14 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept: a 15-stage run prints each missing-decal warning at most once; skill §2 corrected; golden updated to the measured value.
 - Status: open
 
+### [ ] WK-126 [P3][S] (unverified) Bots trace tight loop-de-loops around a moving target instead of overshooting and lining up again
+- Area: brawl (bots) · Owner: qa-playtester (re-check) -> gameplay-programmer · Source: creative-director WK-CD2 §2 Q5 (watch item)
+- Evidence (unverified in motion): tight orange loops around the target on `tools/out/rec/cd2_bots_islands/traj.png`. Not yet seen at
+  gameplay zoom; may read as buzzing flies, or not at all.
+- Do: in the next bot recording (WK-108's or WK-CD3's), watch at --follow zoom. Build nothing unless the loops read badly at gameplay zoom.
+- Accept: a --follow recording judged; either a filed fix with a loop-count metric, or Won't do with the frames.
+- Status: open (unverified)
+
 ---
 
 ## Done (recent)
@@ -1337,6 +1502,13 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   team lobby (re-verified in play by WK-98) — a4955e7
 - WK-95 OWNER RULING: steerable normal flight, super = attack, bots fly to travel (M1-M9 pass) — 4135884 (follow-ups WK-95e)
 - WK-98 sports deep-dive (verdict FIX; SP-01..22 triaged into WK-104..120, WK-66a and merges) — 32c5eb7
+- WK-87 Trials panel avoids the goal (re-verified by WK-CD2) · WK-100 display-off warnings — 843c6c2
+- WK-104 ball frozen until GO + fair toss ((b) kickoff Accept unmet, moved to WK-108 b2) · WK-105 sports sounds + hit reaction · WK-106 scorer
+  / OWN GOAL / assist banner — 5f34080
+- WK-95e bot regressions fixed + HOT rule ON (director ruling; traversal supers 9.8 %) — a362ad4
+- WK-121 master limiter (≤ −1 dBFS) + sports hole-fall sand puff + Dropshot tile sounds — a1ada05
+- WK-107 LONG HAUL re-cut to 3200x1800, both goals on screen — 834ecda
+- WK-CD2 creative-director cold playthrough #2 (verdict FIX, much closer; flight SHIP; CD2-01..06 triaged) — aa78b3e
 
 ## Deferred / Cut (this weekend) — every finding not covered by an item above
 - **R-07 (default 3 stocks / sudden-death squeeze)** — owner rulings: LIVES default 1, KILLS 10, no timer sudden-death. Mitigated by WK-20a/20b/21/37/56; LIVES stays selectable in RULES (WK-07).
@@ -1368,6 +1540,9 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   rework). Won't do unless the owner reverses; the FORMAT default and optional ribbon ship in WK-120.
 - **WK-98 SP-04 lower the sports camera floor** — not forbidden by the owner camera rules (they set no zoom-out floor), but the
   geometry fix (WK-107) is preferred; the lower floor is WK-107's documented fallback only.
+- **WK-CD2 CD2-05 (a 1080p `gbplay screenshot` stalls the game ~1.25 s)** — a tooling lesson, not a game item (director 2026-11-14).
+  Recorded in this file's "Measurement validity" note; the director adds it to WEEKEND_LESSONS beside the existing `save_png` ~900 ms
+  note. The optional `gbplay screenshot --half` flag is not filed; file it only if a QA pass is blocked by the stall.
 
 ## Coverage index (source -> item)
 C-01 01 · C-02 01 (usage in 05-07) · C-03 05,06 · C-04 05,06,04 · C-05 03,04 · C-06 01,09,11 · C-07 28 · C-08 08 · C-09 10 ·
@@ -1395,3 +1570,9 @@ SP-06 108 · SP-07 109 · SP-08 110 · SP-09 111 · SP-10 112 · SP-11 113 · SP
 SP-13 66a (split from 66, raised P1) · SP-14 99 (extended to sports) · SP-15 116 · SP-16 117 (+43 footer) · SP-17 65 · SP-18 35 · SP-19 118 ·
 SP-20 119 · SP-21 120 (+Deferred: card reorder) · SP-22 113 · §2 PROTECT list + §6 post-WK-95 re-checks -> SPORTS section header ·
 §4 keep/raise: 16 -> 106, 27 verified done, 35 kept P1, 65 kept P2, 66 nets raised (66a), 99 extended, 86 kept closed
+WK-CD2 (2026-11-14_cd2_playthrough.md): CD2-01 123 · CD2-02 123 (+43 note) · CD2-03 108 (b2; reopens 104(b)) · CD2-04 125 · CD2-05 Deferred
+(tooling lesson) · CD2-06 35 · §2 Q5 bot loops 126 (unverified) · §1 pendulum chain-on-cloud 103 · soft regressions: restart 3.27 s 124,
+Dropshot rally 14.5 s 116 (watch) · re-judged: 20a (CPU share, stage length, first-death time), 21/41 (budget met; stage length is the fix),
+23 (delivered), 25 (still wanted), 37 (48 % dead frames), 85, 86, 87, 88, 42, 13, 120, 95/95e(e) (flight SHIP), 95f (d) -> 123 · §5 gaps:
+1 -> 20a/20c/20b/37, 2 -> 123/54/78, 3 -> 108/124/111/109/110, 4 -> 34/35/85/66/66a/122, 5 -> 18/31/25/26/47
+Producer-filed without a source doc: WK-121 (retroactive entry for a1ada05)

@@ -41,6 +41,8 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   for every mode (fixed WK-86) — beware placeholder loads leaking state.
 - Bots almost never self-KO (frame-perfect recovery, raycast + fuel math, L1 aim noise re-rolled per frame cancels
   out) — so bot-only matches hide the human self-fall problem; use human-sim drivers (WK-20a spec).
+- A 1080p `gbplay screenshot` freezes the game ~1.25 s (CD2-05) — any wall-clock timing taken alongside screenshots is
+  inflated; measure in game time or with Movie Maker recordings.
 - Godot screenshot via eval without awaiting `RenderingServer.frame_post_draw` returns a stale frame; `save_png`
   stalls ~900 ms (pollutes timing measurements).
 - Wide fonts: Lilita One is ~24% narrower than the old Segoe UI Black fallback; the ✓ glyph is not in it.
