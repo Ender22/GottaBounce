@@ -41,7 +41,7 @@ brawl "who wins and why" chain (WK-20a, now valid with the screen on, measured o
 WK-CD2, then the rest by couch impact. WK-95 was mis-sized as M (telemetry + flight + bot brain + 4 sweeps + CD sign-off =
 several slices): split into WK-95a-d, pulled in order.
 
-1. WK-95 [P0][M x4] OWNER RULING: flight you can steer, super = attack — pull 95a -> 95b -> 95c -> 95d in order — game-designer spec done; gameplay-programmer + qa-playtester + creative-director (deps WK-93 done, WK-94 merged)
+1. ~~WK-95~~ done 4135884 — [P0][M x4] OWNER RULING: flight you can steer, super = attack — pull 95a -> 95b -> 95c -> 95d in order — game-designer spec done; gameplay-programmer + qa-playtester + creative-director (deps WK-93 done, WK-94 merged)
 2. WK-98 [P1][M] Sports deep-dive: creative-director + game-designer rendered session -> ranked sports findings — creative-director + game-designer (after WK-95b so ball strikes are judged on the new flight)
 3. ~~WK-27~~ done a4955e7 — [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team — gameplay-programmer + ui-ux-designer (code-only build may run in parallel with WK-95; game slot only to verify)
 4. WK-16 [P1][S] Sports: one goal/point banner, not two stacked headlines — ui-ux-designer
@@ -98,7 +98,18 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept: recording of 3 bot supers per difficulty shows smooth, readable wind-up; max angular step under cap.
 - Status: in-progress (game slot; `InputBot.gd` edits uncommitted). Its merge is the start gate for WK-95a's baseline.
 
-### [ ] WK-95 [P0][M x4] OWNER RULING: normal flight responsive enough to manoeuvre; super boost = attack, not traversal
+### [ ] WK-95e [P1][M] WK-95 follow-ups: bot stuck/underside regressions, HOT ruling, creative-director feel sign-off
+- Source: WK-95 build report (commit 4135884). Owner: gameplay-programmer (bots) + game-designer (ruling) + creative-director.
+- (a) Bot motion regressions vs before: stuck episodes/stage 1.87 -> 2.59 (+38%), underside bounces 3.37 -> 3.83; sports
+  stuck/min 23 -> 33. Fix in the bot brain, verify with a 160-stage batch + recordings (target <= 1.1x before).
+- (b) game-designer ruling on `InputBot.wk95_hot_stopdist` (HOT recovery requires a full brake can't stop before the
+  blast line): gets traversal supers 13.0% -> 9.4% (meets <=10%) but underside bounces 6.03/stage. Ship only with (a).
+- (c) Recovery share of bot supers 32.9% (target <=20%); L2 boost/air time 30.5% (target >=35%).
+- (d) Refuel Ridge skip-one-pad line (+80 px merged gap per spec) — level-designer; ORBIT set + cannon + s3 trials unchecked.
+- (e) Creative-director feel check (spec's 6 questions) on the integrated build — fold into WK-CD2.
+- Accept: (a) batch numbers within 1.1x; (b) ruling logged in DECISIONS; (d) Trials sweep recording evidence.
+
+### [x] WK-95 [P0][M x4] OWNER RULING: normal flight responsive enough to manoeuvre; super boost = attack, not traversal — 4135884
 - Area: brawl (feel + bots), also sports + trials side effects · Source: owner_2026-11-14_checkin.md (ask 3) · **OWNER-RULED**
   (the owner's ruling is the target; DECISIONS entry in the build commit)
 - Owner: "the bots need to rely too much on the super boost because the normal flying isnt responsive enough to
