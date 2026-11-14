@@ -1025,7 +1025,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   `get_fuel_ratio()`; aim arrow shows within 1 frame of super aim off-screen.
 - Status: done a4955e7 (verified, a4bc89c STATUS note).
 
-### [ ] WK-37 [P1][M] Ghost goats: eliminated players float, quack and get one non-lethal heckle per stage
+### [x] WK-37 [P1][M] Ghost goats: eliminated players float, quack and get one non-lethal heckle per stage — 1186bcf (37a spec 28ddce0, art 53389a8)
 - Sources: D-08, R-07 (spectating half)
 - Split: **WK-37a [S] spec** (game-designer, `docs/specs/` entry with the QA criteria below; no game slot — can run in parallel
   any time) -> **WK-37b [M] build** (gameplay-programmer). `scope-check` on the spec (new system).
