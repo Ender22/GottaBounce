@@ -152,11 +152,21 @@ var _surfaces := {}          # StaticBody2D -> { tier, art, mat, w, top, last_ms
 var _warned := {}
 var _t := 0.0
 
+# WK-91 (perf): stage-load hitch fix. Every theme change used to decode its art synchronously inside the
+# STAGE_INTRO physics tick (lossless 1536x1024 painting ~43 ms cold + body/hero/mat strips ~11 ms each),
+# because the previous stage's textures were freed and fell out of the ResourceCache. The first setup()
+# fires background loads for every art path this script names; later setups harvest the finished ones
+# into a session-lifetime keepalive, so every load() below is a cache hit. Never blocks; visuals unchanged.
+static var _art_keepalive: Dictionary = {}   # res path -> Texture2D (strong ref = stays in ResourceCache)
+static var _art_pending: Array[String] = []
+static var _art_requested := false
+
 func _ready() -> void:
 	EventBus.surface_bounced.connect(_on_surface_bounced)
 
 ## Build the full background stack from the level JSON. Call once, before platforms are painted.
 func setup(json: Dictionary) -> void:
+	_prewarm_art()
 	var b: Dictionary = json.get("bounds", {})
 	var brect := Rect2(-1000, -1000, 2000, 2000)
 	if not b.is_empty():
@@ -1433,6 +1443,39 @@ func _rounded_rect_poly(w: float, h: float, r: float, col: Color) -> Polygon2D:
 	poly.polygon = pts
 	poly.color = col
 	return poly
+
+## WK-91: request every art texture named in this script's constants on worker threads (first call), and
+## move finished loads into the static keepalive (later calls). Non-blocking: a load() of a still-pending
+## path simply waits for that one request, which is never slower than the old synchronous load.
+func _prewarm_art() -> void:
+	if not _art_requested:
+		_art_requested = true
+		var paths: Array[String] = []
+		_collect_art_paths(get_script().get_script_constant_map(), paths)
+		for path in paths:
+			if ResourceLoader.has_cached(path):
+				_art_keepalive[path] = load(path)
+			elif ResourceLoader.exists(path) and ResourceLoader.load_threaded_request(path, "Texture2D") == OK:
+				_art_pending.append(path)
+	for path in _art_pending.duplicate():
+		var st := ResourceLoader.load_threaded_get_status(path)
+		if st == ResourceLoader.THREAD_LOAD_LOADED:
+			_art_keepalive[path] = ResourceLoader.load_threaded_get(path)
+			_art_pending.erase(path)
+		elif st != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			_art_pending.erase(path)
+
+static func _collect_art_paths(v: Variant, out: Array[String]) -> void:
+	if v is String:
+		var s := str(v)
+		if s.begins_with("res://") and s.ends_with(".png") and not out.has(s):
+			out.append(s)
+	elif v is Dictionary:
+		for k in v:
+			_collect_art_paths(v[k], out)
+	elif v is Array:
+		for e in v:
+			_collect_art_paths(e, out)
 
 func _warn_once(key: String, msg: String) -> void:
 	if _warned.has(key):
