@@ -36,7 +36,7 @@ pop is moot if the rule changes). WK-CD2 sits at 7 = after item 6. WK-36 drops t
 3. ~~WK-23~~ done 4d5d356 — [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer — IN FLIGHT (verifying)
 4. ~~WK-82~~ done 4d5d356 — [P1][S] Lobby hold-B exit only from a B that changed nothing — director-built — IN FLIGHT (verifying)
 5. WK-20a [P1][M] Who wins and why: +25 % knockback side effects AND the self-KO −1 rule, measured with human-style drivers + game-designer ruling — qa-playtester + game-designer
-6. WK-21 + WK-41 [P1][S+S] Between-stage budget: adaptive ScoreScreen hold + overlays in sequence / one prompt (pull together) — gameplay-programmer + ui-ux-designer
+6. ~~WK-21~~ done 43b6abc — + WK-41 [P1][S+S] Between-stage budget: adaptive ScoreScreen hold + overlays in sequence / one prompt (pull together) — gameplay-programmer + ui-ux-designer
 7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (KO readability, scoring ruling, downtime budget) — creative-director
 8. WK-25 [P1][M] KO credit pop (+1 to killer's card / −1 OOPS per the WK-20a ruling) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-23, WK-20a ruling, WK-89 if confirmed)
 9. ~~WK-17~~ done 5672f04 — [P1][S] Bundle an OFL display font + drop fake-bold same-colour outlines on lobby small text (CD1-05) — ui-ux-designer; unblocks WK-18/34/35
@@ -380,7 +380,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   non-edge smashes on victims with fuel >= 20 survived over 40 stages; lethality battery §9 re-run; rendered contact sheet of 3 recoveries.
 - Status: open (BLOCKED until WK-20a ruling)
 
-### [ ] WK-21 [P1][S] Between-stage budget, half 1: adaptive ScoreScreen hold (2.0 s normal, 3.4 s on lead change / match point)
+### [x] WK-21 [P1][S] Between-stage budget, half 1: adaptive ScoreScreen hold (2.0 s normal, 3.4 s on lead change / match point) — 43b6abc
 - Sources: D-09, R-07 (dead time), **WK-CD1 re-judge (worse than described)** · **OWNER-RULED**: ScoreScreen stays (owner 2026-07-16);
   `SCORE_HOLD` is the sanctioned knob; `round_end_freeze` and countdown untouched
 - Area: brawl · Owner: gameplay-programmer · Deps: WK-11 (done) · Pull together with WK-41 (half 2)
@@ -396,7 +396,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   those are owner-ruled.
 - Status: open
 
-### [ ] WK-41 [P1][S] Between-stage budget, half 2: overlays run in sequence; one prompt (countdown ring OR A); SELF-KO label
+### [x] WK-41 [P1][S] Between-stage budget, half 2: overlays run in sequence; one prompt (countdown ring OR A); SELF-KO label — 43b6abc
 - Sources: R-27 (overlap + prompt; names go to WK-59, −1 label pairs with WK-25) · **raised P2 -> P1 2026-11-14** (WK-CD1 downtime
   measurement, director decision: dead time is ~35-40 % of a match; see WK-21 evidence)
 - Area: brawl/HUD · Owner: ui-ux-designer · Deps: none · Pull together with WK-21
@@ -546,8 +546,12 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   fix the timer call so duration is real-time and FPS-independent.
 - Accept: freeze duration within ±10 ms of the Tuning value at 30 and 60 FPS (eval timestamps); qa feel note.
 
-### [ ] WK-91 [P1][M] Performance: 16-30 FPS at 1920x1080 on the studio machine (~90 draw calls)
+### [ ] WK-91 [P0][M] Performance: 16-30 FPS at 1920x1080 on the studio machine (~90 draw calls)
 - Source: WK-23/24 programmer, 2026-11-14 (not caused by the new FX). A couch party game must hold 60.
+- RAISED TO P0 (WK-21 rendered pass): ~12-20 frames of 500-620 ms every ~15 s even mid-combat with no eval
+  traffic, same at 720p and 1080p (not fill-rate), machine CPU 9%, headless peaks 45-87 ms. Hitches freeze
+  physics-tick timers (8 ticks/frame cap) -> between-stage flow 1-2 s over budget, hit-stop FPS-dependent (WK-90).
+  Evidence tools/out/wk/WK-21_timing_*.json. Fallback if unfixable: WK-21 option A (UI timers on real clock).
 - Owner: performance-analyst (measure + attribute) -> gameplay-programmer.
 - Do: `gbplay perf` + frame-time capture on 3 arenas at 1280x720 vs 1920x1080; isolate GPU vs CPU (shader-heavy
   backdrops? particle counts? physics?); check renderer setting (Forward+/Mobile/Compatibility) and vsync; A/B the top 3
