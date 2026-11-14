@@ -261,7 +261,8 @@ func poll() -> InputIntent:
 		it.aim = _ascent_detour(it.aim)
 		it.aim = _steer(it.aim)
 	if not it.super_hold:
-		it.aim = _smooth_fly(_bang_escape(it.aim, it.boost), dt)
+		it.aim = _ceiling_guard(_bang_escape(it.aim, it.boost), it.boost)
+		it.aim = _smooth_fly(it.aim, dt)
 	else:
 		_fly_out = Vector2.ZERO   # the super aim takes over (WK-94 sweep); re-seed flight from the arrow after
 	return it
@@ -328,6 +329,41 @@ func _bang_escape(aim: Vector2, boosting: bool) -> Vector2:
 	if not wk95_brain_enabled or _bang_t <= 0.0 or not boosting or _bang_dir == Vector2.ZERO:
 		return aim
 	return _bang_dir
+
+## WK-108: true when the active mode is an enclosed court (SportsMode.bot_enclosed_court).
+func _enclosed() -> bool:
+	if not wk95_brain_enabled or arena == null or not ("_mode" in arena) or arena._mode == null:
+		return false
+	return arena._mode.has_method("bot_enclosed_court") and bool(arena._mode.bot_enclosed_court())
+
+## WK-108: in an enclosed court, never keep thrusting UP into a ceiling that is about to arrive (the out-of-arena
+## look-ahead used to turn bots away from it; without it they would ram it): within the stopping look-ahead,
+## an upward aim is laid flat toward the side it was heading (a little downward), so the bot skims under it.
+func _ceiling_guard(aim: Vector2, boosting: bool) -> Vector2:
+	if not boosting or aim == Vector2.ZERO or not _enclosed():
+		return aim
+	var down := _gdown()
+	if aim.dot(-down) <= 0.15:
+		return aim
+	var rise: float = maxf(0.0, me.velocity.dot(-down))
+	var reach: float = rise * Tuning.bot_ceiling_lookahead + Tuning.bot_ceiling_margin
+	var pos: Vector2 = me.global_position
+	var side_off := Vector2(-down.y, down.x) * 40.0   # body-width probes: a block edge must not slip past one ray
+	var blocked := false
+	for o in [Vector2.ZERO, side_off, -side_off]:
+		var hit := _surface_along(pos + o, -down, reach)
+		if not hit.is_empty():
+			blocked = true
+			break
+	if not blocked and me.velocity.length() > 1.0:
+		# also along the flight line (a diagonal climb into the underside of a mid-court block)
+		var vd: Vector2 = me.velocity.normalized()
+		var vh := _surface_along(pos, vd, me.velocity.length() * Tuning.bot_ceiling_lookahead + Tuning.bot_ceiling_margin)
+		blocked = not vh.is_empty() and (vh["normal"] as Vector2).dot(down) > 0.5
+	if not blocked:
+		return aim
+	var side: float = signf(aim.x) if absf(aim.x) > 0.05 else (signf(me.velocity.x) if absf(me.velocity.x) > 1.0 else 1.0)
+	return (Vector2(side, 0.0) + down * 0.25).normalized()
 
 ## WK-95 BR-2: gravity-compensated flight aim. Under the steering grip a held boost settles with a steady
 ## perpendicular sag of boost_gravity_scale*g*cos(theta)/boost_grip_rate (~160 px/s level), so aim ABOVE the
@@ -531,7 +567,9 @@ func _in_danger() -> bool:
 	if _over_void(pos):
 		return true
 	var future: Vector2 = pos + me.velocity * 0.6
-	var outside_soon := not _bounds().grow(-80.0).has_point(future)
+	# WK-108: in an ENCLOSED court (sports) walls and ceiling stop you before the bounds do, so flying fast at a
+	# wall is not "about to leave the arena" (that U-turned sports bots at every wall). Void (Dropshot holes) stays.
+	var outside_soon := not _enclosed() and not _bounds().grow(-80.0).has_point(future)
 	if outside_soon:
 		return true
 	# Radial frame: the well's round body IS the stage — a bot on ANY face of it is on safe ground.

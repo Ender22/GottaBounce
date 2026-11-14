@@ -77,6 +77,51 @@ const SUPPORT_HOLD_FRAC := 0.42        # supporter sits this fraction from OWN g
 const SUPPORT_SPREAD := 240.0          # lateral offset per extra supporter so multiple supporters don't stack
 const SUPPORT_COURT_MARGIN := 170.0    # keep the cover point this far inside the court walls
 
+# --- WK-108 (WK-98 SP-06) bot roles. Mode-owned WHERE-to-go geometry like the blocks above (not player feel). ---
+# (a) ROUTE AROUND THE BALL: a chaser on the WRONG side of the ball (between it and the enemy goal) used to fly
+#     straight at the strike point behind the ball -- through the ball, shoving it toward its own goal (CPU own
+#     goals). If that straight line passes within BOT_AVOID_CLEAR_MULT x (ball + body radius) of the ball, it
+#     flies a waypoint beside the ball first (over the top unless the ceiling is close), and only commits to the
+#     strike point once the line is clear.
+const BOT_AVOID_CLEAR_MULT := 1.6      # clearance = this x (ball radius + body radius) (SP-06 proposal)
+const BOT_BODY_RADIUS := 44.0          # Player.BODY_RADIUS at size 1.0 (the standard goat)
+const BOT_AVOID_ORBIT_MULT := 1.8      # orbit radius = clearance x this (wide: a bot re-plans only every reaction tick)
+const BOT_AVOID_STEP_DEG := 55.0       # each orbit waypoint is this far round from my current bearing
+const BOT_BALL_LEAD := 0.3             # s: the line-up also keeps clear of the ball's position this far ahead (a bot
+                                       # re-plans only every reaction tick, and a cleared ball covers ~300 px in that)
+# TRACK BACK: a wrong-side chaser whose ball is heading for its own goal does not chase it from behind (that is how
+# almost every CPU own goal happened: 20 of 24 in a THE BOX A/B were wrong-side chasers flying at their own goal).
+# It races goal-side ABOVE the ball's line instead, then clears from in front of the goal.
+const BOT_TRACKBACK_SPEED := 300.0     # ball speed toward my goal (px/s) that triggers the track-back
+const BOT_TRACKBACK_FRAC := 0.35       # target: this fraction from my goal mouth toward the ball...
+const BOT_TRACKBACK_UP := 240.0        # ...raised this far above the ball's line
+const BOT_CEILING_CLEAR := 170.0       # never route / hold a target closer than this under the court ceiling
+# (b) KEEPER: a supporter (rank >= 1) keeps goal while the ball is in its own third or a shot is coming at its
+#     goal, holding the goal-mouth centre (inside the court) and challenging only inside BOT_KEEPER_CHALLENGE.
+const BOT_KEEPER_THIRD := 0.34         # "own third" = ball within this fraction of the goal-to-goal axis
+const BOT_KEEPER_CHALLENGE := 400.0    # keeper leaves the mouth to clear a ball this close to it
+const BOT_KEEPER_SHOT_SPEED := 550.0   # ball speed TOWARD my goal (px/s) that counts as an incoming shot...
+const BOT_KEEPER_SHOT_TIME := 1.6      # ...if it would reach the goal line within this many seconds
+const BOT_KICKOFF_KEEP_S := 3.0        # for this long after GO the supporter drops into goal (one chases the
+                                       # kickoff, one keeps: WK-104 measured 22-26 % of goals inside 4 s of GO)
+# (c) CROSS (L4+ only): with the ball in the attacking half, an L4+ supporter makes a run to the far post; the
+#     chaser, lined up behind the ball, crosses to it (aims through the ball at the teammate) when the teammate
+#     is nearer the enemy goal, roughly goalward of the ball, and no opponent is within BOT_CROSS_MARK_DIST of it.
+const BOT_CROSS_MIN_LEVEL := 4
+const BOT_CROSS_RUN_FRAC := 0.5        # attacking half: ball past this fraction of the axis
+const BOT_CROSS_POST_BACK := 420.0     # far-post run point: this far in front of the enemy goal mouth...
+const BOT_CROSS_POST_UP := 260.0       # ...and this far above it (goal mouths sit above the floor)
+const BOT_CROSS_MARK_DIST := 320.0     # a teammate with an opponent this close is "marked" (no cross)
+const BOT_CROSS_GOALWARD := 0.2        # cross only if (ball->teammate) . (ball->goal) >= this (never back-pass)
+# A/B regression switch (default ON): OFF = the pre-WK-108 sports bots (straight-line strike point, cover point
+# only, no cross). gbplay eval: SportsMode.wk108_bots = false
+static var wk108_bots := true
+# The "mode-aware danger" half (InputBot drops its out-of-arena look-ahead in courts, adds a ceiling guard, and
+# targets are clamped under the ceiling). DEFAULT OFF BY MEASUREMENT (WK-108, 32 soccer runs x 240 s each way):
+# it did not lower stuck/min (43.2 on vs 42.5 off; 36.7 pre-WK-108) and raised underside bounces 57 -> 71/min
+# (boosted 18 -> 33). Kickoff-goal and own-goal gains come from the roles above, not from this. Kept for re-test.
+static var wk108_enclosed := false
+
 # --- DROPSHOT serve geometry (owner 2026-07-19): after each point the ball waits FROZEN in the middle,
 # above the net, then on GO launches toward the team that scored last (pressure to make the first touch). ---
 const DROPSHOT_SERVE_HEIGHT_FRAC := 0.34   # serve-point Y as a fraction of bounds height (top gap, above the net)
@@ -617,6 +662,21 @@ func goal_word() -> String:
 ## the ball, aim THROUGH it toward the goal so the boosting contact drives it goalward. Returns a world
 ## Vector2 the bot flies to via its existing movement, or null (no ball yet) -> bot uses its default path.
 func bot_objective(runner, bot_player) -> Variant:
+	var target: Variant = _bot_objective_raw(runner, bot_player)
+	if wk108_bots and wk108_enclosed and target is Vector2:
+		return _below_ceiling(runner, target)
+	return target
+
+## WK-108: never send a bot to a point tucked under the court ceiling or a mid-court block: probe up from the
+## target and keep it BOT_CEILING_CLEAR below the first surface (the ball can sit up there; the bot waits under it).
+func _below_ceiling(runner, p: Vector2) -> Vector2:
+	var q := PhysicsRayQueryParameters2D.create(p, p + Vector2.UP * BOT_CEILING_CLEAR, Player.MASK_SURFACES)
+	var hit: Dictionary = runner.get_world_2d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		return p
+	return Vector2(p.x, maxf(p.y, (hit["position"] as Vector2).y + BOT_CEILING_CLEAR))
+
+func _bot_objective_raw(runner, bot_player) -> Variant:
 	if not is_instance_valid(_ball):
 		return null
 	var idx: int = runner.players.find(bot_player)
@@ -631,7 +691,17 @@ func bot_objective(runner, bot_player) -> Variant:
 	# cover point on their own half. Rank counts human teammates too (distance-to-ball, index tiebreak),
 	# so a bot yields the ball to a nearer human instead of piling on.
 	var rank: int = _ball_chase_rank(runner, idx, my_team, ball_pos)
+	var level: int = _bot_level(bot_player)
 	if rank > 0:
+		# WK-108 (b) keeper / (c) far-post run; otherwise the PROTECTED goal-side cover point (SUPPORT_HOLD_FRAC)
+		if wk108_bots and _sport == "soccer":
+			var keep: Variant = _keeper_point(runner, my_team, bot_player, ball_pos)
+			if keep is Vector2:
+				return keep
+			if level >= BOT_CROSS_MIN_LEVEL:
+				var run: Variant = _cross_run_point(runner, my_team, ball_pos)
+				if run is Vector2:
+					return run
 		return _support_point(runner, my_team, ball_pos, rank)
 	var to_goal: Vector2 = enemy_goal - ball_pos
 	if to_goal.length() < 1.0:
@@ -648,8 +718,154 @@ func bot_objective(runner, bot_player) -> Variant:
 	var close: bool = bot_player.global_position.distance_to(ball_pos) < BOT_ON_BALL_DIST
 	var behind_ball: bool = from_ball.dot(-to_goal) > 0.0
 	if close and behind_ball:
+		# WK-108 (c): an L4+ chaser lined up behind the ball crosses to an unmarked teammate nearer the goal
+		if wk108_bots and _sport == "soccer" and level >= BOT_CROSS_MIN_LEVEL:
+			var mate: Variant = _cross_target(runner, idx, my_team, ball_pos, enemy_goal)
+			if mate is Vector2:
+				return ball_pos + ((mate as Vector2) - ball_pos).normalized() * BOT_DRIVE_THROUGH
 		return ball_pos + to_goal * BOT_DRIVE_THROUGH
-	return behind
+	# WK-108 (a): never fly THROUGH the ball to reach the strike point behind it
+	if not wk108_bots:
+		return behind
+	if _sport == "soccer" and not behind_ball:
+		var back: Variant = _trackback_point(runner, my_team, ball_pos)
+		if back is Vector2:
+			return _avoid_ball_waypoint(runner, bot_player.global_position, ball_pos, back, to_goal)
+	return _avoid_ball_waypoint(runner, bot_player.global_position, ball_pos, behind, to_goal)
+
+## WK-108 (a): if the straight line from `me_pos` to `strike` passes within the clearance of the ball, return a
+## waypoint beside the ball (perpendicular to the ball->goal line, over the top unless the ceiling is too close),
+## else `strike`. Re-evaluated every bot decision, so the bot commits to `strike` the moment the line is clear.
+func _avoid_ball_waypoint(runner, me_pos: Vector2, ball_pos: Vector2, strike: Vector2, to_goal: Vector2) -> Vector2:
+	var br: float = (_ball.radius if is_instance_valid(_ball) else Ball.BALL_RADIUS)
+	var clear: float = BOT_AVOID_CLEAR_MULT * (br + BOT_BODY_RADIUS)
+	# the ball keeps moving between my decisions: keep clear of where it IS and where it WILL BE, orbit the latter
+	var pred: Vector2 = ball_pos + (_ball.linear_velocity if is_instance_valid(_ball) else Vector2.ZERO) * BOT_BALL_LEAD
+	if _dist_to_segment(ball_pos, me_pos, strike) >= clear and _dist_to_segment(pred, me_pos, strike) >= clear:
+		return strike
+	ball_pos = pred
+	# ORBIT the ball: step around a circle of radius clear*BOT_AVOID_ORBIT_MULT from my current bearing toward the
+	# strike side, going over the top (unless the ceiling is too close), BOT_AVOID_STEP_DEG at a time. Each step's
+	# chord stays outside the ball, so the line-up flight never touches it (a straight perpendicular waypoint
+	# still clipped it: 13 of 19 own goals in a THE BOX A/B came from wrong-side chasers).
+	var r: float = clear * BOT_AVOID_ORBIT_MULT
+	var court: Rect2 = runner.bounds.grow(-BOT_CEILING_CLEAR)
+	var a_me: float = (me_pos - ball_pos).angle()
+	var a_to: float = (-to_goal).angle()
+	var diff: float = wrapf(a_to - a_me, -PI, PI)
+	var top_ok: bool = ball_pos.y - r >= court.position.y
+	# the two ways round: +diff (short) or the long way; pick the one that passes over the top when allowed
+	var mid_short: Vector2 = Vector2.from_angle(a_me + diff * 0.5)
+	var dir_sign: float = signf(diff) if diff != 0.0 else 1.0
+	if top_ok and mid_short.y > 0.0:
+		dir_sign = -dir_sign       # the short way goes underneath: go round the top instead
+	elif not top_ok and mid_short.y < 0.0:
+		dir_sign = -dir_sign       # no room over the top: go underneath
+	var step: float = deg_to_rad(BOT_AVOID_STEP_DEG)
+	var wp: Vector2 = ball_pos + Vector2.from_angle(a_me + dir_sign * step) * r
+	return Vector2(clampf(wp.x, court.position.x, court.end.x), clampf(wp.y, court.position.y, court.end.y))
+
+## WK-108 track-back: if the ball is running at my goal, a goal-side point above its line (else null).
+func _trackback_point(runner, my_team: int, ball_pos: Vector2) -> Variant:
+	var own_goal: Vector2 = _own_goal_center(runner, my_team)
+	if own_goal == Vector2.INF or not is_instance_valid(_ball):
+		return null
+	var to_own: Vector2 = own_goal - ball_pos
+	if to_own.length() < 1.0 or _ball.linear_velocity.dot(to_own.normalized()) < BOT_TRACKBACK_SPEED:
+		return null
+	var box: Rect2 = runner.bounds.grow(-BOT_CEILING_CLEAR)
+	var mouth := Vector2(clampf(own_goal.x, box.position.x, box.end.x), clampf(own_goal.y, box.position.y, box.end.y))
+	var p: Vector2 = mouth.lerp(ball_pos, BOT_TRACKBACK_FRAC) + Vector2.UP * BOT_TRACKBACK_UP
+	return Vector2(clampf(p.x, box.position.x, box.end.x), clampf(p.y, box.position.y, box.end.y))
+
+static func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var l2 := ab.length_squared()
+	if l2 < 0.0001:
+		return p.distance_to(a)
+	var t := clampf((p - a).dot(ab) / l2, 0.0, 1.0)
+	return p.distance_to(a + ab * t)
+
+## WK-108 (b): the keeper hold / challenge point for a supporter, or null when the ball is not threatening.
+## Threat = the ball inside my own third, or moving at my goal fast enough to reach it within the shot time.
+func _keeper_point(runner, my_team: int, bot_player, ball_pos: Vector2) -> Variant:
+	var own_goal: Vector2 = _own_goal_center(runner, my_team)
+	var enemy_goal: Vector2 = _enemy_goal_center(runner, my_team)
+	if own_goal == Vector2.INF or enemy_goal == Vector2.INF:
+		return null
+	var axis: float = enemy_goal.x - own_goal.x
+	if absf(axis) < 1.0:
+		return null
+	var frac: float = (ball_pos.x - own_goal.x) / axis
+	var bv: Vector2 = _ball.linear_velocity if is_instance_valid(_ball) else Vector2.ZERO
+	var toward: float = -bv.x * signf(axis)                 # ball speed toward MY goal line
+	var shot: bool = toward >= BOT_KEEPER_SHOT_SPEED and (ball_pos.x - own_goal.x) * signf(axis) / toward <= BOT_KEEPER_SHOT_TIME
+	var kickoff: bool = float(runner.round_clock) < BOT_KICKOFF_KEEP_S
+	if frac > BOT_KEEPER_THIRD and not shot and not kickoff:
+		return null
+	var box: Rect2 = runner.bounds.grow(-SUPPORT_COURT_MARGIN)
+	var mouth := Vector2(clampf(own_goal.x, box.position.x, box.end.x), clampf(own_goal.y, box.position.y, box.end.y))
+	if ball_pos.distance_to(mouth) <= BOT_KEEPER_CHALLENGE:
+		# challenge: clear it AWAY from my goal (we come from the goal side, so driving through pushes it out)
+		var away: Vector2 = (ball_pos - own_goal).normalized()
+		return ball_pos + away * BOT_DRIVE_THROUGH
+	if shot:
+		# put the body on the ball's line, between it and the mouth
+		return mouth.lerp(ball_pos, 0.25)
+	return mouth
+
+## WK-108 (c): an L4+ supporter's far-post run while the ball is in the attacking half (else null).
+func _cross_run_point(runner, my_team: int, ball_pos: Vector2) -> Variant:
+	var own_goal: Vector2 = _own_goal_center(runner, my_team)
+	var enemy_goal: Vector2 = _enemy_goal_center(runner, my_team)
+	if own_goal == Vector2.INF or enemy_goal == Vector2.INF:
+		return null
+	var axis: float = enemy_goal.x - own_goal.x
+	if absf(axis) < 1.0 or (ball_pos.x - own_goal.x) / axis < BOT_CROSS_RUN_FRAC:
+		return null
+	var p: Vector2 = enemy_goal + Vector2(-signf(axis) * BOT_CROSS_POST_BACK, -BOT_CROSS_POST_UP)
+	var box: Rect2 = runner.bounds.grow(-BOT_CEILING_CLEAR)
+	return Vector2(clampf(p.x, box.position.x, box.end.x), clampf(p.y, box.position.y, box.end.y))
+
+## WK-108 (c): the position of a teammate worth crossing to (nearer the enemy goal than the ball, goalward of it,
+## unmarked), or null.
+func _cross_target(runner, idx: int, my_team: int, ball_pos: Vector2, enemy_goal: Vector2) -> Variant:
+	var to_goal: Vector2 = (enemy_goal - ball_pos).normalized()
+	var ball_gd: float = ball_pos.distance_to(enemy_goal)
+	for j in range(runner.players.size()):
+		if j == idx or j >= _teams.size() or int(_teams[j]) != my_team:
+			continue
+		var m = runner.players[j]
+		if not is_instance_valid(m) or m.is_dead():
+			continue
+		var mp: Vector2 = m.global_position
+		if mp.distance_to(enemy_goal) >= ball_gd - 150.0:
+			continue
+		if (mp - ball_pos).normalized().dot(to_goal) < BOT_CROSS_GOALWARD:
+			continue
+		var marked := false
+		for k in range(runner.players.size()):
+			if k >= _teams.size() or int(_teams[k]) == my_team:
+				continue
+			var o = runner.players[k]
+			if is_instance_valid(o) and not o.is_dead() and o.global_position.distance_to(mp) < BOT_CROSS_MARK_DIST:
+				marked = true
+				break
+		if not marked:
+			return mp
+	return null
+
+## The bot level of a player's InputBot provider (3 if unknown / human).
+func _bot_level(p) -> int:
+	if p == null or not is_instance_valid(p) or p.provider == null or not ("level" in p.provider):
+		return 3
+	return int(p.provider.level)
+
+## WK-108: SPORTS courts are ENCLOSED (walls + ceiling stop you): InputBot must not read "about to fly out of
+## the arena" as danger here (it U-turned bots at every wall: the sports stuck loops), and it keeps its flight
+## under the ceiling instead. Holes in a Dropshot floor are still real void (InputBot keeps that check).
+func bot_enclosed_court() -> bool:
+	return wk108_bots and wk108_enclosed
 
 ## Frame the WHOLE court so both goal mouths + the ball stay on screen through a rally. Returns the
 ## full arena bounds (the enclosed court): it always contains both goal zones and the ball, so the
@@ -699,7 +915,7 @@ func _support_point(runner, my_team: int, ball_pos: Vector2, rank: int) -> Vecto
 	var own_goal: Vector2 = _own_goal_center(runner, my_team)
 	if own_goal == Vector2.INF:
 		own_goal = runner.bounds.get_center()
-	var cover: Vector2 = own_goal.lerp(ball_pos, SUPPORT_HOLD_FRAC)
+	var cover: Vector2 = own_goal.lerp(ball_pos, SUPPORT_HOLD_FRAC)   # PROTECTED (WK-98 §2)
 	var axis: Vector2 = ball_pos - own_goal
 	if axis.length() > 1.0:
 		var perp := Vector2(-axis.y, axis.x).normalized()
