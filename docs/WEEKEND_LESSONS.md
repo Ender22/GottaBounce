@@ -18,6 +18,9 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   builder's unverified hunks sit in the same file. Note the pending state in STATUS; commit both together.
 - **Partial commits of mixed files: `python tools/stage_hunks.py <file> --exclude|--include REGEX [--list]`** stages
   only matching hunks (git add -p is interactive and unavailable). Pipe patches as BYTES on Windows.
+- **FIXED (WK-130): each agent uses its own port** — `run_game.ps1 -Port 91xx`, `gbplay.py --port 91xx`,
+  `stop_game.ps1 -Port 91xx`; recordings/headless pass `--gb-port=0`. run_game no longer kills all Godots.
+  The notes below about the shared 9090 / kill-all describe the OLD behaviour.
 - **Port 9090 is shared**: any Godot started from the repo (incl. Movie Maker recordings) can grab it, so gbplay may
   drive SOMEONE ELSE'S game. Before gbplay commands, confirm 9090's owner PID is yours (or drive your instance with
   your own in-game script). WK-111 accidentally reset another agent's match this way.
