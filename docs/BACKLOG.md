@@ -40,7 +40,7 @@ and tuning work, so its findings can re-rank WK-108/109. WK-90 moves above WK-10
 `Juice._hitstop` timer that WK-90 says fires after ~3 frames whatever the duration. WK-25 drops to on-deck #1: it is blocked on the WK-20a
 ruling, and WK-CD2 no longer waits for it. Sports items: 6 of 10.
 
-1. WK-95e [P1][M] (in progress) Bot stuck/underside regressions + HOT ruling + feel sign-off (owner flight ruling follow-through) — gameplay-programmer + game-designer + creative-director
+1. ~~WK-95e~~ done a362ad4 — [P1][M] (in progress) Bot stuck/underside regressions + HOT ruling + feel sign-off (owner flight ruling follow-through) — gameplay-programmer + game-designer + creative-director
 2. ~~WK-104~~ done 5f34080 — [P1][M] (in progress) Sports: ball frozen until GO (SP-02 bug) + kickoff lottery fix (SP-05, game-designer A/B) — gameplay-programmer (+ game-designer ruling)
 3. ~~WK-105~~ done 5f34080 — [P1][M] (in progress) Sports: ball-strike / goal / tile / hole sounds + hit reaction (SP-01) — sound-designer + gameplay-programmer
 4. ~~WK-106~~ done 5f34080 — [P1][M] (in progress) Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03, supersedes WK-16) — ui-ux-designer + gameplay-programmer
@@ -98,7 +98,13 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept: recording of 3 bot supers per difficulty shows smooth, readable wind-up; max angular step under cap.
 - Status: done 9a2ee3f. WK-98 confirmed it in sports: 5 recordings, aim capped at 2.63°/tick, 0 jumps over 15° (§6.7).
 
-### [ ] WK-95e [P1][M] WK-95 follow-ups: bot stuck/underside regressions, HOT ruling, creative-director feel sign-off
+### [ ] WK-95f [P2][S] WK-95 leftovers: Refuel Ridge skip-one-pad gap, ORBIT/cannon/s3 Trials sweep, feel sign-off
+- From WK-95e (a362ad4): (d) level-designer +80 px merged gap on n2_refuel_ridge per WK-95 spec; Trials ORBIT set (g6),
+  cannon courses and s3 soccer trials unchecked under the new flight; (e) creative-director 6-question feel check ->
+  WK-CD2. Sports bot stuck ~29/min (pre 23) moved into WK-108.
+- Accept: recordings of the at-risk Trials courses completed by a boost-only driver; CD2 feel verdict.
+
+### [x] WK-95e [P1][M] WK-95 follow-ups: bot stuck/underside regressions, HOT ruling, creative-director feel sign-off — a362ad4
 - Source: WK-95 build report (commit 4135884). Owner: gameplay-programmer (bots) + game-designer (ruling) + creative-director.
 - Status: in-progress (Next-10 #1). Sports note: the sports stuck/min regression (23 -> 33) is in scope here, not in WK-108; WK-108
   starts only after this lands (both edit `InputBot.gd`). Watch that sports bots keep the super as a body-check (WK-98 §6.3).
@@ -285,7 +291,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   the load-time check prints nothing for all 11 courts.
 - Status: open (Next-10 #5)
 
-### [ ] WK-108 [P1][M] Sports bots: route around the ball, keep goal, (L4+) cross (SP-06)
+### [ ] WK-108 [P1][M] (+ sports bot stuck ~29/min vs 23 pre-WK-95: make bot 'danger'/out-of-arena look-ahead mode-aware in enclosed courts; keep supporter/ball targets below the ceiling) Sports bots: route around the ball, keep goal, (L4+) cross (SP-06)
 - Area: sports (bots) · Owner: gameplay-programmer (`InputBot` / `SportsMode.bot_objective`) · Source: WK-98 SP-06
 - Evidence: a wrong-side bot flies straight at `behind = ball - to_goal*150`, through the ball, shoving it toward its own goal (CPU own
   goals M2 idx 2/3, M7b 6/8 own goals); supporters hold `own_goal.lerp(ball, 0.42)`, in front of the mouth, not in it: someone within
