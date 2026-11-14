@@ -500,6 +500,8 @@ var bot_panic_reroll: float = 0.35       # s between panic-offset re-rolls (low 
 # heading at <= this rate (rad/s, L1..L5), and the flight aim error drifts (bot_aim_noise_drift) instead of
 # re-rolling as an instant jump. Neutral (stick released) stays instant. Recovery uses the same rate.
 var bot_flight_turn_rate: Array[float] = [6.0, 7.0, 8.0, 10.0, 12.0]   # rad/s by bot level (12 rad/s = 23 deg/frame @30)
+var bot_brake_turn_mult: float = 3.0     # WK-127: x bot_flight_turn_rate while the recovery BRAKES before a blast line
+                                         # (a reflex yank: the 0.4 s L3 flip let trampoline launches reach the_ascent lid)
 var bot_ceiling_lookahead: float = 0.35  # WK-108 enclosed courts: s of climb speed probed for an oncoming ceiling...
 var bot_ceiling_margin: float = 120.0    # ...plus this many px; inside it a bot stops thrusting up and skims under
 

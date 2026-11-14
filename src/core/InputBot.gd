@@ -29,6 +29,14 @@ const CROSS_FUEL_PER_PX_LEGACY := 0.045   # pre-WK-95 brain (A/B switch OFF): si
 const CROSS_FUEL_RESERVE_LEGACY := 10.0   # pre-WK-95 brain: > the old super_boost_min_fuel 5
 const SUPER_REACH_FRAC := 0.85         # WK-95 BR-3: offensive super reach = impulse x super_active_time x this (~1070 px)
 const SUPER_CARRY := 720.0             # est. horizontal carry of a WHIFFED super (self-ringout range)
+# WK-127 spatial reasoning (bot geometry sense, like the VOID_* constants above — not game-feel Tuning):
+const CLIMB_PROBES := [300.0, 600.0, 900.0, 1200.0]   # px above me re-probed for a landing when none is below
+const WHIFF_SIM_DT := 1.0 / 30.0       # s step of the post-miss trajectory prediction
+const WHIFF_SIM_T := 2.5               # s horizon: no surface touched by then (and still in bounds) = falling to the void
+const WHIFF_AIM_KEEP := 0.45           # share of current velocity left after the aim hover (super_aim_damp 2.5/s, ~0.3 s)
+const RECOVER_SIM_T := 2.0             # s horizon of the recovery-flight prediction
+const RECOVER_ARRIVE := 140.0          # px from the landing point (180 px over the surface) that counts as home
+const DUMP_LEAD := 0.5                 # s before the 2 s auto-fire when a soured attack aim gives up and dumps
 
 # --- Obstacle-aware ASCENT geometry (owner head-bang fix 2026-07-04). The bot's spatial sense was
 # DOWNWARD-ONLY (_ground_y_below/_scan_ground_x find LANDING surfaces below). Platforms are SOLID and
@@ -63,6 +71,16 @@ static var wk95_brain_enabled := true
 # EXPERIMENT (default OFF = spec BR-4 as written): HOT also requires that a full normal-boost brake could
 # NOT stop the outward motion before the blast line (v^2 / 2a > distance to bounds - margin).
 static var wk95_hot_stopdist := true   # director ruling 2026-11-14 (DECISIONS): ON - meets owner super=attack ruling (9.8% traversal supers)
+# A/B regression switch for WK-127 (default ON; bots self-KO'd 36% of their deaths, 59% of 4-bot stages lost a
+# fighter before 3 s). ON: (a) no attack super at a spawn-protected (blinking) target, and none whose WHIFF would
+# carry me out through a blast line before I touch a refuelling surface (post-miss trajectory predicted; re-checked
+# at release, a soured aim holds and late in the 2 s window dumps into the floor = purpose "attack_dump"); no
+# boosting at a target I won't shoot; (b) the "recovery_unreachable" super counts landings ABOVE me (the WK-95
+# measure only scanned for ground below my height, so a bot knocked under the spire tops / the_ascent's bottom
+# tier read INF and dumped a 50-97 fuel tank) plus a momentum test (predicted recovery flight still exits a blast
+# line); recovery flight BRAKES against the velocity when about to cross a blast line; the recovery super's aim
+# leans into the current velocity. OFF reproduces the WK-108 brain. Flip via gbplay eval: InputBot.wk127_enabled = false
+static var wk127_enabled := true
 
 # --- Motion-health telemetry geometry (process-gate 2026-07-04: make "looks dumb" a NUMBER). ---
 const MH_STUCK_WINDOW := 1.0           # s window for the no-progress (stuck) test
@@ -93,8 +111,11 @@ var _pending_aim_min := 0.0
 var _aim_min_this := 0.0
 var _was_aiming := false
 var _dodge_dir := Vector2.ZERO   # pending dodge-super direction (fires snap, §3.2 rule 5)
+var _sim_normal := Vector2.UP    # WK-127: contact normal of the last _sim_step hit (scratch for the predictors)
+var _aim_dump := false           # WK-127: this offensive aim turned unsafe (a whiff would exit a blast line) -> dump it
+var _braking := false            # WK-127: the recovery is braking before a blast line this frame (fast stick slew)
 # WK-95 BR-7: purpose of the super this bot last pressed (attack / finisher_attack / dodge / recovery_hot /
-# recovery_unreachable; the pre-WK-95 brain also emits recovery_lowfuel). PartyMatch copies it into
+# recovery_unreachable / attack_dump (WK-127); the pre-WK-95 brain also emits recovery_lowfuel). PartyMatch copies it into
 # round_stats.supers_fired[].purpose_bot at fire time. Telemetry only — never read by the decision code.
 var _super_purpose := ""
 var _bang_t := 0.0               # WK-95: s left of the post-head-bang lateral escape
@@ -215,6 +236,7 @@ func poll() -> InputIntent:
 		# WK-94: the sweep starts from wherever the arrow actually is (the press-frame stick / straight up)
 		_aim_out = me.get_super_aim_dir()
 		_aim_roll_target = _aim_roll
+		_aim_dump = false
 	_was_aiming = aiming_now
 	_tick_panic(dt)
 	# --- own AIM state: steer the led solution, fire when good enough or timed out (§3.2 rule 1)
@@ -226,9 +248,10 @@ func poll() -> InputIntent:
 	# Recovery is re-evaluated EVERY frame (not just on reaction_time): bailing out of a fall is
 	# reflexive, and waiting up to reaction_time to react is what sends bots off the map.
 	_bang_t = maxf(0.0, _bang_t - dt)
+	_braking = false
 	if _danger_recover(it):
 		it.aim = _bang_escape(it.aim, it.boost)
-		it.aim = _smooth_fly(it.aim, dt)
+		it.aim = _smooth_fly(it.aim, dt, Tuning.bot_brake_turn_mult if _braking else 1.0)
 		return it
 	if _react <= 0.0:
 		_react = profile.reaction_time
@@ -271,7 +294,7 @@ func poll() -> InputIntent:
 ## the wanted heading at <= Tuning.bot_flight_turn_rate[level] rad/s instead of snapping (feeler-steer swaps,
 ## jitter re-rolls and land-target swaps used to flick the arrow >30 deg per frame). Releasing the stick stays
 ## instant (ZERO passes through); the sweep resumes from the last emitted direction.
-func _smooth_fly(desired: Vector2, dt: float) -> Vector2:
+func _smooth_fly(desired: Vector2, dt: float, rate_mult := 1.0) -> Vector2:
 	if not wk95_brain_enabled or desired == Vector2.ZERO:
 		return desired
 	var want := desired.normalized()
@@ -280,7 +303,7 @@ func _smooth_fly(desired: Vector2, dt: float) -> Vector2:
 		_fly_out = last.normalized() if last.length() > 0.01 else want
 	var rates: Array = Tuning.bot_flight_turn_rate
 	var r: float = 8.0 if rates.is_empty() else float(rates[clampi(level - 1, 0, rates.size() - 1)])
-	var step: float = r * dt
+	var step: float = r * rate_mult * dt
 	_fly_out = _fly_out.rotated(clampf(_fly_out.angle_to(want), -step, step)).normalized()
 	return _fly_out * minf(desired.length(), 1.0)
 
@@ -390,7 +413,8 @@ func _fly_aim(dir: Vector2) -> Vector2:
 func _attack_window(t) -> bool:
 	return _attack_window_why(t) == 0
 
-## 0 = window open; 1 = out of range; 2 = fuel; 3 = line of sight blocked; 4 = _super_safe failed.
+## 0 = window open; 1 = out of range; 2 = fuel; 3 = line of sight blocked; 4 = _super_safe failed;
+## 5 = target spawn-protected (WK-127); 6 = a whiff would carry me out through a blast line (WK-127).
 func _attack_window_why(t) -> int:
 	if t == null or not is_instance_valid(t):
 		return 1
@@ -405,7 +429,54 @@ func _attack_window_why(t) -> int:
 		return 2
 	if pos.distance_to(led) > 1.0 and not _surface_along(pos, (led - pos).normalized(), pos.distance_to(led)).is_empty():
 		return 3   # line of sight blocked: a super through a platform is a bounce, i.e. travel
-	return 0 if _super_safe(pos, t.global_position) else 4
+	if not _super_safe(pos, t.global_position):
+		return 4
+	if wk127_enabled:
+		# a blinking (spawn-protected) target takes no knockback: a super at it is a guaranteed whiff. Every
+		# fighter blinks for the first 1.3 s after BOUNCE, so this is also the opening hold.
+		if t.has_method("spawn_protect_left") and float(t.spawn_protect_left()) > 0.0:
+			return 5
+		if not _whiff_survivable(pos, (led - pos).normalized()):
+			return 6
+	return 0
+
+## WK-127 (a): predict the trajectory of a MISSED super fired along `dir` from `from` (the tank is dumped, so
+## no thrust after: gravity + air drift only) and say whether it touches a bounce surface (a bounce refuels)
+## before it crosses a blast line. Three stick variants (neutral, drift left, drift right): the bot steers
+## after a whiff, so one survivable line is enough. A HIT stops the attacker (smash_self_retain), so only the
+## miss matters. Geometry by ray (no hardcoded coords); gravity from GravityField (radial wells included).
+func _whiff_survivable(from: Vector2, dir: Vector2) -> bool:
+	if me == null or not is_instance_valid(me) or dir == Vector2.ZERO:
+		return true
+	var b := _bounds()
+	var ac: float = me.profile.eff_air_control()
+	var drift_max: float = Tuning.air_drift_max_speed * ac
+	var drift_acc: float = Tuning.air_drift_accel * ac * WHIFF_SIM_DT
+	var v0: Vector2 = (me.velocity * WHIFF_AIM_KEEP + dir * Tuning.super_boost_impulse_full * float(me.speed_mult)) \
+		.limit_length(Tuning.max_speed)
+	for drift in [0.0, -1.0, 1.0]:
+		var p := from
+		var v := v0
+		var t := 0.0
+		var survived := false
+		while t < WHIFF_SIM_T:
+			v += GravityField.get_gravity_at(p) * WHIFF_SIM_DT
+			v.x = move_toward(v.x, drift * drift_max, drift_acc)
+			v = v.limit_length(Tuning.max_speed)
+			var hit := _sim_step(p, v, GravityField.get_gravity_at(p))
+			if hit == 1:
+				survived = true
+				break
+			if hit == 2:
+				v = v.bounce(_sim_normal) * 0.6   # an underside: no refuel, knocked back the way it came
+			else:
+				p += v * WHIFF_SIM_DT
+			if not b.has_point(p):
+				break
+			t += WHIFF_SIM_DT
+		if survived or (t >= WHIFF_SIM_T and b.has_point(p)):
+			return true
+	return false
 
 ## While in the AIM state: keep steering at the led target; fire (release) when the current
 ## jitter roll is inside aim_error * 0.5 AND (WK-94) the swept arrow has arrived within bot_aim_fire_tol,
@@ -424,8 +495,17 @@ func _tick_aiming(it: InputIntent) -> void:
 		# recovery super: aim back at the stage; recovery_skill governs aim/timing only — the blast
 		# itself is always full power (L1's comedy self-destructs get BIGGER). WK-94: the panic error is
 		# the slow-drifting _panic_cur (re-rolled on a timer), NOT a fresh ±0.8 rad roll every frame.
-		desired = _recovery_dir().rotated(_panic_cur)
+		desired = _recovery_dir()
+		if wk127_enabled:
+			desired = _comp_super_aim(desired)
+		desired = desired.rotated(_panic_cur)
 		mode = 2
+	elif _aim_dump:
+		# WK-127: the shot went bad mid-aim (the target moved so the line now whiffs out through a blast
+		# line). Nobody can cancel a super, so dump it where the miss is safe: into the floor below, or back
+		# at the island when over the void (velocity-compensated like a recovery).
+		desired = _dump_dir()
+		mode = 4
 	else:
 		var t = _target
 		if t == null or not is_instance_valid(t) or t.is_dead():
@@ -462,6 +542,8 @@ func _tick_aiming(it: InputIntent) -> void:
 			fire = _my_aim_t >= rt and (on_target or _my_aim_t >= rt + Tuning.bot_aim_settle_max)
 		3:
 			fire = true
+		4:
+			fire = on_target or _my_aim_t >= Tuning.super_aim_max - 0.1
 		_:
 			fire = absf(_aim_roll) < profile.aim_error * 0.5 and on_target
 	# §5 commit DWELL: hold the aim at least _aim_min_this before releasing so the §3 charge tell has
@@ -472,12 +554,48 @@ func _tick_aiming(it: InputIntent) -> void:
 		fire = false
 	if _my_aim_t >= maxf(profile.super_aim_time, _aim_min_this):
 		fire = true   # L1 hangs comically (sometimes hits the 2s auto-fire); L5 snap-fires
+	# WK-127 (a): the attack window was checked when the aim STARTED; re-check the line at release. If the
+	# miss now carries me out through a blast line, HOLD (keep tracking: the line may come good again); only
+	# in the last DUMP_LEAD s before the 2 s auto-fire swing to the dump direction instead.
+	if wk127_enabled and mode == 0 and (fire or _my_aim_t >= Tuning.super_aim_max - DUMP_LEAD) \
+			and not _whiff_survivable(me.global_position, _aim_out):
+		fire = false
+		if _my_aim_t >= Tuning.super_aim_max - DUMP_LEAD:
+			_aim_dump = true
+			_super_purpose = "attack_dump"
 	it.aim = _aim_out
 	it.super_hold = not fire
 	if fire:
 		_dodge_dir = Vector2.ZERO
+		_aim_dump = false
 		_aim_min_this = 0.0
 		_aim_out = Vector2.ZERO
+
+## WK-127: where a soured offensive aim is dumped: straight down the local pull into the floor (a slam = a
+## bounce = refuel) when there is ground below, else back at the landing like a recovery super.
+func _dump_dir() -> Vector2:
+	var pos: Vector2 = me.global_position
+	if not _over_void(pos):
+		return _gdown(pos)
+	return _comp_super_aim(_recovery_dir())
+
+## WK-127: the super ADDS its impulse to the velocity I already have, so a goat falling at 1500 px/s that aims
+## the blast straight at the island ends up launched below it. Aim so that velocity + impulse points along
+## `want` (solve |k*want - v| = impulse for the forward root), i.e. lean the shot into the fall like a human.
+## Falls back to `want` when the sideways velocity is larger than the impulse can cancel.
+func _comp_super_aim(want: Vector2) -> Vector2:
+	var u := want.normalized()
+	var v: Vector2 = me.velocity
+	var s: float = Tuning.super_boost_impulse_full * float(me.speed_mult)
+	var uv: float = u.dot(v)
+	var disc: float = uv * uv - v.length_squared() + s * s
+	if disc <= 0.0 or s <= 0.0:
+		return u
+	var k: float = uv + sqrt(disc)
+	if k <= 0.0:
+		return u
+	var aim: Vector2 = (u * k - v) / s
+	return aim.normalized() if aim.length() > 0.01 else u
 
 ## WK-94: this bot's max super-aim stick speed (rad/s), by level from Tuning.bot_aim_turn_rate.
 func _aim_turn_rate() -> float:
@@ -622,8 +740,16 @@ func _danger_recover(it: InputIntent) -> bool:
 	# low recovery_skill: panic flail (the funny death). high skill: clean, hard recovery.
 	# WK-94: the flail is the slow-drifting _panic_cur (a thumb wandering under stress), no longer a
 	# fresh ±0.8 rad roll EVERY physics frame (which made the aim arrow strobe/spin).
+	var braking := false
+	if wk127_enabled:
+		var hd := _recover_heading(me.global_position, me.velocity, dir)
+		braking = hd != dir
+		_braking = braking
+		dir = hd
 	if absf(_panic_target) > 0.0 or absf(_panic_cur) > 0.01:
 		dir = dir.rotated(_panic_cur)
+	elif braking:
+		pass   # WK-127: a brake is never re-routed by the ascent detour / feeler-steer
 	elif wk95_brain_enabled:
 		# WK-95: steered flight now actually HOLDS the line to the landing point, so a recovery from under an
 		# island flew straight into its underside. Route round the overhead platform edge first (the same
@@ -646,13 +772,28 @@ func _danger_recover(it: InputIntent) -> bool:
 		# void and the landing is unreachable on the fuel we have). Low fuel alone is never a reason (low +
 		# reachable = boost home). "Reachable" here is the spec §8.1 test (fuel / CROSS_FUEL_PER_PX, NO landing
 		# reserve): the reserve is a margin for planning a deliberate crossing, not for deciding to gamble.
-		var unreachable: bool = _over_void(me.global_position) 			and me.fuel < _nearest_ground_dx(me.global_position) * CROSS_FUEL_PER_PX
+		var unreachable := false
+		if wk127_enabled:
+			# WK-127 (b): the WK-95 dx-below test read INF whenever the goat was under the platform tops (spires /
+			# the_ascent's bottom tier) and fired at 50-97 fuel. Now (A) the RANGE test counts landings above me
+			# too (climb-aware), and (B) a MOMENTUM test: the predicted recovery flight (my thrust law, grip,
+			# gravity, fuel) still crosses a blast line while it has thrust left (too fast to brake in time).
+			# Skipped when the super can't fire anyway.
+			var pos0: Vector2 = me.global_position
+			if me.fuel >= Tuning.super_boost_min_fuel and _over_void(pos0):
+				var budget: float = me.fuel / CROSS_FUEL_PER_PX
+				unreachable = _nearest_ground_dx(pos0) > budget and _climb_landing(pos0, budget).is_empty()
+				if not unreachable:
+					unreachable = _flight_recovers(pos0, land) == 1
+		else:
+			unreachable = _over_void(me.global_position) \
+				and me.fuel < _nearest_ground_dx(me.global_position) * CROSS_FUEL_PER_PX
 		var hot: bool = out_speed > 1400.0 and (not wk95_hot_stopdist or not _can_arrest(out_speed))
 		if me.fuel >= Tuning.super_boost_min_fuel and (hot or unreachable):
 			it.super_hold = true
 			it.boost = false
 			_super_purpose = "recovery_hot" if hot else "recovery_unreachable"
-		else:
+		elif not braking:
 			it.aim = _fly_aim(it.aim)   # BR-2: boost home on a sag-compensated line
 	else:
 		var stranded: bool = _over_void(me.global_position) and not _can_reach(land_dist)
@@ -741,6 +882,8 @@ func _decide() -> void:
 				# close the distance by flight; inside 0.8 x range keep flying only to get AROUND a blocker (LOS),
 				# never orbit a target we cannot safely shoot (the first after-recordings showed bots circling)
 				_cached_boost = me.fuel > _eff_refuel_floor() and (fdist > _eff_attack_range() * 0.8 or fwhy == 3)
+				if fwhy == 5 or fwhy == 6:
+					_cached_boost = false   # WK-127: in reach but no shot (blinking / whiff exits) -> wait, don't crowd the line
 				if fwin:
 					_cached_super = true
 					_super_purpose = "finisher_attack"
@@ -781,6 +924,8 @@ func _decide() -> void:
 			# close the distance by flight; inside 0.8 x range keep flying only to get AROUND a blocker (LOS),
 			# never orbit a target we cannot safely shoot (the first after-recordings showed bots circling)
 			_cached_boost = _hunt and me.fuel > _eff_refuel_floor() and (dist > _eff_attack_range() * 0.8 or why == 3)
+			if why == 5 or why == 6:
+				_cached_boost = false   # WK-127: in reach but no shot (blinking / whiff exits) -> wait, don't crowd the line
 			if win:
 				_cached_super = true
 				_super_purpose = "attack"
@@ -1139,6 +1284,17 @@ func _land_target(pos: Vector2) -> Vector2:
 	if not is_nan(right_x):
 		choices.append({"x": right_x, "dx": absf(right_x - pos.x), "side": 1.0})
 	if choices.is_empty():
+		if wk127_enabled:
+			# WK-127 (b): nothing below my height (knocked under the spire tops / beside a tier) -> fly to the
+			# nearest landing ABOVE me that the tank can reach, not just the nearest spawn
+			var cl := _climb_landing(pos, me.fuel / CROSS_FUEL_PER_PX)
+			if not cl.is_empty():
+				var cp: Vector2 = cl["point"]
+				# below the landing's height: climb my own (void, so open) column to that height FIRST, then
+				# cross — a diagonal line from under the lip hits the platform's corner/underside and stalls
+				if pos.y > cp.y + 60.0 and absf(cp.x - pos.x) > 60.0:
+					return Vector2(pos.x, cp.y)
+				return cp
 		return _fallback_land(pos)
 	var chosen = null
 	# 1) the biased side, if reachable
@@ -1163,6 +1319,130 @@ func _land_target(pos: Vector2) -> Vector2:
 		sy = _ground_y_below(tx, pos.y - 40.0)
 	var ty: float = (sy - VOID_LAND_MARGIN) if sy < INF else pos.y - 120.0
 	return Vector2(tx, ty)
+
+## WK-127 (b): the nearest landing within `budget_px` of flight when the surfaces may be ABOVE me. Re-runs the
+## column scan from probe heights CLIMB_PROBES above my position (a ray down from there finds platform tops
+## up to that high), and costs each landing as the straight flight to just over its lip (a climb under boost
+## costs about the same fuel per px as a level crossing: 5400 accel >> 0.8 g, same 800 px/s cap). Flat frame
+## only (radial wells recover along the pull). Returns {"point", "px"} or {} when nothing is in budget.
+func _climb_landing(pos: Vector2, budget_px: float) -> Dictionary:
+	if _radial(_gdown(pos)):
+		return {}
+	var b := _bounds()
+	var lo: float = maxf(b.position.x + 60.0, pos.x - budget_px)
+	var hi: float = minf(b.end.x - 60.0, pos.x + budget_px)
+	var cx: float = clampf(pos.x, b.position.x + 60.0, b.end.x - 60.0)
+	var best := {}
+	var best_px := budget_px
+	for h in CLIMB_PROBES:
+		var py: float = pos.y - float(h)
+		if py < b.position.y + 80.0 or float(h) > best_px:
+			break
+		for dir_x in [-1.0, 1.0]:
+			var x := cx
+			while (dir_x < 0.0 and x >= lo) or (dir_x > 0.0 and x <= hi):
+				if absf(x - pos.x) > best_px:
+					break
+				var sy: float = _ground_y_below(x, py)
+				if sy < INF:
+					# land just over the lip, nudged onto the platform (runway), never into the underside
+					var tx: float = x + dir_x * VOID_LAND_NUDGE
+					if _ground_y_below(tx, py) == INF:
+						tx = x
+					var pt := Vector2(tx, sy - VOID_LAND_MARGIN)
+					var px: float = pos.distance_to(pt)
+					if px < best_px:
+						best_px = px
+						best = {"point": pt, "px": px}
+					break
+				x += dir_x * 100.0
+	return best
+
+## WK-127 (b): predict the bot's recovery FLIGHT from its current state, flying the same heading law as
+## _danger_recover (_recover_heading: brake against the velocity when about to cross a blast line, else
+## toward `land`) with Player's boost rules (cap along the aim, 0.8 g while thrusting, the steering grip below
+## boost_grip_speed_max, drain; boost stops at <= 4 fuel and the stick then only air-drifts).
+## 0 = recovers (within RECOVER_ARRIVE of the landing point, a refuelling touch, or still in bounds at the
+## horizon); 1 = crosses a blast line while it still has thrust (momentum: too fast to brake);
+## 2 = crosses after the tank ran dry (range).
+func _flight_recovers(pos: Vector2, land: Vector2) -> int:
+	if me == null or not is_instance_valid(me):
+		return 0
+	var b := _bounds()
+	var dt := WHIFF_SIM_DT
+	var p := pos
+	var v: Vector2 = me.velocity
+	var fuel: float = me.fuel
+	var bp: float = me.profile.eff_boost_power()
+	var cap: float = Tuning.normal_boost_max_speed * bp
+	var acc: float = Tuning.normal_boost_accel * bp * dt
+	var drain: float = Tuning.normal_boost_drain() * dt
+	var ac: float = me.profile.eff_air_control()
+	var t := 0.0
+	while t < RECOVER_SIM_T:
+		var g: Vector2 = GravityField.get_gravity_at(p)
+		var to: Vector2 = land - p
+		if to.length() < RECOVER_ARRIVE:
+			return 0
+		var a := _recover_heading(p, v, to.normalized())
+		if fuel > 4.0:
+			v += g * Tuning.boost_gravity_scale * dt
+			var along: float = v.dot(a)
+			if along < cap:
+				v += a * minf(acc, cap - along)
+			var sp: float = v.length()
+			if Tuning.boost_grip_rate > 0.0 and sp < Tuning.boost_grip_speed_max:
+				var vperp: Vector2 = v - a * v.dot(a)
+				var vp: float = vperp.length()
+				if vp > 0.001:
+					var dv: Vector2 = -vperp / vp * minf(minf(Tuning.boost_grip_rate * vp, Tuning.boost_grip_decel_max) * dt, vp)
+					var up: Vector2 = -g.normalized() if g.length_squared() > 0.01 else Vector2.UP
+					if v.dot(up) > 0.0 and dv.dot(up) < 0.0:
+						dv -= up * dv.dot(up)
+					v += dv
+			fuel -= drain
+		else:
+			v += g * dt
+			v.x = move_toward(v.x, signf(a.x) * Tuning.air_drift_max_speed * ac, Tuning.air_drift_accel * ac * dt)
+		v = v.limit_length(Tuning.max_speed)
+		var hit := _sim_step(p, v, g)
+		if hit == 1:
+			return 0
+		if hit == 2:
+			v = v.bounce(_sim_normal) * 0.6   # head-bang on an underside: no refuel, knocked back down
+		else:
+			p += v * dt
+		if not b.has_point(p):
+			return 1 if fuel > 4.0 else 2
+		t += dt
+	return 0
+
+## WK-127: the recovery thrust heading. About to cross a blast line (the same 0.6 s look-ahead _in_danger
+## uses) -> thrust straight against the velocity: braking is what saves you, and the old heading (at the
+## landing point, deflected by the feeler-steer because the platform below read as an obstacle) let goats
+## bounced off the_ascent's top trampoline coast into the sky lid with a full tank. Only when NOTHING solid
+## lies between me and that line along my velocity: a wall / ceiling / court side catches me first (sports
+## courts, the_ascent's bumper walls), and braking at those turned sports bots into wall-hoverers.
+## Otherwise -> `to_land`.
+func _recover_heading(p: Vector2, v: Vector2, to_land: Vector2) -> Vector2:
+	var sp: float = v.length()
+	if sp > 1.0 and not _enclosed() and not _bounds().grow(-80.0).has_point(p + v * 0.6):
+		if _surface_along(p, v / sp, sp * 0.6 + 120.0).is_empty():
+			return -v / sp
+	return to_land
+
+## One predictor step: 0 = clear, 1 = touched a refuelling surface (floor / side / bumper), 2 = an underside
+## (normal along the local pull — Player refunds no fuel there, see Player._on_bounced).
+func _sim_step(p: Vector2, v: Vector2, g: Vector2) -> int:
+	var q := PhysicsRayQueryParameters2D.create(p, p + v * WHIFF_SIM_DT, Player.MASK_SURFACES)
+	q.exclude = [me.get_rid()]
+	var hit := me.get_world_2d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		return 0
+	var n: Vector2 = hit["normal"]
+	_sim_normal = n
+	var gd: Vector2 = g.normalized() if g.length_squared() > 0.01 else Vector2.DOWN
+	return 2 if n.dot(gd) > 0.5 else 1
 
 ## No x-column with ground below in scan range. Unreachable on flat levels (there is always ground
 ## somewhere in the band — legacy returned stage_center there); REACHABLE in an orbital arena's

@@ -126,6 +126,11 @@ func heal_time_left() -> float:
 func in_hitstun() -> bool:
 	return _stun_timer > 0.0
 
+## Seconds of post-(re)spawn invulnerability left (the blink). Every fighter blinks for the first
+## SPAWN_PROTECT_TIME after BOUNCE. Bots read it (WK-127): a human sees the blink and won't super at it.
+func spawn_protect_left() -> float:
+	return _spawn_protect
+
 var _body: Node2D                  # body root (squash/tumble applies here)
 var _skin_flip: Node2D             # facing flip (scale.x = ±1), separate from squash scale
 var _sprite: Sprite2D              # character sprite (idle / squash pose)
@@ -903,6 +908,9 @@ func _handle_smashes() -> void:
 				# receive_smash. Lv0 x1.0 / Lv1 x1.33 / Lv2 x1.66 -> a Lv2 center hit (2200*1.66=3652)
 				# is then clamped to max_speed (3000) by receive_smash. The ONLY sanctioned exceedance of 2200.
 				var victim_dmg_level: int = b.damage_level
+				# WK-127 (c): receive_smash ignores a Star / spawn-protected / Counter-Shield victim (no launch,
+				# no sting, no hitstun), so such a contact is not a landed smash for the QA feed below.
+				var victim_takes_hit: bool = not (b.invincible or b._spawn_protect > 0.0 or b.counter_active)
 				impulse_mag *= b.damage_launch_mult()
 				var impulse := vdir * impulse_mag   # launch direction unchanged (along attacker travel)
 				var angular_kick: float = Tuning.smash_spin_max * (1.0 - s) * signf(vdir.cross(n))
@@ -921,7 +929,7 @@ func _handle_smashes() -> void:
 				EventBus.smashed.emit(attacker_for_credit, b, impulse)
 				# Hit-solidity QA feed (kill-zone spec §8): one entry per qualifying smash.
 				# launch_speed read AFTER receive_smash (victim velocity already includes the impulse).
-				if launch_scale > 0.0 or impulse_mag >= Tuning.smash_sting_min_impulse:
+				if victim_takes_hit and (launch_scale > 0.0 or impulse_mag >= Tuning.smash_sting_min_impulse):
 					EventBus.smash_landed.emit(attacker_for_credit, b, {
 						"solidity": s,
 						"launch_scale": launch_scale,
