@@ -193,6 +193,7 @@ func _sample(players: Array, st: String) -> void:
 			"a": snappedf(rad_to_deg(aim.angle()), 0.01), "sa": aiming,
 			"stun": float(p.get("_stun_timer")) > 0.0, "dead": p.is_dead(),
 			"fuel": snappedf(float(p.fuel), 0.1), "vis": p.visible,
+			"b": p.is_boosting(), "sup": p.is_super_active(),   # WK-95: boost vs super state per goat
 		})
 	var hz: Array = []
 	for h in _hazards:
@@ -251,8 +252,17 @@ func _idx(p) -> int:
 	return (_scene.get("players") as Array).find(p)
 
 func _on_super_fired(player, fuel_at_fire, aim_time, auto_fired) -> void:
-	_ev("super_fired", {"who": _idx(player), "fuel": fuel_at_fire, "aim_time": snappedf(float(aim_time), 0.001),
-		"auto": auto_fired})
+	var d := {"who": _idx(player), "fuel": fuel_at_fire, "aim_time": snappedf(float(aim_time), 0.001),
+		"auto": auto_fired}
+	# WK-95: copy the PartyMatch §8.1 classification (purpose_bot + geo_class) of this super, if recorded
+	if _scene != null and is_instance_valid(_scene) and "_cur_stats" in _scene:
+		var cs: Dictionary = _scene.get("_cur_stats")
+		var fired: Array = cs.get("supers_fired", [])
+		if not fired.is_empty() and int((fired.back() as Dictionary).get("who", -2)) == int(d["who"]):
+			var r: Dictionary = fired.back()
+			d["purpose"] = r.get("purpose_bot")
+			d["geo"] = r.get("geo_class", "")
+	_ev("super_fired", d)
 
 func _on_smashed(attacker, victim, impulse) -> void:
 	_ev("smashed", {"attacker": _idx(attacker) if attacker != null else -1, "victim": _idx(victim),
@@ -263,6 +273,19 @@ func _on_hazard_shoved(player, _dir, magnitude) -> void:
 
 func _on_killed(victim, cause, attacker) -> void:
 	_ev("killed", {"victim": _idx(victim), "cause": str(cause), "attacker": _idx(attacker) if attacker != null else -1})
+
+## WK-95: the PartyMatch round_stats QA feed (finished stages + the in-flight one), JSON-safe.
+func _round_stats_json() -> Array:
+	if _scene == null or not is_instance_valid(_scene) or not ("round_stats" in _scene):
+		return []
+	var out: Array = (_scene.get("round_stats") as Array).duplicate(true)
+	var cur: Dictionary = _scene.get("_cur_stats") if "_cur_stats" in _scene else {}
+	if not cur.is_empty():
+		var c: Dictionary = cur.duplicate(true)
+		c["length_s"] = float(_scene.get("round_clock"))
+		c["in_flight"] = true
+		out.append(c)
+	return JSON.parse_string(JSON.stringify(out))
 
 func _finish() -> void:
 	_done = true
@@ -280,6 +303,7 @@ func _finish() -> void:
 			"win_w": get_window().size.x, "win_h": get_window().size.y, "combat_seconds": _combat_acc, "level": str(_scene.get("level_name")) if _scene else ""}),
 		"combat_frame": _combat_frame, "frames": _frames, "aim_windows": _aim_windows, "events": _events,
 		"hazards": hz,
+		"round_stats": _round_stats_json(),
 	}
 	var f := FileAccess.open(_out_dir.path_join("data.json"), FileAccess.WRITE)
 	if f != null:

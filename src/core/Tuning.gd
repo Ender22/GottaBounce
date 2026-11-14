@@ -38,14 +38,17 @@ var fuel_per_bumper: float = 20.0    # bumper walls refund fuel too — enables 
                                      # fuel_per_bounce for now: FLAGGED FOR DESIGNER REVIEW.
 
 # --- Normal boost (FEEL §3.2) ---
-var normal_boost_accel: float = 4600.0       # snappier thrust response
-var normal_boost_max_speed: float = 760.0     # a bit more top thrust speed for control
+var normal_boost_accel: float = 5400.0       # WK-95 (owner ruling 2026-11-14): 4600 -> 5400, snappier start/
+                                             # reversal. Invariant: pu_black_hole_pull (2600) < this (escapable).
+var normal_boost_max_speed: float = 800.0     # WK-95: 760 -> 800 (+5%, the most INV-1 allows). INVARIANT (INV-1):
+                                             # this x CharacterProfile.BOOST_MAX (1.12) = 896 < smash_impact_min
+                                             # (900) — plain boost never reaches the smash gate. Never raise past 800.
 var boost_rampup: float = 0.06
 var boost_gravity_scale: float = 0.8         # owner 2026-07-16: flying players are ~20% "lighter"
                                              # WHILE THRUSTING (gravity scaled only when boost is
                                              # firing), so climbing has more authority — players were
                                              # avoiding upward flight and defaulting to supers. Does
-                                             # not touch the 760 thrust cap (INV-1 untouched: plain
+                                             # not touch the thrust cap (INV-1 untouched: plain
                                              # boost still can never reach smash_impact_min).
 
 # --- Player head-bounce (owner 2026-07-16, "Mario coop" bounce off other players) ---
@@ -65,7 +68,10 @@ var player_bounce_victim_push: float = 240.0   # downward/outward nudge on the b
 # fuel or hold time — aim and timing are the only skill axes. DO NOT re-introduce power
 # scaling (docs/DECISIONS.md 2026-07-02).
 var super_boost_impulse_full: float = 2800.0   # constant launch impulse (5 fuel fires as hard as 100)
-var super_boost_min_fuel: float = 5.0          # "even 5%" — keep fuel_per_bounce >= 2x this
+var super_boost_min_fuel: float = 10.0         # WK-95 (owner ruling 2026-11-14, supersedes the 2026-07-02 "even 5%"
+                                               # clause): 5 -> 10 kills the fumes-super taxi. INVARIANT: fuel_per_bounce
+                                               # (20) >= 2x this — now at EQUALITY: never raise again without a
+                                               # fuel_per_bounce ruling. Also #7 sting-starve: 34 - 30 = 4 < this.
 var super_aim_max: float = 2.0                 # aim-hover hard cap; auto-fire, never a camp (Pillar 2)
 var super_aim_gravity: float = 0.25            # gravity scale while aiming — sag, don't plummet
 var super_aim_damp: float = 2.5                # per-sec proportional velocity decay while aiming (§1.3)
@@ -84,6 +90,25 @@ var super_ring_min_arc: float = 0.15         # min visible fuse-arc fraction (fr
 # --- Boost control-retake ---
 var boost_enter_keep: float = 0.25             # starting a normal boost cuts momentum to this, so a
                                                # tap of boost lets you reclaim control of your trajectory
+                                               # (with boost_enter_keep_directional: only the part NOT
+                                               # along the thrust is cut — see the WK-95 block below)
+
+# --- Flight steering (WK-95, docs/specs/wk95_flight_responsiveness_2026-11-14.md §3.1/§3.2) ---
+# OWNER RULING 2026-11-14: normal flight must steer well enough to get around; the super is the ATTACK.
+# While THRUSTING with the stick held, velocity perpendicular to the thrust bleeds away (grip) so a held
+# boost holds a line: level flight at ~11 deg up / ~815 px/s, a ~0.34 s 90-degree turn. Guards (Player.gd):
+# never removes height while rising (bounce lift / supercharge pop survive), never adds speed, off with
+# the stick centred (neutral boost = pure lift), off above boost_grip_speed_max and while black-hole-pulled.
+var boost_grip_rate: float = 8.0               # 1/s perpendicular-velocity decay (time constant 0.125 s; level-
+                                               # flight sag 1280/8 = 160 px/s). 0.0 = grip OFF (pre-WK-95). Band 6-12
+var boost_grip_decel_max: float = 3000.0       # px/s^2 ceiling on the grip decel: > the largest gravity share it
+                                               # fights (0.8 g = 1280) and < normal_boost_accel. Band 2000-4000
+var boost_grip_speed_max: float = 1300.0       # px/s: grip OFF above this — supers (2800), smash launches and
+                                               # supercharged springs (~1736) belong to physics. > supercharged
+                                               # thrust cap (800 x 1.6 = 1280)
+var boost_enter_keep_directional: bool = true  # a fresh boost keeps the velocity ALONG the thrust and cuts only the
+                                               # rest to boost_enter_keep (bounce + boost-up keeps the bounce; aiming
+                                               # back/across still brakes 75%). false = pre-WK-95 flat chop
 
 # --- Boost-bounce supercharge (FEEL §3.4) ---
 var supercharge_window: float = 0.20
@@ -327,7 +352,7 @@ var finisher_opponents_left: int = 1        # enter finisher at <= this many liv
 var finisher_aggression_floor: float = 0.95 # never idle-skip the hunt (max with profile.aggression)
 var finisher_attack_range_mult: float = 1.4 # arm the super from further; close-and-blast, don't orbit
 var finisher_commit_time_floor: float = 1.5 # a rolled hunt sticks through the whole approach
-var finisher_refuel_floor: float = 10.0     # dive/attack-gate floor; > super_boost_min_fuel (5) so it can always fire
+var finisher_refuel_floor: float = 15.0     # dive/attack-gate floor; must stay > super_boost_min_fuel (10, WK-95) so it can always fire
 var finisher_dodge_super_cap: float = 0.15  # cap the counter-super dance so two high-tiers don't infinitely dodge
 # v1_kill_economy §2b: scale the finisher AIM-entry range with arena width so a bot arms its super
 # from proportionally further on a huge map (close-then-blast like a human) instead of needing to get
@@ -440,6 +465,11 @@ var bot_aim_fire_tol: float = 0.22       # rad: offensive/dodge releases wait un
 var bot_aim_dodge_max: float = 0.40      # s: a dodge super fires by this even if the sweep hasn't arrived
 var bot_aim_settle_max: float = 0.30     # s past the recovery fire time: a recovery super fires even mid-sweep
 var bot_panic_reroll: float = 0.35       # s between panic-offset re-rolls (low recovery_skill flail = slow wander)
+# WK-95 (folds in the WK-103 finding: the bot NORMAL-boost arrow flicked >30 deg per 30 fps frame on 7-13% of
+# frames). The bot's flight stick is a human stick too: the emitted boost/drift aim rotates toward the wanted
+# heading at <= this rate (rad/s, L1..L5), and the flight aim error drifts (bot_aim_noise_drift) instead of
+# re-rolling as an instant jump. Neutral (stick released) stays instant. Recovery uses the same rate.
+var bot_flight_turn_rate: Array[float] = [6.0, 7.0, 8.0, 10.0, 12.0]   # rad/s by bot level (12 rad/s = 23 deg/frame @30)
 
 # --- WK-96 moving-hazard SMASH (owner 2026-11-14: pendulums "went right through a player and didnt smash
 # them"). A pendulum ball moving at >= pendulum_smash_min_speed SMASHES on contact: knockback + hitstun +

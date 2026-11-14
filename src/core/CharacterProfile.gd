@@ -26,7 +26,7 @@ const APEX_MAX := 1.08          # touches flight-required traversal — never hi
 const AIR_MIN := 0.85
 const AIR_MAX := 1.20
 const BOOST_MIN := 0.90
-const BOOST_MAX := 1.12         # INV-1: 760 * 1.12 = 851 < smash_impact_min (900). Never higher.
+const BOOST_MAX := 1.12         # INV-1: 800 * 1.12 = 896 < smash_impact_min (900) — at the limit (WK-95). Never higher.
 const KB_DEALT_MIN := 0.90
 const KB_DEALT_MAX := 1.12
 const KB_TAKEN_MIN := 0.90      # the "a clean super still kills" floor — never lower (spec §1.1 proof)

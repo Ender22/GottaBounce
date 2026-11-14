@@ -773,6 +773,7 @@ func _bounce_go() -> void:
 		# reset bot motion-health so its stuck/underside/blocked-ascent numbers are per-stage
 		if is_instance_valid(p) and p.provider != null and p.provider.has_method("reset_motion_health"):
 			p.provider.reset_motion_health()
+	_wk95_reset_flight()
 	if _pu_director != null:
 		_pu_director.reset()       # first telegraph pu_first_spawn after BOUNCE! (spec §4)
 	_hud.show_center("BOUNCE!", GOLD, BOUNCE_HOLD)
@@ -784,6 +785,7 @@ func _bounce_go() -> void:
 
 func _tick_combat(delta: float, rdelta: float) -> void:
 	round_clock += delta   # stat only; gates nothing
+	_wk95_tick_flight(delta)   # WK-95 §8.1 per-player flight telemetry (read-only)
 	# sudden-death revive lock: banner holds, both revived players suspended (spec §5)
 	if _sd_lock > 0.0:
 		_sd_lock -= rdelta
@@ -838,15 +840,165 @@ func _on_super_fired(player, fuel_at_fire, aim_time, auto_fired) -> void:
 		return
 	var who := players.find(player)
 	var fired: Array = _cur_stats["supers_fired"]
-	fired.append({
+	# WK-95 §8.1: where/how/why this super went. `vel` is the PRE-impulse velocity (the signal fires after
+	# Player adds the impulse). purpose_bot = the InputBot's BR-7 tag (null for humans / scripted providers).
+	var aim: Vector2 = player.get_super_aim_dir() if is_instance_valid(player) else Vector2.UP
+	var sm: float = float(player.get("speed_mult")) if is_instance_valid(player) else 1.0
+	var pre_v: Vector2 = player.velocity - aim * Tuning.super_boost_impulse_full * sm
+	var purpose: Variant = null
+	if is_instance_valid(player) and player.provider != null and player.provider.has_method("super_purpose_tag"):
+		purpose = player.provider.super_purpose_tag()
+	var rec := {
 		"who": who, "fuel_at_fire": fuel_at_fire, "aim_time": aim_time, "auto_fired": auto_fired,
 		"t": round_clock,
-	})
+		"pos": player.global_position, "vel": pre_v, "aim_dir": aim, "purpose_bot": purpose,
+		"landed": false, "geo_class": _wk95_geo_class(player, who, pre_v, aim, float(fuel_at_fire)),
+	}
+	fired.append(rec)
+	if who >= 0 and who < _wk95_last_super.size():
+		_wk95_last_super[who] = rec
+		_wk95_super_t[who] = 0.0   # opens this player's super_path_px window
+
+# ---------------------------------------------------------------- WK-95 §8.1 telemetry (QA feed)
+# Read-only toward the sim. Classifies every super at fire time (geo_class) so QA can measure the
+# super-as-movement share = (RECOVERY_UNNEEDED + TRAVERSAL) / all, and logs per-player flight use per stage.
+const WK95_GEO_FUEL_PER_PX := 0.042    # spec §8.1: "no landing surface reachable at fuel / 0.042 px"
+const WK95_ATTACK_RANGE := 1260.0      # spec §8.1 ATTACK: opponent within this and within WK95_ATTACK_CONE of aim
+const WK95_ATTACK_CONE := 0.6
+const WK95_DODGE_RANGE := 500.0        # spec §8.1 DODGE: a super-aiming opponent within this, aimed within cone at me
+const WK95_DODGE_CONE := 0.5
+const WK95_SMASHED_RECENT := 1.5       # s: "smashed <= 1.5 s ago" counts as danger
+const WK95_SUPER_PATH_TAIL := 0.5      # s after super_active that still counts as super path
+var _wk95_prev_pos: Array = []
+var _wk95_super_t: Array = []          # per player: s since last super fire
+var _wk95_last_smashed: Array = []     # per player: round_clock of the last qualifying smash received
+var _wk95_last_super: Array = []       # per player: that player's last supers_fired record (for `landed`)
+
+func _wk95_reset_flight() -> void:
+	var fl: Array = []
+	_wk95_prev_pos.clear()
+	_wk95_super_t.clear()
+	_wk95_last_smashed.clear()
+	_wk95_last_super.clear()
+	for i in range(players.size()):
+		var p = players[i]
+		fl.append({"who": i, "air_time": 0.0, "boost_time": 0.0, "boost_path_px": 0.0, "super_path_px": 0.0})
+		_wk95_prev_pos.append(p.global_position if is_instance_valid(p) else Vector2.ZERO)
+		_wk95_super_t.append(INF)
+		_wk95_last_smashed.append(-INF)
+		_wk95_last_super.append({})
+	if not _cur_stats.is_empty():
+		_cur_stats["flight"] = fl
+
+## air_time = alive, un-frozen combat time (a bouncer is airborne except contact frames); boost_time = time
+## with normal thrust firing; *_path_px = distance travelled while boosting / while super-active (+0.5 s).
+func _wk95_tick_flight(delta: float) -> void:
+	if _cur_stats.is_empty() or not _cur_stats.has("flight"):
+		return
+	var fl: Array = _cur_stats["flight"]
+	for i in range(mini(players.size(), mini(fl.size(), _wk95_prev_pos.size()))):
+		var p = players[i]
+		if not is_instance_valid(p):
+			continue
+		var step: float = p.global_position.distance_to(_wk95_prev_pos[i])
+		_wk95_prev_pos[i] = p.global_position
+		if p.is_dead() or p.frozen or step > 400.0:   # 400 px in one tick = a respawn teleport, not motion
+			continue
+		var row: Dictionary = fl[i]
+		_wk95_super_t[i] = float(_wk95_super_t[i]) + delta
+		row["air_time"] = float(row["air_time"]) + delta
+		if p.is_boosting():
+			row["boost_time"] = float(row["boost_time"]) + delta
+			row["boost_path_px"] = float(row["boost_path_px"]) + step
+		if float(_wk95_super_t[i]) <= Tuning.super_active_time + WK95_SUPER_PATH_TAIL:
+			row["super_path_px"] = float(row["super_path_px"]) + step
+
+func _wk95_ray(from: Vector2, to: Vector2) -> Dictionary:
+	var q := PhysicsRayQueryParameters2D.create(from, to, Player.MASK_SURFACES)
+	return get_world_2d().direct_space_state.intersect_ray(q)
+
+func _wk95_radial(pos: Vector2) -> bool:
+	var g: Vector2 = GravityField.get_gravity_at(pos)
+	return g.length_squared() > 0.01 and g.normalized().y < 0.9
+
+func _wk95_down(pos: Vector2) -> Vector2:
+	var g: Vector2 = GravityField.get_gravity_at(pos)
+	return g.normalized() if g.length_squared() > 0.01 else Vector2.DOWN
+
+func _wk95_over_void(pos: Vector2) -> bool:
+	var down := _wk95_down(pos)
+	return _wk95_ray(pos - down * 40.0, pos + down * 2200.0).is_empty()
+
+## Nearest landing point and its flight distance (flat frame: horizontal dx to the nearest floored column,
+## the same measure the bot's _can_reach uses; radial frame: straight-line to the nearest spawn).
+func _wk95_land_dist(pos: Vector2) -> Dictionary:
+	if not _wk95_over_void(pos):
+		return {"dist": 0.0, "point": pos + _wk95_down(pos) * 200.0}
+	if _wk95_radial(pos):
+		var best := Vector2.INF
+		for s in _spawns:
+			var sp: Vector2 = s
+			if best == Vector2.INF or sp.distance_to(pos) < best.distance_to(pos):
+				best = sp
+		return {"dist": pos.distance_to(best) if best != Vector2.INF else INF, "point": best}
+	var best_dx := INF
+	var best_pt := Vector2.INF
+	for dir in [-1.0, 1.0]:
+		var x: float = pos.x
+		for _k in range(70):
+			x += dir * 100.0
+			if x < bounds.position.x or x > bounds.end.x:
+				break
+			var hit := _wk95_ray(Vector2(x, pos.y - 40.0), Vector2(x, pos.y + 2200.0))
+			if not hit.is_empty():
+				if absf(x - pos.x) < best_dx:
+					best_dx = absf(x - pos.x)
+					best_pt = hit["position"]
+				break
+	return {"dist": best_dx, "point": best_pt}
+
+func _wk95_geo_class(player, who: int, pre_v: Vector2, aim: Vector2, fuel: float) -> String:
+	if not is_instance_valid(player):
+		return "TRAVERSAL"
+	var pos: Vector2 = player.global_position
+	for q in players:
+		if q == player or not is_instance_valid(q) or q.is_dead():
+			continue
+		var d: Vector2 = q.global_position - pos
+		if d.length() <= WK95_ATTACK_RANGE and absf(aim.angle_to(d)) <= WK95_ATTACK_CONE:
+			return "ATTACK"
+	for q in players:
+		if q == player or not is_instance_valid(q) or q.is_dead() or not q.is_super_aiming():
+			continue
+		var to_me: Vector2 = pos - q.global_position
+		if to_me.length() <= WK95_DODGE_RANGE and absf(q.get_super_aim_dir().angle_to(to_me)) <= WK95_DODGE_CONE:
+			return "DODGE"
+	var smashed_recent: bool = who >= 0 and who < _wk95_last_smashed.size() \
+		and round_clock - float(_wk95_last_smashed[who]) <= WK95_SMASHED_RECENT
+	var danger: bool = _wk95_over_void(pos) or not _stage_rect.grow(440.0).has_point(pos) or smashed_recent
+	if not danger:
+		return "TRAVERSAL"
+	var land := _wk95_land_dist(pos)
+	var lp: Vector2 = land["point"]
+	var out_speed := 0.0
+	if lp != Vector2.INF and lp.distance_to(pos) > 1.0:
+		out_speed = -pre_v.dot((lp - pos).normalized())
+	var reachable: bool = float(land["dist"]) <= fuel / WK95_GEO_FUEL_PER_PX
+	return "RECOVERY_NEEDED" if (out_speed > 1400.0 or not reachable) else "RECOVERY_UNNEEDED"
 
 ## Hit-solidity QA feed (kill-zone spec §8): one entry per qualifying smash. Read-only QA data.
 func _on_smash_landed(attacker, victim, info: Dictionary) -> void:
 	if _cur_stats.is_empty() or (state != "COMBAT" and state != "SUDDEN_DEATH"):
 		return
+	# WK-95 §8.1: danger memory (smashed <= 1.5 s ago) + `landed` on the attacker's in-window super record
+	var wvi: int = players.find(victim) if victim != null else -1
+	if wvi >= 0 and wvi < _wk95_last_smashed.size():
+		_wk95_last_smashed[wvi] = round_clock
+	var wai: int = players.find(attacker) if attacker != null else -1
+	if wai >= 0 and wai < _wk95_last_super.size() and bool(info.get("by_super", false)):
+		var srec: Dictionary = _wk95_last_super[wai]
+		if not srec.is_empty() and round_clock - float(srec.get("t", -INF)) <= Tuning.super_active_time + 0.05:
+			srec["landed"] = true
 	var smashes: Array = _cur_stats["smashes"]
 	smashes.append({
 		"t": round_clock,

@@ -17,7 +17,7 @@ const TUMBLE_SPEED := 9.4            # rad/s spin while stunned (~540 deg/s)
 # (Tuning.gd is for FEEL constants; these are visual, matching the codebase's existing pattern). ---
 const FIRE_TEX := "res://assets/particles/fire_01.png"     # boost flame core (soft warm blob)
 const GLOW_TEX := "res://assets/particles/glow_01.png"     # super-charge gather halo
-const STREAK_MIN_SPEED := 1000.0    # §2: only a real LAUNCH streaks (boost caps at 760; a smash exits >1300)
+const STREAK_MIN_SPEED := 1000.0    # §2: only a real LAUNCH streaks (boost caps at 800; a smash exits >1300)
 const STREAK_MAX_POINTS := 16       # ribbon history cap
 const STREAK_SEG := 24.0            # min px between recorded ribbon points
 
@@ -62,6 +62,7 @@ var _stunned_by = null       # who put me in the CURRENT hitstun (Player or null
                              # my stunner (never a free counter-smash back at them), and THEY get
                              # the kill credit for anyone my body hits. Cleared when hitstun ends.
 var _boosting_now := false
+var qa_grip_raised := 0      # WK-95 M7 debug counter: frames where the steering grip RAISED |v| (must stay 0)
 # --- un-charged super boost v2 (lethality spec §1): press = AIM hover, release/2s = full blast ---
 var _sb_aiming := false      # in the AIM state right now
 var _sb_aim_t := 0.0         # seconds spent aiming (auto-fire at Tuning.super_aim_max)
@@ -575,8 +576,16 @@ func _physics_process(delta: float) -> void:
 		g_scale = Tuning.boost_gravity_scale
 	velocity += g * g_scale * delta
 	# Starting a fresh boost cuts momentum, so a tap of boost lets you reclaim control of your path.
+	# WK-95 §3.2 (boost_enter_keep_directional): keep the speed you already have ALONG the thrust and cut
+	# only the rest — bounce + boost-up keeps the bounce, banking with your momentum keeps it, while aiming
+	# against/across your motion still brakes 75% (and a victim aiming back at the stage is chopped as before).
 	if boosting and not _boost_was_held:
-		velocity *= Tuning.boost_enter_keep
+		if Tuning.boost_enter_keep_directional:
+			var v_fwd := maxf(0.0, velocity.dot(aim_dir))
+			var v_rest := velocity - aim_dir * v_fwd
+			velocity = aim_dir * v_fwd + v_rest * Tuning.boost_enter_keep
+		else:
+			velocity *= Tuning.boost_enter_keep
 	_boost_was_held = boosting
 	if boosting:
 		var mult := Tuning.supercharge_thrust_mult if _supercharge_timer > 0.0 else 1.0
@@ -584,7 +593,7 @@ func _physics_process(delta: float) -> void:
 		# along the aim reaches that cap — so holding boost can't ramp you to the global ceiling.
 		# Bounces and super-boost are exempt (they set velocity directly and can exceed it).
 		# v2 feel: boost_power_mult scales normal_boost_max_speed AND normal_boost_accel together.
-		# INV-1 held by clamp: 760 * 1.12 = 851 < smash_impact_min (900) — plain boost never smashes.
+		# INV-1 held by clamp: 800 * 1.12 = 896 < smash_impact_min (900) — plain boost never smashes.
 		var bp := profile.eff_boost_power()
 		var thrust_cap := Tuning.normal_boost_max_speed * bp * mult * speed_mult
 		var along := velocity.dot(aim_dir)
@@ -592,6 +601,8 @@ func _physics_process(delta: float) -> void:
 			var add := Tuning.normal_boost_accel * bp * mult * speed_mult * delta
 			add = minf(add, thrust_cap - along)   # don't overshoot the terminal speed
 			velocity += aim_dir * add
+		if aiming:
+			_boost_grip(aim_dir, g, delta)   # WK-95 §3.1 G4: grip only with the stick held (neutral = pure lift)
 		if not fuel_locked:
 			fuel = maxf(0.0, fuel - Tuning.normal_boost_drain() * delta)
 	elif not _sb_aiming and _pulled <= 0.0:
@@ -624,6 +635,37 @@ func _physics_process(delta: float) -> void:
 	# Re-cap after bounce/smash resolution (a bounce adds launch speed on top of tangential).
 	velocity = velocity.limit_length(Tuning.max_speed)
 	_update_visual(aim_dir, boosting, aiming, stunned, delta)
+
+## WK-95 §3.1 steering grip: while thrusting along `a`, the velocity component perpendicular to `a` decays
+## at min(boost_grip_rate * |v_perp|, boost_grip_decel_max), never past zero (G1). Guards: G2 while rising
+## (against LOCAL gravity) the grip never pushes downward, so bounce launches / supercharge lift survive;
+## G3 it never raises |v| (no energy pump); G5 it is off above boost_grip_speed_max (supers, smash launches,
+## supercharged springs belong to physics); off while black-hole-pulled (the pull stays meaningful).
+## Callers guarantee: thrusting, stick held (G4), not aiming a super, not stunned/frozen/dead.
+func _boost_grip(a: Vector2, g: Vector2, delta: float) -> void:
+	if Tuning.boost_grip_rate <= 0.0 or _pulled > 0.0:
+		return
+	var speed := velocity.length()
+	if speed > Tuning.boost_grip_speed_max or speed < 0.001:
+		return
+	var v_perp := velocity - a * velocity.dot(a)
+	var vp := v_perp.length()
+	if vp < 0.001:
+		return
+	var dec := minf(minf(Tuning.boost_grip_rate * vp, Tuning.boost_grip_decel_max) * delta, vp)   # G1: no overshoot
+	var dv := -v_perp / vp * dec
+	var up := -g.normalized() if g.length_squared() > 0.01 else Vector2.UP
+	if velocity.dot(up) > 0.0:   # G2: rising -> drop any downward part of the grip's correction
+		var dv_up := dv.dot(up)
+		if dv_up < 0.0:
+			dv -= up * dv_up
+	var vdv := velocity.dot(dv)
+	var dd := dv.length_squared()
+	if dd > 0.0 and 2.0 * vdv + dd > 0.0:   # G3: |v + dv| > |v| -> scale dv down until it isn't
+		dv *= clampf(-2.0 * vdv / dd, 0.0, 1.0) if vdv < 0.0 else 0.0
+	velocity += dv
+	if velocity.length() > speed + 0.01:
+		qa_grip_raised += 1
 
 ## Fire the super (lethality spec §1.1): full power at ANY fuel >= min — the tank level never
 ## scales the launch. Dumps the whole tank (every super chain routes through a bounce), opens the

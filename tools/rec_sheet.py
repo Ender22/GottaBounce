@@ -6,6 +6,9 @@ the MatchRecorder's data.json) and produces:
   sheet.png          contact sheet: every Nth frame from COMBAT start (labelled frame# / t)
   sheet_overlay.png  same frames + per-player overlay (marker, short trail, aim line; thick = super aim)
   aim_report.png     per super-aim window: aim angle per physics tick (unwrapped) + per-tick step vs cap
+  traj.png           (--traj) WK-95: per-goat WORLD trajectory over the whole recording, coloured by state:
+                     grey = drift/bounce, orange = normal boost, red = super-active, white = super aim; X = death.
+                     Overlay markers also get an orange ring while boosting / red ring while super-active.
   strobe.png         (--strobe A:B) one background frame with every frame's pendulum-ball position drawn
                      as numbered dots -> spacing shows speed (bunched = slow apex, spread = fast bottom)
   text summary       (--report) aim windows by bot level, hazard contact/smash counts, event counts
@@ -106,6 +109,51 @@ def draw_overlay(img, sample, history, scale):
         d.line([(x, y), (x + math.cos(a) * L, y + math.sin(a) * L)], fill=(255, 255, 255, 255) if p.get("sa") else c + (255,), width=w)
         if p.get("stun"):
             d.ellipse([x - 9, y - 9, x + 9, y + 9], outline=(255, 255, 255, 220), width=1)
+        if p.get("sup"):      # WK-95: super-active (the attack) = red ring
+            d.ellipse([x - 11, y - 11, x + 11, y + 11], outline=(235, 40, 40, 255), width=3)
+        elif p.get("b"):      # WK-95: normal boost (flight) = orange ring
+            d.ellipse([x - 9, y - 9, x + 9, y + 9], outline=(255, 150, 30, 255), width=2)
+
+
+def traj_plot(data, path, size=1600):
+    """WK-95: world-space trajectory per goat, segments coloured by flight state (see module doc)."""
+    fr = [f for f in data.get("frames", []) if f.get("st") in ("COMBAT", "SUDDEN_DEATH")]
+    pts = [(p["x"], p["y"]) for f in fr for p in f["p"] if not p.get("dead")]
+    if not pts:
+        return None
+    x0 = min(q[0] for q in pts) - 100
+    x1 = max(q[0] for q in pts) + 100
+    y0 = min(q[1] for q in pts) - 100
+    y1 = max(q[1] for q in pts) + 100
+    sc = size / max(x1 - x0, y1 - y0)
+    W, H = int((x1 - x0) * sc), int((y1 - y0) * sc) + 40
+    img = Image.new("RGB", (max(W, 400), H), (24, 28, 38))
+    d = ImageDraw.Draw(img)
+    f = font(16)
+    d.text((8, 6), "%s  trajectory (world)   grey drift  orange BOOST  red SUPER-ACTIVE  white super aim  x death"
+           % data.get("meta", {}).get("name", ""), fill=(230, 230, 230), font=f)
+    cols = {"drift": (120, 120, 130), "boost": (255, 150, 30), "super": (235, 40, 40), "aim": (255, 255, 255)}
+    prev = {}
+    for f_ in fr:
+        for p in f_["p"]:
+            i = p["i"]
+            if p.get("dead"):
+                if i in prev:
+                    px, py = prev.pop(i)
+                    d.line([(px - 6, py - 6), (px + 6, py + 6)], fill=PCOL[i % 4], width=3)
+                    d.line([(px - 6, py + 6), (px + 6, py - 6)], fill=PCOL[i % 4], width=3)
+                continue
+            q = ((p["x"] - x0) * sc, (p["y"] - y0) * sc + 40)
+            st = "aim" if p.get("sa") else ("super" if p.get("sup") else ("boost" if p.get("b") else "drift"))
+            if i in prev and math.dist(prev[i], q) < 120 * sc + 40:
+                d.line([prev[i], q], fill=cols[st], width=3 if st != "drift" else 2)
+            prev[i] = q
+    for f_ in fr[:1]:
+        for p in f_["p"]:
+            q = ((p["x"] - x0) * sc, (p["y"] - y0) * sc + 40)
+            d.ellipse([q[0] - 7, q[1] - 7, q[0] + 7, q[1] + 7], fill=PCOL[p["i"] % 4], outline=(0, 0, 0))
+    img.save(path)
+    return path
 
 
 def contact_sheet(frames, sel, data, args, overlay, path):
@@ -379,6 +427,7 @@ def main():
     ap.add_argument("--swing", default="", help="A:B one pendulum swing: arc-cropped sheet + speed chart")
     ap.add_argument("--follow", type=int, default=-1, help="crop each thumb around player index N (0-based)")
     ap.add_argument("--zoom", type=float, default=0.3, help="crop size as a fraction of the frame (with --follow)")
+    ap.add_argument("--traj", action="store_true", help="WK-95: world trajectory plot coloured by boost/super state")
     args = ap.parse_args()
     d = args.dir
     extract_avi(d)
@@ -410,6 +459,10 @@ def main():
         if r:
             print("wrote", r[0])
             print("wrote", r[1])
+    if args.traj and data:
+        p = traj_plot(data, os.path.join(d, "traj.png"))
+        if p:
+            print("wrote", p)
     if args.report and data:
         report(data)
     if args.compact:

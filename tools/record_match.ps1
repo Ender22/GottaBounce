@@ -74,7 +74,7 @@ if (-not (Test-Path (Join-Path $outDir "data.json"))) {
     Write-Output "WARNING: data.json missing - the recorder did not finish. See $logPath(.err)"
 }
 
-$py = @("tools/rec_sheet.py", $outDir, "--every", "$Every", "--overlay", "--report")
+$py = @("tools/rec_sheet.py", $outDir, "--every", "$Every", "--overlay", "--report", "--traj")
 if (-not $KeepPng) { $py += "--compact" }
 Push-Location $proj
 try { & python @py } finally { Pop-Location }

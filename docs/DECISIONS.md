@@ -2,6 +2,33 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** FLIGHT = TRAVERSAL, SUPER = ATTACK (OWNER RULING, WK-95; spec
+  `docs/specs/wk95_flight_responsiveness_2026-11-14.md`). Owner: "the bots need to rely too much on the super boost
+  because the normal flying isnt responsive enough to maneuver around nicely, we should make that more
+  responsive/effective and consider super boost more just like the way to attack others rather than the way to get
+  around." Changes: normal boost gains a **steering grip** (`boost_grip_rate` 8.0 /s, `boost_grip_decel_max` 3000,
+  `boost_grip_speed_max` 1300). While thrusting with the stick held, velocity at right angles to the thrust bleeds away.
+  It never removes height while rising, never adds speed, and is off with the stick centred, above 1300 px/s and while
+  black-hole-pulled. A fresh boost keeps the velocity along the thrust (`boost_enter_keep_directional` = true;
+  `boost_enter_keep` stays 0.25 for the rest). `normal_boost_accel` 4600 -> 5400, `normal_boost_max_speed` 760 -> 800
+  (INV-1: 800 x 1.12 = 896 < 900, at the limit). **`super_boost_min_fuel` 5 -> 10. This SUPERSEDES the 2026-07-02
+  un-charged-super clause that the super "works with even 5% fuel".** `fuel_per_bounce` 20 >= 2 x 10 is now at equality:
+  never raise min fuel again without a `fuel_per_bounce` ruling. `finisher_refuel_floor` 10 -> 15. Bots: they travel by
+  flight on a sag-compensated aim. The offensive super fires only inside an attack window: led target <= min(attack
+  range, ~1070 px), clear line of sight, fuel, `_super_safe`. The recovery super is last-resort only: HOT (outward
+  > 1400 px/s) or STRANDED (over the void, nearest ground beyond fuel / 0.042 px). The `fuel <= 12` fumes super is
+  deleted. `CROSS_FUEL_PER_PX` / `RESERVE` 0.045 / 10 -> 0.042 / 15. Every bot super is tagged with its purpose
+  (`round_stats.supers_fired[].purpose_bot` + `geo_class`). The bot flight stick is slew-limited
+  (`bot_flight_turn_rate`; folds in WK-103's >30 deg/frame arrow flicks). Unchanged: the un-charged, drain-all,
+  constant-impulse super, the lockout and the aim. No protected constant touched. A/B switches:
+  `Tuning.boost_grip_rate = 0`, `boost_enter_keep_directional = false`, `InputBot.wk95_brain_enabled = false`.
+  Evidence: `tools/out/rec/wk95_before_*` vs `wk95_after_*`; `tools/out/wk/WK-95_baseline.json` / `WK-95_after.json`.
+  In the 160-stage bot batch, super-as-movement went 27.6% -> 13.0% (spec B1 target is <= 10%). **OPEN for the
+  game-designer:** what HOT means in BR-4. With `InputBot.wk95_hot_stopdist` = true, HOT also requires that a full
+  boost brake could not stop the bot before the blast line; that gives 9.4%. It is default OFF, which is the spec as
+  written. Reopen if: KO pacing fails after both §9 knobs; the owner reverses the ruling; the CD rules flight "on rails"
+  after grip-rate 6; or the HOT question is ruled.
+
 - **2026-11-14** SPORTS TEAM COLOURWAYS: RED = POGO (pink) + BILLY (orange), BLUE = BUTCH (blue) + ZIGGY (green)
   (WK-27; supersedes the audit §E.6 / v5 spec §4 mapping BLUE = BUTCH + VEX). Picking the goat picks the team, so the
   colourway IS the team read. In the WK-27 rendered check VEX's sprite measured magenta (~hue 300, RGB 228/101/228)
