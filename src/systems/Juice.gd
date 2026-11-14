@@ -295,6 +295,22 @@ const SPARK_TEX := "res://assets/particles/spark_01.png"
 const RING_TEX := "res://assets/particles/light_01.png"
 
 func _on_killed(victim, _cause, _attacker) -> void:
+	# WK-121: SPORTS is a no-death mode (99 lives, instant respawn). A goat dropping through a Dropshot hole
+	# / out of the court is a comedic beat, not a KO: no KO hit-stop (it froze the shared ball for everyone
+	# on every hole fall), no Smash death blast, just a light camera tick + a sand "drop" puff at the hole.
+	# An in-court hazard KO there keeps the burst with a light freeze until WK-112 turns hazards into stuns.
+	if _sports_active():
+		if _out_of_court(victim):
+			_shake(0.12)
+			_rumble(0.3, 0.0, 0.08)
+			if victim != null and is_instance_valid(victim):
+				_drop_puff(victim, _identity_color(victim))
+			return
+		_shake(0.4)
+		_hitstop(0.3)
+		if victim != null and is_instance_valid(victim):
+			_death_burst(victim.global_position)
+		return
 	_shake(0.7)
 	_rumble(1.0, 0.9, 0.18)
 	_hitstop(1.0)
@@ -304,6 +320,67 @@ func _on_killed(victim, _cause, _attacker) -> void:
 		if victim.has_method("flair_ko_pop"):
 			fl = victim.flair_ko_pop()
 		_death_burst(victim.global_position, fl)
+
+func _sports_active() -> bool:
+	return not get_tree().get_nodes_in_group("sports_ball").is_empty()
+
+## True when the victim left the running match's court bounds (fell through a hole / knocked out).
+func _out_of_court(victim) -> bool:
+	if victim == null or not is_instance_valid(victim) or not (victim is Node2D):
+		return true
+	var scene := get_tree().current_scene
+	if scene == null or not ("bounds" in scene):
+		return true
+	var b: Rect2 = scene.bounds
+	return not b.has_point((victim as Node2D).global_position)
+
+## WK-121 sports "drop" puff: sand dust kicked UP out of the hole the goat fell through, plus a few specks in
+## the goat's colour so you can tell WHO dropped. No ring, no star burst, no freeze. The kill fires at the
+## bounds bottom (below the drawn court), so the puff is placed on the FLOOR LINE: the nearest Dropshot tile
+## row's y (holes are missing tiles), else just inside the bounds. Sizes are world px at the whole-court zoom
+## (~0.4), so they read at couch distance.
+func _drop_puff(victim, col: Color) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var pos: Vector2 = (victim as Node2D).global_position
+	if "bounds" in scene:
+		var b: Rect2 = scene.bounds
+		pos = Vector2(clampf(pos.x, b.position.x + 40.0, b.end.x - 40.0), minf(pos.y, b.end.y - 60.0))
+	var best := INF
+	for t in get_tree().get_nodes_in_group("drop_tile"):
+		var d: float = absf((t as Node2D).global_position.x - pos.x)
+		if d < best:
+			best = d
+			pos.y = (t as Node2D).global_position.y
+	for layer in range(2):
+		var p := CPUParticles2D.new()
+		p.global_position = pos
+		p.emitting = true
+		p.one_shot = true
+		p.explosiveness = 0.9
+		p.amount = 22 if layer == 0 else 10
+		p.lifetime = 0.7 if layer == 0 else 0.55
+		p.direction = Vector2.UP
+		p.spread = 28.0 if layer == 0 else 40.0
+		p.gravity = Vector2(0, 1100)
+		p.initial_velocity_min = 380.0
+		p.initial_velocity_max = 980.0 if layer == 0 else 760.0
+		p.damping_min = 40.0
+		p.damping_max = 120.0
+		p.scale_amount_min = 14.0 if layer == 0 else 8.0
+		p.scale_amount_max = 28.0 if layer == 0 else 14.0
+		var grad := Gradient.new()
+		if layer == 0:
+			grad.set_color(0, Color(0.98, 0.92, 0.74, 0.95))   # sand (the Dropshot tile colour)
+			grad.set_color(1, Color(0.85, 0.74, 0.52, 0.0))
+		else:
+			grad.set_color(0, Color(col.r, col.g, col.b, 1.0))
+			grad.set_color(1, Color(col.r, col.g, col.b, 0.0))
+		p.color_ramp = grad
+		p.z_index = 45
+		scene.add_child(p)
+		scene.get_tree().create_timer(1.0).timeout.connect(p.queue_free)
 
 ## Smash-Bros-style blast at the spot a fighter died. `flair` (v11 §3) may swap the spark PALETTE
 ## (gradient stops + optional hue spread) — count/velocity/gravity/ring stay stock (cosmetic-only).

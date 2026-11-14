@@ -45,6 +45,10 @@ const SFX := {
 	"own_goal":          ["res://assets/sfx/kenney_jingles_SAX07.ogg"],   # descending wah-wah-waaah
 	"own_goal_groan":    ["res://assets/sfx/awNo.mp3"],
 	"sports_fall":       ["res://assets/sfx/lower.mp3"],                  # slide-whistle whoop down a hole
+	"tile_crack":        ["res://assets/sfx/kenney_impactPlank_medium_000.ogg", "res://assets/sfx/kenney_impactPlank_medium_001.ogg",
+	                      "res://assets/sfx/kenney_impactPlank_medium_002.ogg"],   # WK-121 Dropshot tile hit 1
+	"tile_break":        ["res://assets/sfx/crunch.mp3"],                 # WK-121 Dropshot tile hit 2 (hole opens)
+	"tile_break_body":   ["res://assets/sfx/kenney_impactWood_medium_000.ogg", "res://assets/sfx/kenney_impactWood_medium_001.ogg"],
 }
 const MUSIC_GAMEPLAY := [
 	"res://assets/music/gameplay_1.mp3", "res://assets/music/gameplay_2.mp3",
@@ -137,6 +141,7 @@ func _ready() -> void:
 	EventBus.hazard_whoosh.connect(_on_hazard_whoosh)   # WK-96 pendulum pass
 	EventBus.ball_struck.connect(_on_ball_struck)       # WK-105 sports ball touch
 	EventBus.goal_scored.connect(_on_goal_scored)       # WK-105 goal/point stinger (WK-106 signal)
+	EventBus.drop_tile_hit.connect(_on_drop_tile_hit)   # WK-121 Dropshot tile crack / break
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -367,6 +372,15 @@ func _on_goal_scored(team, _scorer, own_goal) -> void:
 	play_sfx("ball_body", {"volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.0})   # net-bulge thump
 
 var last_goal_own := false       # QA: was the most recent voiced goal an own goal
+
+## WK-121 Dropshot floor tiles: hit 1 = a dry crack (bright, quiet - it lands on top of the ball's own
+## floor bounce), hit 2 = a gritty crunch + low knock as the hole opens (the warning that a point is coming).
+func _on_drop_tile_hit(_tile, broken) -> void:
+	if bool(broken):
+		play_sfx("tile_break", {"volume_db": -4.0, "pitch": 0.95, "pitch_var": 0.06})
+		play_sfx("tile_break_body", {"volume_db": -8.0, "pitch": 0.9, "pitch_var": 0.05})
+	else:
+		play_sfx("tile_crack", {"volume_db": -9.0, "pitch": 1.15, "pitch_var": 0.08})
 
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()

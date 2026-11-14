@@ -42,6 +42,9 @@ signal hazard_whoosh(hazard, pos, speed)
 # A player struck the sports ball. impact_speed = |delta-v| the touch gave the ball (px/s, after the
 # cap); is_power = the super-active / hitstun power shot (BALL_SMASH_MULT). One per accepted touch.
 signal ball_struck(ball, player, impact_speed, is_power)
+# WK-121: a DROPSHOT floor tile took a ball hit. broken = false -> it CRACKED (hit 1); true -> it BROKE open
+# into a hole (hit 2). Emitted once per counted hit by DropTile._take_hit; audio subscribes.
+signal drop_tile_hit(tile, broken)
 # WK-106 (SP-03) — THE goal event (one place; audio/juice/HUD hook here). Emitted ONCE per goal/point by
 # SportsMode at the moment the goal registers (STAGE_END entry, the tick the latched goal_zone is polled).
 # team = the team AWARDED the goal (0 RED / 1 BLUE). scorer = the credited Player: the scoring team's last

@@ -126,6 +126,7 @@ func _take_hit() -> void:
 		_shape.set_deferred("disabled", true)
 		_area.set_deferred("monitoring", false)
 		_spawn_shards(22)
+	EventBus.drop_tile_hit.emit(self, state == BROKEN)   # WK-121 crack / break sound hook
 	queue_redraw()
 
 ## Sand-shard puff on crack/break (the DestructibleBlock shard grammar; pure VFX, never lethal).

@@ -251,8 +251,8 @@ func _hit_reaction(dir: Vector2, impact: float, is_power: bool, p: Player) -> vo
 	sp.initial_velocity_max = lerpf(380.0, 900.0, t) * (1.3 if is_power else 1.0)
 	sp.damping_min = 400.0
 	sp.damping_max = 900.0
-	sp.scale_amount_min = 4.0 if is_power else 3.0
-	sp.scale_amount_max = 10.0 if is_power else lerpf(5.0, 8.0, t)
+	sp.scale_amount_min = 8.0 if is_power else 5.0     # world px at the ~0.4 whole-court zoom (WK-121: x2,
+	sp.scale_amount_max = 20.0 if is_power else lerpf(9.0, 15.0, t)   # the WK-105 sizes were 1-3 screen px)
 	var grad := Gradient.new()
 	grad.set_color(0, Color(1.0, 1.0, 0.95, 1.0))
 	grad.set_color(1, Color(col.r, col.g, col.b, 0.0))
