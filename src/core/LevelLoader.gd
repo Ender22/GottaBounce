@@ -63,8 +63,9 @@ static func load_level(path: String, parent: Node2D) -> Dictionary:
 			"spikes":
 				_build_spikes(o, parent)
 			"moving_hazard":
-				# v1_moving_hazard.md §1: a kinematic SHOVE-hazard (pendulum/sweep). Its own layer
-				# (layer 5), senses players, calls Player.receive_shove on contact — NEVER kills.
+				# v1_moving_hazard.md §1 + WK-96: a kinematic moving hazard (pendulum/sweep). Its own layer
+				# (layer 5). A fast pendulum ball SMASHES (Player.receive_hazard_smash: knockback + hitstun,
+				# no sting/credit); slow apex grazes and sweeps shove (JSON "contact" overrides). NEVER kills.
 				_build_moving_hazard(o, parent)
 			"spinning_hammer":
 				# v6_party_gimmicks_circuits.md §2.1: a LETHAL rotor-blade hazard. Modelled on the

@@ -994,6 +994,51 @@ func receive_shove(dir: Vector2, magnitude: float, _source) -> void:
 	_last_hazard_contact_msec = Time.get_ticks_msec()
 	EventBus.hazard_shoved.emit(self, d, push)
 
+## WK-96 HAZARD SMASH (owner 2026-11-14: pendulums passed through players). A fast heavy mover (pendulum
+## ball) hits like a smash: my velocity component INTO the ball is killed (heavy-body contact), `impulse`
+## is added, and I'm guaranteed to leave along `normal` at >= `min_normal_speed` (so the ball can never be
+## seen sliding through me). Applies hitstun (the standard impulse formula) + tumble + hit flash, cancels
+## an in-progress super aim, breaks a Black Hole channel. Fence: NO fuel sting, NO damage escalation, NO
+## kill credit — last_attacker is untouched, so a ring-out still credits whoever tagged me within the
+## window; _stunned_by clears (as receive_smash does for a null attacker). Star / spawn-protect / a live
+## Counter Shield take nothing. Returns true if the hit landed. Emits EventBus.smashed(null, self, impulse)
+## so Juice/Audio play the full smash beat (all subscribers handle a null attacker).
+func receive_hazard_smash(impulse: Vector2, normal: Vector2, min_normal_speed: float, spin: float) -> bool:
+	if _dead or invincible or counter_active or _spawn_protect > 0.0:
+		return false
+	if _channel_timer > 0.0:
+		_channel_timer = 0.0
+		channel_broken = true
+	cancel_super_aim()
+	var n := normal.normalized()
+	var inward := velocity.dot(n)
+	if inward < 0.0:
+		velocity -= n * inward
+	velocity += impulse * profile.eff_knockback_taken()
+	var vn := velocity.dot(n)
+	if vn < min_normal_speed:
+		velocity += n * (min_normal_speed - vn)
+	velocity = velocity.limit_length(Tuning.max_speed)
+	_stunned_by = null
+	var st := Tuning.hitstun_base + impulse.length() * Tuning.hitstun_per_impulse
+	_stun_timer = minf(st, Tuning.hitstun_max)
+	_spin_vel = spin
+	_flash_timer = 0.12
+	_last_hazard_contact_msec = Time.get_ticks_msec()   # WY1 hazard-assisted-fall instrumentation
+	EventBus.smashed.emit(null, self, impulse)
+	return true
+
+## WK-96: no-stun separation for a body the hazard ALREADY smashed this swing (re-hit gate): the ball
+## accelerates out of a low-speed hit and can catch its victim again — keep me moving out along `normal`
+## at >= `min_normal_speed` so it never visibly slides through me. No hitstun, no FX, no credit change.
+func hazard_push_out(normal: Vector2, min_normal_speed: float) -> void:
+	if _dead or invincible or _spawn_protect > 0.0:
+		return
+	var n := normal.normalized()
+	var vn := velocity.dot(n)
+	if vn < min_normal_speed:
+		velocity = (velocity + n * (min_normal_speed - vn)).limit_length(Tuning.max_speed)
+
 ## Seconds since the last moving-hazard shove (v1_moving_hazard §2 WY1). Large when never shoved.
 func hazard_contact_dt_s() -> float:
 	if _last_hazard_contact_msec <= 0:

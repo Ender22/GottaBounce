@@ -47,6 +47,11 @@ static var ascent_fix_enabled := true
 # Flip via gbplay eval: InputBot.gravity_fix_enabled = false
 static var gravity_fix_enabled := true
 
+# A/B regression switch for WK-94 (default ON): OFF reproduces the pre-WK-94 aim (per-frame snap to the
+# solution, error re-rolled as instant jumps, recovery panic re-rolled EVERY frame) for BEFORE recordings.
+# Flip via gbplay eval / RecordBoot arg: InputBot.aim_sweep_enabled = false
+static var aim_sweep_enabled := true
+
 # --- Motion-health telemetry geometry (process-gate 2026-07-04: make "looks dumb" a NUMBER). ---
 const MH_STUCK_WINDOW := 1.0           # s window for the no-progress (stuck) test
 const MH_STUCK_DISP := 90.0            # net displacement below this over the window while intending = stuck
@@ -76,6 +81,15 @@ var _pending_aim_min := 0.0
 var _aim_min_this := 0.0
 var _was_aiming := false
 var _dodge_dir := Vector2.ZERO   # pending dodge-super direction (fires snap, §3.2 rule 5)
+# --- WK-94 (owner 2026-11-14: bot super-aim "spins like nuts"). A bot's aim is a HUMAN STICK: the emitted
+# super-aim direction sweeps toward the solution at <= Tuning.bot_aim_turn_rate[level] rad/s (never a
+# per-frame snap), and every error term is a SLOW DRIFT toward a target re-rolled on a timer — never
+# white noise re-rolled each physics frame. Difficulty stays input quality only (INV-8). ---
+var _aim_out := Vector2.ZERO     # the swept stick direction actually emitted while in AIM (ZERO = unseeded)
+var _aim_roll_target := 0.0      # offensive aim error drifts toward this (re-rolled per reaction tick)
+var _panic_cur := 0.0            # low-recovery_skill panic offset (recovery boost + recovery super), drifting
+var _panic_target := 0.0         # ...toward this, re-rolled every Tuning.bot_panic_reroll s
+var _panic_t := 0.0              # countdown to the next panic re-roll
 var _dodged := {}            # enemy instance_id -> fired a dodge for their current aim window
 var _finisher := false       # §5.5: down to <= finisher_opponents_left living opponents -> commit-mode
                              # runtime-only dial overrides (never mutates profile; reverts on stage reset)
@@ -175,7 +189,11 @@ func poll() -> InputIntent:
 	if aiming_now and not _was_aiming:
 		_aim_min_this = _pending_aim_min
 		_pending_aim_min = 0.0
+		# WK-94: the sweep starts from wherever the arrow actually is (the press-frame stick / straight up)
+		_aim_out = me.get_super_aim_dir()
+		_aim_roll_target = _aim_roll
 	_was_aiming = aiming_now
+	_tick_panic(dt)
 	# --- own AIM state: steer the led solution, fire when good enough or timed out (§3.2 rule 1)
 	if me.is_super_aiming():
 		_my_aim_t += dt
@@ -200,6 +218,7 @@ func poll() -> InputIntent:
 		it.super_hold = true   # press: Player enters AIM this frame; _tick_aiming takes over next
 		it.boost = false
 		_aim_roll = randf_range(-profile.aim_error, profile.aim_error)
+		_aim_roll_target = _aim_roll
 		# §5: roll the dwell floor for this OFFENSIVE aim only (dodge sets _dodge_dir first -> skip).
 		# Capped below the 2s auto-fire ceiling so a bot can never camp the aim (Pillar 2).
 		if _dodge_dir == Vector2.ZERO and profile.super_aim_min > 0.0 and randf() < profile.super_aim_min_chance:
@@ -217,35 +236,62 @@ func poll() -> InputIntent:
 	return it
 
 ## While in the AIM state: keep steering at the led target; fire (release) when the current
-## jitter roll is inside aim_error * 0.5, or when super_aim_time runs out (§3.2 rule 1).
+## jitter roll is inside aim_error * 0.5 AND (WK-94) the swept arrow has arrived within bot_aim_fire_tol,
+## or when super_aim_time runs out (§3.2 rule 1).
 ## Low-lead bots still whiff constantly — the comedy survives, the freeze-and-pray doesn't.
 func _tick_aiming(it: InputIntent) -> void:
 	it.boost = false
+	var dt := 1.0 / float(Engine.physics_ticks_per_second)
 	var desired := Vector2.UP
-	var fire := false
+	var mode := 0   # 0 offensive, 1 dodge, 2 recovery, 3 no target
 	if _dodge_dir != Vector2.ZERO:
-		# dodge-super: snap-fire perpendicular/away as soon as the aim registers
+		# dodge-super: sweep perpendicular/away as fast as this bot's stick allows
 		desired = _dodge_dir
-		fire = _my_aim_t >= maxf(profile.reaction_time * 0.5, 0.08)
+		mode = 1
 	elif _in_danger():
-		# recovery super: snap-aim back at the stage; recovery_skill governs aim/timing only —
-		# the blast itself is always full power (L1's comedy self-destructs get BIGGER)
-		desired = _recovery_dir()
-		if randf() > profile.recovery_skill:
-			desired = desired.rotated(randf_range(-0.8, 0.8))
-		fire = _my_aim_t >= lerpf(0.6, 0.12, profile.recovery_skill)
+		# recovery super: aim back at the stage; recovery_skill governs aim/timing only — the blast
+		# itself is always full power (L1's comedy self-destructs get BIGGER). WK-94: the panic error is
+		# the slow-drifting _panic_cur (re-rolled on a timer), NOT a fresh ±0.8 rad roll every frame.
+		desired = _recovery_dir().rotated(_panic_cur)
+		mode = 2
 	else:
 		var t = _target
 		if t == null or not is_instance_valid(t) or t.is_dead():
 			t = arena.nearest_opponent(me)
 		if t == null:
-			fire = true
+			mode = 3
 		else:
 			if _react <= 0.0:
 				_react = profile.reaction_time
-				_aim_roll = randf_range(-profile.aim_error, profile.aim_error)
+				_aim_roll_target = randf_range(-profile.aim_error, profile.aim_error)
+			# WK-94: the error DRIFTS toward its re-rolled target (a wandering thumb), never snaps
+			if aim_sweep_enabled:
+				_aim_roll = move_toward(_aim_roll, _aim_roll_target, Tuning.bot_aim_noise_drift * dt)
+			else:
+				_aim_roll = _aim_roll_target   # legacy: instant jump on every re-roll
 			desired = _led_dir(t).rotated(_aim_roll)
-			fire = absf(_aim_roll) < profile.aim_error * 0.5
+	# WK-94 human-stick sweep: the emitted aim rotates toward `desired` at <= turn_rate rad/s.
+	var on_target := true
+	if aim_sweep_enabled:
+		if _aim_out == Vector2.ZERO:
+			_aim_out = me.get_super_aim_dir() if me.get_super_aim_dir() != Vector2.ZERO else desired
+		var rate: float = _aim_turn_rate() * dt
+		_aim_out = _aim_out.rotated(clampf(_aim_out.angle_to(desired), -rate, rate)).normalized()
+		on_target = absf(_aim_out.angle_to(desired)) <= Tuning.bot_aim_fire_tol
+	else:
+		_aim_out = desired   # legacy: the arrow snaps to the solution every physics frame
+	var fire := false
+	match mode:
+		1:
+			fire = _my_aim_t >= maxf(profile.reaction_time * 0.5, 0.08) \
+				and (on_target or _my_aim_t >= Tuning.bot_aim_dodge_max)
+		2:
+			var rt: float = lerpf(0.6, 0.12, profile.recovery_skill)
+			fire = _my_aim_t >= rt and (on_target or _my_aim_t >= rt + Tuning.bot_aim_settle_max)
+		3:
+			fire = true
+		_:
+			fire = absf(_aim_roll) < profile.aim_error * 0.5 and on_target
 	# §5 commit DWELL: hold the aim at least _aim_min_this before releasing so the §3 charge tell has
 	# time to read (commitment only — aim quality is already baked into `desired`/`fire` above). The
 	# fire-by ceiling extends to cover the floor; the 2s hard cap (super_aim_max) still auto-fires in
@@ -254,11 +300,35 @@ func _tick_aiming(it: InputIntent) -> void:
 		fire = false
 	if _my_aim_t >= maxf(profile.super_aim_time, _aim_min_this):
 		fire = true   # L1 hangs comically (sometimes hits the 2s auto-fire); L5 snap-fires
-	it.aim = desired
+	it.aim = _aim_out
 	it.super_hold = not fire
 	if fire:
 		_dodge_dir = Vector2.ZERO
 		_aim_min_this = 0.0
+		_aim_out = Vector2.ZERO
+
+## WK-94: this bot's max super-aim stick speed (rad/s), by level from Tuning.bot_aim_turn_rate.
+func _aim_turn_rate() -> float:
+	var rates: Array = Tuning.bot_aim_turn_rate
+	if rates.is_empty():
+		return 6.0
+	var r: float = float(rates[clampi(level - 1, 0, rates.size() - 1)])
+	return r
+
+## WK-94: low-recovery_skill PANIC is a slow wander, not per-frame white noise. Every bot_panic_reroll s a
+## new target offset is rolled (±0.8 rad on a failed recovery_skill roll, else 0) and _panic_cur drifts
+## toward it at bot_aim_noise_drift. Read by the recovery boost (_danger_recover) and the recovery super.
+func _tick_panic(dt: float) -> void:
+	if not aim_sweep_enabled:
+		# legacy (pre-WK-94): a fresh ±0.8 rad roll EVERY physics frame on a failed recovery_skill roll
+		_panic_target = randf_range(-0.8, 0.8) if randf() > profile.recovery_skill else 0.0
+		_panic_cur = _panic_target
+		return
+	_panic_t -= dt
+	if _panic_t <= 0.0:
+		_panic_t = Tuning.bot_panic_reroll
+		_panic_target = randf_range(-0.8, 0.8) if randf() > profile.recovery_skill else 0.0
+	_panic_cur = move_toward(_panic_cur, _panic_target, Tuning.bot_aim_noise_drift * dt)
 
 ## Aim at the led intercept point (§3.1 target_lead — the single biggest hit-rate fix):
 ## target_pos + target_vel * (dist / super_boost_impulse_full) * target_lead.
@@ -369,8 +439,10 @@ func _danger_recover(it: InputIntent) -> bool:
 	dir = dir.normalized() if dir.length() > 1.0 else Vector2.UP
 	var land_dist := me.global_position.distance_to(land)
 	# low recovery_skill: panic flail (the funny death). high skill: clean, hard recovery.
-	if randf() > profile.recovery_skill:
-		dir = dir.rotated(randf_range(-0.8, 0.8))
+	# WK-94: the flail is the slow-drifting _panic_cur (a thumb wandering under stress), no longer a
+	# fresh ±0.8 rad roll EVERY physics frame (which made the aim arrow strobe/spin).
+	if absf(_panic_target) > 0.0 or absf(_panic_cur) > 0.01:
+		dir = dir.rotated(_panic_cur)
 	else:
 		dir = _steer(dir)
 	it.aim = dir

@@ -98,6 +98,7 @@ func _ready() -> void:
 	EventBus.match_won.connect(_on_match_won)
 	EventBus.first_blood.connect(_on_first_blood)
 	EventBus.two_left.connect(_on_two_left)
+	EventBus.hazard_whoosh.connect(_on_hazard_whoosh)   # WK-96 pendulum pass
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -197,6 +198,17 @@ func _on_smashed(_attacker, _victim, impulse) -> void:
 		play_sfx("smash_heavy", {"volume_db": db, "pitch_var": 0.05})
 	else:
 		play_sfx("smash", {"volume_db": db, "pitch": 1.05, "pitch_var": 0.1})
+
+## WK-96: a low, quiet whoosh as a pendulum ball sweeps through the bottom of its arc — only when the
+## ball is on screen (three pendulums off-camera must not drone).
+func _on_hazard_whoosh(_hazard, pos, _speed) -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var sp: Vector2 = vp.get_canvas_transform() * (pos as Vector2)
+	if not vp.get_visible_rect().grow(120.0).has_point(sp):
+		return
+	play_sfx("death_whoosh", {"volume_db": -15.0, "pitch": 0.62, "pitch_var": 0.05})
 
 func _on_super_boosted(_player) -> void:
 	play_sfx("super_fire", {"volume_db": -2.0, "pitch_var": 0.08})

@@ -248,6 +248,38 @@ var pip_fade: float = 0.4               # s alpha fade: human full -> idle, CPU 
 var pip_head_clearance: float = 1.25    # pip tip sits this many body radii above the goat's centre (world space)
 var pip_screen_gap: float = 6.0         # extra screen px between the head and the pip tip
 
+# --- Off-screen magnifier bubbles (WK-36 · audit D-05 / R-30) — presentation only; camera framing UNTOUCHED ---
+# A living goat outside the frame (the PlayerPips / EdgeIndicators frame) is shown LIVE in a Smash-style bubble pinned
+# to the screen edge: cream window, goat-colour rim, fuel ring, pointer at the true position. px values are authored
+# at bubble_ref_height and scale with viewport height. Everything stays in the outer-20% edge band.
+var bubble_ref_height: float = 1080.0
+var bubble_radius_max_px: float = 75.0        # 150 px bubble while the goat is just past the frame (closer = bigger)
+var bubble_radius_min_px: float = 60.0        # 120 px once the goat is bubble_far_world_px (or more) past it
+var bubble_far_world_px: float = 1600.0       # WORLD px past the viewport where the bubble bottoms out. The top kill
+                                              #   line is bounds_top_margin (2650) above the top platform and the frame
+                                              #   already shows ~850 of that, so a LIVING goat tops out near ~1800 past:
+                                              #   the full size range plays out over a recovery arc. Sides/bottom kill
+                                              #   lines sit ~500 past, so side bubbles stay near max (just off = big).
+var bubble_edge_gap_px: float = 28.0          # rim -> screen edge clearance (room for the pointer tip)
+var bubble_pointer_px: float = 22.0           # pointer (the old chevron) tip length beyond the rim
+var bubble_corner_keepout_x_px: float = 276.0 # top/bottom bubbles stay clear of the HUD corner cards (x 24..264)
+var bubble_corner_keepout_y_px: float = 136.0 # left/right bubbles stay clear of the HUD corner cards (y 24..124)
+var bubble_separation_px: float = 10.0        # min gap between two bubbles on the same stretch of edge
+var bubble_outline_px: float = 4.0            # chocolate outer outline
+var bubble_rim_px: float = 8.0                # goat-colour identity rim
+var bubble_band_gap_px: float = 2.5           # chocolate separators between rim / fuel ring / window
+var bubble_fuel_px: float = 9.0               # fuel ring width (fill = get_fuel_ratio(), clockwise from 12 o'clock)
+var bubble_goat_fill: float = 0.5             # goat BALL radius as a fraction of the cream window radius
+var bubble_pop_time: float = 0.14             # s (real time) pop-in when a goat leaves the frame
+var bubble_fuel_color: Color = Color(1.0, 0.80, 0.22)        # jetpack-gold fuel arc
+var bubble_fuel_low_color: Color = Color(1.0, 0.30, 0.22)    # below bubble_fuel_low: red, pulsing
+var bubble_fuel_locked_color: Color = Color(0.45, 0.92, 1.0) # Unlimited Boost (fuel_locked): cyan, like the HUD
+var bubble_fuel_track: Color = Color(0.43, 0.30, 0.24)       # empty part of the fuel ring
+var bubble_fuel_low: float = 0.25             # fuel ratio under which the ring turns red and pulses
+var bubble_fuel_low_hz: float = 5.0
+var bubble_aim_tip: float = 1.38              # super-aim arrow tip, in bubble radii from the centre (pokes past the rim)
+var bubble_aim_flash_hz: float = 8.0          # aim arrow white-flash rate (never fully off: visible from frame 1)
+
 # --- v1 kill-race match / stage loop (docs/specs/v1_party_killrace.md §7) ---
 var intro_pop_stagger: float = 0.20    # s between STAGE_INTRO spawn pop-ins (pacing6: 0.35->0.20, 4 pops in 0.8s)
 var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat (LEAVE — the 3-2-1 is iconic/tight)
@@ -386,6 +418,37 @@ var dropshot_ball_restitution: float = 0.93    # bouncier than the soccer ball's
 var dropshot_ball_radius: float = 84.0         # bigger, reads "beach ball" (soccer = 60)
 var dropshot_ball_max_speed: float = 1900.0    # slower cap: rallies stay readable/chaseable
 var dropshot_serve_offset_frac: float = 0.25   # kickoff x offset from court centre (fraction of bounds width)
+
+# --- WK-94 bot super-aim sweep (owner 2026-11-14: "the aiming mechanic looks crazy when the bots use it,
+# it spins like nuts"). A bot's aim is a human stick: the emitted super-aim direction rotates toward the
+# solution at no more than this many rad/s, and all aim error is a slow drift (never per-frame re-rolls).
+# Read by InputBot._tick_aiming / _tick_panic. Bot INPUT quality only — no physics constant (INV-8). ---
+var bot_aim_turn_rate: Array[float] = [3.0, 4.0, 5.5, 7.5, 10.0]  # rad/s by bot level L1..L5 (L1 ~170 deg/s readable wind-up)
+var bot_aim_noise_drift: float = 1.6     # rad/s the aim-error / panic offset drifts toward its re-rolled target
+var bot_aim_fire_tol: float = 0.22       # rad: offensive/dodge releases wait until the swept arrow is this close
+var bot_aim_dodge_max: float = 0.40      # s: a dodge super fires by this even if the sweep hasn't arrived
+var bot_aim_settle_max: float = 0.30     # s past the recovery fire time: a recovery super fires even mid-sweep
+var bot_panic_reroll: float = 0.35       # s between panic-offset re-rolls (low recovery_skill flail = slow wander)
+
+# --- WK-96 moving-hazard SMASH (owner 2026-11-14: pendulums "went right through a player and didnt smash
+# them"). A pendulum ball moving at >= pendulum_smash_min_speed SMASHES on contact: knockback + hitstun +
+# tumble via Player.receive_hazard_smash. NO fuel sting, NO damage escalation, NO kill credit (the hazard is
+# not a Player; last_attacker untouched — a ring-out still credits whoever tagged you within the window).
+# Contact is swept (capsule prev->current ball pos) so a fast ball can never skip a body between ticks.
+# Below the speed gate (apex graze) contact stays the soft shove. Read by MovingHazard.gd. ---
+var pendulum_smash_min_speed: float = 450.0    # px/s ball speed: at/above = SMASH, below = shove (apex hang)
+var pendulum_smash_scale: float = 0.8          # impulse = ball speed * this, clamped to [min, max] below
+var pendulum_smash_impulse_min: float = 1100.0
+var pendulum_smash_impulse_max: float = 2200.0 # == smash_impulse_max: a wrecking ball hits like a centred super, never harder
+var pendulum_smash_carry: float = 0.6          # weight of the ball's travel dir blended into the radial contact normal
+var pendulum_sep_margin: float = 240.0         # victim leaves >= ball normal speed + this (never visibly passes through)
+var pendulum_rehit_cd: float = 0.5             # s per-victim re-hit gate (one swing = one smash)
+var pendulum_spin: float = 7.0                 # rad/s tumble kick on a pendulum smash (clip-spin readability)
+# --- WK-96 pendulum presentation (owner: motion looked "very stiff and like poor quality") ---
+var pendulum_trail_speed: float = 1300.0       # px/s: motion smear draws above this ball speed
+var pendulum_trail_len: int = 9                # samples kept for the smear (one per physics tick pair)
+var pendulum_whoosh_speed: float = 2100.0      # px/s: one whoosh cue per swing when the ball crosses this
+var pendulum_hit_squash_time: float = 0.22     # s ball squash/recoil on a smash
 
 # --- Derived helpers ---
 func normal_boost_drain() -> float:

@@ -23,6 +23,11 @@ a human player — take that seriously. Method (see `docs/PIPELINE.md`):
    (`stuck_episodes`, `stuck_secs`, `underside_bounces`, `blocked_ascent`, `detours`). Any locomotion
    pathology — head-banging, stuck-in-place, camping, jitter, sinking — is a bug to report with its
    metric even if all spec criteria pass. Report motion-health numbers alongside outcome stats.
+7. REQUIRED for any motion / feel / bot-behaviour / hazard-motion change (WK-93, owner 2026-11-14):
+   a fixed-fps match RECORDING — `powershell -File tools/record_match.ps1 -Name <item>_<what> -Arena <lvl>
+   -Levels 3,3,3,3 -Seconds 20` (see run-and-playtest skill "Match recordings"). Look at `sheet.png` /
+   `sheet_overlay.png` / `aim_report.png` and step through individual frames around the moments that
+   matter (events in data.json give the frame numbers). Before/after recordings when motion changed.
 
 Report: PASS/FAIL per criterion + bug list (repro steps, severity) + feel notes + motion-health
 numbers + screenshots kept in tools/out/. ALWAYS `tools/stop_game.ps1` when finished. You do not fix code.

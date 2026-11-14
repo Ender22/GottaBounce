@@ -35,6 +35,10 @@ start of every loop tick (it survives context compaction; your memory of earlier
    (`gbplay.py raw '{"command":"gamepad",...}'`), screenshots LOOKED at, saved to
    `tools/out/wk/<item-id>_*.png`. UI changes also get a `ui-ux-designer` Ship/Fix/Reject verdict
    against `docs/COUCH_CONVENTIONS.md`; visual art changes get `art-director`.
+   **Motion / feel / bot-behaviour / hazard-motion changes ALSO need a WK-93 recording**
+   (`powershell -File tools/record_match.ps1 -Name <item-id>_<what> ...`, fixed-fps Movie Maker, see the
+   run-and-playtest skill "Match recordings") with its contact sheet / aim report LOOKED at — stills
+   and outcome stats miss motion pathologies. Before/after recordings when the change alters motion.
 5. Only on a pass: commit with message `weekend: <ID> <summary>`, update STATUS + BACKLOG.
    On a fail: fix once or twice; if still failing, revert the item's files, mark it
    `[~] attempted — <why>` in BACKLOG, move on. Never loop forever on one item.

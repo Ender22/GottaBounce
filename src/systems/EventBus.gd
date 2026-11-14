@@ -35,3 +35,5 @@ signal powerup_picked(player, id)     # a bubble was collected into the held slo
 # A kinematic hazard SHOVED a player (NOT a smash — no hitstun, no death). Distinct from `smashed`
 # so presentation reads a chunky shove-puff, never the hitstun-gated knockback jetstream.
 signal hazard_shoved(player, dir, magnitude)
+# WK-96: a moving hazard's ball crossed Tuning.pendulum_whoosh_speed (one per fast pass) — audio cue only.
+signal hazard_whoosh(hazard, pos, speed)

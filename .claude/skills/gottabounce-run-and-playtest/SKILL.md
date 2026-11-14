@@ -220,6 +220,46 @@ Playtest runs too. The harness self-quits after `<seconds>`. Its `ScriptProvider
 2x fast is already fixed; story in skill `gottabounce-debugging-playbook`. What the summary
 numbers must look like to PASS → skill `gottabounce-validation-and-qa`.
 
+## Match recordings (WK-93) — frame-by-frame motion evidence
+
+Owner (2026-11-14): "do you ever record a video of like 20 seconds of a match then analyze it frame by
+frame?" — now standard evidence for any motion / feel / bot / hazard-motion change (WEEKEND_LOOP tick 4).
+
+```powershell
+powershell -File tools/record_match.ps1 -Name wk93_brawl20 -Arena pendulum_heights -Levels 3,3,3,3 -Seconds 20 -Seed 11
+```
+
+- **Godot Movie Maker** (`--write-movie ... --fixed-fps 30 --quit-after N`): every frame is rendered at a
+  fixed 1/30 s game step regardless of machine speed (immune to WK-91 throttling / hitches), so frame k is
+  exactly t = k/30 s of game time. Wall time is slower than real time (AVI ~1-2x, PNG ~8x realtime).
+- **Boot path:** `res://scenes/dev/RecordBoot.tscn` (`src/dev/RecordBoot.gd`) reads `key=value` user args
+  (after `--`): `name mode arena levels seconds seed aim_legacy hazard_legacy pendulum_test stamp`, writes
+  `GameConfig.match_config` (SINGLE arena, kills_to_win 99), installs `MatchRecorder` (scenes/dev/
+  MatchRecorder.tscn) on the ROOT, then changes scene to Arena.tscn. The recorder swaps EVERY seat (incl.
+  human seat 0) to an `InputBot` at `levels`, quits after `seconds` of COMBAT/SUDDEN_DEATH time.
+- **Script params:** `-Mode brawl|rocketball|dropshot|trials -Arena <level name> -Levels 1,3,5,2 -Seconds 20
+  -Fps 30 -Seed N -AimLegacy -HazardLegacy -PendulumTest N -Every 10 -Format avi|png -KeepPng -NoStamp -Force`.
+  `-AimLegacy` / `-HazardLegacy` flip the WK-94 / WK-96 A/B statics (InputBot.aim_sweep_enabled,
+  MovingHazard.legacy_motion) for BEFORE recordings in the same build. `-PendulumTest N` is a QA fixture:
+  N times it drops a living player exactly where a pendulum ball will be ~0.12 s later (contact check).
+- **Output** `tools/out/rec/<Name>/` (folder has a `.gdignore` so the editor never imports frames):
+  `frameNNNNNNNN.jpg` (AVI default; split from Movie Maker's MJPEG `movie.avi`), `data.json`, `sheet.png`
+  (every Nth frame from COMBAT start, labelled `f# t state`), `sheet_overlay.png` (per-player marker +
+  trail + aim line, thick white = super aim, red ring = pendulum ball), `aim_report.png` (each super-aim
+  window: aim angle per physics tick + per-tick step vs the Tuning cap), `godot.log(.err)`, and a printed
+  report (aim windows by bot level, hazard contacts/smashes, event counts, pendulum_test hits).
+- **data.json:** `frames[{f,t,st,p[{i,l,x,y,sx,sy,vx,vy,a,sa,stun,dead,fuel,vis}],hz[{sx,sy,v}]}]` once per
+  rendered frame (`f` == movie frame index == the number on the small REC stamp at the bottom of each
+  frame; `sx/sy` are window px — rec_sheet rescales to the frame size), `aim_windows[]` (per-physics-tick
+  super-aim path + max step), `events[]` (super_fired, smashed incl. hazard smashes, hazard_shoved,
+  killed, pendulum_test_*), `hazards[]` (MovingHazard QA counters + per-contact log).
+- **More analysis:** `python tools/rec_sheet.py tools/out/rec/<Name> --range 300:420 --every 1 --prefix swing`
+  (dense sheet of a span), `--strobe 300:402` (one frame with every frame's pendulum-ball position as a dot:
+  spacing = speed), `--report`. Read individual frames with the Read tool — LOOK at them.
+- **One-instance rule applies:** the recording instance binds 9090 too. The script aborts if any Godot
+  process is running (never `stop_game.ps1` another agent's game); `-Force` overrides.
+- Movie Maker renders at the project viewport size (1920x1080) regardless of `--resolution`.
+
 ## SmokeTest scene
 
 `res://scenes/SmokeTest.tscn` (`src/dev/SmokeTest.gd`): a deliberately ugly ball-on-floor scene

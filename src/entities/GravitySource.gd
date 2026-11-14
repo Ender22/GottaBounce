@@ -58,7 +58,10 @@ func gravity_at(pos: Vector2) -> Vector2:
 
 func _ready() -> void:
 	GravityField.register(self)
-	z_index = 18   # under players/props, over backdrop
+	# WK-97 (owner 2026-11-14: "all the player sprites were behind the black hole"): z 18 drew OVER the
+	# players (z 0) and most props. The well is scenery — it sits just above the painted backdrop/void
+	# (-100..-5) and under platforms (-1+), players (0), props/hazards (5..45) and Juice FX (10+).
+	z_index = -2
 	if ResourceLoader.exists(MOON_TEX_PATH):
 		_moon_tex = load(MOON_TEX_PATH)
 	if ResourceLoader.exists(BH_TEX_PATH):
