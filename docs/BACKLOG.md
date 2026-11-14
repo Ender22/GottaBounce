@@ -46,7 +46,7 @@ and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 2. ~~WK-20a~~ done 2721c7c — [P1][M] (in progress) Who wins and why: CPU share, self-KO −1, stage length and first-death time, human-style drivers -> game-designer rulings — qa-playtester + game-designer
 3. ~~WK-108~~ done ee80867 — [P1][M] (in progress) Sports bots route/keep goal + kickoff goals ≤ 10 % with human-style drivers (CD2-03 folded in) — gameplay-programmer + game-designer
 4. ~~WK-20c~~ done 6f4f51b — / WK-20b [P1][S] Apply whatever the WK-20a ruling calls for (self-KO / CPU mix / Lv0 gate); BLOCKED on the ruling, pulled the moment it lands — gameplay-programmer
-5. WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT regression, now 3.27 s) — gameplay-programmer + ui-ux-designer
+5. ~~WK-124~~ done 540f863 — [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT regression, now 3.27 s) — gameplay-programmer + ui-ux-designer
 6. WK-37a [P1][S] Ghost-goat spec (no game slot, can run in parallel now): the dead are 48 % of a weaker player's match — game-designer
 7. ~~WK-18~~ done 2aa8f87 — [P1][S] 28 px floor for anything a player reads (HUD, legend, lobby badges, sports score bug) — ui-ux-designer
 8. WK-111 [P1][M] Sports end screen frames the winning team + stat strip + MVP (SP-09; raised P2 -> P1 by CD2) — ui-ux-designer + gameplay-programmer
@@ -480,7 +480,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   re-check, don't redo.
 - Status: done a1ada05
 
-### [ ] WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT-list regression)
+### [x] WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT-list regression) — 540f863
 - Area: sports · Owner: gameplay-programmer (+ ui-ux-designer: the scorer banner must still read) · Source: creative-director WK-CD2 §4 soft regression
 - Evidence: Rocketball goal -> next GO = **3.27 s game time** (STAGE_END 1.41 + INTRO 0.81 + COUNTDOWN 1.06), from `tools/out/cd2/rb/phase.json`
   `phase_log.tick_s` (game time, not the screenshot-stalled wall clock). WK-98 PROTECT says 2.8 s. +0.47 s, probably the WK-106 banner hold.
