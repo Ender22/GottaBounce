@@ -19,6 +19,10 @@ const POP_OUT := 0.2
 const RED := Color("#ff4b6a")
 const BLUE := Color("#3fa9ff")
 const MATCH_BTN_MIN := Vector2(300, 84)
+# WK-111 (SP-09): the sports end screen. show_match_end presents it (when the mode has match_stats) instead of the
+# old centre panel; it owns the REMATCH / CHANGE SETUP / QUIT row and its input from then on.
+const VICTORY_SCENE := preload("res://scenes/ui/SportsVictory.tscn")
+const VICTORY_DELAY := 0.9     # = PartyMatch.VICTORY_DELAY: the in-world winning-team frame breathes first
 
 var _runner   # PartyMatch (untyped so mode/state member access is dynamic — no runner class edit)
 var _center_tw: Tween
@@ -51,6 +55,9 @@ var _match_armed := false
 var _gate: MenuInputGate
 var _match_pulse: Tween
 var _match_row: HBoxContainer = null
+var _victory: CanvasLayer = null       # WK-111 SportsVictory (lazy)
+var _victory_on := false               # WK-111: the end screen owns MATCH_END (set at show_match_end)
+@onready var _chip: Control = $Root/ScoreChip
 
 func _ready() -> void:
 	_runner = get_parent()
@@ -72,6 +79,7 @@ func setup(_players: Array, _colors: Array, _skins: Array) -> void:
 	pass   # SPORTS shows TEAM scores (polled), not per-player cards
 
 func reset_scores() -> void:
+	_dismiss_victory()   # WK-111: a REMATCH re-runs _start_match -> reset_scores
 	_goal_sub_color = null
 	_goal_banner_next = false
 	_red_score.text = "0"
@@ -202,6 +210,10 @@ func _hide_center_now() -> void:
 # ------------------------------------------------------------------ MATCH END (team-wins panel)
 func show_match_end(text: String, color: Color, subline: String) -> void:
 	hide_center()
+	var mode = _runner._mode if _runner != null else null
+	if mode != null and mode.has_method("match_stats"):
+		_show_victory(mode)
+		return
 	_clear_match_buttons()
 	_gate.open()   # the end screen "appears" now: presses must begin after this and the row arms >= 1.0 s later
 	_match_text.text = text
@@ -220,12 +232,48 @@ func show_match_end(text: String, color: Color, subline: String) -> void:
 	var tw := create_tween()
 	tw.tween_property(_match_panel, "scale", Vector2.ONE, POP_IN).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
+## WK-111 (SP-09): frame the winning team in the world (SportsMode.present_match_end replaces the runner's 1.1
+## punch-zoom target and pops every winner), then after VICTORY_DELAY present the SportsVictory end screen with
+## SportsMode.match_stats. Its three signals map onto the runner's existing match_button_pressed ids.
+func _show_victory(mode) -> void:
+	_victory_on = true
+	_clear_match_buttons()
+	if mode.has_method("present_match_end"):
+		mode.present_match_end(_runner)
+	if _victory == null:
+		_victory = VICTORY_SCENE.instantiate()
+		add_child(_victory)
+		_victory.rematch_pressed.connect(func() -> void:
+			_dismiss_victory()
+			match_button_pressed.emit(&"rematch"))
+		_victory.setup_pressed.connect(func() -> void: match_button_pressed.emit(&"setup"))
+		_victory.menu_pressed.connect(func() -> void: match_button_pressed.emit(&"menu"))
+	var tw := create_tween()
+	tw.tween_interval(VICTORY_DELAY)
+	tw.tween_callback(func() -> void:
+		if not _victory_on or _runner == null or str(_runner.state) != "MATCH_END":
+			return
+		_chip.visible = false   # the tray's score plate carries the final score
+		_victory.present(mode.match_stats(_runner)))
+
+func _dismiss_victory() -> void:
+	_victory_on = false
+	_chip.visible = true
+	if _victory != null and _victory.is_live():
+		_victory.dismiss()
+
+## QA (gbplay eval): the live SportsVictory, or null.
+func victory_screen():
+	return _victory
+
 # ------------------------------------------------------------------ MATCH END button row (VictoryScreen bar)
 ## Build a real focusable button row inside the MatchPanel — the actionable end-state, NOT a caption.
 ## specs = [{ "text": String, "id": StringName }, ...]; first button takes default focus + the primary
 ## style, the LAST button is the safe menu_back target. Mirrors VictoryScreen's focus juice exactly.
 ## PartyMatch calls this once, after its PROMPT_GUARD arm lock, and wires match_button_pressed.
 func show_match_buttons(specs: Array) -> void:
+	if _victory_on:
+		return   # WK-111: the SportsVictory row is the match-end row (its own gate arms it)
 	_clear_match_buttons()
 	_match_focus = 0
 	_match_armed = false

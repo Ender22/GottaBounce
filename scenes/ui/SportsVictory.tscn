@@ -1,0 +1,587 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://src/ui/SportsVictory.gd" id="1_sv"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/star_full.png" id="3_star"]
+
+[sub_resource type="Shader" id="rays_tint"]
+code = "shader_type canvas_item;
+// WK-111: recolour the gold victory rays into the winning team's colour by luminance (a plain modulate turns
+// gold x blue into olive). Dark outlines stay dark, the brightest cores lift toward white.
+uniform vec4 team : source_color = vec4(1.0, 0.82, 0.25, 1.0);
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	vec3 t = clamp(team.rgb * l * 1.45, 0.0, 1.0);
+	t = mix(t, vec3(1.0), smoothstep(0.82, 1.0, l));
+	// COLOR arrives as texture x modulate: replace the rgb, keep its alpha (texture alpha x the fade-in modulate)
+	COLOR.rgb = t;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="rays_mat"]
+shader = SubResource("rays_tint")
+shader_parameter/team = Color(1, 0.823529, 0.247059, 1)
+
+[sub_resource type="StyleBoxFlat" id="row_plain"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 0.04)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxEmpty" id="row_header"]
+content_margin_left = 14.0
+content_margin_top = 0.0
+content_margin_right = 14.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxFlat" id="name_ribbon"]
+content_margin_left = 26.0
+content_margin_top = 2.0
+content_margin_right = 26.0
+content_margin_bottom = 4.0
+bg_color = Color(0.231373, 0.141176, 0.105882, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 0.823529, 0.247059, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+shadow_color = Color(0.12, 0.07, 0.05, 0.4)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="mvp_chip"]
+content_margin_left = 12.0
+content_margin_top = 0.0
+content_margin_right = 14.0
+content_margin_bottom = 2.0
+bg_color = Color(1, 0.823529, 0.247059, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0.12, 0.07, 0.05, 0.45)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="score_plate"]
+content_margin_left = 30.0
+content_margin_top = 0.0
+content_margin_right = 30.0
+content_margin_bottom = 4.0
+bg_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+
+[sub_resource type="StyleBoxFlat" id="fact_plate"]
+content_margin_left = 18.0
+content_margin_top = 4.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(1, 1, 1, 0.06)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[node name="SportsVictory" type="CanvasLayer"]
+layer = 13
+script = ExtResource("1_sv")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Scrim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0784314, 0.0784314, 0.156863, 0.6)
+
+[node name="FX" type="Node2D" parent="Root"]
+
+[node name="Rays" type="TextureRect" parent="Root"]
+material = SubResource("rays_mat")
+layout_mode = 0
+offset_left = 20.0
+offset_top = 80.0
+offset_right = 920.0
+offset_bottom = 980.0
+pivot_offset = Vector2(450, 450)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Team" type="Control" parent="Root"]
+layout_mode = 0
+offset_right = 940.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="Slot0" type="Control" parent="Root/Team"]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 280.0
+offset_right = 470.0
+offset_bottom = 800.0
+pivot_offset = Vector2(220, 260)
+mouse_filter = 2
+
+[node name="Shadow" type="TextureRect" parent="Root/Team/Slot0"]
+layout_mode = 0
+offset_top = 10.0
+offset_right = 440.0
+offset_bottom = 450.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+self_modulate = Color(0.231373, 0.141176, 0.105882, 0.85)
+
+[node name="Bust" type="TextureRect" parent="Root/Team/Slot0"]
+layout_mode = 0
+offset_right = 440.0
+offset_bottom = 440.0
+pivot_offset = Vector2(220, 440)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameL" type="CenterContainer" parent="Root/Team/Slot0"]
+layout_mode = 0
+offset_left = -20.0
+offset_top = 418.0
+offset_right = 460.0
+offset_bottom = 500.0
+pivot_offset = Vector2(240, 41)
+mouse_filter = 2
+
+[node name="Ribbon" type="PanelContainer" parent="Root/Team/Slot0/NameL"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("name_ribbon")
+
+[node name="Box" type="HBoxContainer" parent="Root/Team/Slot0/NameL/Ribbon"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="NameText" type="Label" parent="Root/Team/Slot0/NameL/Ribbon/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 52
+text = "P1"
+vertical_alignment = 1
+
+[node name="SubText" type="Label" parent="Root/Team/Slot0/NameL/Ribbon/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 30
+text = "POGO"
+vertical_alignment = 1
+
+[node name="Mvp" type="PanelContainer" parent="Root/Team/Slot0"]
+layout_mode = 0
+offset_left = 270.0
+offset_top = 10.0
+offset_right = 430.0
+offset_bottom = 70.0
+pivot_offset = Vector2(80, 30)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("mvp_chip")
+
+[node name="Box" type="HBoxContainer" parent="Root/Team/Slot0/Mvp"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Star" type="TextureRect" parent="Root/Team/Slot0/Mvp/Box"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("3_star")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Text" type="Label" parent="Root/Team/Slot0/Mvp/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 40
+text = "MVP"
+vertical_alignment = 1
+
+[node name="WinnerL" type="Label" parent="Root"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 70.0
+offset_right = 920.0
+offset_bottom = 240.0
+pivot_offset = Vector2(450, 85)
+theme_type_variation = &"BannerCenter"
+theme_override_constants/outline_size = 20
+theme_override_font_sizes/font_size = 140
+text = "RED WINS!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TrayArea" type="Control" parent="Root"]
+layout_mode = 0
+offset_left = 900.0
+offset_right = 1880.0
+offset_bottom = 900.0
+mouse_filter = 2
+
+[node name="TrayCenter" type="CenterContainer" parent="Root/TrayArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Tray" type="PanelContainer" parent="Root/TrayArea/TrayCenter"]
+layout_mode = 2
+theme_type_variation = &"MatchEndPanel"
+
+[node name="Box" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ScoreC" type="CenterContainer" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Plate" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("score_plate")
+
+[node name="ScoreLine" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="NameA" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 40
+text = "RED"
+vertical_alignment = 1
+
+[node name="ScoreA" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 64
+text = "6"
+vertical_alignment = 1
+
+[node name="Dash" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
+theme_override_font_sizes/font_size = 40
+text = "—"
+vertical_alignment = 1
+
+[node name="ScoreB" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 64
+text = "4"
+vertical_alignment = 1
+
+[node name="NameB" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_font_sizes/font_size = 40
+text = "BLUE"
+vertical_alignment = 1
+
+[node name="Header" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("row_header")
+
+[node name="HeadBox" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Header"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="PadHead" type="Control" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PadName" type="Control" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PadMvp" type="Control" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="H0" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"StepTitle"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+text = "GOALS"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="H1" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"StepTitle"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+text = "ASSISTS"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="H2" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"StepTitle"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+text = "SAVES"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="H3" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"StepTitle"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+text = "TOUCHES"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="H4" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"StepTitle"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+text = "OWN
+GOALS"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="Rows" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RowTemplate" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows"]
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("row_plain")
+
+[node name="RowBox" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Head" type="TextureRect" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameBox" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = -8
+
+[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+layout_mode = 2
+theme_type_variation = &"CardName"
+theme_override_font_sizes/font_size = 32
+text = "P1"
+
+[node name="PSub" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+layout_mode = 2
+theme_type_variation = &"CardName"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 28
+text = "CPU"
+
+[node name="MvpSlot" type="CenterContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Chip" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/MvpSlot"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("mvp_chip")
+
+[node name="Text" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/MvpSlot/Chip"]
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 28
+text = "MVP"
+horizontal_alignment = 1
+
+[node name="S0" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S1" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S2" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S3" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="S4" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Facts" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="RallyP" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("fact_plate")
+
+[node name="RallyL" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts/RallyP"]
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 32
+text = "LONGEST RALLY  14.2 s  ·  19 TOUCHES"
+horizontal_alignment = 1
+
+[node name="WinGoalP" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("fact_plate")
+
+[node name="WinGoalL" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts/WinGoalP"]
+layout_mode = 2
+theme_type_variation = &"BannerSub"
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 32
+text = "WINNING GOAL  P1  ·  ASSIST VEX"
+horizontal_alignment = 1
+
+[node name="Prompts" type="HBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -150.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 34
+alignment = 1
+
+[node name="BtnRematch" type="Button" parent="Root/Prompts"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ShellBtnPrimary"
+text = "  REMATCH  "
+
+[node name="BtnSetup" type="Button" parent="Root/Prompts"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ShellBtn"
+text = "  CHANGE SETUP  "
+
+[node name="BtnQuit" type="Button" parent="Root/Prompts"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ShellBtn"
+text = "  QUIT TO MENU  "

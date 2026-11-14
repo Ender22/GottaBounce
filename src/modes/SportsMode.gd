@@ -53,6 +53,28 @@ var _kickoff: Dictionary = {}          # {ball: Vector2, slots: {1: [Vector2], 2
 var _last_goal: Dictionary = {}        # {team, scorer_idx, own_goal, assist_idx, scorer_name, assist_name, count}
 var _goal_count: int = 0               # goals this match (HUD flash/pop keys off goal_scored, this is QA)
 
+# --- WK-111 (SP-09) match stats for the sports end screen (SportsVictory). Per player index:
+#   {goals, assists, own_goals, saves, touches, power}. Fed by Ball.touched (touches / power hits / saves) and the
+#   WK-106 credit in stage_end_banner (goals / assists / own goals). Reset per match in configure(). ---
+# SAVE (soccer only): a defender's touch on a ball that was a real shot at their own goal (moving at it >= the
+# keeper's shot speed, inside the cone, arriving within STAT_SAVE_TIME) that the touch turned away. A save is taken
+# back if that team concedes within STAT_SAVE_REVOKE s of ball time (it went in anyway). Mode-owned stat
+# classification, like the bot geometry above — not player feel.
+const STAT_SAVE_SPEED := 550.0         # = BOT_KEEPER_SHOT_SPEED: px/s toward the goal that makes it a shot
+const STAT_SAVE_TIME := 1.6            # = BOT_KEEPER_SHOT_TIME: would reach the goal within this many seconds
+const STAT_SAVE_CONE_DEG := 28.0       # the shot's heading is within this of the line to the goal centre
+const STAT_SAVE_KEEP := 0.4            # after the touch the ball keeps < this fraction of its goalward speed...
+const STAT_SAVE_REVOKE := 1.0          # ...and the team does not concede within this many s (ball clock)
+# MVP = the best rating on the WINNING team (Rocket League convention). Points per stat:
+const MVP_POINTS := {"goals": 100, "assists": 50, "saves": 50, "power": 10, "touches": 2, "own_goals": -30}
+# Match-end framing of the winning team (end-of-match presentation only, not the in-play court camera).
+const END_FRAME_PAD := Vector2(560.0, 420.0)   # world px of room around the winners' bounding box (each side x2)
+const END_FRAME_MAX_ZOOM := 0.92               # never tighter than the arena zoom ceiling (SP-09: zoom <= 0.92)
+var _pstats: Dictionary = {}           # player index -> stat dict (see _ps)
+var _stage_touches: int = 0            # live touches this stage (rally length)
+var _longest_rally: Dictionary = {}    # {secs, touches} of the longest goal-ending rally, {} before the first goal
+var _last_save: Dictionary = {}        # {idx, t} of this stage's latest save (revoked on a quick concede)
+
 # --- SPORT VARIANT (owner 2026-07-18 item 5, DROPSHOT) ---
 # The court JSON declares its sport via a top-level "sport" field ("soccer" default | "dropshot").
 # DROPSHOT = volleyball-like: floaty beach ball (Ball.configure_dropshot), a solid centre NET wall
@@ -224,6 +246,10 @@ func configure(runner, config: MatchConfig) -> void:
 	_last_scored_stage = -1
 	_last_goal = {}
 	_goal_count = 0
+	_pstats = {}           # WK-111: fresh stat sheet each match (a rematch re-runs configure)
+	_longest_rally = {}
+	_stage_touches = 0
+	_last_save = {}
 
 ## Resolve a court SELECTION to an arena PATH via the court-set (v8_sports_courts.md §4.2), keeping the
 ## CD #7 robustness fallback: SPORTS is an ENCLOSED-court mode, so ANY unresolved / locked / missing
@@ -464,6 +490,11 @@ func next_level_path(_runner) -> String:
 func on_stage_ready(runner) -> void:
 	_place_teams(runner)
 	_spawn_ball(runner)
+	# WK-111: per-stage rally counters + the touch feed for the end-screen stats
+	_stage_touches = 0
+	_last_save = {}
+	if is_instance_valid(_ball):
+		_ball.touched.connect(_on_ball_touched.bind(runner))
 
 ## GO! (dropshot only): unfreeze the ball held above the net and serve it toward the LAST SCORER's half,
 ## so the team that just scored must make the first touch (owner 2026-07-19 pressure inversion). Before
@@ -555,6 +586,7 @@ func stage_end_banner(runner) -> Dictionary:
 		_last_scoring_team = scoring
 		_goal_count += 1
 		_last_goal = _credit_goal(runner, scoring)
+		_record_goal_stats(scoring)   # WK-111
 		var scorer = null
 		var si: int = int(_last_goal["scorer_idx"])
 		if si >= 0 and si < runner.players.size() and is_instance_valid(runner.players[si]):
@@ -665,6 +697,185 @@ func last_goal() -> Dictionary:
 
 func goal_count() -> int:
 	return _goal_count
+
+# ------------------------------------------------------------------ WK-111 (SP-09) match stats + end framing
+
+## The stat dict of player `idx` (created on first use).
+func _ps(idx: int) -> Dictionary:
+	if not _pstats.has(idx):
+		_pstats[idx] = {"goals": 0, "assists": 0, "own_goals": 0, "saves": 0, "touches": 0, "power": 0}
+	return _pstats[idx]
+
+## Ball.touched feed (bound with the runner in on_stage_ready): touches, power hits, saves.
+func _on_ball_touched(p, is_power, runner) -> void:
+	if runner == null or not is_instance_valid(runner):
+		return
+	var idx: int = runner.players.find(p)
+	if idx < 0 or idx >= _teams.size():
+		return
+	var s := _ps(idx)
+	s["touches"] = int(s["touches"]) + 1
+	if bool(is_power):
+		s["power"] = int(s["power"]) + 1
+	_stage_touches += 1
+	if _sport != "soccer" or not is_instance_valid(_ball):
+		return
+	var tl: Array = _ball.touch_log()
+	if tl.is_empty():
+		return
+	var e: Dictionary = tl.back()
+	if _is_save(runner, e, int(_teams[idx])):
+		s["saves"] = int(s["saves"]) + 1
+		_last_save = {"idx": idx, "t": float(e.get("t", 0.0))}
+
+## WK-111 save rule (see STAT_SAVE_*): the ball was a shot at `team`'s own goal and this touch turned it away.
+func _is_save(runner, e: Dictionary, team: int) -> bool:
+	var g: Vector2 = _own_goal_center(runner, team)
+	if g == Vector2.INF:
+		return false
+	var pos: Vector2 = e.get("pos", g)
+	var vin: Vector2 = e.get("vin", Vector2.ZERO)
+	var vout: Vector2 = e.get("vout", Vector2.ZERO)
+	var d: Vector2 = g - pos
+	var dist: float = d.length()
+	if dist < 1.0:
+		return false
+	var dir: Vector2 = d / dist
+	var tin: float = vin.dot(dir)
+	if tin < STAT_SAVE_SPEED or dist / tin > STAT_SAVE_TIME:
+		return false
+	var cone: float = deg_to_rad(STAT_SAVE_CONE_DEG)
+	if absf(vin.angle_to(d)) > cone:
+		return false
+	return vout.dot(dir) < tin * STAT_SAVE_KEEP or absf(vout.angle_to(d)) > cone
+
+## WK-111: book the goal just credited by _credit_goal (goals / assists / own goals), the rally, and revoke a save
+## the conceding team made moments before it went in anyway.
+func _record_goal_stats(scoring: int) -> void:
+	var si: int = int(_last_goal.get("scorer_idx", -1))
+	if si >= 0:
+		var s := _ps(si)
+		if bool(_last_goal.get("own_goal", false)):
+			s["own_goals"] = int(s["own_goals"]) + 1
+		else:
+			s["goals"] = int(s["goals"]) + 1
+	var ai: int = int(_last_goal.get("assist_idx", -1))
+	if ai >= 0:
+		var a := _ps(ai)
+		a["assists"] = int(a["assists"]) + 1
+	var goal_t: float = _ball.ball_clock() if is_instance_valid(_ball) else 0.0
+	if not _last_save.is_empty():
+		var sv: int = int(_last_save["idx"])
+		if sv < _teams.size() and int(_teams[sv]) == 1 - scoring \
+				and goal_t - float(_last_save["t"]) <= STAT_SAVE_REVOKE:
+			var ss := _ps(sv)
+			ss["saves"] = maxi(0, int(ss["saves"]) - 1)
+		_last_save = {}
+	if _longest_rally.is_empty() or goal_t > float(_longest_rally["secs"]):
+		_longest_rally = {"secs": goal_t, "touches": _stage_touches}
+
+## WK-111 rating behind the MVP pick (MVP_POINTS).
+func _rating(s: Dictionary) -> int:
+	var r := 0
+	for k in MVP_POINTS.keys():
+		r += int(s.get(k, 0)) * int(MVP_POINTS[k])
+	return r
+
+## The winning team (0/1) by score; -1 while level (only meaningful at MATCH_END).
+func winning_team() -> int:
+	if int(_team_scores[0]) == int(_team_scores[1]):
+		return -1
+	return 0 if int(_team_scores[0]) > int(_team_scores[1]) else 1
+
+## WK-111: everything the sports end screen shows. One row per player:
+##   {idx, team, name, sub, color, skin, human, goals, assists, own_goals, saves, touches, power, rating}
+## mvp = player index of the best rating on the winning team (ties: more goals, then lower index); -1 if none.
+## longest_rally = {secs, touches} ({} if no goal). winning_goal = the last goal's credit (WK-106 _last_goal).
+func match_stats(runner) -> Dictionary:
+	var win: int = winning_team()
+	var rows: Array = []
+	var mvp: int = -1
+	var mvp_r: int = -2147483647
+	var mvp_g: int = -1
+	for i in range(mini(runner.players.size(), _teams.size())):
+		var p = runner.players[i]
+		var s: Dictionary = _ps(i).duplicate()
+		s["idx"] = i
+		s["team"] = int(_teams[i])
+		s["name"] = str(runner.player_name(i))
+		s["sub"] = str(runner.player_subtag(i))
+		s["color"] = runner.player_color(i)
+		s["skin"] = str(p.skin) if is_instance_valid(p) else str(TEAM_SKINS[int(_teams[i])][0])
+		s["human"] = bool(runner.is_human_player(i))
+		s["rating"] = _rating(s)
+		rows.append(s)
+		if int(_teams[i]) == win:
+			var r: int = int(s["rating"])
+			var g: int = int(s["goals"])
+			if r > mvp_r or (r == mvp_r and g > mvp_g):
+				mvp = i
+				mvp_r = r
+				mvp_g = g
+	return {
+		"sport": _sport,
+		"mode_name": display_name(),
+		"scores": [int(_team_scores[0]), int(_team_scores[1])],
+		"win_team": win,
+		"team_names": TEAM_NAMES.duplicate(),
+		"team_colors": TEAM_COLORS.duplicate(),
+		"rows": rows,
+		"mvp": mvp,
+		"longest_rally": _longest_rally.duplicate(),
+		"winning_goal": _last_goal.duplicate(),
+		"goal_word": goal_word(),
+	}
+
+## WK-111 (SP-09): match-end presentation in the world. Frames the WINNING TEAM (bounding box of its goats + pad,
+## zoom <= END_FRAME_MAX_ZOOM, the view clamped inside the court so it never shows void) instead of the runner's
+## 1.1 punch-zoom on one representative goat (which landed on goal pillars / void), and every winner does the win
+## pop (the runner only pops the representative). Called by SportsHUD.show_match_end, right after the runner's own
+## punch-zoom set_frame — this replaces that target. Returns the frame {center, zoom} ({} if nothing to frame).
+func present_match_end(runner) -> Dictionary:
+	var win: int = winning_team()
+	if win < 0:
+		return {}
+	var box := Rect2()
+	var have := false
+	var rep: int = _teams.find(win)   # the runner already popped this one (match_winner's first-of-team rule)
+	for i in range(mini(runner.players.size(), _teams.size())):
+		if int(_teams[i]) != win:
+			continue
+		var p = runner.players[i]
+		if not is_instance_valid(p) or p.is_dead():
+			continue
+		if i != rep and p.has_method("play_win_pop"):
+			p.play_win_pop()
+		var at: Vector2 = p.global_position
+		if have:
+			box = box.expand(at)
+		else:
+			box = Rect2(at, Vector2.ZERO)
+			have = true
+	if not have:
+		return {}
+	# clamp inside the painted court (the level's play rect), not runner.bounds: bounds runs past the court art into
+	# the enclosed-drum housing, so a bounds-clamped frame on a corner winner showed that flat void (Dropshot beach)
+	var b: Rect2 = runner.bounds
+	var sr: Variant = runner.get("_stage_rect")
+	if sr is Rect2 and (sr as Rect2).size.x > 1.0 and (sr as Rect2).size.y > 1.0:
+		b = sr
+	var want: Rect2 = box.grow_individual(END_FRAME_PAD.x, END_FRAME_PAD.y, END_FRAME_PAD.x, END_FRAME_PAD.y)
+	# floor = the zoom at which the view just COVERS the court on both axes (so no void either way)
+	var cover_z: float = maxf(1920.0 / maxf(b.size.x, 1.0), 1080.0 / maxf(b.size.y, 1.0))
+	var z: float = minf(1920.0 / maxf(want.size.x, 1.0), 1080.0 / maxf(want.size.y, 1.0))
+	z = clampf(z, minf(cover_z, END_FRAME_MAX_ZOOM), END_FRAME_MAX_ZOOM)
+	var half := Vector2(960.0, 540.0) / z
+	var c: Vector2 = want.get_center()
+	c.x = b.get_center().x if half.x * 2.0 >= b.size.x else clampf(c.x, b.position.x + half.x, b.end.x - half.x)
+	c.y = b.get_center().y if half.y * 2.0 >= b.size.y else clampf(c.y, b.position.y + half.y, b.end.y - half.y)
+	if runner.get("_camera") != null:
+		runner._camera.set_frame(c, z)
+	return {"center": c, "zoom": z}
 
 ## WK-15 (CC-11.1 / D-13): the stage-1 goal chip above the controls legend — the sport's one-line rule.
 func goal_line(_runner) -> String:
