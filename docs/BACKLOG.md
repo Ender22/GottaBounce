@@ -26,7 +26,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 4. ~~WK-04~~ done 1191757 — Each human driven by exactly one device (`InputHuman.for_device`, no keyboard sharing)
 5. ~~WK-05~~ done fe2a99c — Herd Lobby slice 1: press-A-to-join panels, independent goat cycling
 6. ~~WK-06~~ done fe2a99c — Herd Lobby slice 2: ready / banner / Start proceeds / devices carry into the match
-7. WK-07 Herd Lobby slice 3: RULES panel + lobby persistence + CHANGE SETUP
+7. WK-81 Lobby review must-fixes + WK-07 Herd Lobby slice 3: RULES panel + lobby persistence + CHANGE SETUP
 8. WK-08 One player = one colour = their goat's colour, everywhere
 9. WK-09 Pause menu finish: hold-to-confirm RESTART/QUIT + "PAUSED · P2" header
 10. WK-10 Persistent P# pip over humans, CPU tags on bots
@@ -126,6 +126,15 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   pad1 only P3's, keyboard only P1's (eval positions); solo: Mode -> A (lock) -> A/Start (go) = 2 presses; 1H+0CPU
   shows the amber hint, never a dead end; Trials + Rocketball still launch. Screens `tools/out/wk/WK-06_*.png`.
 - Status: open
+
+### [ ] WK-81 [P0][S] Herd Lobby review must-fixes (ui-ux-designer verdict FIX, docs/audit/2026-11-14_lobby_review.md)
+- Owner: gameplay-programmer (lobby builder) · Deps: WK-06 · Do together with WK-07.
+- (1) ModeContextChip sizes to text, grows leftward (ROCKETBALL overflows); (2) shared glyph rule per amended CC-1.6;
+  (3) pad type label (XBOX/PLAYSTATION/GAMEPAD) not Godot device id, rumble on join, panel pulse on idle press;
+  (4) empty slot = dark well, not see-through glass; (5) flair row: icon not word, 28 px text, short names, arrow gap;
+  (6) lift "PRESS A TO JOIN" above the READY banner; (7) fade arrows on READY panels; (8) GO press during banner
+  guard gets a tick + banner pop. Bug: Start launches while another player has RULES open — block GO while open.
+- Accept: re-review by ui-ux-designer from fresh 1920x1080 captures + a motion burst; Ship verdict.
 
 ### [ ] WK-07 [P0][M] Herd Lobby slice 3: RULES panel, lobby survives round trips, CHANGE SETUP, per-mode rule memory
 - Sources: C-17, C-25 (Stepper B reverts), C-29, R-13, R-16, R-26, CC-4.6/4.7, CC-10.3, E.7
