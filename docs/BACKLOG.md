@@ -24,8 +24,8 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 2. ~~WK-02~~ done 933a77a
 3. ~~WK-03~~ done 1191757 — InputRouter autoload + device keys + gbplay simulated-pad testability
 4. ~~WK-04~~ done 1191757 — Each human driven by exactly one device (`InputHuman.for_device`, no keyboard sharing)
-5. WK-05 Herd Lobby slice 1: press-A-to-join panels, independent goat cycling
-6. WK-06 Herd Lobby slice 2: ready / banner / Start proceeds / devices carry into the match
+5. ~~WK-05~~ done fe2a99c — Herd Lobby slice 1: press-A-to-join panels, independent goat cycling
+6. ~~WK-06~~ done fe2a99c — Herd Lobby slice 2: ready / banner / Start proceeds / devices carry into the match
 7. WK-07 Herd Lobby slice 3: RULES panel + lobby persistence + CHANGE SETUP
 8. WK-08 One player = one colour = their goat's colour, everywhere
 9. WK-09 Pause menu finish: hold-to-confirm RESTART/QUIT + "PAUSED · P2" header
@@ -99,7 +99,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   cold-boot Arena.tscn still drives P1 from any device.
 - Status: open
 
-### [ ] WK-05 [P0][M] Herd Lobby slice 1: press A/Enter to join, per-player panels, independent goat cycling
+### [x] WK-05 [P0][M] Herd Lobby slice 1: press A/Enter to join, per-player panels, independent goat cycling — fe2a99c
 - Sources: C-03, C-04, C-34 ("CHOOSE YOUR GOAT"), C-21 (lobby per-device repeat), R-02, R-24, D-28 (join intent), CC-4.1/4.2/4.8
 - Area: menus · Owner: ui-ux-designer (layout/motion) + gameplay-programmer · Deps: WK-03
 - Do: audit §E.2 data model (`GameConfig.lobby`), §E.3 EMPTY<->PICKING, §E.4 join/cycle/leave rows, §E.9 layout (4 panels,
@@ -112,7 +112,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   PICKING slot -> EMPTY. Screens `tools/out/wk/WK-05_*.png`; ui-ux-designer verdict vs CC-4.x, CC-5.1, CC-8.1.
 - Status: open
 
-### [ ] WK-06 [P0][M] Herd Lobby slice 2: lock/ready, exclusive goats, READY banner, Start proceeds, devices carry into the match
+### [x] WK-06 [P0][M] Herd Lobby slice 2: lock/ready, exclusive goats, READY banner, Start proceeds, devices carry into the match — fe2a99c
 - Sources: C-03, C-04, C-17 (delete shared tray focus), R-02, R-24, CC-4.3/4.4/4.5, E.5, E.6 (Trials variant)
 - Area: menus · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-04, WK-05, WK-02
 - Do: PICKING<->READY, taken goats skipped + P-badge on roster medallion, same-frame lock tie -> lower slot wins + deny
