@@ -11,6 +11,7 @@ All pre-existing `*.mp3` in this folder (spring, impact1-3, slam, rewardCheer, a
 |---|---|---|
 | `awNo.mp3` | `own_goal_groan` — comedic "aww no" on a sports OWN GOAL | 2026-11-14 WK-105 |
 | `lower.mp3` | `sports_fall` — descending slide-whistle "whoop" (1.35 kHz -> 30 Hz, 1.5 s) when a goat falls out of a sports court / through a Dropshot hole (replaces the brawl `death` sting there) | 2026-11-14 WK-105 |
+| `spring_short.ogg` | `bounce` — derived from the owner's `spring.mp3`: cut to 0.42 s, fade-out 0.24-0.42 s (`ffmpeg -af "atrim=0:0.42,afade=t=out:st=0.24:d=0.18"`) so the 0.95 s ring stops hogging voices | 2026-11-15 WK-132 |
 | `crunch.mp3` | `tile_break` — gritty crunch when a Dropshot floor tile BREAKS open (2nd hit) | 2026-11-14 WK-121 |
 
 ## Kenney (kenney.nl) — Creative Commons Zero (CC0 1.0), http://creativecommons.org/publicdomain/zero/1.0/

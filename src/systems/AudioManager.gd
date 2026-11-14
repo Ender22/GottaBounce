@@ -13,7 +13,9 @@ extends Node
 
 # --- event -> candidate stream paths (arrays = pick one at random for variation) ---
 const SFX := {
-	"bounce":            ["res://assets/sfx/spring.mp3", "res://assets/sfx/balloon_pop.mp3"],
+	# WK-132: spring_short.ogg = spring.mp3 cut to 0.42 s (fade 0.24-0.42 s; the source rings 0.95 s down to -85 dB
+	# and at ~19 bounces/s on Singularity those tails held 7-14 of the 14 voices)
+	"bounce":            ["res://assets/sfx/spring_short.ogg", "res://assets/sfx/balloon_pop.mp3"],
 	"smash":             ["res://assets/sfx/impact1.mp3", "res://assets/sfx/impact2.mp3", "res://assets/sfx/impact3.mp3"],
 	"smash_heavy":       ["res://assets/sfx/slam.mp3"],
 	"super_fire":        ["res://assets/sfx/explosion_boss.mp3"],   # owner pick 2026-07-18 (was combo_bigRoar)
@@ -90,6 +92,28 @@ const MUSIC_MENU := "res://assets/music/title.wav"
 const THRUST_STREAM := "res://assets/sfx/coke_blast.mp3"   # owner pick 2026-07-18 (was fireLoop); looped jetpack voice
 
 const POOL_SIZE := 14
+
+# --- WK-132 voice priority. Each one-shot gets a tier; a full pool steals the LOWEST tier, oldest voice first.
+#   0 FILLER   - bounces, hazard whooshes: capped at FILLER_MAX_VOICES, so >= 9 voices always stay for the rest
+#   1 NORMAL   - damage, pickups, countdown, UI, ball touches, tile cracks (default)
+#   2 PRIORITY - the verbs + payoffs: smash, KO, super, explode, goal, bleat, stingers. Only ever cut by a
+#                priority sound, and only when 9+ priority sounds already ring (counted in prio_cut_prio).
+# `protect` (goal stingers) ranks above every tier: stolen only if the whole pool is protected.
+const TIER_FILLER := 0
+const TIER_NORMAL := 1
+const TIER_PRIORITY := 2
+const FILLER_MAX_VOICES := 5
+const PRIORITY_SFX := {
+	"smash": true, "smash_heavy": true, "super_fire": true, "death": true, "death_whoosh": true, "explode": true,
+	"go": true, "first_blood": true, "two_left": true, "match_win": true,
+	"goal_red": true, "goal_blue": true, "goal_crowd": true, "own_goal": true, "own_goal_groan": true,
+	"ball_power": true, "sports_fall": true, "tile_break": true,
+}
+const FILLER_SFX := {"bounce": true}
+# Per-sound voice caps: past the cap the sound recycles its OWN oldest voice. "countdown" doubles as the Bomb.gd
+# telegraph beep (4 -> 14 Hz, 0.22-0.32 s each): Everything Yard fired 556 in 89 s and held the pool at 14/14 for
+# 85 of 1574 samples. The match 3-2-1 (1 Hz) never reaches the cap.
+const SFX_VOICE_CAP := {"countdown": 3}
 const THRUST_ON_DB := -7.0
 const THRUST_OFF_DB := -60.0
 const THRUST_FADE := 10.0        # db/sec toward target
@@ -108,7 +132,12 @@ var thrust_active := false
 var sfx_counts := {}             # event key -> times played (QA: sports evidence logs counts by type)
 var ball_strikes_seen := 0       # every EventBus.ball_struck received (heard or rate-limited)
 var ball_strikes_heard := 0      # strikes that produced a sound
-var sfx_dropped := 0             # low_priority sounds skipped because every voice was busy (pool starvation)
+var sfx_dropped := 0             # sounds skipped: every voice held a higher tier (or protected) sound
+var prio_dropped := 0            # WK-132: PRIORITY sounds that got no voice at all (must stay 0)
+var prio_cut_prio := 0           # WK-132: PRIORITY sounds that had to cut another ringing PRIORITY sound (must stay 0)
+var steals := {}                 # WK-132 QA: "new_tier>old_tier" -> count of voice steals
+var sfx_capped := 0             # WK-132 QA: sounds that recycled their own oldest voice (SFX_VOICE_CAP)
+var filler_capped := 0           # WK-132 QA: filler sounds that recycled the oldest filler voice (cap reached)
 var bleats_seen := 0             # WK-53: every EventBus.bleated received
 var bleats_heard := 0            # bleats that produced a sound (rest = rate limit / voice cap / pool full)
 var bleat_log: Array = []        # last 32 heard: {ms, idx, ghost, key, pitch} (QA via gbplay eval)
@@ -130,6 +159,10 @@ const BALL_REPEAT_WINDOW := 0.3  # a touch within this of the last heard one is 
 const BALL_REPEAT_DUCK := -5.0   # ... and is ducked so it never machine-guns over the mix
 const BOUNCE_MIN_GAP := 0.04     # global floor between bounce sounds (s)
 const BOUNCE_DB_SPORTS := -8.0   # bounce level in sports (brawl keeps -4)
+const BOUNCE_SOUND_MIN_SPEED := 250.0   # WK-132: px/s exit speed below which a contact may be resting jitter ...
+const BOUNCE_ONSET_GAP := 0.15          # ... and is silent unless that goat was contact-free this long (a landing)
+var bounce_micro_skipped := 0    # WK-132 QA: jitter contacts silenced
+var _contact_last_t := {}        # player instance id -> clock (s) of its last surface_bounced
 var _bounce_last_t := -10.0
 var _ball_last_t := -10.0        # clock (s) of the last heard touch
 var _ball_last_amt := 0.0
@@ -184,7 +217,8 @@ func _ready() -> void:
 # --------------------------------------------------------------------- core play API
 
 ## Fire a one-shot SFX by event key. opts: {pitch: float, pitch_var: float, volume_db: float,
-## path: String (force a specific stream), protect: bool (WK-105: never voice-stolen while playing)}. Round-robins the pool so overlapping sounds coexist.
+## path: String (force a specific stream), protect: bool (WK-105: never voice-stolen while playing),
+## tier: int (WK-132 override; default from PRIORITY_SFX / FILLER_SFX / "bleat_*", else NORMAL), tag: String (QA)}.
 func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	var path: String = str(opts.get("path", ""))
 	if path == "":
@@ -195,14 +229,24 @@ func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	var stream := _stream(path)
 	if stream == null:
 		return
-	# WK-53 `low_priority`: takes a FREE voice, else steals a ringing BOUNCE tail (spring.mp3 rings 0.95 s and
-	# bounces keep 7-14 of the 14 voices busy in a brawl), never a smash / KO / goal voice; else it is dropped.
-	var pl: AudioStreamPlayer = _free_or_bounce_voice() if bool(opts.get("low_priority", false)) else _grab()
+	var tier: int = int(opts.get("tier", _tier_of(name)))
+	var pl: AudioStreamPlayer = null
+	if SFX_VOICE_CAP.has(name) and voices_named(name) >= int(SFX_VOICE_CAP[name]):
+		pl = _oldest_named(name)
+		if pl != null:
+			sfx_capped += 1
+	if pl == null:
+		pl = _voice_for(tier)
 	if pl == null:
 		sfx_dropped += 1
+		if tier >= TIER_PRIORITY:
+			prio_dropped += 1
 		return
 	pl.set_meta("protect", bool(opts.get("protect", false)))
 	pl.set_meta("tag", str(opts.get("tag", "")))
+	pl.set_meta("tier", tier)
+	pl.set_meta("t0", Time.get_ticks_usec())
+	pl.set_meta("sfx", name)
 	pl.stream = stream
 	var pitch: float = float(opts.get("pitch", 1.0))
 	var pvar: float = float(opts.get("pitch_var", 0.06))
@@ -213,22 +257,87 @@ func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	last_sfx = name
 	sfx_counts[name] = int(sfx_counts.get(name, 0)) + 1
 
-func _free_or_bounce_voice() -> AudioStreamPlayer:
+func _tier_of(name: String) -> int:
+	if PRIORITY_SFX.has(name) or name.begins_with("bleat_"):
+		return TIER_PRIORITY
+	if FILLER_SFX.has(name):
+		return TIER_FILLER
+	return TIER_NORMAL
+
+## Effective rank of a ringing voice for stealing: its tier, or 3 if protected (goal stingers / crowd).
+func _rank(p: AudioStreamPlayer) -> int:
+	if bool(p.get_meta("protect", false)):
+		return TIER_PRIORITY + 1
+	return int(p.get_meta("tier", TIER_NORMAL))
+
+## WK-132 voice allocation. Filler past its cap recycles its own oldest voice; otherwise a free voice; otherwise
+## steal the lowest-rank, oldest ringing voice whose rank <= the new sound's tier. A PRIORITY sound that can only
+## find PRIORITY / protected voices still plays (counted in prio_cut_prio); lower tiers are dropped instead.
+func _voice_for(tier: int) -> AudioStreamPlayer:
+	if tier <= TIER_FILLER and voices_tier(TIER_FILLER) >= FILLER_MAX_VOICES:
+		var old := _oldest(TIER_FILLER, TIER_FILLER)
+		if old != null:
+			filler_capped += 1
+			return old
 	for i in range(_pool.size()):
 		var idx := (_next + i) % _pool.size()
 		if not _pool[idx].playing:
 			_next = (idx + 1) % _pool.size()
 			return _pool[idx]
-	# all busy: the bounce voice furthest into its tail (quietest part of the ring)
+	for r in range(TIER_FILLER, tier + 1):
+		var v := _oldest(r, r)
+		if v != null:
+			var k := "%d>%d" % [tier, r]
+			steals[k] = int(steals.get(k, 0)) + 1
+			if r >= TIER_PRIORITY:
+				prio_cut_prio += 1
+			return v
+	if tier >= TIER_PRIORITY:
+		prio_cut_prio += 1
+		return _oldest(TIER_FILLER, TIER_PRIORITY + 1)
+	return null
+
+## Oldest ringing voice whose rank is in [lo, hi], or null.
+func _oldest(lo: int, hi: int) -> AudioStreamPlayer:
 	var best: AudioStreamPlayer = null
-	var best_pos := -1.0
+	var best_t := 0
 	for p in _pool:
-		if str(p.get_meta("tag", "")) == "bounce" and not bool(p.get_meta("protect", false)):
-			var pos: float = p.get_playback_position()
-			if pos > best_pos:
-				best_pos = pos
-				best = p
+		if not p.playing:
+			continue
+		var r := _rank(p)
+		if r < lo or r > hi:
+			continue
+		var t: int = int(p.get_meta("t0", 0))
+		if best == null or t < best_t:
+			best = p
+			best_t = t
 	return best
+
+func voices_named(sfx: String) -> int:
+	var n := 0
+	for p in _pool:
+		if p.playing and str(p.get_meta("sfx", "")) == sfx:
+			n += 1
+	return n
+
+func _oldest_named(sfx: String) -> AudioStreamPlayer:
+	var best: AudioStreamPlayer = null
+	var best_t := 0
+	for p in _pool:
+		if p.playing and str(p.get_meta("sfx", "")) == sfx and not bool(p.get_meta("protect", false)):
+			var t: int = int(p.get_meta("t0", 0))
+			if best == null or t < best_t:
+				best = p
+				best_t = t
+	return best
+
+## Voices currently ringing at exactly this tier (protected voices excluded).
+func voices_tier(tier: int) -> int:
+	var n := 0
+	for p in _pool:
+		if p.playing and _rank(p) == tier:
+			n += 1
+	return n
 
 ## Voices currently playing a sound fired with opts.tag == tag.
 func voices_tagged(tag: String) -> int:
@@ -238,23 +347,13 @@ func voices_tagged(tag: String) -> int:
 			n += 1
 	return n
 
-func _grab() -> AudioStreamPlayer:
-	# prefer a free voice; otherwise steal the next in round-robin (oldest-ish)
-	for i in range(_pool.size()):
-		var idx := (_next + i) % _pool.size()
-		if not _pool[idx].playing:
-			_next = (idx + 1) % _pool.size()
-			return _pool[idx]
-	# all busy: steal round-robin, but skip voices flagged `protect` (goal stingers / crowd) so a burst
-	# of bounces can't cut a goal call short; if every voice is protected, steal anyway.
-	for i in range(_pool.size()):
-		var idx2 := (_next + i) % _pool.size()
-		if not bool(_pool[idx2].get_meta("protect", false)):
-			_next = (idx2 + 1) % _pool.size()
-			return _pool[idx2]
-	var p := _pool[_next]
-	_next = (_next + 1) % _pool.size()
-	return p
+## QA (gbplay eval): what every voice is ringing right now, as "sfx/tier".
+func voice_snapshot() -> Array:
+	var out: Array = []
+	for p in _pool:
+		if p.playing:
+			out.append("%s/%d" % [str(p.get_meta("sfx", "?")), _rank(p)])
+	return out
 
 func _stream(path: String) -> AudioStream:
 	if _cache.has(path):
@@ -298,7 +397,20 @@ func play_menu_music() -> void:
 
 # --------------------------------------------------------------------- signal handlers
 
-func _on_surface_bounced(surface, _player, _normal, _contact) -> void:
+func _on_surface_bounced(surface, player, _normal, _contact) -> void:
+	# WK-132: resting-contact jitter is not a bounce. surface_bounced fires EVERY physics tick while a goat rests on
+	# a surface: Singularity pinned all four goats to the core bumper (~100 events/s at 38-95 px/s exit speed) and a
+	# Rocketball court logged 2427 events in 30 s, 91 % under 250 px/s (median 6). Real bounces (Grassy Expanse,
+	# 107 sampled) leave at >= 783 px/s. A slow contact sounds only as the ONSET of a contact (a landing): the
+	# same goat must have been contact-free for BOUNCE_ONSET_GAP s; continuous slow contact stays silent.
+	if player != null and is_instance_valid(player) and "velocity" in player:
+		var pid: int = player.get_instance_id()
+		var tnow: float = Time.get_ticks_msec() / 1000.0
+		var last_c: float = float(_contact_last_t.get(pid, -10.0))
+		_contact_last_t[pid] = tnow
+		if (player.velocity as Vector2).length() < BOUNCE_SOUND_MIN_SPEED and tnow - last_c < BOUNCE_ONSET_GAP:
+			bounce_micro_skipped += 1
+			return
 	# per-tier pitch: taller-tier surfaces read lower/bigger, small tiers ping higher (spec §2 nice-to-have)
 	var pitch := 1.0
 	if surface != null and is_instance_valid(surface):
@@ -336,7 +448,7 @@ func _on_hazard_whoosh(_hazard, pos, _speed) -> void:
 	var sp: Vector2 = vp.get_canvas_transform() * (pos as Vector2)
 	if not vp.get_visible_rect().grow(120.0).has_point(sp):
 		return
-	play_sfx("death_whoosh", {"volume_db": -15.0, "pitch": 0.62, "pitch_var": 0.05})
+	play_sfx("death_whoosh", {"volume_db": -15.0, "pitch": 0.62, "pitch_var": 0.05, "tier": TIER_FILLER})   # WK-132 ambience
 
 func _on_super_boosted(_player) -> void:
 	play_sfx("super_fire", {"volume_db": -2.0, "pitch_var": 0.08})
@@ -369,6 +481,7 @@ func _on_combat_started() -> void:
 	play_sfx("go", {"volume_db": 0.0})
 
 func _on_match_started() -> void:
+	_contact_last_t.clear()
 	play_music(MUSIC_GAMEPLAY[randi() % MUSIC_GAMEPLAY.size()], true, 0.0)
 
 func _on_match_won(_widx) -> void:
@@ -452,7 +565,8 @@ func _on_drop_tile_hit(_tile, broken) -> void:
 
 ## WK-53 bleat / taunt (EventBus.bleated). Each hero has its own goat; a ghost plays the ghost variant +3 st.
 ## Rate limit per player (same numbers as the ghost spec: one per ghost_bleat_min_interval, <= ghost_bleat_max_per_s
-## in any second) + a global cap of BLEAT_MAX_VOICES live bleats; bleats are low priority (never steal a voice).
+## in any second) + a global cap of BLEAT_MAX_VOICES live bleats; bleats are PRIORITY tier (WK-132: they
+## steal filler / normal voices, never another priority sound unless the pool is all priority).
 ## Wall-clock based, so it also holds on the ScoreScreen / while paused.
 func _on_bleated(player_idx, ghost) -> void:
 	bleats_seen += 1
@@ -473,7 +587,7 @@ func _on_bleated(player_idx, ghost) -> void:
 	var pitch: float = float(v["pitch"]) * (BLEAT_GHOST_PITCH if is_ghost else 1.0)
 	var db: float = (BLEAT_GHOST_DB if is_ghost else BLEAT_DB) + float(v["db"])
 	var before := sfx_fired
-	play_sfx(key, {"pitch": pitch, "pitch_var": BLEAT_PITCH_VAR, "volume_db": db, "low_priority": true, "tag": "bleat"})
+	play_sfx(key, {"pitch": pitch, "pitch_var": BLEAT_PITCH_VAR, "volume_db": db, "tag": "bleat"})
 	if sfx_fired == before:
 		return   # pool full (or file missing): dropped, not counted against the rate limit
 	hist.append(now)
