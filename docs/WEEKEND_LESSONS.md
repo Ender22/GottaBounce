@@ -45,6 +45,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   stalls ~900 ms (pollutes timing measurements).
 - Wide fonts: Lilita One is ~24% narrower than the old Segoe UI Black fallback; the ✓ glyph is not in it.
 
+- Master bus clips (peaks +4.8 dB) from stacked bounce SFX + super blast — pre-existing; needs a master limiter
+  (sound-designer WK-105 report).
+- Raw last-touch goal credit makes ~50-75% of sports goals OWN GOALs (defenders deflect shots) — use a deflection
+  rule crediting the shooter.
+
 ## Owner preferences learned this run
 - Wants zero involvement during the run but does check in: UI changes landed well; gameplay feel is the concern.
 - Normal flight must be good enough to manoeuvre; super boost is an ATTACK (ruling 2026-11-14, WK-95).
