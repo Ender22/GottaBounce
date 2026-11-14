@@ -1138,7 +1138,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   B returns one level; pad and keyboard glyph variants screenshotted.
 - Status: open
 
-### [ ] WK-34 [P1][M] Toybox panel kit A: Pause, in-match Options, ScoreScreen
+### [x] WK-34 [P1][M] Toybox panel kit A: Pause, in-match Options, ScoreScreen — 8051d4f
 - Sources: R-11, R-22 (pause BACK overlaps P1 card, v0.1 overlaps P4)
 - Area: menus/art · Owner: ui-ux-designer · Deps: WK-17
 - Accept (rendered): the three screens use the cream/chocolate frame + header ribbon + shell buttons; no dark-navy plate;
