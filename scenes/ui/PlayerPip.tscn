@@ -1,0 +1,36 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/PlayerPip.gd" id="1_pip"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+
+[node name="PlayerPip" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_pip")
+
+[node name="Pointer" type="Polygon2D" parent="."]
+color = Color(0.231373, 0.141176, 0.105882, 1)
+polygon = PackedVector2Array(-12, -14, 12, -14, 0, 4)
+
+[node name="Tab" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 0
+offset_left = -29.0
+offset_top = -54.0
+offset_right = 29.0
+offset_bottom = -12.0
+mouse_filter = 2
+theme_type_variation = &"PlayerPip"
+
+[node name="Label" type="Label" parent="Tab"]
+layout_mode = 2
+theme_type_variation = &"PlayerPipLabel"
+text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Fill" type="Polygon2D" parent="."]
+color = Color(1, 1, 1, 1)
+polygon = PackedVector2Array(-7, -17, 7, -17, 0, -3)

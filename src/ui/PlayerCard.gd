@@ -20,9 +20,11 @@ var _was_locked := false
 
 var _pu_id := ""
 
-func setup(idx: int, color: Color, skin: String) -> void:
+## `label` (WK-10): the identity text, "P3" (lobby label) for a human or "CPU" for a bot. "" = legacy
+## slot number (idx + 1) for any caller that does not know the roster (set_label can update it later).
+func setup(idx: int, color: Color, skin: String, label: String = "") -> void:
 	_color = color
-	_name_label.text = "P%d" % (idx + 1)
+	_name_label.text = label if label != "" else "P%d" % (idx + 1)
 	# card body: player color knocked toward white so the vivid pips/fuel pop against it
 	var card_sb: StyleBoxFlat = get_theme_stylebox("panel").duplicate()
 	var pastel := color.lerp(Color.WHITE, 0.58)
@@ -33,6 +35,11 @@ func setup(idx: int, color: Color, skin: String) -> void:
 	if ResourceLoader.exists(head_path):
 		_head.texture = load(head_path)
 	_fuel_fill.self_modulate = color
+
+## WK-10: identity text on the card ("P3" / "CPU"), set by the HUD from PartyMatch.player_tags().
+func set_label(text: String) -> void:
+	if text != "":
+		_name_label.text = text
 
 ## Fuel gauge, mapped 0..1 (GDD §10 glanceable). Flashes bright when a full tank is banked —
 ## the super-boost-ready tell. `locked` = Unlimited Boost: the gauge glows solid (spec 3.2).

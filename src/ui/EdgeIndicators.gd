@@ -51,7 +51,10 @@ func _draw() -> void:
 			dir = sp - vp * 0.5
 		if dir.length() < 0.001:
 			dir = Vector2.RIGHT
+		# WK-08: the goat's identity colour, read live from the runner (follows the skin actually worn)
 		var col: Color = _colors[i] if i < _colors.size() else Color.WHITE
+		if _match.has_method("player_color"):
+			col = _match.player_color(i)
 		_draw_chevron(edge, dir.normalized(), col)
 
 ## A rounded, glossy arrowhead pointing along `dir`, filled `col` with a thick chocolate outline.

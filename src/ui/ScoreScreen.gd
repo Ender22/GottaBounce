@@ -25,7 +25,8 @@ const CHOCO := Color(0.231373, 0.141176, 0.105882)
 
 var _tw: Tween
 
-## rows: [{pn:int, color:Color, skin:String, score:int, delta:int}], target = kills_to_win.
+## rows: [{pn:int, tag:String, color:Color, skin:String, score:int, delta:int}], target = kills_to_win.
+## pn = 1-based player index (row identity); tag = the displayed identity ("P3" / "CPU", WK-10).
 func present(rows: Array, target: int) -> void:
 	visible = true
 	_root.modulate.a = 1.0
@@ -84,7 +85,7 @@ func _build_row(r: Dictionary, target: int) -> Dictionary:
 	if ResourceLoader.exists(head_path):
 		head.texture = load(head_path)
 	var name_l: Label = row.get_node("PName")
-	name_l.text = "P%d" % int(r["pn"])
+	name_l.text = str(r.get("tag", "P%d" % int(r["pn"])))   # WK-10: "P3" (lobby label) / "CPU"
 	name_l.add_theme_color_override("font_color", color)
 	var fill: Panel = row.get_node("BarSlot/BarFill")
 	var fill_sb: StyleBoxFlat = StyleBoxFlat.new()

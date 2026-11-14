@@ -19,10 +19,6 @@ const BAR_PAD := 3.0
 const ROW_STAGGER := 0.12
 const FILL_TIME := 0.5
 const RAYS_PATH := "res://assets/ui/victory_rays.png"
-const SKIN_NAMES := {
-	"pink": "POGO", "blue": "BUTCH", "green": "ZIGGY",
-	"yellow": "PUFF", "purple": "VEX", "orange": "BILLY",
-}
 const CONFETTI_COLORS: Array[Color] = [
 	Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f"),
 	Color("#b06bff"), Color("#ffd23f"),
@@ -61,7 +57,9 @@ func _ready() -> void:
 			if _armed:
 				_activate(idx))
 
-## winner: {skin:String, pn:int, human:bool}. rows: [{pn, color:Color, skin, score:int, human:bool}]
+## winner: {skin:String, pn:int, label:int, tag:String, color:Color, human:bool}.
+## rows: [{pn, tag:String, label:int, color:Color, skin, score:int, human:bool}]. pn = 1-based player index
+## (row identity / winner match); tag/label = displayed identity (WK-10: "P3" lobby label / "CPU").
 ## (any order — sorted desc here). target: kills-to-win for the race bars.
 func present(winner: Dictionary, rows: Array, target: int) -> void:
 	visible = true
@@ -82,8 +80,10 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 		var tex: Texture2D = load(tex_path)
 		_bust.texture = tex
 		_shadow.texture = tex
-	var wname := str(SKIN_NAMES.get(skin, skin.to_upper()))
-	var sub := ("PLAYER %d" % int(winner.get("pn", 1))) if bool(winner.get("human", true)) else "CPU"
+	var wname := PlayerIdentity.name_for_skin(skin)
+	# WK-10: the human's lobby label ("PLAYER 3" even with an empty P2 slot), never the raw slot index
+	var wlabel: int = int(winner.get("label", winner.get("pn", 1)))
+	var sub := ("PLAYER %d" % wlabel) if bool(winner.get("human", true)) else "CPU"
 	_name_l.text = "%s — %s" % [wname, sub]
 	_name_l.add_theme_color_override("font_color", winner.get("color", Color.WHITE))
 	if ResourceLoader.exists(RAYS_PATH):
@@ -188,8 +188,8 @@ func _build_row(r: Dictionary, target: int, is_winner: bool) -> Dictionary:
 	if ResourceLoader.exists(head_path):
 		head.texture = load(head_path)
 	var name_l: Label = row.get_node("RowBox/PName")
-	var who := str(SKIN_NAMES.get(str(r["skin"]), str(r["skin"]).to_upper()))
-	name_l.text = "%s  P%d" % [who, int(r["pn"])]
+	var who := PlayerIdentity.name_for_skin(str(r["skin"]))
+	name_l.text = "%s  %s" % [who, str(r.get("tag", "P%d" % int(r["pn"])))]   # WK-10: "P3" / "CPU"
 	name_l.add_theme_color_override("font_color", color)
 	var fill: Panel = row.get_node("RowBox/BarSlot/BarFill")
 	var fill_sb := StyleBoxFlat.new()

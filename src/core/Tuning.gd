@@ -180,6 +180,14 @@ var lobby_hold_ring_show: float = 0.12     # s of hold before the ring appears (
 var lobby_entry_grace: float = 0.30        # s after the lobby appears before input counts (= shell transition lock)
 var lobby_random_spin: float = 0.6         # s the Y/R random portrait spin runs before landing
 
+# --- Player identity pips (WK-10 · CC-8.3 · audit C-09/R-05/R-17) — presentation timing, not player feel ---
+var pip_idle_alpha: float = 0.70        # a human's P# pip alpha once settled in combat (never 0 — never gone)
+var pip_full_hold: float = 1.0          # s a human's pip stays at FULL alpha after a (re)spawn / pop-in
+var pip_intro_linger: float = 1.0       # s into COMBAT the intro read holds full alpha (ex NAME_TAG_LINGER)
+var pip_fade: float = 0.4               # s alpha fade: human full -> idle, CPU intro tag -> gone (ex NAME_TAG_FADE)
+var pip_head_clearance: float = 1.25    # pip tip sits this many body radii above the goat's centre (world space)
+var pip_screen_gap: float = 6.0         # extra screen px between the head and the pip tip
+
 # --- v1 kill-race match / stage loop (docs/specs/v1_party_killrace.md §7) ---
 var intro_pop_stagger: float = 0.20    # s between STAGE_INTRO spawn pop-ins (pacing6: 0.35->0.20, 4 pops in 0.8s)
 var countdown_beat: float = 0.35       # s per 3/2/1 countdown beat (LEAVE — the 3-2-1 is iconic/tight)

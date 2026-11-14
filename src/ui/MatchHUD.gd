@@ -41,6 +41,11 @@ func setup(players: Array, colors: Array, skins: Array) -> void:
 			var skin: String = str(skins[i]) if i < skins.size() else "pink"
 			_cards[i].setup(i, col, skin)
 
+## WK-10 (CC-8.3): per-card identity text from PartyMatch.player_tags(): "P#" (lobby label) / "CPU".
+func set_labels(labels: Array) -> void:
+	for i in range(mini(labels.size(), _cards.size())):
+		_cards[i].set_label(str(labels[i]))
+
 func _process(_delta: float) -> void:
 	# fuel gauges + held-powerup icons track the players live (v0 spec §3 / v1_powerups §2)
 	for i in range(mini(_players.size(), _cards.size())):

@@ -244,11 +244,12 @@ func match_winner(runner) -> int:
 
 func stage_end_banner(runner) -> Dictionary:
 	if runner._stage_winner >= 0:
-		return {"text": "P%d SURVIVES!" % (runner._stage_winner + 1),
-			"color": runner.PLAYER_COLORS[runner._stage_winner]}
+		# WK-08/10: the survivor's lobby label ("P3") or goat name for a CPU, in their goat colour
+		return {"text": "%s SURVIVES!" % runner.player_name(runner._stage_winner),
+			"color": runner.player_color(runner._stage_winner)}
 	return {"text": "NOBODY SURVIVES", "color": Color.WHITE}
 
 func match_end_banner(runner) -> Dictionary:
 	var widx: int = runner._match_winner
-	return {"text": "P%d WINS THE MATCH!" % (widx + 1),
-		"color": runner.PLAYER_COLORS[widx], "subline": runner._scoreline()}
+	return {"text": "%s WINS THE MATCH!" % runner.player_name(widx),
+		"color": runner.player_color(widx), "subline": runner._scoreline()}

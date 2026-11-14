@@ -44,13 +44,11 @@ const LEVEL_POOL: Array[String] = [
 	"res://levels/singularity.json",
 	"res://levels/twin_moons.json",
 ]
-# Player color palette, indexed by player (presentation only; skin IDENTITY comes from the config's
-# skin_ids — v1_frontend_shell §2.2). P1 pink / bots blue/green/yellow reproduce today; 4 extra hues
-# extend the palette to the 8-player invariant ceiling so a larger config never indexes out of range.
+# FALLBACK slot palette ONLY (WK-08): identity colour is player_color(i) = the colour of the goat skin
+# players[i] wears (PlayerIdentity.SKIN_COLORS). This palette is read only for an unknown skin id.
 const PLAYER_COLORS: Array[Color] = [
 	Color("#ff5fa8"), Color("#4aa8ff"), Color("#54c94a"), Color("#ffc93f"),
 	Color("#b06bff"), Color("#ff8a3f"), Color("#3fd8d0"), Color("#f0f0f0")]
-const NAME_TAG_SCENE := preload("res://scenes/ui/NameTag.tscn")
 # GameMode registry (v1_frontend_shell §3.2): mode_id -> mode script. PartyMatch is a regular (non-
 # autoload) script, so preloading the class_name mode scripts here is safe.
 const MODE_REGISTRY := {
@@ -106,8 +104,6 @@ const COMBAT_ACTIVE_WINDOW := 1.2  # s combat-active memory (kept for _mark_comb
 const CAM_MARGIN := Vector2(420.0, 340.0)  # breathing room added around the framed extremes
 const MATCH_END_ZOOM := 1.1    # winner punch-zoom (FEEL §7)
 const BOUNCE_HOLD := 0.4       # "BOUNCE!" banner hold (spec §1)
-const NAME_TAG_LINGER := 1.0   # name tags fade this long into COMBAT
-const NAME_TAG_FADE := 0.4
 const SD_REVIVE_LOCK := 0.8    # "SUDDEN DEATH!" revive banner hold, inputs locked (spec §5)
 const PROMPT_GUARD := 1.0      # MATCH_END input guard before REMATCH/QUIT arms (spec §1)
 const GOLD := Color("#ffd23f")
@@ -177,7 +173,7 @@ var _pending_match_point: Array = []
 var _tiebreaker_next := false
 var _match_winner := -1
 var _prompt_shown := false
-var _name_tags: Array = []
+var _pips                        # PlayerPips overlay (WK-10: persistent P# pips over humans, CPU at intro)
 
 func _ready() -> void:
 	# resolve the config + mode FIRST (v1_frontend_shell §2/§3): a fresh/default GameConfig reproduces
@@ -234,7 +230,9 @@ func _ready() -> void:
 	# corner HUD cards visible immediately (spec §1 BOOT); HUD variant comes from the mode
 	_hud = _mode.hud_scene().instantiate()
 	add_child(_hud)
-	_hud.setup(players, PLAYER_COLORS, _skins())
+	_hud.setup(players, player_colors(), _skins())
+	if _hud.has_method("set_labels"):
+		_hud.set_labels(player_tags())   # WK-10: HUD cards read the lobby P# label / "CPU", never the raw slot
 	# Sports/Trials match-end: the HUD owns a real focusable REMATCH/SETUP/QUIT row (VictoryScreen bar).
 	# Connect ONCE at HUD creation so a rematch (same HUD instance) never stacks duplicate handlers.
 	if _hud.has_signal("match_button_pressed"):
@@ -268,7 +266,16 @@ func _ready() -> void:
 	add_child(edge_cl)
 	_edge_indicators = load("res://src/ui/EdgeIndicators.gd").new()
 	edge_cl.add_child(_edge_indicators)
-	_edge_indicators.setup(self, PLAYER_COLORS)
+	_edge_indicators.setup(self, player_colors())
+
+	# WK-10 identity pips (CC-8.3): screen-space, constant size, own CanvasLayer just above the world
+	# and the chevrons, below the HUD (10) / intro card (11). Polls this runner; no per-frame calls here.
+	var pip_cl := CanvasLayer.new()
+	pip_cl.layer = 1
+	add_child(pip_cl)
+	_pips = load("res://src/ui/PlayerPips.gd").new()
+	pip_cl.add_child(_pips)
+	_pips.setup(self)
 
 	_start_match()
 
@@ -473,7 +480,6 @@ func _begin_stage() -> void:
 	if _camera != null:
 		_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
 	_hud.hide_center()
-	_clear_name_tags()
 	for i in range(players.size()):
 		var p = players[i]
 		_stage_deltas.append(0)
@@ -515,11 +521,8 @@ func _pop_in(i: int) -> void:
 	p.visible = true
 	p.play_pop_in()
 	_spawn_star_burst(p.global_position)
-	var tag := NAME_TAG_SCENE.instantiate()
-	p.add_child(tag)
-	tag.position = Vector2(0, -112)
-	tag.setup("P%d" % (i + 1), PLAYER_COLORS[i])
-	_name_tags.append(tag)
+	# the identity tag (human "P#" pip / bot "CPU") is the PlayerPips overlay: it pops the moment the
+	# goat becomes visible here, so the pop-in beat is unchanged (WK-10 replaces the 1s NameTag).
 
 func _start_countdown() -> void:
 	state = "COUNTDOWN"
@@ -528,8 +531,8 @@ func _start_countdown() -> void:
 	if _pending_match_point.size() > 0:   # announced at the next stage's countdown (spec §4)
 		var names: Array[String] = []
 		for i in _pending_match_point:
-			names.append("P%d" % (int(i) + 1))
-		var c: Color = PLAYER_COLORS[int(_pending_match_point[0])] if _pending_match_point.size() == 1 else Color.WHITE
+			names.append(player_name(int(i)))
+		var c: Color = player_color(int(_pending_match_point[0])) if _pending_match_point.size() == 1 else Color.WHITE
 		_hud.show_top("MATCH POINT — " + " & ".join(names), c, 1.2)
 		_pending_match_point.clear()
 
@@ -570,7 +573,7 @@ func _bounce_go() -> void:
 		_legend.on_combat_started()   # legend lingers 4s into combat, then fades (brief §2)
 	EventBus.combat_started.emit()   # audio: "BOUNCE!" starting gun
 	_mode.on_combat_start(self)      # DROPSHOT serves the held ball toward the last scorer on GO
-	get_tree().create_timer(NAME_TAG_LINGER).timeout.connect(_fade_name_tags)
+	# (identity pips settle to their in-combat alpha on their own off combat_start_msec — PlayerPips)
 
 func _tick_combat(delta: float, rdelta: float) -> void:
 	round_clock += delta   # stat only; gates nothing
@@ -691,7 +694,7 @@ func _on_killed(victim, cause, attacker) -> void:
 	if ai >= 0 and ai != idx and not _first_blood_fired \
 			and not (_config != null and SportsMode.is_sports_mode(_config.mode_id)):
 		_first_blood_fired = true
-		_hud.show_top("FIRST BLOOD!", PLAYER_COLORS[ai], 1.0)
+		_hud.show_top("FIRST BLOOD!", player_color(ai), 1.0)
 		EventBus.first_blood.emit(ai)   # audio: announcer
 	# kill-race feedback: pips track cumulative kills and pop the INSTANT a kill is credited (spec §4)
 	_hud.animate_scores(scores.duplicate())
@@ -892,7 +895,8 @@ func _enter_scoreboard() -> void:
 			d = 0   # SD survivor display floor (parity with _deltas_line)
 		rows.append({
 			"pn": i + 1,
-			"color": PLAYER_COLORS[i % PLAYER_COLORS.size()],
+			"tag": player_tag(i),      # WK-10: "P3" (lobby label) / "CPU"
+			"color": player_color(i),  # WK-08: the goat's colour
 			"skin": (players[i].skin if is_instance_valid(players[i]) else "pink"),
 			"score": int(scores[i]),
 			"delta": d,
@@ -943,15 +947,19 @@ func _enter_match_end(widx: int) -> void:
 		for i in range(players.size()):
 			rows.append({
 				"pn": i + 1,
-				"color": PLAYER_COLORS[i % PLAYER_COLORS.size()],
+				"tag": player_tag(i),
+				"label": player_label(i),
+				"color": player_color(i),
 				"skin": (players[i].skin if is_instance_valid(players[i]) else "pink"),
 				"score": int(scores[i]),
 				"human": is_instance_valid(players[i]) and players[i].is_in_group("human"),
 			})
 		var winner := {
 			"pn": widx + 1,
+			"tag": player_tag(widx),
+			"label": player_label(widx),
 			"skin": (players[widx].skin if is_instance_valid(players[widx]) else "pink"),
-			"color": PLAYER_COLORS[widx % PLAYER_COLORS.size()],
+			"color": player_color(widx),
 			"human": is_instance_valid(players[widx]) and players[widx].is_in_group("human"),
 		}
 		var tgt := match_target_kills
@@ -1075,13 +1083,13 @@ func _deltas_line() -> String:
 		if _revived_this_stage and i == _stage_winner and d < 0:
 			d = 0
 		if d != 0:
-			parts.append("P%d %+d" % [i + 1, d])
+			parts.append("%s %+d" % [player_name(i), d])
 	return "  ·  ".join(parts)
 
 func _scoreline() -> String:
 	var parts: Array[String] = []
 	for i in range(scores.size()):
-		parts.append("P%d %d" % [i + 1, int(scores[i])])
+		parts.append("%s %d" % [player_name(i), int(scores[i])])
 	return "   ·   ".join(parts)
 
 # ------------------------------------------------------------------- helpers
@@ -1108,17 +1116,60 @@ func _not_eliminated_players() -> Array:
 func _not_eliminated_count() -> int:
 	return _not_eliminated_players().size()
 
-func _clear_name_tags() -> void:
-	for t in _name_tags:
-		if is_instance_valid(t):
-			t.queue_free()
-	_name_tags.clear()
+# ------------------------------------------------------------------- player identity (WK-08 / WK-10)
 
-func _fade_name_tags() -> void:
-	for t in _name_tags:
-		if is_instance_valid(t):
-			t.fade_out(NAME_TAG_FADE)
-	_name_tags.clear()
+## WK-08 (CC-8.3): THE identity colour of player i = the colour of the goat skin they actually wear
+## (PlayerIdentity.SKIN_COLORS). Sports team colourway skins therefore colour their wearer automatically.
+## Every identity surface reads this: HUD card, pip, chevron, banners, ScoreScreen, VictoryScreen.
+func player_color(i: int) -> Color:
+	if i >= 0 and i < players.size() and is_instance_valid(players[i]):
+		var skin: String = str(players[i].skin)
+		if PlayerIdentity.has_skin(skin):
+			return PlayerIdentity.color_for_skin(skin)
+	if i < 0:
+		return Color.WHITE
+	return PLAYER_COLORS[i % PLAYER_COLORS.size()]
+
+## player_color for every current player, in player order (HUD / chevron setup).
+func player_colors() -> Array:
+	var out: Array = []
+	for i in range(players.size()):
+		out.append(player_color(i))
+	return out
+
+func is_human_player(i: int) -> bool:
+	return i >= 0 and i < players.size() and is_instance_valid(players[i]) and players[i].is_in_group("human")
+
+## WK-10: the lobby P-number of player i (MatchConfig.human_labels: "P3" stays P3 even if P2's slot was
+## empty), or 0 for a bot. Humans-first invariant: human index h = count of humans before i.
+func player_label(i: int) -> int:
+	if not is_human_player(i):
+		return 0
+	var h := 0
+	for k in range(i):
+		if is_human_player(k):
+			h += 1
+	return _config.label_for(h) if _config != null else h + 1
+
+## WK-10 identity tag: "P3" for a human (lobby label), "CPU" for a bot (CC-8.3: never "P3" for a bot).
+func player_tag(i: int) -> String:
+	var n: int = player_label(i)
+	return ("P%d" % n) if n > 0 else "CPU"
+
+func player_tags() -> Array:
+	var out: Array = []
+	for i in range(players.size()):
+		out.append(player_tag(i))
+	return out
+
+## Name used in announcer text (banners, MATCH POINT, delta/score lines): humans "P3"; a bot is named by
+## its goat ("BILLY") so two CPUs in one line stay distinguishable. Colour = player_color(i).
+func player_name(i: int) -> String:
+	if is_human_player(i):
+		return player_tag(i)
+	if i >= 0 and i < players.size() and is_instance_valid(players[i]):
+		return PlayerIdentity.name_for_skin(str(players[i].skin))
+	return "CPU"
 
 ## Small white/gold star pop at each intro pop-in (spec §1).
 func _spawn_star_burst(pos: Vector2) -> void:

@@ -101,6 +101,12 @@ func setup(players: Array, colors: Array, skins: Array) -> void:
 		card.setup(i, col, skin)
 		_cards.append(card)
 
+## WK-10 (CC-8.3): per-card identity text from PartyMatch.player_tags(): "P#" (lobby label) / "CPU".
+func set_labels(labels: Array) -> void:
+	for i in range(mini(labels.size(), _cards.size())):
+		if is_instance_valid(_cards[i]) and _cards[i].has_method("set_label"):
+			_cards[i].set_label(str(labels[i]))
+
 ## Anchor a card to corner 0=top-left / 1=top-right / 2=bottom-left / 3=bottom-right (matches MatchHUD).
 func _place_corner(card: Control, corner: int) -> void:
 	var right: bool = corner == 1 or corner == 3
