@@ -33,7 +33,7 @@ design top move #1), then the RECOVER verb (GAME_ESSENCE verb 4: D-18, D-05) and
    plus one Trials and one Sports launch. Findings -> producer re-rank BEFORE item 1 is pulled. Recurs: next one due
    after item 6 below (WK-CD2), then every ~6 items.
 1. WK-24 [P1][S] Hits carry the attacker's colour (burst, streak, last-touch ring) — gameplay-programmer
-2. WK-22 [P1][S] KO blast sprite strip — art pipeline (art-director brief). Runs in PARALLEL with item 1 (no game slot until the test frame)
+2. ~~WK-22~~ done 5a999db — [P1][S] KO blast sprite strip — art pipeline (art-director brief). Runs in PARALLEL with item 1 (no game slot until the test frame)
 3. WK-23 [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer (deps WK-22)
 4. WK-20a [P1][S] Measure the +25 % knockback side effects + game-designer ruling (no code) — qa-playtester + game-designer
 5. WK-82 [P1][S] Lobby hold-B exit only from a B that changed nothing (one kid un-readying must not eject the room) — gameplay-programmer
@@ -324,7 +324,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept: median death->next-BOUNCE over 20 non-dramatic stages <= 5.0 s (was ~6.9 s); a lead-change stage holds 3.4 s (eval timestamps + screenshots).
 - Status: open
 
-### [ ] WK-22 [P1][S] KO blast sprite strip (art)
+### [x] WK-22 [P1][S] KO blast sprite strip (art) — 5a999db
 - Sources: D-01 (art half)
 - Area: art · Owner: art pipeline (art-director brief) · Deps: none
 - Accept: `assets/fx/ko_blast_*.png` strip, transparent, toybox style, approved by art-director on a rendered test frame.
