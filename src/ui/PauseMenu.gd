@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## PauseMenu overlay (frontend_ux_spec §2.6). Instanced by PartyMatch on the `pause` action (pad Start /
 ## keyboard Esc, P) during a live match; freezes the sim (get_tree().paused). RESUME / RESTART / OPTIONS /
-## QUIT TO MENU. Processes while paused (PROCESS_MODE_ALWAYS). Options is hosted in-place (shell-less)
+## CHANGE SETUP (WK-07) / QUIT TO MENU. Processes while paused (PROCESS_MODE_ALWAYS). Options is hosted in-place (shell-less)
 ## and returns here on back.
 ## Couch rules (COUCH_CONVENTIONS CC-1.5 / CC-7.3): the device that pressed pause OWNS the menu — other
 ## devices' key/pad events are dropped in _input before focus nav sees them. A confirms the focused item;
@@ -15,6 +15,7 @@ const OPTIONS := preload("res://scenes/ui/Options.tscn")
 @onready var _resume: Button = $Menu/Panel/VBox/ResumeBtn
 @onready var _restart: Button = $Menu/Panel/VBox/RestartBtn
 @onready var _options_btn: Button = $Menu/Panel/VBox/OptionsBtn
+@onready var _setup_btn: Button = $Menu/Panel/VBox/SetupBtn
 @onready var _quit: Button = $Menu/Panel/VBox/QuitBtn
 
 var match_ref
@@ -51,9 +52,9 @@ func _input(e: InputEvent) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	for b in [_resume, _restart, _options_btn, _quit]:
+	for b in [_resume, _restart, _options_btn, _setup_btn, _quit]:
 		_reg(b)
-	_wire_col([_resume, _restart, _options_btn, _quit])
+	_wire_col([_resume, _restart, _options_btn, _setup_btn, _quit])
 	# panel drop-pop (same juice as the HUD banners)
 	_panel.pivot_offset = _panel.size * 0.5
 	_panel.scale = Vector2(0.85, 0.85)
@@ -92,6 +93,9 @@ func _on_pressed(b: Button) -> void:
 			_do_restart()
 	elif b == _options_btn:
 		_open_options()
+	elif b == _setup_btn:
+		if _confirmed(b):
+			_do_change_setup()
 	elif b == _quit:
 		if _confirmed(b):
 			_do_quit()
@@ -130,6 +134,13 @@ func _do_resume() -> void:
 func _do_restart() -> void:
 	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+## WK-07 / CC-4.7: CHANGE SETUP from Pause lands in the Herd Lobby with the same players, devices and goats
+## (nobody READY) — ShellRoot consumes resume_setup exactly like the Victory screen's CHANGE SETUP.
+func _do_change_setup() -> void:
+	get_tree().paused = false
+	GameConfig.resume_setup = true
+	get_tree().change_scene_to_file("res://scenes/ui/ShellRoot.tscn")
 
 func _do_quit() -> void:
 	get_tree().paused = false

@@ -18,20 +18,15 @@ const MEDAL := preload("res://scenes/ui/RosterMedallion.tscn")
 const PORTRAIT := "res://assets/ui/portraits/portrait_%s.png"
 const SPRITE := "res://assets/characters/bouncer_%s_idle.png"
 
-## The six goats (moved here from the deleted CharacterSelect). Order = roster ribbon order.
+## The six goats, in roster-ribbon order. Colour + display name come from PlayerIdentity (WK-08: the ONE
+## goat identity table) via _hero(); only lobby-specific data (portrait id, blurb) lives here.
 const HEROES := [
-	{"id": "pogo", "name": "POGO", "skin": "pink", "color": Color("#ff5fa8"),
-		"blurb": "Can't stop boinging. Won't stop boinging."},
-	{"id": "butch", "name": "BUTCH", "skin": "blue", "color": Color("#4aa8ff"),
-		"blurb": "Come at me. I've been stretching."},
-	{"id": "ziggy", "name": "ZIGGY", "skin": "green", "color": Color("#54c94a"),
-		"blurb": "Watch THIS recovery."},
-	{"id": "puff", "name": "PUFF", "skin": "yellow", "color": Color("#ffc93f"),
-		"blurb": "WHEEEE— wait which way?"},
-	{"id": "vex", "name": "VEX", "skin": "purple", "color": Color("#a15fff"),
-		"blurb": "You may bow now."},
-	{"id": "billy", "name": "BILLY", "skin": "orange", "color": Color("#ff7a2d"),
-		"blurb": "Back in MY day the mountain was TALLER."},
+	{"id": "pogo", "skin": "pink", "blurb": "Can't stop boinging. Won't stop boinging."},
+	{"id": "butch", "skin": "blue", "blurb": "Come at me. I've been stretching."},
+	{"id": "ziggy", "skin": "green", "blurb": "Watch THIS recovery."},
+	{"id": "puff", "skin": "yellow", "blurb": "WHEEEE— wait which way?"},
+	{"id": "vex", "skin": "purple", "blurb": "You may bow now."},
+	{"id": "billy", "skin": "orange", "blurb": "Back in MY day the mountain was TALLER."},
 ]
 const MAX_SLOTS := 4
 const S_EMPTY := "EMPTY"
@@ -62,11 +57,13 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _rules_row: Control = $RulesRow
 @onready var _rules_text: Label = $RulesRow/RulesBar/Row/RulesText
 @onready var _view_glyph: Control = $RulesRow/RulesBar/Row/ViewGlyph
-@onready var _rules_modal: Control = $RulesModal
-@onready var _rules_card: Control = $RulesModal/Card
-@onready var _rules_title: Label = $RulesModal/Card/VBox/Title
-@onready var _rules_rows: Array = [$RulesModal/Card/VBox/Row1, $RulesModal/Card/VBox/Row2, $RulesModal/Card/VBox/Row3]
-@onready var _rules_done_glyph: Control = $RulesModal/Card/VBox/Hint/DoneGlyph
+@onready var _edit_chip: Label = $RulesRow/RulesBar/Row/EditChip
+@onready var _go_slash: Label = $ReadyBanner/Band/Row/GoSlash
+@onready var _go_wrap: Control = $ReadyBanner/Band/Row/GoWrap
+@onready var _go_wrap2: Control = $ReadyBanner/Band/Row/GoWrap2
+@onready var _go_glyph2: Control = $ReadyBanner/Band/Row/GoWrap2/GoGlyph2
+@onready var _f_go_slash: Label = $Footer/HintRow/GGo/Slash
+@onready var _f_go2: Control = $Footer/HintRow/GGo/Glyph2
 @onready var _unlock_banner: Label = $UnlockBanner
 @onready var _f_join: Control = $Footer/HintRow/GJoin/Glyph
 @onready var _f_back: Control = $Footer/HintRow/GBack/Glyph
@@ -103,9 +100,13 @@ var _breathe_tw: Tween
 var _enter_msec := 0
 var _launching := false
 var _leaving := false
-var _rules_owner := ""
+var _rules_owner := ""        # device key holding the RULES panel ("" = closed). Eval-readable.
+var _rules_slot := -1
 var _rules_row_i := 0
 var _rules_defs: Array = []
+var _rules_snapshot: Dictionary = {}
+var _rules_key := ""          # GameConfig.mode_rules key for this mode ("" = TRIALS, no rules)
+var _edit_tw: Tween
 
 # ================================================================== lifecycle
 func _ready() -> void:
@@ -122,25 +123,20 @@ func _ready() -> void:
 	for g in range(HEROES.size()):
 		var m: Control = MEDAL.instantiate()
 		_roster.add_child(m)
-		var h: Dictionary = HEROES[g]
-		(m as Object).call("setup", g, h["color"], _portrait(g))
+		(m as Object).call("setup", g, _hero(g)["color"], _portrait(g))
 		_medals.append(m)
 	for i in range(MAX_SLOTS):
 		(_slot_views[i] as Object).call("setup_slot", i, _idle_tex(str((HEROES[i] as Dictionary)["skin"])))
 	_build_flair_vals()
 	_pending_flair = Settings.take_pending_flair_unlock()
 	_back_btn.pressed.connect(_exit)
-	InputRouter.last_device_changed.connect(func(_k: String) -> void: _refresh_glyphs())
+	# CC-1.6 (amended): shared glyphs follow the JOINED devices; the last device only matters while nobody
+	# has joined — so this signal never re-skins the chrome mid-lobby (no flicker when 4 people mash).
+	InputRouter.last_device_changed.connect(func(_k: String) -> void:
+		if _joined_count() == 0:
+			_refresh_glyphs())
 	InputRouter.device_lost.connect(_on_device_lost)
-	# CPU / format seeds: lobby memory first, else the match config (CHANGE SETUP keeps them)
-	if GameConfig.lobby_cpus >= 0:
-		_cpu_pref = GameConfig.lobby_cpus
-	elif cfg != null:
-		_cpu_pref = clampi(cfg.bot_count, 0, MatchConfig.MAX_FIGHTERS - 1)
-	if GameConfig.lobby_sports_total > 0:
-		_sports_total = GameConfig.lobby_sports_total
-	elif cfg != null:
-		_sports_total = 4 if (cfg.human_count + cfg.bot_count) >= 4 else 2
+	_load_rules()
 	_apply_mode_chrome()
 	# launched directly (QA: WK-05 "launch the scene directly") — no shell will call setup()/enter()
 	call_deferred("_standalone_boot")
@@ -200,7 +196,7 @@ func _restore_lobby() -> void:
 		if s["state"] == S_EMPTY:
 			(_slot_views[i] as Object).call("show_empty", true, false)
 		else:
-			(_slot_views[i] as Object).call("show_join", str(s["device"]), HEROES[int(s["goat"])], _portrait(int(s["goat"])))
+			(_slot_views[i] as Object).call("show_join", str(s["device"]), _hero(int(s["goat"])), _portrait(int(s["goat"])))
 			(_slot_views[i] as Object).call("set_ready", s["state"] == S_READY, false)
 			_push_flair_view(i)
 			(_slot_views[i] as Object).call("set_row", 0)
@@ -214,8 +210,37 @@ func _persist() -> void:
 	for s in slots:
 		out.append({"state": s["state"], "device": s["device"], "goat": s["goat"], "flair": s["flair"]})
 	GameConfig.lobby = out
-	GameConfig.lobby_cpus = _cpu_pref
-	GameConfig.lobby_sports_total = _sports_total
+	GameConfig.set_rules(_rules_key, _current_rules())
+
+## WK-07 per-mode rule memory: this mode's remembered set (or defaults) -> the live config. A mode never
+## sees another mode's values (Rocketball's 1-bot fill can't leak into Brawl's CPU count).
+func _load_rules() -> void:
+	var cfg: MatchConfig = GameConfig.match_config
+	_rules_key = GameConfig.rules_key(cfg.mode_id) if cfg != null else "brawl"
+	if _rules_key == "" or cfg == null:
+		return
+	var r: Dictionary = GameConfig.rules_for(_rules_key)
+	cfg.bot_difficulty = int(r.get("bot_difficulty", 0))
+	if _mode == "sports":
+		_sports_total = int(r.get("sports_total", 2))
+	else:
+		_cpu_pref = int(r.get("cpus", 3))
+		cfg.kills_to_win = int(r.get("kills_to_win", 10))
+		cfg.lives_per_player = int(r.get("lives_per_player", 1))
+
+func _current_rules() -> Dictionary:
+	var cfg: MatchConfig = GameConfig.match_config
+	if _mode == "sports":
+		return {"sports_total": _sports_total, "bot_difficulty": cfg.bot_difficulty}
+	return {"cpus": _cpu_pref, "bot_difficulty": cfg.bot_difficulty, "kills_to_win": cfg.kills_to_win,
+		"lives_per_player": cfg.lives_per_player}
+
+func _hero(g: int) -> Dictionary:
+	var h: Dictionary = (HEROES[g] as Dictionary).duplicate()
+	var sk := str(h["skin"])
+	h["name"] = PlayerIdentity.name_for_skin(sk)
+	h["color"] = PlayerIdentity.color_for_skin(sk)
+	return h
 
 func _empty_slot() -> Dictionary:
 	return {"state": S_EMPTY, "device": "", "goat": 0, "flair": "", "row": 0}
@@ -275,21 +300,25 @@ func _digital_dir(e: InputEvent, pressed: bool) -> Vector2i:
 func _on_press(key: String, e: InputEvent) -> void:
 	var dir: Vector2i = _digital_dir(e, true)
 	var verb := "" if dir != Vector2i.ZERO else _verb(e)
-	# RULES modal (E.7): only its owner drives it; other devices keep playing their own panels
+	var si := _slot_of(key)
+	# RULES panel (WK-07): only its owner drives it; other devices keep playing their own panels underneath
 	if _rules_owner != "":
 		if key == _rules_owner:
 			if dir != Vector2i.ZERO:
 				_press_dir(key, dir, "dig")
-			elif verb in ["back", "view", "accept", "start"]:
-				_close_rules()
+			elif verb in ["accept", "view", "start"]:
+				_close_rules(false)      # A / View = DONE (keep)
+			elif verb == "back":
+				_close_rules(true)       # B = UNDO (restore the snapshot); never starts the hold-exit
+			elif si >= 0:
+				(_slot_views[si] as Object).call("ping")
 			return
 		if verb == "view":
-			_deny_device(key)
+			_deny_rules_taken(key)
 			return
 	if dir != Vector2i.ZERO:
 		_press_dir(key, dir, "dig")
 		return
-	var si := _slot_of(key)
 	match verb:
 		"accept":
 			if si < 0:
@@ -302,21 +331,32 @@ func _on_press(key: String, e: InputEvent) -> void:
 			elif slots[si]["state"] == S_READY:
 				_try_proceed()
 			else:
-				_soft_tick()
+				_ping(si)
 		"back":
 			_on_back_press(key, si)
 		"random":
 			if si >= 0:
-				_random_pick(si)
-		"cpu_prev":
+				if slots[si]["state"] == S_PICKING and not _spinning[si]:
+					_random_pick(si)
+				else:
+					_ping(si)
+		"cpu_prev", "cpu_next":
 			if si >= 0:
-				_cpu_step(-1)
-		"cpu_next":
-			if si >= 0:
-				_cpu_step(1)
+				if _mode == "brawl":
+					_cpu_step(-1 if verb == "cpu_prev" else 1)
+				else:
+					_ping(si)
 		"view":
 			if si >= 0:
 				_open_rules(key, si)
+		_:
+			if si >= 0:
+				_ping(si)   # a face button / key with no meaning here: "that's me" (WK-81 F3)
+
+## WK-81 F3 "that's me": a joined device's press that did nothing pulses its own panel header + P-badge.
+func _ping(si: int) -> void:
+	if si >= 0:
+		(_slot_views[si] as Object).call("ping")
 
 func _on_release(key: String, e: InputEvent) -> void:
 	if e.is_action_released("menu_back"):
@@ -416,11 +456,12 @@ func _join(key: String, sound: bool) -> void:
 	InputRouter.join(key, si)
 	_clear_device_input(key)
 	var v: Object = _slot_views[si]
-	v.call("show_join", key, HEROES[g], _portrait(g))
+	v.call("show_join", key, _hero(g), _portrait(g))
 	_push_flair_view(si)
 	v.call("set_row", 0)
 	if sound:
 		AudioManager.play_sfx("powerup_pickup", {"pitch": JOIN_PITCH[si], "pitch_var": 0.0, "volume_db": -4.0})
+	InputRouter.rumble(key, 0.4, 0.6, 0.18)   # WK-81 F3: the pad in YOUR hands buzzes — "that panel is mine"
 	_after_change()
 
 func _leave(si: int) -> void:
@@ -437,6 +478,7 @@ func _on_accept(si: int) -> void:
 	var s: Dictionary = slots[si]
 	if s["state"] == S_PICKING:
 		if _spinning[si]:
+			_soft_tick()   # WK-81 F8: never silently eaten
 			return
 		if not _lock_queue.has(si):
 			_lock_queue.append(si)
@@ -506,6 +548,7 @@ func _step_dir(key: String, axis: String, dir: int) -> void:
 		return
 	var s: Dictionary = slots[si]
 	if s["state"] != S_PICKING or _spinning[si]:
+		_ping(si)   # READY / spinning: the stick does nothing, so it says "that's you"
 		return
 	if axis == "v":
 		var nr: int = clampi(int(s["row"]) + dir, 0, 1)
@@ -513,6 +556,8 @@ func _step_dir(key: String, axis: String, dir: int) -> void:
 			s["row"] = nr
 			(_slot_views[si] as Object).call("set_row", nr)
 			_move_sound()
+		else:
+			_ping(si)
 		return
 	if int(s["row"]) == 0:
 		_cycle_goat(si, dir)
@@ -533,7 +578,7 @@ func _cycle_goat(si: int, dir: int) -> void:
 	if g == int(s["goat"]):
 		return
 	s["goat"] = g
-	(_slot_views[si] as Object).call("show_goat", HEROES[g], _portrait(g), dir)
+	(_slot_views[si] as Object).call("show_goat", _hero(g), _portrait(g), dir)
 	_move_sound()
 	_after_change()
 
@@ -559,7 +604,7 @@ func _random_pick(si: int) -> void:
 		_spinning[si] = false
 		if slots[si]["state"] == S_PICKING:
 			var g: int = int(slots[si]["goat"])
-			(_slot_views[si] as Object).call("show_goat", HEROES[g], _portrait(g), 1)
+			(_slot_views[si] as Object).call("show_goat", _hero(g), _portrait(g), 1)
 			AudioManager.play_sfx("ui_click", {"pitch": 1.1, "pitch_var": 0.0, "volume_db": -4.0})
 		_after_change())
 	_spin_tw[si] = tw
@@ -573,7 +618,7 @@ func _spin_step(si: int) -> void:
 		return
 	var g: int = free[randi() % free.size()]
 	slots[si]["goat"] = g
-	(_slot_views[si] as Object).call("show_goat", HEROES[g], _portrait(g), 1)
+	(_slot_views[si] as Object).call("show_goat", _hero(g), _portrait(g), 1)
 	AudioManager.play_sfx("ui_click", {"pitch": 1.4, "pitch_var": 0.0, "volume_db": -14.0})
 
 func _stop_spin(si: int) -> void:
@@ -591,8 +636,9 @@ func _build_flair_vals() -> void:
 		var fid := str((it as Dictionary).get("id", ""))
 		if Settings.is_flair_unlocked(fid):
 			_flair_vals.append(fid)
-			# "TITLE: PEAK MENACE" -> "PEAK MENACE" (the row already says FLAIR; keeps it readable at 26px)
-			_flair_labels.append(str((it as Dictionary).get("name", fid)).trim_prefix("TITLE: "))
+			# WK-81 F5: the data-authored short label (flair.json "short", <= 14 chars, fits at 28 px)
+			var nm := str((it as Dictionary).get("name", fid)).trim_prefix("TITLE: ")
+			_flair_labels.append(str((it as Dictionary).get("short", nm)))
 	var nxt: Dictionary = Settings.next_locked_flair()
 	if not nxt.is_empty():
 		_flair_vals.append("__locked")
@@ -662,6 +708,8 @@ func _cpu_skins(n: int) -> Array:
 # ------------------------------------------------------------------ proceed (E.5)
 ## "" = not ready · "need_cpu" = 1 READY human, 0 CPUs in BRAWL (amber hint) · "valid" = banner.
 func roster_state() -> String:
+	if _rules_owner != "":
+		return ""   # WK-07: nobody launches while someone is editing the rules (banner + hint slide out)
 	var joined := 0
 	for s in slots:
 		if s["state"] == S_EMPTY:
@@ -676,12 +724,34 @@ func roster_state() -> String:
 	return "valid"
 
 func _try_proceed() -> void:
+	if _rules_owner != "":
+		# WK-81 bug fix: a READY player's A/Start while someone has RULES open used to LAUNCH the match.
+		# Now: soft deny + the owner's flipped panel nudges ("they're the hold-up").
+		_soft_tick()
+		_deny_sound()
+		if _rules_slot >= 0:
+			(_slot_views[_rules_slot] as Object).call("nudge")
+		return
 	if not banner_up:
 		_soft_tick()
 		return
 	if Time.get_ticks_msec() - _banner_since < int(Tuning.lobby_banner_guard * 1000.0):
-		return   # E.5 double-tap guard: the banner must be up >= 0.35 s
+		# E.5 double-tap guard (banner up >= 0.35 s) — WK-81 F8: answer the press, never eat it silently
+		_soft_tick()
+		_pop_banner()
+		return
 	_proceed()
+
+func _pop_banner() -> void:
+	if _breathe_tw != null and _breathe_tw.is_valid():
+		_breathe_tw.kill()
+	_banner_row.pivot_offset = _banner_row.size * 0.5
+	var t := _banner_row.create_tween()
+	t.tween_property(_banner_row, "scale", Vector2(1.06, 1.06), 0.06).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(_banner_row, "scale", Vector2.ONE, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_callback(func() -> void:
+		if banner_up:
+			_start_banner_breathe())
 
 ## Compact joined slots in slot order into MatchConfig (E.2) and move on to ArenaSelect.
 func _proceed() -> void:
@@ -733,103 +803,160 @@ func _exit() -> void:
 	else:
 		_leaving = false   # standalone QA launch: nowhere to go back to
 
-# ------------------------------------------------------------------ RULES (minimal E.7 — WK-07 finishes)
-## View / Tab from a joined device opens a small RULES card owned by that device: Up/Down picks a row,
-## Left/Right changes it (commits immediately), B / View / A closes. This keeps CPU SKILL / KOs / LIVES
-## (Brawl) and FORMAT (Sports) settable now that the old stepper tray is gone. WK-07 replaces it with the
-## full Stepper modal (A commits / B reverts, per-mode memory, "P2 IS SETTING RULES" chip).
+# ------------------------------------------------------------------ RULES (WK-07 flip panel)
+## View / Tab from a joined device flips THAT device's panel over: the rules live on its back (lobby review
+## "RULES PANEL", Duck Game style), so nobody else's panel is hidden and ownership is unambiguous.
+## Up/Down = row, Left/Right = change the value LIVE (rules bar updates for everyone). A / View = DONE (keep),
+## B = UNDO (restore the snapshot taken on open, then flip back). One panel at a time; while it is open the
+## roster is not valid (banner + hint slide out) and GO is refused with a nudge on the owner's panel.
 func _open_rules(key: String, si: int) -> void:
-	if _mode == "trials":
+	if _mode == "trials" or _spinning[si]:
 		_deny_device(key)
 		return
-	var cfg: MatchConfig = GameConfig.match_config
 	if _mode == "brawl":
 		_rules_defs = [
+			{"title": "CPUs", "field": "cpus"},
 			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty"},
 			{"title": "KOs TO WIN", "labels": ["5", "7", "8", "10"], "vals": [5, 7, 8, 10], "field": "kills_to_win"},
 			{"title": "LIVES", "labels": ["1", "2", "3"], "vals": [1, 2, 3], "field": "lives_per_player"},
 		]
 	else:
 		_rules_defs = [
-			{"title": "FORMAT", "labels": ["1V1", "2V2"], "vals": [2, 4], "field": "_sports_total"},
+			{"title": "FORMAT", "labels": ["1V1", "2V2"], "vals": [2, 4], "field": "sports_total"},
 			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty"},
 		]
 	_rules_owner = key
+	_rules_slot = si
 	_rules_row_i = 0
+	_rules_snapshot = _current_rules()
 	_clear_device_input(key)
-	_rules_title.text = "RULES · P%d" % (si + 1)
-	(_rules_done_glyph as Object).call("setup", "key:ESC" if key == "kb" else "B")
-	_refresh_rules_modal()
-	_rules_modal.visible = true
-	_rules_card.scale = Vector2(0.85, 0.85)
-	_rules_card.modulate.a = 0.0
-	var t := _rules_card.create_tween()
-	t.set_parallel(true)
-	t.tween_property(_rules_card, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	t.tween_property(_rules_card, "modulate:a", 1.0, 0.15)
-	AudioManager.play_sfx("ui_click", {"pitch": 1.2, "pitch_var": 0.0, "volume_db": -4.0})
-
-func _close_rules() -> void:
-	_clear_device_input(_rules_owner)
-	_rules_owner = ""
-	_rules_modal.visible = false
-	AudioManager.play_sfx("ui_click", {"pitch": 0.9, "pitch_var": 0.0, "volume_db": -4.0})
+	_stop_spin(si)
+	var d: Dictionary = _rules_view_data()
+	d["kb"] = key == "kb"
+	d["icon"] = _mode_icon()
+	(_slot_views[si] as Object).call("show_rules", d)
+	_edit_chip.text = "EDITING · P%d" % (si + 1)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = _hero(int(slots[si]["goat"]))["color"]
+	sb.border_color = MenuFX.CHOCO
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(14)
+	sb.content_margin_left = 14.0
+	sb.content_margin_right = 14.0
+	_edit_chip.add_theme_stylebox_override("normal", sb)
+	_edit_chip.visible = true
+	_edit_chip.pivot_offset = _edit_chip.size * 0.5
+	if _edit_tw != null and _edit_tw.is_valid():
+		_edit_tw.kill()
+	_edit_tw = _edit_chip.create_tween().set_loops()
+	_edit_tw.tween_property(_edit_chip, "scale", Vector2(1.05, 1.05), 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_edit_tw.tween_property(_edit_chip, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	AudioManager.play_sfx("ui_click", {"pitch": 1.2, "pitch_var": 0.0, "volume_db": -4.0})   # interim ui_card_flip
 	_after_change()
 
-func _rule_value(def: Dictionary) -> int:
+## DONE keeps the live values; UNDO (`undo`) restores the snapshot, shaking the rows it rolls back.
+func _close_rules(undo: bool) -> void:
+	if _rules_owner == "":
+		return
+	var rolled: Array = []
+	if undo:
+		var now: Dictionary = _current_rules()
+		for i in range(_rules_defs.size()):
+			var f := str((_rules_defs[i] as Dictionary)["field"])
+			if now.get(f) != _rules_snapshot.get(f):
+				rolled.append(i)
+		_apply_rules(_rules_snapshot)
+		if _rules_slot >= 0:
+			(_slot_views[_rules_slot] as Object).call("refresh_rules", _rules_view_data(), -1, 0)
+	if _rules_slot >= 0:
+		(_slot_views[_rules_slot] as Object).call("hide_rules", rolled)
+	_clear_device_input(_rules_owner)
+	_rules_owner = ""
+	_rules_slot = -1
+	_edit_chip.visible = false
+	if _edit_tw != null and _edit_tw.is_valid():
+		_edit_tw.kill()
+	AudioManager.play_sfx("ui_click", {"pitch": 0.72 if undo else 1.0, "pitch_var": 0.0, "volume_db": -4.0})
+	_after_change()   # roster recomputed: a valid roster slides the banner in fresh (0.35 s guard restarts)
+
+func _apply_rules(r: Dictionary) -> void:
+	var cfg: MatchConfig = GameConfig.match_config
+	cfg.bot_difficulty = int(r.get("bot_difficulty", cfg.bot_difficulty))
+	if _mode == "sports":
+		_sports_total = int(r.get("sports_total", _sports_total))
+	else:
+		_cpu_pref = int(r.get("cpus", _cpu_pref))
+		cfg.kills_to_win = int(r.get("kills_to_win", cfg.kills_to_win))
+		cfg.lives_per_player = int(r.get("lives_per_player", cfg.lives_per_player))
+
+## Current value of a rule row + its legal values/labels (CPUs range follows the humans, WK-02 cap).
+func _rule_def_values(def: Dictionary) -> Array:
 	var f := str(def["field"])
-	if f == "_sports_total":
-		return _sports_total if _joined_count() <= 2 else 4
-	return int(GameConfig.match_config.get(f))
+	if f == "cpus":
+		var hi: int = MatchConfig.max_bots_for(maxi(1, _joined_count()))
+		var vals: Array = []
+		var labels: Array = []
+		for n in range(0, hi + 1):
+			vals.append(n)
+			labels.append(str(n))
+		return [vals, labels, cpus()]
+	if f == "sports_total":
+		return [def["vals"], def["labels"], _sports_total if _joined_count() <= 2 else 4]
+	return [def["vals"], def["labels"], int(GameConfig.match_config.get(f))]
+
+func _rules_view_data() -> Dictionary:
+	var rows: Array = []
+	for def in _rules_defs:
+		var dv: Array = _rule_def_values(def)
+		var vals: Array = dv[0]
+		var idx: int = maxi(0, vals.find(dv[2]))
+		var locked: bool = str((def as Dictionary)["field"]) == "sports_total" and _joined_count() > 2
+		rows.append({"title": (def as Dictionary)["title"], "label": str((dv[1] as Array)[idx]), "locked": locked})
+	return {"rows": rows, "focus": _rules_row_i}
 
 func _rules_step(axis: String, dir: int) -> void:
+	var view: Object = _slot_views[_rules_slot]
 	if axis == "v":
 		_rules_row_i = posmod(_rules_row_i + dir, _rules_defs.size())
 		_move_sound()
-		_refresh_rules_modal()
+		view.call("refresh_rules", _rules_view_data(), -1, 0)
 		return
 	var def: Dictionary = _rules_defs[_rules_row_i]
-	var vals: Array = def["vals"]
-	var idx: int = maxi(0, vals.find(_rule_value(def)))
+	var dv: Array = _rule_def_values(def)
+	var vals: Array = dv[0]
+	var idx: int = maxi(0, vals.find(dv[2]))
 	var ni: int = idx + dir
-	var row: Control = _rules_rows[_rules_row_i]
-	var locked_format: bool = str(def["field"]) == "_sports_total" and _joined_count() > 2
-	if ni < 0 or ni >= vals.size() or locked_format:
-		MenuFX.reject_shake(row)
+	var locked: bool = str(def["field"]) == "sports_total" and _joined_count() > 2
+	if ni < 0 or ni >= vals.size() or locked:
+		view.call("shake_rule", _rules_row_i)
 		_deny_sound()
 		return
 	var f := str(def["field"])
-	if f == "_sports_total":
-		_sports_total = int(vals[ni])
-	else:
-		GameConfig.match_config.set(f, int(vals[ni]))
-	((row.get_node("ChevR") if dir > 0 else row.get_node("ChevL")) as Object).call("nudge")
+	var r: Dictionary = _current_rules()
+	r[f] = int(vals[ni])
+	_apply_rules(r)
+	view.call("refresh_rules", _rules_view_data(), _rules_row_i, dir)
 	AudioManager.play_sfx("ui_click", {"pitch": 1.15, "pitch_var": 0.0, "volume_db": -6.0})
-	_refresh_rules_modal()
-	MenuFX.value_pop(row.get_node("Value") as Control, 1.2)
 	_refresh_rules_bar()
+	_refresh_cpu_tray()
+	_rules_text.pivot_offset = _rules_text.size * 0.5
+	MenuFX.value_pop(_rules_text, 1.06)
 	_persist()
 
-func _refresh_rules_modal() -> void:
-	for i in range(_rules_rows.size()):
-		var row: Panel = _rules_rows[i]
-		row.visible = i < _rules_defs.size()
-		if not row.visible:
-			continue
-		var def: Dictionary = _rules_defs[i]
-		(row.get_node("Title") as Label).text = str(def["title"])
-		var vals: Array = def["vals"]
-		var idx: int = maxi(0, vals.find(_rule_value(def)))
-		(row.get_node("Value") as Label).text = str((def["labels"] as Array)[idx])
-		var on: bool = i == _rules_row_i
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(1.0, 0.82, 0.25, 0.18) if on else Color(1, 1, 1, 0.06)
-		sb.border_color = Color("#ffd23f") if on else Color(1, 1, 1, 0.12)
-		sb.set_border_width_all(5 if on else 3)
-		sb.set_corner_radius_all(16)
-		row.add_theme_stylebox_override("panel", sb)
-		(row.get_node("ChevL") as Control).visible = on
-		(row.get_node("ChevR") as Control).visible = on
+## Another device asked for RULES while they're open: deny shake on its own panel + "P1 HAS THE RULES".
+func _deny_rules_taken(key: String) -> void:
+	var si := _slot_of(key)
+	_deny_sound()
+	if si >= 0:
+		(_slot_views[si] as Object).call("deny")
+		(_slot_views[si] as Object).call("flash_chip", "P%d HAS THE RULES" % (_rules_slot + 1), 1.2)
+
+func _mode_icon() -> Texture2D:
+	var cfg: MatchConfig = GameConfig.match_config
+	var mid := str(cfg.mode_id) if cfg != null else "brawl"
+	var art := "sports" if mid == "rocketball" else mid
+	var p := "res://assets/ui/modes/mode_%s.png" % art
+	return load(p) as Texture2D if ResourceLoader.exists(p) else null
 
 # ================================================================== refresh / presentation
 func _after_change() -> void:
@@ -868,8 +995,7 @@ func _refresh_empty_hints() -> void:
 	var first_empty := true
 	for i in range(MAX_SLOTS):
 		if slots[i]["state"] == S_EMPTY:
-			var v: Control = _slot_views[i]
-			(v.get_node("JoinPrompt/KbHint") as Control).visible = kb_free and first_empty
+			(_slot_views[i] as Object).call("set_kb_hint", kb_free and first_empty)
 			first_empty = false
 
 func _kb_joined() -> bool:
@@ -920,6 +1046,10 @@ func _refresh_banner(animate: bool) -> void:
 	if want_hint != hint_up:
 		hint_up = want_hint
 		_slide_band(_hint_banner, hint_up, animate, "_hint_tw")
+	# WK-81 F6: a band crossing the panel bottoms lifts every EMPTY panel's "PRESS A TO JOIN" above it
+	for i in range(MAX_SLOTS):
+		if slots[i]["state"] == S_EMPTY:
+			(_slot_views[i] as Object).call("set_join_lift", banner_up or hint_up)
 
 func _slide_band(node: Control, show: bool, animate: bool, tw_name: String) -> void:
 	var old: Variant = get(tw_name)
@@ -962,10 +1092,43 @@ func _apply_mode_chrome() -> void:
 			_banner_text.text = "READY TO FIGHT!"
 	(get_node("Footer/HintRow/GJoin/Label") as Label).text = "JOIN / READY"
 
-## Device-aware glyphs (CC-1.6): pad glyphs after pad input, key caps after keyboard input. Panels always
-## show their OWN device's glyphs (LobbySlot); this handles the shared chrome.
+## Shared-chrome glyphs — CC-1.6 as amended by the lobby review (WK-81 F2):
+##  - any JOINED pad -> pad glyphs; only the keyboard joined -> key caps; nobody joined -> the last device.
+##  - the GO prompt (banner + footer) shows BOTH when pads and the keyboard are both joined: [START] / [ENTER].
+##  - the amber hint (exactly one human) uses THAT human's device glyph.
+## Recomputed only on join / leave / device loss (and on last-device change while nobody is joined), never on
+## every input — so the chrome never flickers while four people mash. Panels always show their OWN device.
+func shared_glyph_kind() -> String:
+	var any_pad := false
+	var any_kb := false
+	for s in slots:
+		if s["state"] == S_EMPTY:
+			continue
+		if str(s["device"]) == "kb":
+			any_kb = true
+		else:
+			any_pad = true
+	if any_pad:
+		return "pad"
+	if any_kb:
+		return "kb"
+	return "kb" if InputRouter.last_device_kind == "kb" else "pad"
+
+func _mixed_devices() -> bool:
+	var any_pad := false
+	var any_kb := false
+	for s in slots:
+		if s["state"] == S_EMPTY:
+			continue
+		if str(s["device"]) == "kb":
+			any_kb = true
+		else:
+			any_pad = true
+	return any_pad and any_kb
+
 func _refresh_glyphs() -> void:
-	var kb: bool = InputRouter.last_device_kind == "kb"
+	var kb: bool = shared_glyph_kind() == "kb"
+	var mixed: bool = _mixed_devices()
 	(_f_join as Object).call("setup", "key:ENTER" if kb else "A")
 	(_f_back as Object).call("setup", "key:ESC" if kb else "B")
 	(_f_random as Object).call("setup", "key:R" if kb else "Y")
@@ -974,9 +1137,28 @@ func _refresh_glyphs() -> void:
 	(_back_glyph as Object).call("setup", "key:ESC" if kb else "B")
 	(_lb_glyph as Object).call("setup", "key:Q" if kb else "LB")
 	(_rb_glyph as Object).call("setup", "key:E" if kb else "RB")
-	(_hint_glyph as Object).call("setup", "key:E" if kb else "RB")
 	(_view_glyph as Object).call("setup", "key:TAB" if kb else "VIEW")
 	(_go_glyph as Object).call("setup", "key:ENTER" if kb else "START")
+	# dual GO prompt for a mixed couch
+	_f_go_slash.visible = mixed
+	_f_go2.visible = mixed
+	_go_slash.visible = mixed
+	_go_wrap2.visible = mixed
+	if mixed:
+		(_f_go as Object).call("setup", "START")
+		(_go_glyph as Object).call("setup", "START")
+		(_f_go2 as Object).call("setup", "key:ENTER")
+		(_go_glyph2 as Object).call("setup", "key:ENTER")
+	# the banner glyphs are drawn 1.5x inside plain wrappers (containers reset child scale): size the wraps
+	_go_wrap.custom_minimum_size = (_go_glyph as Control).custom_minimum_size * 1.5
+	_go_wrap2.custom_minimum_size = (_go_glyph2 as Control).custom_minimum_size * 1.5
+	# amber hint: the lone human's own device
+	var lone := ""
+	for s in slots:
+		if s["state"] != S_EMPTY:
+			lone = str(s["device"]) if lone == "" else "many"
+	var hint_kb: bool = lone == "kb" or (lone == "" and kb)
+	(_hint_glyph as Object).call("setup", "key:E" if hint_kb else "RB")
 
 # ================================================================== misc
 func _on_device_lost(key: String) -> void:
@@ -986,7 +1168,7 @@ func _on_device_lost(key: String) -> void:
 	if si >= 0:
 		_leave(si)
 	if _rules_owner == key:
-		_close_rules()
+		_close_rules(false)   # owner pad gone: close KEEPING the values (WK-28 then handles the slot)
 
 func _clear_device_input(key: String) -> void:
 	_holds.erase(key + "|h")

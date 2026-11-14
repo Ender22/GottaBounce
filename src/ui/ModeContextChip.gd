@@ -32,3 +32,25 @@ func _ready() -> void:
 		_icon.texture = load(art_path) as Texture2D
 	else:
 		_icon.visible = false
+	_fit()
+
+## WK-81 F1: the chip sizes to its content (the owning scene pins its RIGHT edge and grows it leftward,
+## grow_horizontal = BEGIN) between MIN_W and MAX_W; a name that still won't fit shrinks 1 px at a time
+## down to MIN_FONT, so "ROCKETBALL" / "DROPSHOT" never clip off-screen.
+const MIN_W := 316.0
+const MAX_W := 480.0
+const MIN_FONT := 28
+
+func _fit() -> void:
+	custom_minimum_size.x = MIN_W
+	var f: Font = _mode_name.get_theme_font("font")
+	if f == null:
+		return
+	var sb := get_theme_stylebox("panel")
+	var chrome: float = (sb.content_margin_left + sb.content_margin_right) if sb != null else 36.0
+	if _icon.visible:
+		chrome += _icon.custom_minimum_size.x + float($HBox.get_theme_constant("separation"))
+	var fs: int = _mode_name.get_theme_font_size("font_size")
+	while fs > MIN_FONT and chrome + f.get_string_size(_mode_name.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 12.0 > MAX_W:
+		fs -= 1
+	_mode_name.add_theme_font_size_override("font_size", fs)

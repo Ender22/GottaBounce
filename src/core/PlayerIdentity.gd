@@ -5,8 +5,8 @@ class_name PlayerIdentity
 ## `PartyMatch.player_color(i)`, which resolves through `color_for_skin(players[i].skin)` — so a player's
 ## colour always follows the skin they actually WEAR (Sports team colourways included), never their slot.
 ##
-## Values are the Herd roster colours (HerdLobby.HEROES, ex-CharacterSelect.gd:17-30). Keep the two in sync
-## until HerdLobby reads this table directly (it is under design review; not touched by WK-08).
+## Values are the Herd roster colours (ex-CharacterSelect.gd:17-30). The Herd Lobby reads its goat colours and
+## names from here too (HerdLobby._hero, WK-81) — this is the only copy.
 
 const SKIN_COLORS := {
 	"pink": Color("#ff5fa8"),    # POGO

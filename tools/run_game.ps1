@@ -1,8 +1,10 @@
 # Launch the game windowed (rendered) so gbplay.py can drive it on port 9090.
-# Usage: powershell -File tools/run_game.ps1 [scene] [-Wait]
+# Usage: powershell -File tools/run_game.ps1 [scene] [-Wait] [-Resolution 1920x1080] [-Position 0,0]
 param(
     [string]$Scene = "",
-    [switch]$Wait
+    [switch]$Wait,
+    [string]$Resolution = "1280x720",
+    [string]$Position = "50,50"
 )
 $godot = "C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe"
 $proj = Split-Path $PSScriptRoot -Parent
@@ -12,7 +14,7 @@ Get-Process | Where-Object { $_.ProcessName -like 'Godot*' } | Stop-Process -For
 Start-Sleep -Milliseconds 300
 
 $logPath = Join-Path $env:TEMP "gottabounce_run.log"
-$argList = @("--path", "`"$proj`"", "--resolution", "1280x720", "--position", "50,50")
+$argList = @("--path", "`"$proj`"", "--resolution", $Resolution, "--position", $Position)
 if ($Scene -ne "") { $argList += $Scene }
 
 $proc = Start-Process -FilePath $godot -ArgumentList $argList -PassThru `

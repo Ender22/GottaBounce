@@ -179,6 +179,7 @@ var lobby_hold_exit: float = 1.0           # s of held B / Esc that exits the lo
 var lobby_hold_ring_show: float = 0.12     # s of hold before the ring appears (taps never flash it)
 var lobby_entry_grace: float = 0.30        # s after the lobby appears before input counts (= shell transition lock)
 var lobby_random_spin: float = 0.6         # s the Y/R random portrait spin runs before landing
+var lobby_empty_well_alpha: float = 0.94   # EMPTY panel dark-well opacity (review said 0.72; 0.72 and 0.86 both still ghosted the backdrop at 1080p)
 
 # --- Player identity pips (WK-10 · CC-8.3 · audit C-09/R-05/R-17) — presentation timing, not player feel ---
 var pip_idle_alpha: float = 0.70        # a human's P# pip alpha once settled in combat (never 0 — never gone)

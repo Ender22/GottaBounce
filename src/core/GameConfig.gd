@@ -21,12 +21,14 @@ var resume_setup := false
 
 ## Herd Lobby state (audit §E.2), persisted across shell <-> match until the title screen clears it.
 ## lobby = 4 slot dicts {state "EMPTY"|"PICKING"|"READY", device "kb"/"pad:N"/"", goat int, flair String}
-## (empty Array = no lobby yet). lobby_cpus = the BRAWL CPU *preference* (the tray shows
-## min(pref, MAX_FIGHTERS - humans), so a full lobby stays full as humans come and go — WK-02 rule).
-## lobby_sports_total = SPORTS format seats (2 = 1V1, 4 = 2V2), -1 = derive from match_config.
+## (empty Array = no lobby yet).
 var lobby: Array = []
-var lobby_cpus := -1
-var lobby_sports_total := -1
+## WK-07 per-mode rule memory (CC-4.6 / R-26): mode key ("brawl", "rocketball", "dropshot", ...) -> rule
+## dict. BRAWL {cpus, bot_difficulty, kills_to_win, lives_per_player}; SPORTS {sports_total, bot_difficulty}.
+## `cpus` is the CPU *preference* (the lobby shows min(pref, MAX_FIGHTERS - humans), so a full lobby stays
+## full as humans come and go — WK-02). Survives QUIT TO TITLE on purpose (rules are a preference, the
+## lobby is a session). A mode never reads another mode's entry, so Rocketball's 1 bot can't leak into Brawl.
+var mode_rules: Dictionary = {}
 ## CC-4.8: the device that confirmed the mode card (ModeSelect writes it); the lobby consumes it once
 ## and auto-joins it as P1 if the lobby is empty.
 var lobby_autojoin_key := ""
@@ -43,8 +45,6 @@ func reset_to_defaults() -> void:
 ## go back to "any device drives" (CC-3.3).
 func clear_lobby() -> void:
 	lobby = []
-	lobby_cpus = -1
-	lobby_sports_total = -1
 	lobby_autojoin_key = ""
 	InputRouter.clear_joined()
 
@@ -53,3 +53,29 @@ func lobby_unready() -> void:
 	for s in lobby:
 		if typeof(s) == TYPE_DICTIONARY and str((s as Dictionary).get("state", "")) == "READY":
 			(s as Dictionary)["state"] = "PICKING"
+
+## Rule key for a mode id: TRIALS has no rules (""), every other mode keeps its own set.
+static func rules_key(mode_id: StringName) -> String:
+	return "" if mode_id == &"trials" else str(mode_id)
+
+## The remembered rules for `key`, with defaults for anything never set (fresh copy — callers write back
+## through set_rules()).
+func rules_for(key: String) -> Dictionary:
+	# sports family ids mirror SportsMode.is_sports_mode (no class_name refs from an autoload — CLAUDE.md)
+	var sports: bool = key in ["sports", "rocketball", "dropshot"]
+	var d: Dictionary = {"bot_difficulty": 0}
+	if sports:
+		d["sports_total"] = 2
+	else:
+		d["cpus"] = 3
+		d["kills_to_win"] = 10
+		d["lives_per_player"] = 1
+	var saved: Variant = mode_rules.get(key, {})
+	if typeof(saved) == TYPE_DICTIONARY:
+		for k in (saved as Dictionary).keys():
+			d[k] = (saved as Dictionary)[k]
+	return d
+
+func set_rules(key: String, rules: Dictionary) -> void:
+	if key != "":
+		mode_rules[key] = rules.duplicate()

@@ -11,6 +11,7 @@ extends Control
 ##   "key:<TEXT>"           cream key cap with chocolate text ("key:ENTER", "key:ESC", "key:Q")
 ##   "pad" / "kb"           device icons (a controller silhouette / a keyboard) for lobby panel headers
 ##   ring                   0..1 hold-progress arc drawn around the glyph (hold-B exit ring)
+## WK-81/WK-07 additions: "star" (36 px gold flair icon), "check" (green READY tick), "lock" (padlock).
 ## Set `glyph` in a .tscn (exported) or call setup() from code (ControlsLegend does).
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
@@ -76,6 +77,12 @@ func setup(g: String) -> void:
 	elif _glyph == "kb":
 		_label.text = ""
 		w = 64.0
+	elif _glyph == "star" or _glyph == "check" or _glyph == "lock":
+		_label.text = ""
+		w = 36.0
+		custom_minimum_size = Vector2(w, 36.0)
+		queue_redraw()
+		return
 	else:
 		# "stick" (or any non-letter): the cross is drawn in _draw, no label text
 		_label.text = ""
@@ -128,6 +135,22 @@ func _draw() -> void:
 		_draw_pad_icon(c)
 	elif _glyph == "kb":
 		_draw_kb_icon(c)
+	elif _glyph == "star":
+		_draw_star(c, 17.0)
+	elif _glyph == "check":
+		draw_circle(c, 16.0, FACE_COLORS["A"])
+		draw_arc(c, 16.0, 0.0, TAU, 32, CHOCO, 3.0, true)
+		draw_polyline(PackedVector2Array([c + Vector2(-8, 0), c + Vector2(-2, 7), c + Vector2(9, -7)]), Color.WHITE, 4.5, true)
+	elif _glyph == "lock":
+		draw_arc(c + Vector2(0, -3), 7.0, PI, TAU, 16, CHOCO, 4.0, true)
+		draw_line(c + Vector2(-7, -3), c + Vector2(-7, 1), CHOCO, 4.0)
+		draw_line(c + Vector2(7, -3), c + Vector2(7, 1), CHOCO, 4.0)
+		var body := StyleBoxFlat.new()
+		body.bg_color = KEYCAP
+		body.border_color = CHOCO
+		body.set_border_width_all(3)
+		body.set_corner_radius_all(4)
+		draw_style_box(body, Rect2(c + Vector2(-11, 0), Vector2(22, 15)))
 	else:
 		# "stick": cream circle with a chocolate ⊕ cross (the "move" read)
 		draw_circle(c, r, CREAM)
@@ -172,3 +195,15 @@ func _draw_kb_icon(c: Vector2) -> void:
 		for col in range(6):
 			draw_rect(Rect2(c + Vector2(-23 + col * 8, -10 + row * 7), Vector2(5, 4.5)), CHOCO)
 	draw_rect(Rect2(c + Vector2(-14, 5), Vector2(28, 4.5)), CHOCO)
+
+## Five-point gold star with a chocolate rim (the FLAIR icon, WK-81 F5).
+func _draw_star(c: Vector2, r: float) -> void:
+	var pts := PackedVector2Array()
+	for i in range(10):
+		var rr: float = r if i % 2 == 0 else r * 0.45
+		var a: float = -PI * 0.5 + i * PI / 5.0
+		pts.append(c + Vector2(cos(a), sin(a)) * rr)
+	draw_colored_polygon(pts, Color("#ffd23f"))
+	var loop := pts.duplicate()
+	loop.append(pts[0])
+	draw_polyline(loop, CHOCO, 3.0, true)

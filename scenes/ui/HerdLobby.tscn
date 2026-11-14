@@ -61,17 +61,19 @@ shadow_color = Color(0, 0, 0, 0.3)
 shadow_size = 8
 shadow_offset = Vector2(0, 6)
 
-[sub_resource type="StyleBoxFlat" id="rules_row"]
-bg_color = Color(1, 1, 1, 0.06)
+[sub_resource type="StyleBoxFlat" id="edit_chip"]
+content_margin_left = 14.0
+content_margin_right = 14.0
+bg_color = Color(1, 0.372549, 0.658824, 1)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
-border_color = Color(1, 1, 1, 0.12)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
 
 [node name="HerdLobby" type="Control"]
 layout_mode = 3
@@ -354,6 +356,18 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 14
 
+[node name="EditChip" type="Label" parent="RulesRow/RulesBar/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("edit_chip")
+text = "EDITING · P1"
+vertical_alignment = 1
+
 [node name="RulesText" type="Label" parent="RulesRow/RulesBar/Row"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
@@ -433,6 +447,32 @@ scale = Vector2(1.5, 1.5)
 mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "START"
+
+[node name="GoSlash" type="Label" parent="ReadyBanner/Band/Row"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
+text = "/"
+vertical_alignment = 1
+
+[node name="GoWrap2" type="Control" parent="ReadyBanner/Band/Row"]
+visible = false
+custom_minimum_size = Vector2(140, 66)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="GoGlyph2" type="Control" parent="ReadyBanner/Band/Row/GoWrap2"]
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 44.0
+scale = Vector2(1.5, 1.5)
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ENTER"
 
 [node name="HintBanner" type="Control" parent="."]
 visible = false
@@ -581,6 +621,21 @@ mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "START"
 
+[node name="Slash" type="Label" parent="Footer/HintRow/GGo"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "/"
+vertical_alignment = 1
+
+[node name="Glyph2" type="Control" parent="Footer/HintRow/GGo"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ENTER"
+
 [node name="Label" type="Label" parent="Footer/HintRow/GGo"]
 layout_mode = 2
 theme_type_variation = &"Hint"
@@ -603,227 +658,6 @@ glyph = "B"
 layout_mode = 2
 theme_type_variation = &"Hint"
 text = "HOLD: EXIT"
-vertical_alignment = 1
-
-[node name="RulesModal" type="Control" parent="."]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Dim" type="ColorRect" parent="RulesModal"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.05, 0.03, 0.08, 0.5)
-
-[node name="Card" type="PanelContainer" parent="RulesModal"]
-layout_mode = 0
-offset_left = 510.0
-offset_top = 220.0
-offset_right = 1410.0
-offset_bottom = 840.0
-pivot_offset = Vector2(450, 310)
-mouse_filter = 2
-theme_type_variation = &"MatchEndPanel"
-
-[node name="VBox" type="VBoxContainer" parent="RulesModal/Card"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 16
-
-[node name="Title" type="Label" parent="RulesModal/Card/VBox"]
-layout_mode = 2
-theme_type_variation = &"BannerTop"
-text = "RULES · P1"
-horizontal_alignment = 1
-
-[node name="Row1" type="Panel" parent="RulesModal/Card/VBox"]
-custom_minimum_size = Vector2(0, 88)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("rules_row")
-
-[node name="Title" type="Label" parent="RulesModal/Card/VBox/Row1"]
-layout_mode = 0
-offset_left = 28.0
-offset_right = 420.0
-offset_bottom = 88.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 36
-text = "CPU SKILL"
-vertical_alignment = 1
-
-[node name="ChevL" type="Control" parent="RulesModal/Card/VBox/Row1"]
-layout_mode = 0
-offset_left = 450.0
-offset_top = 24.0
-offset_right = 486.0
-offset_bottom = 64.0
-mouse_filter = 2
-script = ExtResource("7_chev")
-dir = -1
-
-[node name="Value" type="Label" parent="RulesModal/Card/VBox/Row1"]
-layout_mode = 0
-offset_left = 492.0
-offset_right = 714.0
-offset_bottom = 88.0
-theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
-theme_override_font_sizes/font_size = 44
-text = "MIX"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ChevR" type="Control" parent="RulesModal/Card/VBox/Row1"]
-layout_mode = 0
-offset_left = 720.0
-offset_top = 24.0
-offset_right = 756.0
-offset_bottom = 64.0
-mouse_filter = 2
-script = ExtResource("7_chev")
-
-[node name="Row2" type="Panel" parent="RulesModal/Card/VBox"]
-custom_minimum_size = Vector2(0, 88)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("rules_row")
-
-[node name="Title" type="Label" parent="RulesModal/Card/VBox/Row2"]
-layout_mode = 0
-offset_left = 28.0
-offset_right = 420.0
-offset_bottom = 88.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 36
-text = "KOs TO WIN"
-vertical_alignment = 1
-
-[node name="ChevL" type="Control" parent="RulesModal/Card/VBox/Row2"]
-layout_mode = 0
-offset_left = 450.0
-offset_top = 24.0
-offset_right = 486.0
-offset_bottom = 64.0
-mouse_filter = 2
-script = ExtResource("7_chev")
-dir = -1
-
-[node name="Value" type="Label" parent="RulesModal/Card/VBox/Row2"]
-layout_mode = 0
-offset_left = 492.0
-offset_right = 714.0
-offset_bottom = 88.0
-theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
-theme_override_font_sizes/font_size = 44
-text = "10"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ChevR" type="Control" parent="RulesModal/Card/VBox/Row2"]
-layout_mode = 0
-offset_left = 720.0
-offset_top = 24.0
-offset_right = 756.0
-offset_bottom = 64.0
-mouse_filter = 2
-script = ExtResource("7_chev")
-
-[node name="Row3" type="Panel" parent="RulesModal/Card/VBox"]
-custom_minimum_size = Vector2(0, 88)
-layout_mode = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("rules_row")
-
-[node name="Title" type="Label" parent="RulesModal/Card/VBox/Row3"]
-layout_mode = 0
-offset_left = 28.0
-offset_right = 420.0
-offset_bottom = 88.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 36
-text = "LIVES"
-vertical_alignment = 1
-
-[node name="ChevL" type="Control" parent="RulesModal/Card/VBox/Row3"]
-layout_mode = 0
-offset_left = 450.0
-offset_top = 24.0
-offset_right = 486.0
-offset_bottom = 64.0
-mouse_filter = 2
-script = ExtResource("7_chev")
-dir = -1
-
-[node name="Value" type="Label" parent="RulesModal/Card/VBox/Row3"]
-layout_mode = 0
-offset_left = 492.0
-offset_right = 714.0
-offset_bottom = 88.0
-theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
-theme_override_font_sizes/font_size = 44
-text = "1"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ChevR" type="Control" parent="RulesModal/Card/VBox/Row3"]
-layout_mode = 0
-offset_left = 720.0
-offset_top = 24.0
-offset_right = 756.0
-offset_bottom = 64.0
-mouse_filter = 2
-script = ExtResource("7_chev")
-
-[node name="Spacer" type="Control" parent="RulesModal/Card/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 2
-
-[node name="Hint" type="HBoxContainer" parent="RulesModal/Card/VBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 12
-alignment = 1
-
-[node name="MoveGlyph" type="Control" parent="RulesModal/Card/VBox/Hint"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-script = ExtResource("5_glyph")
-glyph = "stick"
-
-[node name="MoveLabel" type="Label" parent="RulesModal/Card/VBox/Hint"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "CHANGE"
-vertical_alignment = 1
-
-[node name="Gap" type="Control" parent="RulesModal/Card/VBox/Hint"]
-custom_minimum_size = Vector2(30, 0)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="DoneGlyph" type="Control" parent="RulesModal/Card/VBox/Hint"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-script = ExtResource("5_glyph")
-glyph = "B"
-
-[node name="DoneLabel" type="Label" parent="RulesModal/Card/VBox/Hint"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "DONE"
 vertical_alignment = 1
 
 [node name="UnlockBanner" type="Label" parent="."]

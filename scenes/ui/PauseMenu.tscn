@@ -75,6 +75,14 @@ focus_mode = 2
 theme_type_variation = &"ShellBtn"
 text = "OPTIONS"
 
+[node name="SetupBtn" type="Button" parent="Menu/Panel/VBox"]
+custom_minimum_size = Vector2(380, 76)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 2
+theme_type_variation = &"ShellBtn"
+text = "CHANGE SETUP"
+
 [node name="QuitBtn" type="Button" parent="Menu/Panel/VBox"]
 custom_minimum_size = Vector2(380, 76)
 layout_mode = 2
