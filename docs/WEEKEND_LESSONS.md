@@ -16,6 +16,8 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   Maker recordings running in parallel, launch Godot directly with run_game's args and stop by PID.
 - **Parallel builders share files** (PartyMatch/SportsMode): a verified batch can't be committed while another
   builder's unverified hunks sit in the same file. Note the pending state in STATUS; commit both together.
+- **Partial commits of mixed files: `python tools/stage_hunks.py <file> --exclude|--include REGEX [--list]`** stages
+  only matching hunks (git add -p is interactive and unavailable). Pipe patches as BYTES on Windows.
 - **`tools/stop_game.ps1` kills EVERY Godot process** (incl. other agents' headless runs). Check before using.
 - **Deny rules match whole command text**: a commit message containing "reset --hard"/"push"/"clean" after `git`
   is denied. Reword.

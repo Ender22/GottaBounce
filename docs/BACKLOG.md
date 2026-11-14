@@ -43,7 +43,7 @@ several slices): split into WK-95a-d, pulled in order.
 
 1. WK-95 [P0][M x4] OWNER RULING: flight you can steer, super = attack — pull 95a -> 95b -> 95c -> 95d in order — game-designer spec done; gameplay-programmer + qa-playtester + creative-director (deps WK-93 done, WK-94 merged)
 2. WK-98 [P1][M] Sports deep-dive: creative-director + game-designer rendered session -> ranked sports findings — creative-director + game-designer (after WK-95b so ball strikes are judged on the new flight)
-3. WK-27 [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team — gameplay-programmer + ui-ux-designer (code-only build may run in parallel with WK-95; game slot only to verify)
+3. ~~WK-27~~ done a4955e7 — [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team — gameplay-programmer + ui-ux-designer (code-only build may run in parallel with WK-95; game slot only to verify)
 4. WK-16 [P1][S] Sports: one goal/point banner, not two stacked headlines — ui-ux-designer
 5. WK-20a [P1][M] Who wins and why: knockback side effects + self-KO −1 rule, human-style drivers, on the post-WK-95 build -> game-designer rulings (WK-20b/20c S builds follow immediately if ruled) — qa-playtester + game-designer
 6. WK-25 [P1][M] KO credit pop (+1 killer / −1 OOPS per the WK-20a ruling) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-20a ruling, WK-20c if ruled, WK-89)
@@ -421,7 +421,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   one element looks focused in each (shared `FocusRow` helper replaces the three `_set_focus` copies).
 - Status: open
 
-### [ ] WK-15 [P1][S] Teach the goal: controls legend on every mode's stage 1, rule line, honest BRAWL tagline
+### [x] WK-15 [P1][S] Teach the goal: controls legend on every mode's stage 1, rule line, honest BRAWL tagline — a4955e7
 - Sources: C-12 (legend part), D-13a, D-04 (messaging part), CC-11.1
 - Area: HUD · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-01 (legend glyphs)
 - Do: legend out of the `wants_scoreboard()` gate, mode chips (Sports "HEADBUTT the ball", Trials "LAND on the pad");
@@ -581,7 +581,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   Build after WK-94 commits (the "!" must follow the smoothed aim target, not the old per-frame jitter).
 - Status: open
 
-### [ ] WK-27 [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team
+### [x] WK-27 [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team — a4955e7
 - Sources: C-16 (sports half), C-31, R-14 (sports half), E.6, lobby review L2 (17a/17b: ZIGGY/PUFF still selectable in ROCKETBALL)
 - Area: menus/sports · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-07 (done)
 - Do: carousel = POGO/BILLY (RED), BUTCH/VEX (BLUE), team ribbon, full-team goats skipped; `MatchConfig.team_ids`;
@@ -653,7 +653,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   WK-87 placement (never over the goal ring).
 - Status: open
 
-### [ ] WK-36 [P1][M] Off-screen magnifier bubbles (watch the recovery live)
+### [x] WK-36 [P1][M] Off-screen magnifier bubbles (watch the recovery live) — a4955e7
 - Sources: D-05, R-30 · **OWNER-RULED**: camera framing untouched (owner rules 2026-07-10) — EdgeIndicators upgrade only
 - Area: brawl/HUD · Owner: gameplay-programmer · Deps: WK-08
 - Accept (rendered): player knocked 1500 px above top platform -> edge bubble with goat sprite + fuel ring within 10 % of
@@ -707,7 +707,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   WK-90 re-measure noted. The "fallback option A" above is retired.
 
 
-### [ ] WK-92 [P2][S] Font follow-ups from WK-17 grade
+### [x] WK-92 [P2][S] Font follow-ups from WK-17 grade — a4955e7
 - Source: ui-ux-designer WK-17 verdict (tools/out/wk/WK-17_*). Owner: gameplay-programmer.
 - (1) Victory winner name: chocolate ribbon behind it like StageIntroCard (yellow Puff over gold rays is weakest);
   (2) MATCH POINT top banner overlaps the leaving StageIntroCard ribbon ~0.2 s — delay show_top until intro exit;
@@ -750,7 +750,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
 - Accept (rendered): Flight School lesson 1 at BOUNCE+0 s and +4 s with 1 and 2 players: the goal ring is fully visible in both.
 - Status: open (Next-10 #10)
 
-### [ ] WK-88 [P2][S] One naming rule for every fighter in match text (CPU vs VEX vs "VEX — CPU")
+### [x] WK-88 [P2][S] One naming rule for every fighter in match text (CPU vs VEX vs "VEX — CPU") — a4955e7
 - Area: HUD/brawl · Owner: ui-ux-designer (rule) + gameplay-programmer · Source: creative-director WK-CD1 (CD1-04, CD rated P3;
   producer rates P2: a couch group asks "who is Vex?") · extends the identity systemic (WK-08/WK-10, both done)
 - Evidence: `tools/out/cd1/m1/f005_STAGE_END.png`, `m1/f029_STAGE_END.png`, `20_victory_4.png` — bot card/pip say CPU, banners say
