@@ -2,6 +2,16 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** WEEKEND AUTONOMY (owner: "i dont want to be involved much, this project is about
+  seeing what ai can do on its own"). The Studio Director makes calls that previously waited on the
+  owner, logs them here, and proceeds. Standing rulings for the run: (a) `docs/COUCH_CONVENTIONS.md`
+  is the controls/menu standard — it SUPERSEDES the 2026-07-19 "strip all keyboard references" rule:
+  keyboard is a first-class device again with device-aware glyphs; (b) open-licence fonts (SIL OFL /
+  Apache, e.g. Google Fonts) may be bundled without owner approval — licence file committed beside the
+  font; (c) owner rulings on feel (knockback array, camera rules, kill target) stay in force — an
+  audit finding that touches them may only change what *feeds* them, documented here; (d) all work on
+  branch `weekend/polish`.
+
 - **2026-07-19** SMASH KNOCKBACK +25% AT EVERY DAMAGE LEVEL (owner ruling: "make the impact — how far
   you get knocked when someone super boosts into you — 25% stronger, for each damage level").
   `dmg_launch_mult` [1.0, 1.33, 1.66] → **[1.25, 1.66, 2.08]**, superseding the kill-zone v3 §12.3

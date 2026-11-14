@@ -11,6 +11,8 @@ start of every loop tick (it survives context compaction; your memory of earlier
   (deny rules in `.claude/settings.json` enforce most of this). The owner's
   `PLAY GOTTABOUNCE.bat` plays whatever is checked out, so the working tree must always be playable:
   never end a tick with a broken parse gate or a half-applied change uncommitted.
+- Deny rules match the WHOLE command text: a commit message mentioning "push", "clean" or
+  "reset --hard" after `git` gets the commit denied. Reword the message.
 - Commit ONLY the files you changed, by explicit path (`git add -A` is forbidden — parallel agents).
 - After each commit: update `docs/STATUS.md` (top block "WEEKEND POLISH RUN") + tick the item in
   `docs/BACKLOG.md`. Commit both.
