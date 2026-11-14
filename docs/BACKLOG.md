@@ -44,7 +44,7 @@ ruling, and WK-CD2 no longer waits for it. Sports items: 6 of 10.
 2. ~~WK-104~~ done 5f34080 — [P1][M] (in progress) Sports: ball frozen until GO (SP-02 bug) + kickoff lottery fix (SP-05, game-designer A/B) — gameplay-programmer (+ game-designer ruling)
 3. ~~WK-105~~ done 5f34080 — [P1][M] (in progress) Sports: ball-strike / goal / tile / hole sounds + hit reaction (SP-01) — sound-designer + gameplay-programmer
 4. ~~WK-106~~ done 5f34080 — [P1][M] (in progress) Sports: one goal banner naming the scorer or OWN GOAL, flash on every goal, team-coloured mouth flash, score pop (SP-03, supersedes WK-16) — ui-ux-designer + gameplay-programmer
-5. WK-107 [P1][S] LONG HAUL crops both goals: shrink the court to fit at 0.60 (SP-04) — level-designer (+ gameplay-programmer for the load-time check)
+5. ~~WK-107~~ done 834ecda — [P1][S] LONG HAUL crops both goals: shrink the court to fit at 0.60 (SP-04) — level-designer (+ gameplay-programmer for the load-time check)
 6. WK-20a [P1][M] Who wins and why: knockback side effects + self-KO −1, human-style drivers, post-WK-95 build (after WK-95e (a)) -> game-designer rulings — qa-playtester + game-designer
 7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (flight + super, sports after WK-104/105/106, KO readability, scoring) — creative-director
 8. WK-108 [P1][M] Sports bots: route around the ball, keep goal, (L4+) cross (SP-06) — gameplay-programmer (after WK-95e, WK-104)
@@ -271,7 +271,7 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   "OWN GOAL", the flash fires on all 5, mouth flash in team colour; one Dropshot point shows the same single banner, nothing clipped by posts.
 - Status: in-progress (Next-10 #4)
 
-### [ ] WK-107 [P1][S] LONG HAUL crops both goals: shrink the court so it fits at the 0.60 sports floor (SP-04)
+### [x] WK-107 [P1][S] LONG HAUL crops both goals: shrink the court so it fits at the 0.60 sports floor (SP-04) — 834ecda
 - Area: sports | levels · Owner: level-designer (JSON) + gameplay-programmer (load-time check) · Source: WK-98 SP-04
 - Evidence: `levels/sports/long_haul.json` bounds 3600x1900. Sports framing = `runner.bounds` (`SportsMode.camera_framing`), clamped to
   `PartyMatch.CAM_MIN_ZOOM` 0.60 -> view 3200x1800, so ~200 px is cut each side AND ~50 px top/bottom (fit is 0.533 wide, 0.568 tall).
@@ -963,6 +963,13 @@ WK-89 runs inside the WK-20a session; it is not pulled on its own.
   arrow still flicks >30 deg on 7-13% of frames (folded into WK-95 build brief). Art-director grade of the new swing
   (tools/out/rec/wk96_pendulum_after/swing_60-162_sheet.png).
 - Accept: Trials pendulum courses completable (recording), art-director Ship.
+
+
+### [ ] WK-122 [P2][S] Sports courts: area outside the sealed court is a flat blue border + doubled pillar columns
+- Source: WK-107 render (tools/out/wk107/after_f150_kickoff_both_goals.jpg). At zoom 0.60 the view = bounds, so the
+  unpainted Zone-A surround (known since session 9) shows as a flat blue frame and a second outer pillar column on
+  each side. Paint/extend the stadium interior to the bounds or drop the outer columns. Owner: art pipeline + level.
+- Accept: screenshot of LONG HAUL + CENTER PITCH with no flat-colour border.
 
 
 ## P2 — visible polish gaps
