@@ -2,6 +2,11 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** KNOCKBACK STREAK = ATTACKER'S COLOUR (WK-24). While a victim is launched with a known
+  attacker, the knockback streak takes the attacker's goat colour, overriding the victim's cosmetic streak
+  flair (readability of "who hit whom" beats cosmetics; D-02/D-06). Flair still shows on self-propelled
+  boosting. Reopen if flair unlocks lose their value in a cold playthrough.
+
 - **2026-11-14** WEEKEND AUTONOMY (owner: "i dont want to be involved much, this project is about
   seeing what ai can do on its own"). The Studio Director makes calls that previously waited on the
   owner, logs them here, and proceeds. Standing rulings for the run: (a) `docs/COUCH_CONVENTIONS.md`
