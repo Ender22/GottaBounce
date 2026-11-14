@@ -22,8 +22,8 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 ## Next 10
 1. ~~WK-01~~ done 933a77a
 2. ~~WK-02~~ done 933a77a
-3. WK-03 InputRouter autoload + device keys + gbplay simulated-pad testability
-4. WK-04 Each human driven by exactly one device (`InputHuman.for_device`, no keyboard sharing)
+3. ~~WK-03~~ done 1191757 — InputRouter autoload + device keys + gbplay simulated-pad testability
+4. ~~WK-04~~ done 1191757 — Each human driven by exactly one device (`InputHuman.for_device`, no keyboard sharing)
 5. WK-05 Herd Lobby slice 1: press-A-to-join panels, independent goat cycling
 6. WK-06 Herd Lobby slice 2: ready / banner / Start proceeds / devices carry into the match
 7. WK-07 Herd Lobby slice 3: RULES panel + lobby persistence + CHANGE SETUP
@@ -74,7 +74,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   Brawl shows exactly 2 HUD cards, no ghost "P1" cards, no script error in the log; BOTS cannot exceed 4−humans.
 - Status: open
 
-### [ ] WK-03 [P0][M] InputRouter autoload + device keys + simulated pads testable from gbplay
+### [x] WK-03 [P0][M] InputRouter autoload + device keys + simulated pads testable from gbplay — 1191757
 - Sources: C-05 (infrastructure), C-06/C-07/C-10/C-26 (enablers), audit §E.8
 - Area: tooling/menus · Owner: gameplay-programmer · Deps: WK-01
 - Do: `src/core/InputRouter.gd` (autoload via `load()`): `device_key(e)` (`kb` / `pad:N` by EVENT CLASS, CC-3.2),
@@ -87,7 +87,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   emits the signal (eval a counter). WK-01 pause gating still passes (regression).
 - Status: open
 
-### [ ] WK-04 [P0][M] Each human is driven by exactly one device (`InputHuman.for_device`)
+### [x] WK-04 [P0][M] Each human is driven by exactly one device (`InputHuman.for_device`) — 1191757
 - Sources: C-05, C-04 (match half), R-02 (match half)
 - Area: brawl/trials/sports · Owner: gameplay-programmer · Deps: WK-03
 - Evidence: InputHuman.gd:45-56 (enumeration order, overflow humans share keyboard, P1 = pad0 + keyboard)
