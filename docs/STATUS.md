@@ -7,7 +7,7 @@
 **WEEKEND POLISH RUN (started 2026-11-14, branch `weekend/polish`, UNATTENDED — owner: "i dont want to be
 involved much, this project is about seeing what ai can do on its own"):** owner verdict after a 4-month gap:
 "kinda fun but a shitty prototype... nonsense controls (B opens pause on xbox)... 2 users using 2 controllers
-totally cant select their character like a normal game". Procedure `docs/WEEKEND_LOOP.md` (re-read every tick);
+totally cant select their character like a normal game". Procedure `docs/WEEKEND_LOOP.md` (re-read every tick) + lessons `docs/WEEKEND_LESSONS.md`;
 ranked work `docs/BACKLOG.md` (79+ items from 3 audits in `docs/audit/2026-11-14_*`); standard
 `docs/COUCH_CONVENTIONS.md`; autonomy rulings DECISIONS 2026-11-14. Studio gained CCGS-adapted roles (producer,
 accessibility-specialist, sound-designer, performance-analyst) + skills (ux-review, bug-triage, team-polish,

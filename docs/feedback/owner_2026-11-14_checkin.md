@@ -24,3 +24,11 @@ Verbatim:
    track; producer weights sports items up).
 
 Positive: "some nice UI changes".
+
+## Follow-up message (same session)
+> also make sure you are recording lessens and progress and everything cause you never know when a context loss
+> might happen. also those pendulums i mentioned have not very cool looking motion, they look very stiff and like
+> poor quality. besides that, keep up the good work
+
+-> `docs/WEEKEND_LESSONS.md` created (append-only lessons), WEEKEND_LOOP requires appending lessons immediately;
+   STATUS/BACKLOG already updated per commit. Pendulum motion quality folded into WK-96.

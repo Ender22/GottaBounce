@@ -92,10 +92,12 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept: WK-93 recordings before/after; bot super usage share for traversal drops (telemetry), humans-sim can
   navigate a course with normal flight; qa feel note + creative-director sign-off.
 
-### [ ] WK-96 [P0][S] Pendulum hazards pass through players without smashing them
+### [ ] WK-96 [P0][M] Pendulums: pass through players without smashing them AND motion looks stiff/poor quality
 - Owner: "big swinging pendulums ... went right through a player and didnt smash them". Find the pendulum hazard
   (grep pendulum in src/ + levels), check collision layers/masks, tunnelling at speed (continuous CD / shape cast),
-  and hit-gating (cooldown/invuln). Accept: WK-93 recording of 5 pendulum contacts -> 5 smashes.
+  and hit-gating (cooldown/invuln). Owner follow-up: "not very cool looking motion, they look very stiff and like poor
+  quality" -> real pendulum swing (slow at apex, fast at bottom), visible anchor/arm, heft, whoosh/trail.
+  Accept: WK-93 recording of 5 pendulum contacts -> 5 smashes; contact sheet of one swing bunches at apexes.
 
 ### [ ] WK-97 [P0][S] Black hole level: player sprites render behind the black hole
 - Owner: "on like a black hole level, all the player sprites were behind the black hole". Fix z_index/z_as_relative or

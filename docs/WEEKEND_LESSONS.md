@@ -1,0 +1,41 @@
+# Weekend run — lessons learned (append-only; read on fresh context after WEEKEND_LOOP.md)
+
+Progress lives in `docs/STATUS.md` (weekend block) + `docs/BACKLOG.md` (checked items with commit hashes).
+This file is for the NON-OBVIOUS things learned the hard way. Add a line whenever something surprises you.
+
+## Process
+- **Validate motion with real recordings, not stills/bursts.** Owner spotted bot super-aim spinning wildly from a
+  20 s watch; our screenshot bursts never caught it. Use the WK-93 Movie Maker recorder (fixed fps, every frame)
+  for any motion / feel / bot / hazard change and look at the contact sheet frame by frame.
+- **Audit against genre conventions, not our own specs.** The B=pause and shared-cursor character select both
+  "passed" their specs. `docs/COUCH_CONVENTIONS.md` is now the bar for every screen/control.
+- **Parallelise by game slot.** Only one rendered game at a time (port 9090). Pattern that worked: one agent holds
+  the game; others build code-only + parse gate and report "ready for rendered verification"; director
+  messages them when the slot frees. Headless scene tests go in a scratchpad copy with McpInteractionServer removed.
+- **`tools/stop_game.ps1` kills EVERY Godot process** (incl. other agents' headless runs). Check before using.
+- **Deny rules match whole command text**: a commit message containing "reset --hard"/"push"/"clean" after `git`
+  is denied. Reword.
+- **Commit only your files by explicit path**; two agents' edits can share a file (PartyMatch) — commit them
+  together after both verify, or sequence the agents.
+- **Continue builders via SendMessage** (keeps their context) for follow-up slices — far cheaper than re-briefing.
+
+## Engine / game facts discovered
+- Frame hitches (~0.5 s every ~15 s, 16 FPS median on the studio machine) freeze physics-tick timers (Godot caps
+  8 physics ticks/frame) -> every between-stage timer and hit-stop stretches. WK-91 (P0). Headless doesn't show it.
+- `create_timer(t, true, false, true)` in Godot 4.7 fires after ~3 frames regardless of t -> hit-stop is
+  frame-rate dependent (WK-90).
+- gbplay's simulated pads do NOT appear in `get_connected_joypads()` -> key devices off input EVENTS
+  (InputRouter does this; device keys "kb" / "pad:N").
+- `PartyMatch._ready` loaded islands_void.json as a placeholder and the powerup director kept its spawn points
+  for every mode (fixed WK-86) — beware placeholder loads leaking state.
+- Bots almost never self-KO (frame-perfect recovery, raycast + fuel math, L1 aim noise re-rolled per frame cancels
+  out) — so bot-only matches hide the human self-fall problem; use human-sim drivers (WK-20a spec).
+- Godot screenshot via eval without awaiting `RenderingServer.frame_post_draw` returns a stale frame; `save_png`
+  stalls ~900 ms (pollutes timing measurements).
+- Wide fonts: Lilita One is ~24% narrower than the old Segoe UI Black fallback; the ✓ glyph is not in it.
+
+## Owner preferences learned this run
+- Wants zero involvement during the run but does check in: UI changes landed well; gameplay feel is the concern.
+- Normal flight must be good enough to manoeuvre; super boost is an ATTACK (ruling 2026-11-14, WK-95).
+- Sports modes may be more fun than Brawl — weight sports work (WK-98).
+- Hazard motion quality matters (stiff pendulums read as "poor quality").

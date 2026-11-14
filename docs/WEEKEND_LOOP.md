@@ -14,6 +14,8 @@ start of every loop tick (it survives context compaction; your memory of earlier
 - Deny rules match the WHOLE command text: a commit message mentioning "push", "clean" or
   "reset --hard" after `git` gets the commit denied. Reword the message.
 - Commit ONLY the files you changed, by explicit path (`git add -A` is forbidden — parallel agents).
+- LESSONS: append anything non-obvious you learn to `docs/WEEKEND_LESSONS.md` the moment you learn it (context
+  can be lost at any time). Read it on fresh context right after this file.
 - Bookkeeping helper: `python tools/wk_mark.py done <hash> "<line>" WK-NN ...` (or `tried "<reason>" WK-NN`).
 - After each commit: update `docs/STATUS.md` (top block "WEEKEND POLISH RUN") + tick the item in
   `docs/BACKLOG.md`. Commit both.
