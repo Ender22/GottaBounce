@@ -8,7 +8,8 @@ One line per significant/irreversible decision. Newest first.
   is the controls/menu standard — it SUPERSEDES the 2026-07-19 "strip all keyboard references" rule:
   keyboard is a first-class device again with device-aware glyphs; (b) open-licence fonts (SIL OFL /
   Apache, e.g. Google Fonts) may be bundled without owner approval — licence file committed beside the
-  font; (c) owner rulings on feel (knockback array, camera rules, kill target) stay in force — an
+  font; (b2) the same applies to CC0 / public-domain audio (e.g. Kenney, freesound CC0) — licence
+note committed in `assets/sfx/LICENSES.md`; (b3) fighter cap stays 4 (HUD corners) for the run; (c) owner rulings on feel (knockback array, camera rules, kill target) stay in force — an
   audit finding that touches them may only change what *feeds* them, documented here; (d) all work on
   branch `weekend/polish`.
 
