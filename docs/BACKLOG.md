@@ -43,12 +43,12 @@ deck #2/#3: the power shot matters, but kickoff fairness, the restart regression
 and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 
 1. WK-123 [P1][M] (in progress) Flight School lessons 2-3 require the super (CD2-01) + co-op HOME players stop blocking (CD2-02) + Refuel Ridge gap (WK-95f d) — level-designer (+ gameplay-programmer for HOME parking)
-2. WK-20a [P1][M] (in progress) Who wins and why: CPU share, self-KO −1, stage length and first-death time, human-style drivers -> game-designer rulings — qa-playtester + game-designer
+2. ~~WK-20a~~ done 2721c7c — [P1][M] (in progress) Who wins and why: CPU share, self-KO −1, stage length and first-death time, human-style drivers -> game-designer rulings — qa-playtester + game-designer
 3. WK-108 [P1][M] (in progress) Sports bots route/keep goal + kickoff goals ≤ 10 % with human-style drivers (CD2-03 folded in) — gameplay-programmer + game-designer
 4. WK-20c / WK-20b [P1][S] Apply whatever the WK-20a ruling calls for (self-KO / CPU mix / Lv0 gate); BLOCKED on the ruling, pulled the moment it lands — gameplay-programmer
 5. WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT regression, now 3.27 s) — gameplay-programmer + ui-ux-designer
 6. WK-37a [P1][S] Ghost-goat spec (no game slot, can run in parallel now): the dead are 48 % of a weaker player's match — game-designer
-7. WK-18 [P1][S] 28 px floor for anything a player reads (HUD, legend, lobby badges, sports score bug) — ui-ux-designer
+7. ~~WK-18~~ done 2aa8f87 — [P1][S] 28 px floor for anything a player reads (HUD, legend, lobby badges, sports score bug) — ui-ux-designer
 8. WK-111 [P1][M] Sports end screen frames the winning team + stat strip + MVP (SP-09; raised P2 -> P1 by CD2) — ui-ux-designer + gameplay-programmer
 9. WK-25 [P1][M] KO credit pop (+1 to the killer's card, −1 OOPS if the rule survives) + ScoreScreen kill list; after the WK-20a/20c ruling — gameplay-programmer + ui-ux-designer
 10. WK-34 [P1][M] Toybox panel kit A: Pause, in-match Options, ScoreScreen (first half of "one finished look"; WK-35 follows) — ui-ux-designer
@@ -777,7 +777,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   a 1080p lobby crop of a flavour line + the rules summary bar shows open letter counters (no same-colour outline).
 - Status: done 5672f04 (Lilita One display + Fredoka body via theme; ui-ux grade follow-ups -> WK-92)
 
-### [ ] WK-18 [P1][S] 28 px floor for anything a player reads
+### [x] WK-18 [P1][S] 28 px floor for anything a player reads — 2aa8f87
 - Sources: C-27, R-10 (micro-text), R-25 (KO chip legibility), CC-8.1, lobby review L6
 - Area: menus/HUD · Owner: ui-ux-designer · Deps: WK-17
 - Also (L6): lobby roster-medallion P-badges ~21 px -> 30x44 chip, 28 px white text on chocolate; a locked medallion
@@ -796,7 +796,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   (Rumble can't be seen; the call log is the evidence.) Options toggle lands in WK-44.
 - Status: open
 
-### [ ] WK-20a [P1][M] Who wins and why: measure the +25 % knockback side effects AND the self-KO −1 rule, then game-designer rulings (no code change)
+### [x] WK-20a [P1][M] Who wins and why: measure the +25 % knockback side effects AND the self-KO −1 rule, then game-designer rulings (no code change) — 2721c7c
 - Sources: D-18, R-07 (early KOs), DECISIONS 2026-07-19 watch item · split from WK-20 (producer 2026-11-14: measure before building)
   · **scope expansion 2026-11-14 (director): CD1-02 folded in** — was [S], now [M] (two questions, two driver types)
 - Area: brawl · Owner: qa-playtester (measure) + game-designer (rulings) · Deps: none · uses the game slot — serialize with builders
@@ -846,7 +846,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   batch move toward the ruling's target (numbers in the commit). If the ruling picks a pacing change, size it then: it may not be S.
 - Status: open (BLOCKED until WK-20a ruling)
 
-### [ ] WK-20b [P1][S] (conditional on WK-20a) Gate sting/escalation/hitstun at Lv0 on the pre-multiplier impulse
+### [~] WK-20b [P1][S] (conditional on WK-20a) Gate sting/escalation/hitstun at Lv0 on the pre-multiplier impulse — attempted: WON'T DO per WK-20a ruling (DECISIONS 2026-11-14): outcome-neutral
 - Sources: D-18 · **OWNER-RULED**: `dmg_launch_mult` array and hitstun triad constants do NOT change; only the impulse fed to the
   sting/escalation gate and hitstun at Lv0 (pre-multiplier) may. DECISIONS entry in the same commit (ruling c).
 - Area: brawl · Owner: gameplay-programmer + qa-playtester · Deps: WK-20a ruling
@@ -1106,6 +1106,15 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
 - Status: open (on deck)
 
 
+### [ ] WK-127 [P1][M] Bots self-KO 36% of deaths; 59% of 4-bot stages lose a fighter before 3 s
+- Source: WK-20a results (2721c7c) §11. Causes: (a) bots fire an attack super in the first second (53% of stages) and fly
+  off after missing; (b) `recovery_unreachable` supers fire at 50-97 fuel — `_nearest_ground_dx` mis-measures on spires /
+  the_ascent (74 cases followed by self-KO within 3 s = 9% of all deaths). Likeliest source of CD2's short stages.
+  Minor: `smash_landed` fires for hits on spawn-protected players. Owner: gameplay-programmer (bot brain).
+- Accept: 320-stage batch: bot self-KO share <= 20%, first-death-before-3 s <= 20% of stages, median stage length up;
+  recordings show no opening suicide supers.
+
+
 ## P2 — visible polish gaps
 
 ### [ ] WK-85 [P2][S] Tall arenas: backdrop painting stretches into a murky smear; tall themed platforms gap
@@ -1144,7 +1153,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
 - Status: done a4955e7. Also governs the WK-106 scorer / OWN GOAL banner names. WK-CD2 verified: "PUFF" / "PUFF CPU" consistent across
   banners, pause chips and the victory plate (`tools/out/cd2/10_victory_b.png`).
 
-### [ ] WK-89 [P2][S] `round_stats` may under-record kills when LIVES > 1 (instrumentation — unverified, seen once)
+### [~] WK-89 [P2][S] `round_stats` may under-record kills when LIVES > 1 (instrumentation — unverified, seen once) — attempted: WON'T DO: round_stats keeps multi-life kills (WK-20a step 0)
 - Area: tooling/brawl · Owner: qa-playtester (repro) -> gameplay-programmer (fix if confirmed) · Source: creative-director WK-CD1 (CD1-06)
 - Evidence (unverified): Grassy Expanse, LIVES 3, 63.5 s game time, final scores 2-0-5-1, but `round_stats[0].kills` held ONE entry
   (P1's self-fall at t=1). Seen once, not root-caused.

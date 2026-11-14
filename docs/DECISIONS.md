@@ -2,6 +2,17 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** WK-20a RULINGS (director, on the designer's pre-registered predictions + docs/audit/2026-11-14_wk20a_results.md):
+  (1) SELF-KO SCORING = Ra: falling off on your own costs 0 points by default; "SELF-KO -1" becomes a RULES toggle
+  (off by default). Data: under -1, 27-32% of matches show a ranking inversion vs kills and the average human loses
+  3.1-3.3 points to self-falls; only 17-23% of human self-KOs are in the opening 3 s (so a grace window alone, Rd,
+  is insufficient). Studio rule, not an owner ruling. (2) WK-20b WON'T DO: the +25% knockback side effects (graze
+  escalation) are mechanically real but outcome-neutral (Lv0 survival 63 vs 55%, sign-flipping; stages not longer in
+  arm B); owner knockback array untouched. (3) WK-89 WON'T DO: round_stats keeps multi-life kills (CD1 read mid-stage).
+  (4) CPU dominance is fighting, not scoring -> new P1 bot item: bots self-KO 36% of deaths, 59% of 4-bot stages
+  lose someone before 3 s (first-second attack supers + recovery_unreachable mis-measure on spires/the_ascent).
+
+
 - **2026-11-14** WK-95e HOT RECOVERY RULE ON (director ruling, in the owner's absence; owner ruled "super boost =
   attack, not traversal"). `InputBot.wk95_hot_stopdist = true`: a bot's emergency "HOT" recovery super now also
   requires that a full normal-boost brake could NOT stop it before the blast line. 320-stage batch: supers used as
