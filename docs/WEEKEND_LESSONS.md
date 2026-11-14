@@ -12,6 +12,10 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **Parallelise by game slot.** Only one rendered game at a time (port 9090). Pattern that worked: one agent holds
   the game; others build code-only + parse gate and report "ready for rendered verification"; director
   messages them when the slot frees. Headless scene tests go in a scratchpad copy with McpInteractionServer removed.
+- **`tools/run_game.ps1` ALSO force-kills every Godot process on start** (and stop_game.ps1 does too). With Movie
+  Maker recordings running in parallel, launch Godot directly with run_game's args and stop by PID.
+- **Parallel builders share files** (PartyMatch/SportsMode): a verified batch can't be committed while another
+  builder's unverified hunks sit in the same file. Note the pending state in STATUS; commit both together.
 - **`tools/stop_game.ps1` kills EVERY Godot process** (incl. other agents' headless runs). Check before using.
 - **Deny rules match whole command text**: a commit message containing "reset --hard"/"push"/"clean" after `git`
   is denied. Reword.
