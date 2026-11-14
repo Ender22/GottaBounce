@@ -20,34 +20,45 @@ Standard: `docs/COUCH_CONVENTIONS.md` (CC-x.y). Procedure: `docs/WEEKEND_LOOP.md
 Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 files · M = one full slice · L = split it.
 
 ## In flight (do NOT reassign)
-- WK-24 attacker-colour hits · WK-23 screen-edge KO blast — gameplay-programmer, built, in rendered verification
-- WK-82 lobby hold-B exit — built by the director, verifying
-- WK-86 (CD1-01) powerup spawners stuck on Islands Void's points — same gameplay-programmer, in progress
+- **In progress, game slot (owner check-in 2026-11-14):** WK-93 match recorder · WK-94 bot super-aim smoothing ·
+  WK-96 pendulum hits + pendulum motion quality · WK-97 black-hole z-order. Working tree carries their uncommitted edits
+  (InputBot, Player, Tuning, MovingHazard, GravitySource, PartyMatch, MatchRecorder/RecordBoot, record_match.ps1).
+- **Built, awaiting rendered verification:** WK-15 legend/rule line + WK-88 naming rule + WK-92 font follow-ups (one
+  gameplay-programmer) · WK-36 off-screen magnifier bubbles (another gameplay-programmer). Close each only on its Accept line.
+- **Spec done, build queued:** WK-95 (`docs/specs/wk95_flight_responsiveness_2026-11-14.md`, de7fd96) — split into 95a-95d
+  below; 95a cannot start until WK-93 is done AND WK-94 is merged.
+- **Watch out:** WK-94, WK-95 and WK-96 all touch `InputBot.gd` / `Player.gd` / `Tuning.gd` / `PartyMatch.gd`. Commit WK-93/94/96/97
+  before any WK-95 code lands; never let two of them share an uncommitted file at verification time.
+- **Measurement validity:** perf/timing/feel numbers count only with the display awake (~120 fps). See WEEKEND_LESSONS
+  "DISPLAY OFF = BOGUS PERF DATA" and WK-100.
 
-## Next 10 (producer re-rank 2026-11-14 after WK-CD1, docs/audit/2026-11-14_cd1_playthrough.md)
-Ranking logic: no open P0. WK-CD1 verdict: front end / couch input SHIP, Brawl in motion FIX. CD order adopted: the S-size
-bug that has overridden every arena since July first (WK-86), then finish the KO-readability run already in flight
-(WK-24/23), then the "who wins and why" study (WK-20a, now incl. the self-KO −1 rule, CD1-02), then dead time (WK-21 +
-WK-41 raised: 9-13 s of overlays per ~15 s fight = 35-40 % of a match). WK-25 now waits on the self-KO ruling (the −1 OOPS
-pop is moot if the rule changes). WK-CD2 sits at 7 = after item 6. WK-36 drops to on-deck #1.
+## Next 10 (producer re-rank 2026-11-14 #3, after the owner check-in + WK-91 close)
+Ranking logic: owner feedback outranks studio opinion. The owner's five bug/feel asks are P0 and four are already in the
+game slot; the fifth (WK-95, OWNER RULING on flight vs super) is #1 once they land. The owner also says sports "may be more
+fun than brawl", so sports gets real weight: the WK-98 deep-dive is #2 and the two known sports P1s (WK-27 team lobby,
+WK-16 one scoring banner) are pulled up from on-deck/band into #3-4 instead of waiting for WK-98 to rediscover them. Then the
+brawl "who wins and why" chain (WK-20a, now valid with the screen on, measured on the post-WK-95 flight; then WK-25), then
+WK-CD2, then the rest by couch impact. WK-95 was mis-sized as M (telemetry + flight + bot brain + 4 sweeps + CD sign-off =
+several slices): split into WK-95a-d, pulled in order.
 
-1. ~~WK-86~~ done 4d5d356 — [P1][S] Powerup spawners follow the loaded stage, not Islands Void (CD1-01) — gameplay-programmer — IN PROGRESS
-2. ~~WK-24~~ done 4d5d356 — [P1][S] Hits carry the attacker's colour (burst, streak, last-touch ring) — gameplay-programmer — IN FLIGHT (verifying)
-3. ~~WK-23~~ done 4d5d356 — [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer — IN FLIGHT (verifying)
-4. ~~WK-82~~ done 4d5d356 — [P1][S] Lobby hold-B exit only from a B that changed nothing — director-built — IN FLIGHT (verifying)
-5. WK-20a [P1][M] Who wins and why: +25 % knockback side effects AND the self-KO −1 rule, measured with human-style drivers + game-designer ruling — qa-playtester + game-designer
-6. ~~WK-21~~ done 43b6abc — + WK-41 [P1][S+S] Between-stage budget: adaptive ScoreScreen hold + overlays in sequence / one prompt (pull together) — gameplay-programmer + ui-ux-designer
-7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (KO readability, scoring ruling, downtime budget) — creative-director
-8. WK-25 [P1][M] KO credit pop (+1 to killer's card / −1 OOPS per the WK-20a ruling) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-23, WK-20a ruling, WK-89 if confirmed)
-9. ~~WK-17~~ done 5672f04 — [P1][S] Bundle an OFL display font + drop fake-bold same-colour outlines on lobby small text (CD1-05) — ui-ux-designer; unblocks WK-18/34/35
-10. WK-15 [P1][S] Teach the goal: legend on every mode's stage 1, "SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs" — ui-ux-designer + gameplay-programmer
+1. WK-95 [P0][M x4] OWNER RULING: flight you can steer, super = attack — pull 95a -> 95b -> 95c -> 95d in order — game-designer spec done; gameplay-programmer + qa-playtester + creative-director (deps WK-93 done, WK-94 merged)
+2. WK-98 [P1][M] Sports deep-dive: creative-director + game-designer rendered session -> ranked sports findings — creative-director + game-designer (after WK-95b so ball strikes are judged on the new flight)
+3. WK-27 [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team — gameplay-programmer + ui-ux-designer (code-only build may run in parallel with WK-95; game slot only to verify)
+4. WK-16 [P1][S] Sports: one goal/point banner, not two stacked headlines — ui-ux-designer
+5. WK-20a [P1][M] Who wins and why: knockback side effects + self-KO −1 rule, human-style drivers, on the post-WK-95 build -> game-designer rulings (WK-20b/20c S builds follow immediately if ruled) — qa-playtester + game-designer
+6. WK-25 [P1][M] KO credit pop (+1 killer / −1 OOPS per the WK-20a ruling) + ScoreScreen kill list — gameplay-programmer + ui-ux-designer (deps WK-20a ruling, WK-20c if ruled, WK-89)
+7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (flight + super, sports, KO readability, scoring) — creative-director
+8. WK-90 [P1][S] Hit-stop duration: RE-MEASURE at 120 fps with the screen on, then game-designer ruling, then fix — game-designer -> gameplay-programmer
+9. WK-26 [P1][S] Super-aim wind-up sound + "!" over the targeted goat (the super is now THE attack: its telegraph matters more) — gameplay-programmer + sound-designer (after WK-94)
+10. WK-87 [P2][S] Trials objective panel never covers the goal ring (every new player, lesson 1) — ui-ux-designer
 
-On deck (11+, in order): WK-36 off-screen magnifier bubbles (M) · WK-20b / WK-20c conditional builds from the WK-20a
-ruling (S each) · WK-89 round_stats multi-life kill gap, fix if WK-20a's repro confirms (S) · WK-37a ghost-goat spec (S,
-game-designer, parallel any time; matters more with LIVES 3 per CD1) · WK-13 BRAWL default focus on ModeSelect (S) ·
-WK-26 super-aim wind-up + "!" (S) · WK-88 one naming rule for fighters (S) · WK-87 Trials objective off the goal ring (S) ·
-WK-19 rumble only to the concerned pad (S) · WK-53 quack/taunt (S, needs a CC0 bleat) · WK-32a hero wire-or-cosmetic
-decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware glyph component (M).
+On deck (11+, in order): WK-13 BRAWL default focus on ModeSelect (S) · WK-37a ghost-goat spec (S, game-designer, no game slot:
+run in parallel any time) · WK-31 HUD danger state + stocks when LIVES > 1 (M) · WK-99 fuel-gauge super-ready notch (S, after
+WK-95b) · WK-100 display-off pre-flight in run/perf/record tools (S, tooling, no game slot; never mid-QA) · WK-28 controller
+disconnect (M) · WK-19 rumble only to the concerned pad (S) · WK-53 quack/taunt (S, needs a CC0 bleat) · WK-32a hero
+wire-or-cosmetic decision (S, after WK-20a/b and WK-95) · WK-14 singular focus (S) · WK-29 device-aware glyph component (M) ·
+WK-65/66 sports court art (M each; re-judge rank from WK-98's findings, may jump) · WK-35 panel kit B incl. sports scoreboard (M).
+WK-89 runs inside the WK-20a session; it is not pulled on its own.
 
 ---
 
@@ -66,48 +77,110 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 
 ## OWNER CHECK-IN 2026-11-14 (docs/feedback/owner_2026-11-14_checkin.md) — owner feedback jumps its band
 
-### [ ] WK-93 [P0][S] Match video recorder: 20 s at fixed fps, frame-by-frame analysis as standard motion evidence
+### [x] WK-93 [P0][S] Match video recorder: 20 s at fixed fps, frame-by-frame analysis as standard motion evidence — 9a2ee3f
+- Area: tooling · Owner: gameplay-programmer (tooling) · Source: owner_2026-11-14_checkin.md (ask 1)
 - Owner: "do you ever record a video of like 20 seconds of a match then analyze it frame by frame?"
 - Do: `tools/record_match.ps1` (+ doc in run-and-playtest skill): Godot Movie Maker (`--write-movie out/frame.png
   --fixed-fps 30 --quit-after N`) on a scripted match config (MatchConfig via a tiny boot scene/CLI arg), frames to
   `tools/out/rec/<name>/`, plus a contact-sheet + per-player trajectory/angle overlay script. Movie Maker renders every
-  frame regardless of machine FPS, so it also sidesteps WK-91 for analysis.
+  frame regardless of machine FPS, so frame analysis is valid even on a throttled machine (timing numbers are not).
 - Accept: a 20 s 4-bot brawl recording exists with contact sheets; WEEKEND_LOOP + qa-playtester require it for any
   motion/feel/bot change.
+- Status: in-progress (game slot; uncommitted `src/dev/MatchRecorder.gd`, `RecordBoot.gd`, `scenes/dev/`, `tools/record_match.ps1`,
+  `tools/rec_sheet.py`; WEEKEND_LOOP step 4 already references it). Gates WK-94/95/96 evidence.
 
-### [ ] WK-94 [P0][S] Bot super-aim spins like crazy — must sweep like a human
+### [x] WK-94 [P0][S] Bot super-aim spins like crazy — must sweep like a human — 9a2ee3f
+- Area: brawl (bots) · Owner: gameplay-programmer · Source: owner_2026-11-14_checkin.md (ask 2)
 - Owner: "the aiming mechanic looks crazy when the bots use it, it spins like nuts". Lead: game-designer found L1
-  "panic" aim noise is re-rolled EVERY frame (docs/specs/wk20a_measurement_2026-11-14.md §Study B).
+  "panic" aim noise is re-rolled EVERY frame (docs/specs/wk20a_measurement_2026-11-14.md §2.2 point 3).
 - Do: bot aim = smoothed target angle with max angular speed (Tuning), noise as slow drift not per-frame jitter;
   verify with WK-93 recording (aim angle per frame plot: no flips > N deg/frame).
 - Accept: recording of 3 bot supers per difficulty shows smooth, readable wind-up; max angular step under cap.
+- Status: in-progress (game slot; `InputBot.gd` edits uncommitted). Its merge is the start gate for WK-95a's baseline.
 
-### [ ] WK-95 [P0][M] OWNER RULING: normal flight responsive enough to manoeuvre; super boost = attack, not traversal
+### [ ] WK-95 [P0][M x4] OWNER RULING: normal flight responsive enough to manoeuvre; super boost = attack, not traversal
+- Area: brawl (feel + bots), also sports + trials side effects · Source: owner_2026-11-14_checkin.md (ask 3) · **OWNER-RULED**
+  (the owner's ruling is the target; DECISIONS entry in the build commit)
 - Owner: "the bots need to rely too much on the super boost because the normal flying isnt responsive enough to
   maneuver around nicely, we should make that more responsive/effective and consider super boost more just like the
   way to attack others rather than the way to get around."
-- Do: game-designer spec first (which Tuning constants: thrust accel, air control, turn responsiveness, fuel cost of
-  normal flight, super cost/cooldown; respect hitstun triad/kill target/camera rulings); prediction-first; then
-  gameplay-programmer tunes + bot brain change (super only for attacks / emergency recovery). DECISIONS entry.
-- Accept: WK-93 recordings before/after; bot super usage share for traversal drops (telemetry), humans-sim can
-  navigate a course with normal flight; qa feel note + creative-director sign-off.
+- Spec: DONE — `docs/specs/wk95_flight_responsiveness_2026-11-14.md` (de7fd96): steering grip + directional boost keep,
+  accel 5400 / cap 800 (INV-1 holds), `super_boost_min_fuel` 5 -> 10, bots fly to travel and super only in an attack window
+  or as last-resort recovery. No protected constant touched (spec §3.5). Pre-registered predictions §7, fallback ladders §9.
+- **Re-sized (producer 2026-11-14):** the spec is four slices (telemetry/baseline, flight, bot brain, sweeps + sign-off),
+  not one M. Pull in order; each lands playable on its own.
+- **BASELINE ORDER (hard rule):** the "before" evidence — WK-93 recordings (spec §8.5 G: islands_void, grassy_expanse, atoll)
+  AND the bot super-for-traversal telemetry (§8.1 `geo_class`, super-as-movement share) plus the §8.2-8.5 baselines — must be
+  captured on a build where **WK-94 is merged and no WK-95 Tuning/Player/InputBot change has landed**. Not before WK-94
+  (the aim fix changes bot super behaviour and would pollute the baseline), not after 95b. If 95b lands first by mistake,
+  use the spec §3.6 A/B switches at runtime (accel 4600 / cap 760 / min fuel 5) and hash `Tuning.gd` before/after.
+  Screen on (WK-100 / WEEKEND_LESSONS) for any timing number.
+- WK-95a [P0][M] Telemetry + baseline capture — gameplay-programmer (§8.1 telemetry in PartyMatch, no behaviour change) +
+  qa-playtester (baseline). Deps: WK-93 done, WK-94 merged. Accept: §8.1 fields present in `supers_fired[]` and per-player
+  stats (eval); baseline numbers saved to `tools/out/wk/WK-95_baseline.json` (B1-B6 40-stage batch, M1-M9, PadHopper C1/C3,
+  sports E, pacing D) + 3 "before" WK-93 recordings with contact sheets, LOOKED at.
+- WK-95b [P0][M] Flight: steering grip, directional boost keep, accel/cap, super min fuel — gameplay-programmer. Deps: 95a.
+  Files: `Tuning.gd`, `Player.gd`. Accept: M1-M9 pass (spec §8.2); DECISIONS entry; one "after" recording looked at.
+- WK-95c [P0][M] Bot brain: fly to travel; super only in an attack window (range + LOS) or last-resort recovery — gameplay-programmer.
+  Deps: 95b. File: `InputBot.gd` (after WK-94 is committed). Accept: B1-B6 (spec §8.3) on the 40-stage batch vs the 95a baseline.
+- WK-95d [P0][M] Side-effect gates + sign-off — qa-playtester + level-designer + creative-director. Deps: 95b, 95c. Accept: PadHopper
+  C1-C4, KO pacing D, sports E (owner's fun-flagged mode: mandatory), Trials sweep F (0 newly impossible courses), after-recordings G,
+  creative-director feel check §10 SHIP. On a miss, walk the §9 ladder one knob at a time; Phase 2 `super_hit_refund` only if C4 fails.
+- Status: spec done de7fd96; build queued (95a blocked on WK-93 + WK-94).
 
-### [ ] WK-96 [P0][M] Pendulums: pass through players without smashing them AND motion looks stiff/poor quality
+### [x] WK-96 [P0][M] Pendulums: pass through players without smashing them AND motion looks stiff/poor quality — 9a2ee3f
+- Area: brawl (hazards) · Owner: gameplay-programmer (+ art-director on the look) · Source: owner_2026-11-14_checkin.md (ask 4 + follow-up)
 - Owner: "big swinging pendulums ... went right through a player and didnt smash them". Find the pendulum hazard
   (grep pendulum in src/ + levels), check collision layers/masks, tunnelling at speed (continuous CD / shape cast),
   and hit-gating (cooldown/invuln). Owner follow-up: "not very cool looking motion, they look very stiff and like poor
   quality" -> real pendulum swing (slow at apex, fast at bottom), visible anchor/arm, heft, whoosh/trail.
-  Accept: WK-93 recording of 5 pendulum contacts -> 5 smashes; contact sheet of one swing bunches at apexes.
+- Accept: WK-93 recording of 5 pendulum contacts -> 5 smashes; contact sheet of one swing bunches at apexes.
+- Status: in-progress (game slot; `MovingHazard.gd` +397 lines uncommitted, also `Player.gd`/`Tuning.gd`/`AudioManager.gd`).
 
-### [ ] WK-97 [P0][S] Black hole level: player sprites render behind the black hole
+### [x] WK-97 [P0][S] Black hole level: player sprites render behind the black hole — 9a2ee3f
+- Area: brawl (render order) · Owner: gameplay-programmer · Source: owner_2026-11-14_checkin.md (ask 5)
 - Owner: "on like a black hole level, all the player sprites were behind the black hole". Fix z_index/z_as_relative or
-  CanvasLayer ordering of the black_hole sprite (GravitySource) so players/FX draw in front. Accept: screenshot on
-  Singularity with players passing over the black hole.
+  CanvasLayer ordering of the black_hole sprite (GravitySource) so players/FX draw in front.
+- Accept: screenshot on Singularity with players passing over the black hole.
+- Status: in-progress (game slot; `GravitySource.gd` edit uncommitted).
 
-### [ ] WK-98 [P1][M] Sports focus track: owner reports Rocketball/Dropshot may be more fun than Brawl
-- Do: game-designer + creative-director sports deep-dive (play both sports rendered; what's fun, what's rough:
-  ball feel, scoring readability, court variety, team lobby WK-27, bots' team play, match flow) -> new WK-1xx sports
-  items; producer weights sports items into Next 10 alongside brawl.
+### [ ] WK-98 [P1][M] Sports deep-dive: owner reports Rocketball/Dropshot may be more fun than Brawl
+- Area: sports · Owner: creative-director + game-designer (rendered session), then producer re-rank · Source: owner_2026-11-14_checkin.md (ask 6)
+- Owner: "i've had some feedback that the sport modes are quite fun, maybe more fun than the brawl, so lets ensure we focus
+  efforts there too".
+- Deps: WK-95b merged (spec §6.3: the flight change alters header strength and aim — judge the ball on the new flight).
+  Does not wait for 95c/95d. Uses the game slot.
+- Do: one rendered session, human-style input on kb + 2 simulated pads. Rocketball 2v2 and 1v1, Dropshot 2v2, at least 4
+  Rocketball courts + all 3 Dropshot courts, with a WK-93 recording of one Rocketball and one Dropshot match.
+  - creative-director: judge against GAME_ESSENCE as a couch group would. Why is it fun? What feels rough?
+  - game-designer: name the feel to PROTECT: ball drive (`BALL_DRIVE_GAIN` is still a Ball.gd const, INV-6), scoring rules,
+    serve. Also name what to change.
+  - Cover: ball feel + readability, goal/point feedback (WK-16), team pick (WK-27), bots' team play, court variety and art
+    (WK-65/66), match flow and end screen, sports scoreboard (WK-35).
+- Accept: findings doc in `docs/audit/` with screenshots/recording frames under `tools/out/wk98/`. Every finding becomes a
+  bug-triage entry (next free WK id) with evidence, or is merged into WK-16/27/35/65/66 with a keep/raise/drop note.
+  Producer re-ranks sports items into the Next 10 before the next pull.
+- Status: open (planned as Next-10 #2)
+
+### [ ] WK-99 [P2][S] Fuel gauge shows a super-ready notch (threshold now 10 %)
+- Area: HUD · Owner: ui-ux-designer · Source: game-designer WK-95 spec §6.4 · Deps: WK-95b (threshold value)
+- Impact: with `super_boost_min_fuel` 10 (was 5), "can I super?" stops being trivially yes; the PlayerCard gauge and the off-screen
+  bubble fuel ring (WK-36) don't show the line. Couch players learn the attack's cost from the HUD instead of a dud press.
+- Accept (rendered): eval fuel 9 / 11 on P1 -> the notch reads below/above in a PlayerCard crop and a WK-36 bubble crop; ui-ux Ship.
+- Status: open
+
+### [ ] WK-100 [P2][S] Tooling: display-off pre-flight in run_game.ps1, perf_gate.py and record_match.ps1
+- Area: tooling · Owner: gameplay-programmer (tooling) · Source: performance-analyst docs/audit/2026-11-14_perf_wk91.md rec 1(a)(b)
+- Evidence: a whole afternoon of WK-91/WK-21/WK-90 timing data (12:08-15:50) was taken with the display off. Modern Standby caps
+  presentation at ~30 Hz with ~500 ms stalls (Kernel-Power 506/507). It cost a P0 investigation and blocked the WK-21 budget.
+- Impact: not player-facing. Every timing/feel verdict in the loop depends on it (WK-20a, WK-90, WK-95a baseline). The director's
+  keep-awake script is a session workaround, not a guard.
+- Do: read the latest Kernel-Power 506/507 event. If the last one is 506, print "DISPLAY OFF - timings invalid". Also flag runs whose
+  median `draw` is 25 ms or more while GPU + render-CPU time is under 3 ms. Touches `run_game.ps1`: never land it while a QA session
+  holds the game. Rec 1(c), setting the AC display timeout to Never, is owner machine setup: BLOCKED (owner), not studio work.
+- Accept: with the display forced off (or a stubbed 506 event), each tool prints the warning; with the display on, run_game + a gbplay
+  screenshot still work unchanged.
+- Status: open
 
 
 ## P0 — broken normal couch play (controls, joining/selecting, roster)
@@ -237,7 +310,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept (rendered): after a stage change in Brawl, eval `_pu_director.points` equals that arena JSON's `powerup_spawners` on 3
   arenas, with a bubble screenshot at an arena-specific point; Rocketball, Dropshot and Trials lesson 1 show 0 bubbles over 60 s
   (or the game-designer's ruling); no bubble outside the camera bounds. The 94-arena re-check rides on WK-57.
-- Status: in-progress (gameplay-programmer, alongside WK-23/24 verification)
+- Status: done 4d5d356. WK-CD2 re-judges it as item (4) (powerups only at each arena's own points).
 
 ### [x] WK-08 [P1][S] One player = one colour = their goat's colour, everywhere — 4e7caf6
 - Sources: C-08, R-04, D-03 (design audit rated P0)
@@ -265,14 +338,18 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 
 ### [ ] WK-CD2 [P1][M] Creative-director cold playthrough #2 (recurring)
 - Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank · Area: all · uses the game slot
-- Deps: Next-10 items 1-6 landed (WK-86, WK-24, WK-23, WK-82, WK-20a ruling, WK-21 + WK-41)
+- Deps (re-rank 2026-11-14 #3): WK-95d signed off, WK-98 findings ranked, WK-20a ruling + WK-25 landed. (Old deps WK-86/24/23/82/21/41 are
+  all done.)
 - Do: the same 3-device cold run as WK-CD1 (pad + kb + pad, full default Brawl to Victory, REMATCH, one 3-lives stage, one
   Trials + one Rocketball + one Dropshot launch). Re-judge specifically: (1) can you tell who KO'd whom from the screen alone
   (WK-23/24); (2) does the score economy still let a CPU beat three humans (WK-20a ruling + any WK-20c change); (3) measured
-  STAGE_END -> next COMBAT time against the WK-21/41 budget; (4) powerups appear only where each arena placed them (WK-86).
+  STAGE_END -> next COMBAT time against the WK-21/41 budget; (4) powerups appear only where each arena placed them (WK-86);
+  (5) normal flight steers and the super reads as an attack, for humans and bots (WK-95, owner ruling); (6) pendulums smash and
+  swing with weight, players draw over the black hole (WK-96/97); (7) one Rocketball + one Dropshot match judged against the
+  WK-98 findings. Use WK-93 recordings for (1), (5) and (6).
 - Accept: findings doc in `docs/audit/` with screenshots under `tools/out/cd2/` + producer re-rank before Next-10 item 8 is pulled.
   Next instance WK-CD3 ~6 items later.
-- Status: open
+- Status: open (Next-10 #7)
 
 ### [x] WK-82 [P1][S] Lobby hold-B exits only from a B press that changed nothing; 6 px ring — 4d5d356
 - Source: ui-ux-designer lobby review L8 (docs/audit/2026-11-14_lobby_review.md); producer code re-check 2026-11-14
@@ -292,7 +369,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Decision (director 2026-11-14): KEEP the Smash convention — a slotless device holding B 1.0 s exits the lobby for everyone
   (Smash Ultimate behaves this way). The CD's case above is **accepted risk, not a bug**; do not add it to the Accept line.
   The fix stays scoped to presses that un-ready or leave never arming the ring.
-- Status: in-progress (built by the director, rendered verification pending)
+- Status: done 4d5d356
 
 ### [x] WK-09 [P1][S] Pause finish: hold-to-confirm RESTART/QUIT, "PAUSED · P2" header with goat head, context line — 5926f10
 - Sources: C-18, R-09, C-20 (header/context; CONTROLS entry lands with WK-33), C-06 (header part), CC-6.1, CC-7.2
@@ -351,13 +428,15 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   stage-1 StageIntroCard rule line "SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs"; BRAWL tagline -> "Smash 'em off-screen.
   First to 10 KOs."; stage banner leads with KOs, survivor as sub-line.
 - Accept (rendered): stage-1 screenshots of Brawl, Trials, Rocketball, Dropshot each show the legend; Brawl intro shows the rule line.
-- Status: open
+- Status: built — awaiting rendered verification (gameplay-programmer, same pass as WK-88/WK-92; uncommitted ControlsLegend,
+  StageIntroCard, ModeSelect edits). Close only on the 4-mode stage-1 screenshots.
 
 ### [ ] WK-16 [P1][S] Sports: one goal/point banner, not two stacked headlines
 - Sources: R-12
 - Area: sports · Owner: ui-ux-designer · Deps: none
 - Evidence: tools/out/cd_audit/46_rocketball_3.5s.png, d53_contact.png
 - Accept (rendered): goal in Rocketball and point in Dropshot each show one scoring-team-coloured burst + score tick, nothing clipped by posts.
+- Raised 2026-11-14 (owner check-in: sports may be more fun than brawl) into Next-10 #4. WK-98 may add to it; do not wait for WK-98.
 - Status: open
 
 ### [x] WK-17 [P1][S] Bundle a real display font (OFL) — NOT blocked (DECISIONS ruling b) — 5672f04
@@ -371,7 +450,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   Drop the outline on dark-on-light body text (or use a light outline) when the bundled face lands — no fake-bold outlines.
 - Accept (rendered): Title, Lobby/CharacterSelect, Pause, ScoreScreen, Victory screenshots all render the bundled face; no text overflow;
   a 1080p lobby crop of a flavour line + the rules summary bar shows open letter counters (no same-colour outline).
-- Status: open
+- Status: done 5672f04 (Lilita One display + Fredoka body via theme; ui-ux grade follow-ups -> WK-92)
 
 ### [ ] WK-18 [P1][S] 28 px floor for anything a player reads
 - Sources: C-27, R-10 (micro-text), R-25 (KO chip legibility), CC-8.1, lobby review L6
@@ -410,7 +489,11 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept: numbers in `tools/out/wk/WK-20a_measure.json` (both batches) + a contact sheet of 3 recoveries; game-designer writes both
   rulings in DECISIONS: knockback "no fix needed" (WK-20b -> Won't do) or the exact WK-20b gate; self-KO keep (WK-20c -> Won't do)
   or the exact WK-20c change.
-- Status: open
+- Re-ranked 2026-11-14 (Next-10 #5): measure on the **post-WK-95 build** (95b + 95c merged). WK-95 changes flight, fall-arrest and bot
+  super use, so self-fall shares and KO pacing measured before it would be stale on arrival. Screen on (fps ~120) for every number;
+  earlier timing data from 12:08-15:50 is void (perf audit). Protocol: docs/specs/wk20a_measurement_2026-11-14.md (ee95d72).
+  The WK-95 PadHopper and the wk20a HumanSim share driver code: reuse it, do not fork it.
+- Status: open (Next-10 #5; game slot)
 
 ### [ ] WK-20c [P1][S] (conditional on WK-20a) Apply the game-designer's self-KO / CPU-mix ruling
 - Source: CD1-02 via WK-20a · Area: brawl · Owner: gameplay-programmer · Deps: WK-20a ruling · WK-25's −1 OOPS pop follows the result
@@ -440,7 +523,9 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   match-point stages **<= 8 s**, with the ScoreScreen holding 3.4 s on a lead change (eval timestamps + per-phase table + screenshots).
   If the budget cannot be met without touching `round_end_freeze` or the countdown, stop and take it to the game-designer —
   those are owner-ruled.
-- Status: open
+- Status: done 43b6abc (designed 4.8 s normal / 6.2 s lead change). The wall-clock budget was "blocked on WK-91" only
+  because of display-off data: with the screen on, the perf audit measured 4.78 / 6.18 s, wall = tick (PASS,
+  docs/audit/2026-11-14_perf_wk91.md). Option A (UI timers on the real clock) is retired, not needed.
 
 ### [x] WK-41 [P1][S] Between-stage budget, half 2: overlays run in sequence; one prompt (countdown ring OR A); SELF-KO label — 43b6abc
 - Sources: R-27 (overlap + prompt; names go to WK-59, −1 label pairs with WK-25) · **raised P2 -> P1 2026-11-14** (WK-CD1 downtime
@@ -451,7 +536,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   adding 0.0 s and never gate state (ceremony brief); trimming the stage-2+ intro window is in scope, the 3-2-1 beat is not.
 - Accept (rendered): STAGE_END -> SCOREBOARD -> STAGE_INTRO burst shows no frame with two overlays at once; together with WK-21 the
   between-stage budget (<= 6 s normal, <= 8 s lead change) passes.
-- Status: open
+- Status: done 43b6abc (one overlay at a time; budget PASS with WK-21, see above)
 
 ### [x] WK-22 [P1][S] KO blast sprite strip (art) — 5a999db
 - Sources: D-01 (art half)
@@ -468,14 +553,14 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   victim-coloured blast at the nearest edge.
 - WK-CD1: still the #1 fantasy gap — "across 11 stages I could rarely tell who killed whom from the screen"; at 0.46-0.62 zoom a KO
   is a speck leaving the frame.
-- Status: in-progress (built, rendered verification pending)
+- Status: done 4d5d356. WK-CD2 re-judges "can you tell who KO'd whom" (item 1).
 
 ### [x] WK-24 [P1][S] Hits carry the attacker's colour (impact burst, knockback streak, last-touch ring) — 4d5d356
 - Sources: D-06, D-02 (part 2 last-touch tag)
 - Area: brawl · Owner: gameplay-programmer · Deps: WK-08
 - Accept (rendered): frame-grab 10 smashes: burst/streak hue = attacker colour 10/10; victim in credit window shows a thin
   attacker-coloured ring; streak value >= 0.8 (launch read kept).
-- Status: in-progress (built, rendered verification pending; streak = attacker colour per DECISIONS e2394c1)
+- Status: done 4d5d356 (streak = attacker colour per DECISIONS e2394c1)
 
 ### [ ] WK-25 [P1][M] KO credit pop (+1 flies to killer's card, −1 OOPS on self-fall) + ScoreScreen kill list
 - Sources: D-02 (parts 1+3), R-27 (unlabelled "−1"), R-06 (score-visibility half) · **OWNER-RULED**: no persistent combat score — the pop is transient (<= 1.5 s)
@@ -485,13 +570,15 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept (rendered): 4-bot match, 30 deaths: every credited kill shows a killer-coloured +1 reaching the right card within 1.0 s,
   every uncredited death shows −1/+0 on the victim card (eval `scores` before/after, 0 mismatches); ScoreScreen lists
   "P2 ▶ P3" / "P4 SELF-KO −1".
-- Status: open
+- Status: open (Next-10 #6; blocked on the WK-20a ruling)
 
 ### [ ] WK-26 [P1][S] Super-aim wind-up sound + "!" over the targeted goat
 - Sources: D-07
 - Area: brawl/audio · Owner: gameplay-programmer + sound-designer · Deps: none (bleat layer waits for WK-53 asset)
 - Accept: `EventBus.super_aim_started` fires; `AudioManager.last_sfx == "super_aim"` on aim entry; 10 scripted aims -> "!" on
   the correct target >= 9/10 within 2 frames (rendered screenshots of 3).
+- Re-ranked 2026-11-14 into Next-10 #9: the WK-95 owner ruling makes the super THE attack, so its telegraph carries more weight.
+  Build after WK-94 commits (the "!" must follow the smoothed aim target, not the old per-frame jitter).
 - Status: open
 
 ### [ ] WK-27 [P1][M] Herd Lobby slice 4: Sports — picking the goat picks the team
@@ -501,6 +588,9 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   `SportsMode.spawn_plan` honours team_ids + human skins (keep even-total clamp, bot mirroring); CPUs fill seats.
 - Accept (rendered): 2 humans pick POGO + VEX with 2 CPUs -> 2v2 with one human per team; the picked goat skins appear in
   the match (no repaint); 2 humans both RED -> 2 humans vs 2 CPUs.
+- Raised 2026-11-14 (owner check-in, WK-98 sports weight) into Next-10 #3. The build is code-only (HerdLobby/LobbySlot, MatchConfig,
+  `SportsMode.spawn_plan`): it may be built in parallel with WK-95 and only needs the game slot to verify. `SportsMode.gd` has small
+  uncommitted in-flight edits (6 lines) — coordinate with their owner before touching it.
 - Status: open
 
 ### [ ] WK-28 [P1][M] Controller disconnect: auto-pause overlay in match, DISCONNECTED slot in lobby, connect toasts
@@ -568,7 +658,8 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Area: brawl/HUD · Owner: gameplay-programmer · Deps: WK-08
 - Accept (rendered): player knocked 1500 px above top platform -> edge bubble with goat sprite + fuel ring within 10 % of
   `get_fuel_ratio()`; aim arrow shows within 1 frame of super aim off-screen.
-- Status: open
+- Status: built — awaiting rendered verification (second gameplay-programmer; uncommitted `EdgeIndicators.gd` +351 lines).
+  Motion HUD: verify with a WK-93 recording of one off-screen recovery as well as the Accept stills.
 
 ### [ ] WK-37 [P1][M] Ghost goats: eliminated players float, quack and get one non-lethal heckle per stage
 - Sources: D-08, R-07 (spectating half)
@@ -591,6 +682,12 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Do: measure actual freeze duration at 30/60/120 FPS; designer decides target (designed values vs. tuned-in feel);
   fix the timer call so duration is real-time and FPS-independent.
 - Accept: freeze duration within ±10 ms of the Tuning value at 30 and 60 FPS (eval timestamps); qa feel note.
+- Re-measure note (perf audit rec 2): the "0.75 s at 16 FPS" figure came from the display-off state. At a real 120 fps the freeze is
+  ~0.1 s, so couch impact today is smaller than filed; the `create_timer` argument question still stands. Step 1 is the measurement
+  (screen on, 30/60/120 fps caps); no code change until the game-designer rules on those numbers. Hit-feel must stay stable through
+  WK-95, so measure on the post-95b build.
+- Area: brawl (feel) · Source: gameplay-programmer 2026-11-14 + performance-analyst perf_wk91 rec 2
+- Status: open (Next-10 #8; evidence pending re-measure)
 
 ### [x] WK-91 [P0][M] Performance: 16-30 FPS at 1920x1080 on the studio machine (~90 draw calls) — da8337b
 - Source: WK-23/24 programmer, 2026-11-14 (not caused by the new FX). A couch party game must hold 60.
@@ -603,6 +700,11 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   backdrops? particle counts? physics?); check renderer setting (Forward+/Mobile/Compatibility) and vsync; A/B the top 3
   suspects. Recommend fixes with evidence.
 - Accept: report with attribution; follow-up fix item(s) filed; target >= 55 fps average at 1080p on this machine.
+- Status: done da8337b — CLOSED AS ENVIRONMENT, not a game bug. Display-off Modern Standby throttled the window to ~30 Hz with
+  ~500 ms present stalls; with the screen on the build holds 119.6 fps at 1080p (median 8.33 ms, p95 9.17 ms). The real cost found
+  on the way (stage load 50-271 ms on theme change) was fixed in the same commit (ArenaRenderer texture cache, now 4-34 ms).
+  Report: docs/audit/2026-11-14_perf_wk91.md. Follow-ups filed: WK-100 (pre-flight), WK-101 (residual load spike), WK-102 (hygiene);
+  WK-90 re-measure noted. The "fallback option A" above is retired.
 
 
 ### [ ] WK-92 [P2][S] Font follow-ups from WK-17 grade
@@ -612,6 +714,15 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   (3) Rocketball card "(Okay" sidebearing — drop parentheses; (4) the ✓ on menu cards still uses a system font —
   swap for PadGlyph's drawn check. Small-text floor items stay in WK-18.
 - Accept: screenshots of Victory (Puff winner), MATCH POINT stage intro, ModeSelect.
+- Status: built — awaiting rendered verification (gameplay-programmer, with WK-15/WK-88; uncommitted VictoryScreen/MenuCard/PadGlyph edits).
+
+
+### [ ] WK-99 [P2][S] Pendulum follow-ups: Trials pendulum courses now smash; art-director grade; boost-arrow flick
+- Source: WK-96 builder. Pendulums smash in ALL modes incl. Trials (course_04_pendulum_pass, swing_mines, wrecking_yard
+  — untested; levels can opt out with "contact": "shove"). Peak speed 3800 -> 2650 px/s (feel unjudged). Bot normal-boost
+  arrow still flicks >30 deg on 7-13% of frames (fold into WK-95 bot brain). Art-director grade of the new swing
+  (tools/out/rec/wk96_pendulum_after/swing_60-162_sheet.png).
+- Accept: Trials pendulum courses completable (recording), art-director Ship.
 
 
 ## P2 — visible polish gaps
@@ -637,7 +748,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Do: move the panel to a corner, or collapse it to a small chip after ~3 s (or reserve a top band via the `camera_focus_points`
   seam — camera rules are owner-ruled, so prefer the HUD move). WK-35 restyles the same panel later and must keep this placement.
 - Accept (rendered): Flight School lesson 1 at BOUNCE+0 s and +4 s with 1 and 2 players: the goal ring is fully visible in both.
-- Status: open
+- Status: open (Next-10 #10)
 
 ### [ ] WK-88 [P2][S] One naming rule for every fighter in match text (CPU vs VEX vs "VEX — CPU")
 - Area: HUD/brawl · Owner: ui-ux-designer (rule) + gameplay-programmer · Source: creative-director WK-CD1 (CD1-04, CD rated P3;
@@ -647,7 +758,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Do: pick one rule for HUD, pips, banners, ScoreScreen and Victory (e.g. humans "P#" everywhere; CPUs "CPU" + goat colour, or
   "VEX (CPU)" everywhere). WK-76's "bot tag shows hero name" must follow whatever is chosen; Victory contrast stays in WK-42.
 - Accept (rendered): 2H+2CPU Brawl: HUD card, stage banner, ScoreScreen row and Victory row name each fighter the same way (4 screenshots).
-- Status: open
+- Status: built — awaiting rendered verification (gameplay-programmer, with WK-15/WK-92). Needs the 4 screenshots + ui-ux rule note.
 
 ### [ ] WK-89 [P2][S] `round_stats` may under-record kills when LIVES > 1 (instrumentation — unverified, seen once)
 - Area: tooling/brawl · Owner: qa-playtester (repro) -> gameplay-programmer (fix if confirmed) · Source: creative-director WK-CD1 (CD1-06)
@@ -915,6 +1026,25 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - **BLOCKED (partial):** the subjective "does it sound good" judgment needs a human ear; do the numeric loudness/headroom part only.
 - Accept: per-bus loudness report; no SFX clipping; music ducks under KO stings (eval bus levels).
 
+### [ ] WK-101 [P3][M] Residual stage-load spike (62-72 ms) at STAGE_INTRO
+- Area: perf · Owner: gameplay-programmer · Source: performance-analyst docs/audit/2026-11-14_perf_wk91.md rec 4
+- Evidence: 180 s recorder on the fixed build: 6 frames over 33 ms, 0 over 100 ms; worst 62-72 ms at STAGE_INTRO (Twin Moons,
+  Singularity). In-tree `_load_stage` costs 17-54 ms, plus respawn + HUD work in the same tick.
+- Impact: low. The spike hides behind the stage intro card, and the game otherwise holds 120 fps. It would matter on a slower couch PC.
+- Do: build the next level off-tree during SCOREBOARD and swap it in at STAGE_INTRO, or spread the load over 2-3 ticks.
+- Accept: same 180 s recorder run, screen on: 0 frames over 33 ms at STAGE_INTRO across 15 stages including Singularity.
+- Status: open
+
+### [ ] WK-102 [P3][S] Perf hygiene: static `_warn_once`, diagnostics skill frame_time note, golden draw-call count
+- Area: tooling · Owner: gameplay-programmer (tooling) · Source: performance-analyst docs/audit/2026-11-14_perf_wk91.md recs 5 + 6
+- Evidence: `_warn_once` is per renderer instance, so every stage load prints the missing-tuft / missing-flower `push_warning` with a full
+  backtrace (17x in one session). The diagnostics skill §2 says `frame_time` is the last frame's process time; Godot actually reports the
+  max over ~1 s including the render/swap wait (it read 511 ms on 35 ms frames). The golden draw-call count is still 28; current arenas
+  draw ~75-80.
+- Impact: not player-facing. Log noise hides real errors in QA stderr; the wrong `frame_time` reading misled the WK-91 hunt.
+- Accept: a 15-stage run prints each missing-decal warning at most once; skill §2 corrected; golden updated to the measured value.
+- Status: open
+
 ---
 
 ## Done (recent)
@@ -931,6 +1061,10 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - WK-09 pause finish · WK-11 end-screen input gate · WK-80 QA nits — 5926f10 (all three re-checked rendered in WK-CD1)
 - WK-12 painted backdrop on every brawl arena — 4ba5d88
 - WK-CD1 creative-director cold playthrough — done, doc docs/audit/2026-11-14_cd1_playthrough.md (owner's two complaints verified fixed; no regressions)
+- WK-23 screen-edge KO blast · WK-24 attacker-colour hits · WK-82 lobby hold-B fix · WK-86 per-stage powerup spawners — 4d5d356
+- WK-17 bundled OFL fonts (Lilita One + Fredoka), no dark-on-dark outlines on small text — 5672f04 (follow-ups WK-92)
+- WK-21 adaptive score hold + WK-41 one overlay at a time — 43b6abc (budget 4.78 / 6.18 s with the screen on, perf_wk91 audit)
+- WK-91 perf "16-30 FPS" closed as environment (display-off Modern Standby), 119.6 fps at 1080p; texture cache fix — da8337b
 
 ## Deferred / Cut (this weekend) — every finding not covered by an item above
 - **R-07 (default 3 stocks / sudden-death squeeze)** — owner rulings: LIVES default 1, KILLS 10, no timer sudden-death. Mitigated by WK-20a/20b/21/37/56; LIVES stays selectable in RULES (WK-07).
@@ -976,3 +1110,7 @@ Lobby review (2026-11-14_lobby_review.md): F1-F8 81 (done) · L1 07/81 (done) ·
 L6 18 · L7 83 · L8 82 · L9 83 · L10 17 · L11 10 (done) · L12 29 · L13 81 (done)
 WK-CD1 (2026-11-14_cd1_playthrough.md): CD1-01 86 · CD1-02 20a (scope expansion), 20c, 25 · CD1-03 87 (+35) · CD1-04 88 (+42, 76) ·
 CD1-05 17 (+18) · CD1-06 89 (repro inside 20a) · re-judged: 82 (accepted risk), 21 + 41 (budget, 41 raised to P1), 37, 31, 85, 43, 23, 42 (R-26 label)
+Owner check-in (owner_2026-11-14_checkin.md): ask 1 93 · ask 2 94 · ask 3 95 (a-d; spec §6.4 -> 99) · ask 4 + pendulum-motion follow-up 96 ·
+ask 5 97 · ask 6 98 (+ raised 27, 16; 65/66/35 re-judged by 98) · "record lessons" -> docs/WEEKEND_LESSONS.md (no item)
+Perf audit (2026-11-14_perf_wk91.md): rec 1(a)(b) 100 · rec 1(c) owner machine setup, BLOCKED (owner), no item · rec 2 90 (re-measure note) ·
+rec 3 retired WK-21 option A (notes on 21, 91) · rec 4 101 · recs 5 + 6 102 · rec 7 no renderer change (no item)
