@@ -44,7 +44,7 @@ and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 
 1. ~~WK-123~~ done 7fe4ce4 — [P1][M] (in progress) Flight School lessons 2-3 require the super (CD2-01) + co-op HOME players stop blocking (CD2-02) + Refuel Ridge gap (WK-95f d) — level-designer (+ gameplay-programmer for HOME parking)
 2. ~~WK-20a~~ done 2721c7c — [P1][M] (in progress) Who wins and why: CPU share, self-KO −1, stage length and first-death time, human-style drivers -> game-designer rulings — qa-playtester + game-designer
-3. WK-108 [P1][M] (in progress) Sports bots route/keep goal + kickoff goals ≤ 10 % with human-style drivers (CD2-03 folded in) — gameplay-programmer + game-designer
+3. ~~WK-108~~ done ee80867 — [P1][M] (in progress) Sports bots route/keep goal + kickoff goals ≤ 10 % with human-style drivers (CD2-03 folded in) — gameplay-programmer + game-designer
 4. ~~WK-20c~~ done 6f4f51b — / WK-20b [P1][S] Apply whatever the WK-20a ruling calls for (self-KO / CPU mix / Lv0 gate); BLOCKED on the ruling, pulled the moment it lands — gameplay-programmer
 5. WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT regression, now 3.27 s) — gameplay-programmer + ui-ux-designer
 6. WK-37a [P1][S] Ghost-goat spec (no game slot, can run in parallel now): the dead are 48 % of a weaker player's match — game-designer
@@ -329,7 +329,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   the load-time check prints nothing for all 11 courts.
 - Status: done 834ecda (re-cut to 3200x1800, both goals on screen at 0.60, JSON only). The flat surround now visible at 0.60 -> WK-122.
 
-### [ ] WK-108 [P1][M] (+ sports bot stuck ~29/min vs 23 pre-WK-95: make bot 'danger'/out-of-arena look-ahead mode-aware in enclosed courts; keep supporter/ball targets below the ceiling) Sports bots: route around the ball, keep goal, (L4+) cross (SP-06)
+### [x] WK-108 [P1][M] (+ sports bot stuck ~29/min vs 23 pre-WK-95: make bot 'danger'/out-of-arena look-ahead mode-aware in enclosed courts; keep supporter/ball targets below the ceiling) Sports bots: route around the ball, keep goal, (L4+) cross (SP-06) — ee80867
 - Area: sports (bots) · Owner: gameplay-programmer (`InputBot` / `SportsMode.bot_objective`) · Source: WK-98 SP-06
 - Evidence: a wrong-side bot flies straight at `behind = ball - to_goal*150`, through the ball, shoving it toward its own goal (CPU own
   goals M2 idx 2/3, M7b 6/8 own goals); supporters hold `own_goal.lerp(ball, 0.42)`, in front of the mouth, not in it: someone within
@@ -1130,6 +1130,15 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   DestructibleBlock and use it in lesson 2 per CD2's suggestion. Accept: recording — dive fails, super breaks it.
 
 ### [ ] WK-123b [P2][S] Finished (HOME) Trials players park/ghost so they never block partners (code-side CD2-02 fix)
+
+
+### [ ] WK-108b [P1][M] Sports bots round 2: keeper stickiness, fast-ball re-plan, goal-mouth crowding, BOWL own goals
+- Source: WK-108 report (ee80867, tools/out/wk/WK-108_sports_bots.json). 70-80% of remaining own goals = chaser on the
+  wrong side of the ball flying back toward its own goal (re-plan every 0.28 s at L3 while the ball moves ~300 px).
+  Keeper presence 12% vs 70% target — keeper becomes chaser the moment it challenges (make roles sticky / hysteresis).
+  THE BOX after-recording ~4.5 s: three goats in one goal mouth while the ball rolls mid-floor (role/target bug).
+  THE BOWL own goals 21.5 -> 26.3%. Stuck/min 36.7 -> 42.5 — inspect episodes (likely wide loops).
+- Accept: 32-run batch own goals <= 15%, keeper presence >= 50%, no goal-mouth stacking in recordings, stuck <= before.
 
 
 ## P2 — visible polish gaps
