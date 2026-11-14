@@ -1348,7 +1348,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   reads badly at gameplay zoom.
 
 
-### [ ] WK-37c [P1][S] Ghost goats follow-ups: bot-ghost stacking, art-director look pass, faintness on wide cameras
+### [x] WK-37c [P1][S] Ghost goats follow-ups: bot-ghost stacking, art-director look pass, faintness on wide cameras — ee46c22
 - Source: WK-37b (1186bcf). T11 FAIL: two bots eliminated at the same spot start stacked (200 px spacing 72-93% vs 90%).
   T9/T10: art-director grade per docs/briefs/ghost_goats_2026-11-14.md R1-R8 — ghosts are faint specks on the wide
   islands_void camera (tools/out/wk37_ghosts_live.png); faded jetpack until bespoke ghost art. BAAA! bubble can sit over
@@ -1383,6 +1383,13 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
 ### [ ] WK-134 [P2][S] `surface_bounced` fires every physics tick of resting contact (not just real impacts)
 - Source: WK-132. Audio now filters it, but every other listener (FX, telemetry, fuel?) gets the flood — emit only on
   impacts above a speed threshold or on contact-begin. Check fuel refund + Juice don't depend on the flood (WK-128!).
+
+
+### [ ] WK-37d [P2][S] Ghost identity + islands_void faintness + art-director regrade
+- Source: WK-37c. R3: which bot ghost is which fails (no P#/name pip on bot ghosts; horns too small at ~30 px) — add a
+  small name/P# tag to ghosts in the owner colour. islands_void: ghosts faint on the bright field (design call: base
+  opacity or apply the wide-camera boost earlier than zoom 0.46). P1 pip sits on a living goat when its ghost is just
+  below (PlayerPips). Art-director regrade with tools/out/wk37c_R1_sheet.png etc. Move ghost consts into Tuning.
 
 
 ## P2 — visible polish gaps
