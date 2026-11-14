@@ -17,6 +17,8 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   is denied. Reword.
 - **Commit only your files by explicit path**; two agents' edits can share a file (PartyMatch) — commit them
   together after both verify, or sequence the agents.
+- **Never edit docs/BACKLOG.md while a producer agent is re-ranking it** — it rewrites the whole file; IDs collided
+  (two WK-99s). Producer runs alone on BACKLOG, director marks items only between producer runs.
 - **Continue builders via SendMessage** (keeps their context) for follow-up slices — far cheaper than re-briefing.
 
 ## Engine / game facts discovered
