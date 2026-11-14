@@ -21,6 +21,10 @@ $proc = Start-Process -FilePath $godot -ArgumentList $argList -PassThru `
     -RedirectStandardOutput $logPath -RedirectStandardError "$logPath.err"
 Write-Output "Started PID $($proc.Id); log: $logPath"
 
+# WK-100: display-off pre-flight (runs while Godot boots, so it adds no wait). Warning only.
+$displayCheck = Join-Path $PSScriptRoot "display_check.ps1"
+if (Test-Path $displayCheck) { try { & $displayCheck } catch { } ; $global:LASTEXITCODE = 0 }
+
 # Wait for the TCP server to come up (max 20s)
 $deadline = (Get-Date).AddSeconds(20)
 $up = $false

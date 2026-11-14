@@ -14,7 +14,8 @@ Usage (one-shot commands):
   python tools/gbplay.py scene res://scenes/Arena.tscn
   python tools/gbplay.py tree                      # scene tree summary
   python tools/gbplay.py ui                        # visible UI elements
-  python tools/gbplay.py perf                      # fps / memory
+  python tools/gbplay.py perf                      # fps / memory (+ WK-100 display-off check)
+  python tools/gbplay.py perf --samples 1          # single sample, no fps probe
   python tools/gbplay.py raw '{"command":"gamepad","params":{...}}'
   python tools/gbplay.py script demo.jsonl         # run a sequence of raw commands
   python tools/gbplay.py burst out_dir 10 --interval 0.5   # screenshot burst -> frames
@@ -25,7 +26,9 @@ import argparse
 import base64
 import json
 import os
+import re
 import socket
+import subprocess
 import sys
 import time
 
@@ -77,6 +80,68 @@ class GameClient:
             pass
 
 
+# WK-100: Windows Modern Standby (laptop display asleep) throttles a windowed Godot to ~30 Hz with
+# ~500 ms present() stalls - every perf/timing/feel number taken then is bogus (docs/WEEKEND_LESSONS.md
+# "DISPLAY OFF = BOGUS PERF DATA"). The game really runs ~120 fps at 1080p with the screen on.
+FPS_SANE_MIN = 50.0
+KP_QUERY = ("*[System[Provider[@Name='Microsoft-Windows-Kernel-Power'] "
+            "and (EventID=506 or EventID=507)]]")
+
+
+def display_state():
+    """Latest Kernel-Power 506/507 event -> (off, detail). off is None when unknown (non-Windows,
+    wevtutil missing/failed). Test hook: GB_DISPLAY_STUB=off|506 / on|507."""
+    stub = os.environ.get("GB_DISPLAY_STUB", "").strip().lower()
+    if stub:
+        return (stub in ("off", "506")), f"stubbed by GB_DISPLAY_STUB={stub}"
+    if os.name != "nt":
+        return None, "not Windows"
+    try:
+        r = subprocess.run(["wevtutil", "qe", "System", "/q:" + KP_QUERY, "/c:1", "/rd:true", "/f:xml"],
+                           capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError) as e:
+        return None, f"wevtutil failed: {e}"
+    m = re.search(r"<EventID>(\d+)</EventID>", r.stdout or "")
+    if not m:
+        return None, "no Kernel-Power 506/507 event"
+    t = re.search(r"SystemTime='([^']+)'", r.stdout)
+    when = t.group(1)[:19] + "Z" if t else "?"
+    if m.group(1) == "506":
+        return True, f"Kernel-Power 506 (entered Modern Standby) at {when}, no 507 wake since"
+    return False, f"last Kernel-Power event 507 (exited Modern Standby) at {when}"
+
+
+def perf_with_display_check(c, samples):
+    """get_performance, plus (samples > 1) an fps probe over ~1 s and the Kernel-Power check. Adds
+    'display_check' to the response and prints a WARNING line to stderr when numbers look invalid.
+    Never fails the command - it only annotates."""
+    resp = c.send("get_performance")
+    if not isinstance(resp, dict) or not resp.get("success") or samples <= 1:
+        return resp
+    fps = [float(resp.get("fps", 0.0))]
+    for _ in range(samples - 1):
+        time.sleep(0.3)
+        r = c.send("get_performance")
+        if isinstance(r, dict) and r.get("success"):
+            fps.append(float(r.get("fps", 0.0)))
+    low = [f for f in fps if f < FPS_SANE_MIN]
+    off, detail = display_state()
+    chk = {"fps_samples": fps, "fps_min_sane": FPS_SANE_MIN, "display": detail,
+           "display_off": off, "valid": True}
+    reasons = []
+    if off:
+        reasons.append("DISPLAY OFF (" + detail + ")")
+    if len(low) >= max(2, (len(fps) + 1) // 2):
+        reasons.append(f"fps < {FPS_SANE_MIN:.0f} in {len(low)}/{len(fps)} samples "
+                       f"(min {min(fps):.0f}) - screen asleep, window minimised/occluded, or a real perf problem")
+    if reasons:
+        chk["valid"] = False
+        chk["warning"] = "timings invalid: " + "; ".join(reasons)
+        print("WARNING: " + chk["warning"], file=sys.stderr)
+    resp["display_check"] = chk
+    return resp
+
+
 def out(resp):
     print(json.dumps(resp, indent=2)[:4000])
     if isinstance(resp, dict) and resp.get("error"):
@@ -90,6 +155,7 @@ def main():
     p.add_argument("args", nargs="*")
     p.add_argument("--ms", type=int, default=0, help="hold duration in ms")
     p.add_argument("--interval", type=float, default=0.5)
+    p.add_argument("--samples", type=int, default=4, help="perf: fps samples for the display check")
     a = p.parse_args()
 
     c = GameClient()
@@ -119,7 +185,7 @@ def main():
         elif a.cmd == "ui":
             out(c.send("get_ui_elements"))
         elif a.cmd == "perf":
-            out(c.send("get_performance"))
+            out(perf_with_display_check(c, a.samples))
         elif a.cmd == "click":
             out(c.send("click", {"x": float(a.args[0]), "y": float(a.args[1])}))
         elif a.cmd == "raw":

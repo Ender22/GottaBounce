@@ -24,6 +24,24 @@ const CARD_H := 100.0
 const CARD_MARGIN := 24.0
 const PIP_DONE := Color(1.0, 0.86, 0.3, 1.0)   # gold lock when a pip is complete (over the skin fill)
 const MATCH_BTN_MIN := Vector2(300, 84)
+# WK-87 (CD1-03): the objective panel must NEVER sit over the camera-framed goal. TrialsMode's
+# camera_focus_points() pulls the goal into the frame, so the ring tends to land at a frame EDGE - often
+# top-centre, exactly where this panel used to be pinned. The panel now picks, every frame, the
+# cheapest of four slots (top-centre, top band beside the P1 card, top band beside the P2 card,
+# bottom-centre) scored by overlap with the goals' on-screen footprints (hard), the live controls
+# legend / goal chip (hard while shown), the players (soft) and a small preference order.
+const SLOT_MARGIN := 24.0            # screen edge inset (matches CARD_MARGIN)
+const SLOT_CARD_GAP := 24.0          # gap between a corner PlayerCard and a top-band slot
+const GOAL_FOOT_MIN := 150.0         # world half-extent around a focus point (GoalGate ring r~148)
+const GOAL_CLEAR := 28.0             # extra screen-px clearance around a goal footprint
+const PLAYER_FOOT := 80.0            # world half-extent of a player (soft cost: don't cover them either)
+const COST_GOAL := 20.0              # per px^2 of goal overlap
+const COST_LEGEND := 8.0             # per px^2 of overlap with the visible controls legend / goal chip
+const COST_PLAYER := 1.0             # per px^2 of player overlap
+const COST_RANK := 1500.0            # per preference rank step (top-centre first)
+const SLOT_SWITCH_MARGIN := 3000.0   # a new slot must beat the current one by this much (no flip-flop)
+const SLOT_DWELL := 0.15             # ...continuously for this long (s) before the panel moves
+const SLOT_SLIDE_RATE := 14.0        # 1/s exponential slide toward the chosen slot (snaps on first show)
 
 var _runner   # PartyMatch (untyped so mode/state member access is dynamic — no runner class edit)
 var _center_tw: Tween
@@ -58,6 +76,12 @@ var _match_row: HBoxContainer = null
 var _pips: Array = []   # [{root: Panel, fill: Panel}]
 var _cards: Array = []  # per-player PlayerCard corner cards (fuel gauges)
 
+# WK-87 objective-panel placement state
+var _slot := -1                 # current slot index (-1 = not placed yet -> snap on first show)
+var _slot_want := -1            # candidate that is currently beating _slot
+var _slot_want_t := 0.0         # how long it has been beating it
+var _panel_was_visible := false
+
 func _ready() -> void:
 	_runner = get_parent()
 	# WK-11 (CC-10.2 / CC-3.3): the REMATCH row only takes FRESH presses from JOINED devices, >= 1.0 s
@@ -79,13 +103,13 @@ func _pip_bg_style() -> StyleBoxFlat:
 	sb.bg_color = Color(0.12, 0.09, 0.07, 0.85)
 	sb.set_border_width_all(4)
 	sb.border_color = Color(0.231373, 0.141176, 0.105882, 1.0)
-	sb.set_corner_radius_all(29)
+	sb.set_corner_radius_all(15)
 	return sb
 
 func _pip_fill_style(c: Color) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = c
-	sb.set_corner_radius_all(25)
+	sb.set_corner_radius_all(11)
 	return sb
 
 # ------------------------------------------------------------------ runner-called HUD surface
@@ -138,7 +162,7 @@ func animate_scores(_new_scores: Array) -> void:
 	pass   # no score pips in TRIALS
 
 # ------------------------------------------------------------------ live readouts
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _runner == null:
 		return
 	var mode = _runner._mode
@@ -154,6 +178,128 @@ func _process(_delta: float) -> void:
 	# are hidden — the panel carries only the course hint, and vanishes entirely when there is none.
 	_sub_label.visible = _sub_label.text != ""
 	_home_panel.visible = n > 1 or _sub_label.text != ""
+	_place_home_panel(mode, delta)
+
+# ------------------------------------------------------------------ WK-87 objective-panel placement
+## Candidate slot rects for a panel of size `sz` in the HUD's screen space. Order = preference rank.
+func _slot_rects(sz: Vector2) -> Array:
+	var vs: Vector2 = _root.size
+	var inner_l := SLOT_MARGIN + CARD_W + SLOT_CARD_GAP
+	var inner_r := vs.x - SLOT_MARGIN - CARD_W - SLOT_CARD_GAP - sz.x
+	return [
+		Rect2(Vector2((vs.x - sz.x) * 0.5, SLOT_MARGIN), sz),                # 0 top-centre (classic)
+		Rect2(Vector2(inner_l, SLOT_MARGIN), sz),                            # 1 top band, beside the P1 card
+		Rect2(Vector2(maxf(inner_r, inner_l), SLOT_MARGIN), sz),             # 2 top band, beside the P2 card
+		Rect2(Vector2((vs.x - sz.x) * 0.5, vs.y - SLOT_MARGIN - sz.y), sz),  # 3 bottom-centre
+	]
+
+## On-screen footprints of every camera-framed objective (TrialsMode.camera_focus_points - the same
+## seam the camera uses), widened to the goal node's own w/h when one sits on the point.
+func goal_screen_rects(mode = null) -> Array:
+	if mode == null and _runner != null:
+		mode = _runner._mode
+	var out: Array = []
+	if mode == null or not mode.has_method("camera_focus_points"):
+		return out
+	var pts: Array = mode.camera_focus_points(_runner)
+	if pts.is_empty():
+		return out
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var zoom: float = xf.get_scale().x
+	var sized: Array = []
+	for grp in ["goal_gate", "goal_zone", "trials_target"]:
+		for g in get_tree().get_nodes_in_group(grp):
+			if g is Node2D and ("w" in g) and ("h" in g):
+				sized.append(g)
+	for fp in pts:
+		var wp: Vector2 = fp
+		var half := Vector2(GOAL_FOOT_MIN, GOAL_FOOT_MIN)
+		for g in sized:
+			if is_instance_valid(g) and (g as Node2D).global_position.distance_to(wp) < 1.0:
+				half = half.max(Vector2(float(g.w), float(g.h)) * 0.5)
+		var c: Vector2 = xf * wp
+		var hs: Vector2 = half * zoom + Vector2(GOAL_CLEAR, GOAL_CLEAR)
+		out.append(Rect2(c - hs, hs * 2.0))
+	return out
+
+func _player_screen_rects() -> Array:
+	var out: Array = []
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var hs: Vector2 = Vector2(PLAYER_FOOT, PLAYER_FOOT) * xf.get_scale().x
+	for p in _runner.players:
+		if is_instance_valid(p) and not p.is_dead():
+			out.append(Rect2((xf * (p.global_position as Vector2)) - hs, hs * 2.0))
+	return out
+
+## Visible rects of the stage-1 controls legend + WK-15 goal chip (PartyMatch._legend), while shown.
+func _legend_rects() -> Array:
+	var out: Array = []
+	var lg = _runner.get("_legend")
+	if lg == null or not is_instance_valid(lg) or not lg.visible:
+		return out
+	var lroot: Control = lg.get_node_or_null("Root")
+	if lroot == null:
+		return out
+	for c in lroot.get_children():
+		if c is Control and (c as Control).is_visible_in_tree() and (c as Control).modulate.a > 0.05:
+			out.append((c as Control).get_global_rect())
+	return out
+
+static func _overlap(r: Rect2, list: Array) -> float:
+	var a := 0.0
+	for o in list:
+		var ix: Rect2 = r.intersection(o as Rect2)
+		a += ix.get_area()
+	return a
+
+func _slot_cost(r: Rect2, rank: int, goals: Array, legend: Array, plrs: Array) -> float:
+	return COST_GOAL * _overlap(r, goals) + COST_LEGEND * _overlap(r, legend) \
+		+ COST_PLAYER * _overlap(r, plrs) + COST_RANK * float(rank)
+
+func _place_home_panel(mode, delta: float) -> void:
+	if not _home_panel.visible:
+		_panel_was_visible = false
+		return
+	var sz: Vector2 = _home_panel.get_combined_minimum_size()
+	_home_panel.size = sz
+	var slots := _slot_rects(sz)
+	var goals := goal_screen_rects(mode)
+	var legend := _legend_rects()
+	var plrs := _player_screen_rects()
+	var best := 0
+	var best_cost := INF
+	var costs: Array = []
+	for i in range(slots.size()):
+		var c := _slot_cost(slots[i], i, goals, legend, plrs)
+		costs.append(c)
+		if c < best_cost:
+			best_cost = c
+			best = i
+	var snap := not _panel_was_visible or _slot < 0
+	_panel_was_visible = true
+	if snap:
+		_slot = best
+		_slot_want = -1
+	elif best != _slot and best_cost < float(costs[_slot]) - SLOT_SWITCH_MARGIN:
+		if _slot_want != best:
+			_slot_want = best
+			_slot_want_t = 0.0
+		_slot_want_t += delta
+		if _slot_want_t >= SLOT_DWELL:
+			_slot = best
+			_slot_want = -1
+	else:
+		_slot_want = -1
+	var target: Vector2 = (slots[_slot] as Rect2).position
+	if snap:
+		_home_panel.position = target
+	else:
+		_home_panel.position = _home_panel.position.lerp(target, 1.0 - exp(-SLOT_SLIDE_RATE * delta))
+
+## QA read surface (gbplay eval / scratch tests): panel rect, chosen slot, goal footprints.
+func objective_panel_debug() -> Dictionary:
+	return {"panel": _home_panel.get_global_rect(), "visible": _home_panel.is_visible_in_tree(),
+		"slot": _slot, "goals": goal_screen_rects()}
 
 ## The HOME tracker: "n of N HOME" + one skin-colored pip per participant, filled by player_done
 ## (or SURVIVE progress) — MULTIPLAYER ONLY (owner 2026-07-17: solo showed a permanent "GO", which

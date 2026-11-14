@@ -36,6 +36,11 @@ $proj = Split-Path $PSScriptRoot -Parent
 $recRoot = Join-Path $proj "tools\out\rec"
 $outDir = Join-Path $recRoot $Name
 
+# WK-100: display-off pre-flight. Movie Maker frames stay deterministic, but a sleeping display throttles
+# the wall clock to ~30 Hz with 500 ms stalls (or freezes Godot) - warn, never block.
+$displayCheck = Join-Path $PSScriptRoot "display_check.ps1"
+if (Test-Path $displayCheck) { try { & $displayCheck } catch { } ; $global:LASTEXITCODE = 0 }
+
 $running = Get-Process | Where-Object { $_.ProcessName -like 'Godot*' }
 if ($running -and -not $Force) {
     Write-Output "ABORT: a Godot process is running (PID $($running.Id -join ',')). The game slot is busy."

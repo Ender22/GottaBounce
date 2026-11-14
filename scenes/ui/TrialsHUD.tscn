@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/ui/TrialsHUD.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
@@ -22,6 +22,22 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_objective"]
+content_margin_left = 30.0
+content_margin_top = 14.0
+content_margin_right = 30.0
+content_margin_bottom = 16.0
+bg_color = Color(0.0784314, 0.0784314, 0.156863, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
 [node name="TrialsHUD" type="CanvasLayer"]
 layer = 10
 script = ExtResource("1_hud")
@@ -38,33 +54,33 @@ theme = ExtResource("2_theme")
 
 [node name="HomePanel" type="PanelContainer" parent="Root"]
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
+offset_left = 682.0
 offset_top = 24.0
-grow_horizontal = 2
+offset_right = 1238.0
+offset_bottom = 150.0
 theme_type_variation = &"MatchEndPanel"
+theme_override_styles/panel = SubResource("StyleBoxFlat_objective")
 mouse_filter = 2
 
 [node name="HomeBox" type="VBoxContainer" parent="Root/HomePanel"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="HomeLabel" type="Label" parent="Root/HomePanel/HomeBox"]
 layout_mode = 2
 theme_type_variation = &"BannerTop"
-theme_override_font_sizes/font_size = 42
+theme_override_font_sizes/font_size = 34
 text = "GO"
 horizontal_alignment = 1
 
 [node name="PipsRow" type="HBoxContainer" parent="Root/HomePanel/HomeBox"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 20
+theme_override_constants/separation = 14
 
 [node name="Pip0" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(38, 38)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 mouse_filter = 2
 
@@ -73,7 +89,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="Pip1" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(38, 38)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 mouse_filter = 2
 
@@ -82,7 +98,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="Pip2" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(38, 38)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 mouse_filter = 2
 
@@ -91,7 +107,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="Pip3" type="Panel" parent="Root/HomePanel/HomeBox/PipsRow"]
-custom_minimum_size = Vector2(38, 38)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 mouse_filter = 2
 
@@ -100,7 +116,7 @@ layout_mode = 0
 mouse_filter = 2
 
 [node name="SubLabel" type="Label" parent="Root/HomePanel/HomeBox"]
-custom_minimum_size = Vector2(560, 0)
+custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
 theme_type_variation = &"Hint"
 theme_override_font_sizes/font_size = 20
