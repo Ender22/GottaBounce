@@ -141,6 +141,7 @@ script = ExtResource("5_glyph")
 glyph = "B"
 
 [node name="BackLabel" type="Label" parent="Header/BackBtn/Row"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 36
@@ -220,6 +221,7 @@ theme_override_constants/separation = 14
 alignment = 1
 
 [node name="CpuTitle" type="Label" parent="CpuRow/CpuTray/Row"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 34
@@ -260,6 +262,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Tag" type="Label" parent="CpuRow/CpuTray/Row/Cpu1/Box"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 28
@@ -285,6 +288,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Tag" type="Label" parent="CpuRow/CpuTray/Row/Cpu2/Box"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 28
@@ -310,6 +314,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="Tag" type="Label" parent="CpuRow/CpuTray/Row/Cpu3/Box"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 28
@@ -317,6 +322,7 @@ text = "CPU L4"
 vertical_alignment = 1
 
 [node name="NoCpu" type="Label" parent="CpuRow/CpuTray/Row"]
+theme_type_variation = &"TextDark"
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.6)
@@ -369,6 +375,7 @@ text = "EDITING · P1"
 vertical_alignment = 1
 
 [node name="RulesText" type="Label" parent="RulesRow/RulesBar/Row"]
+theme_type_variation = &"BodyDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 30
@@ -388,6 +395,7 @@ script = ExtResource("5_glyph")
 glyph = "VIEW"
 
 [node name="ViewLabel" type="Label" parent="RulesRow/RulesBar/Row"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 30

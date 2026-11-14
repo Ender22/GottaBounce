@@ -107,12 +107,13 @@ vertical_alignment = 1
 [node name="NameL" type="Label" parent="Root"]
 layout_mode = 0
 offset_left = 120.0
-offset_top = 862.0
+offset_top = 852.0
 offset_right = 1120.0
-offset_bottom = 918.0
-pivot_offset = Vector2(500, 28)
+offset_bottom = 924.0
+pivot_offset = Vector2(500, 36)
 theme_type_variation = &"BannerSub"
-theme_override_font_sizes/font_size = 40
+theme_override_constants/outline_size = 16
+theme_override_font_sizes/font_size = 52
 text = "POGO — PLAYER 1"
 horizontal_alignment = 1
 vertical_alignment = 1

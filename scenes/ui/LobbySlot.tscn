@@ -225,6 +225,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="DeviceName" type="Label" parent="Header"]
+theme_type_variation = &"BodyDark"
 layout_mode = 0
 offset_left = 108.0
 offset_top = 14.0
@@ -272,6 +273,7 @@ vertical_alignment = 1
 clip_text = true
 
 [node name="Blurb" type="Label" parent="."]
+theme_type_variation = &"BodyDark"
 layout_mode = 0
 offset_left = 18.0
 offset_top = 354.0
@@ -305,6 +307,7 @@ script = ExtResource("2_glyph")
 glyph = "star"
 
 [node name="FlairValue" type="Label" parent="FlairRow"]
+theme_type_variation = &"BodyDark"
 layout_mode = 0
 offset_left = 56.0
 offset_right = 324.0
@@ -353,6 +356,7 @@ script = ExtResource("2_glyph")
 glyph = "A"
 
 [node name="StatusText" type="Label" parent="Status"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 30
@@ -446,6 +450,7 @@ mouse_filter = 2
 theme_override_styles/panel = SubResource("rrow")
 
 [node name="Title" type="Label" parent="RulesFace/Row0"]
+theme_type_variation = &"TextDark"
 layout_mode = 0
 offset_left = 16.0
 offset_right = 224.0
@@ -523,6 +528,7 @@ mouse_filter = 2
 theme_override_styles/panel = SubResource("rrow")
 
 [node name="Title" type="Label" parent="RulesFace/Row1"]
+theme_type_variation = &"TextDark"
 layout_mode = 0
 offset_left = 16.0
 offset_right = 224.0
@@ -600,6 +606,7 @@ mouse_filter = 2
 theme_override_styles/panel = SubResource("rrow")
 
 [node name="Title" type="Label" parent="RulesFace/Row2"]
+theme_type_variation = &"TextDark"
 layout_mode = 0
 offset_left = 16.0
 offset_right = 224.0
@@ -677,6 +684,7 @@ mouse_filter = 2
 theme_override_styles/panel = SubResource("rrow")
 
 [node name="Title" type="Label" parent="RulesFace/Row3"]
+theme_type_variation = &"TextDark"
 layout_mode = 0
 offset_left = 16.0
 offset_right = 224.0
@@ -761,6 +769,7 @@ script = ExtResource("2_glyph")
 glyph = "A"
 
 [node name="DoneText" type="Label" parent="RulesFace/Footer"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 28
@@ -780,6 +789,7 @@ script = ExtResource("2_glyph")
 glyph = "B"
 
 [node name="UndoText" type="Label" parent="RulesFace/Footer"]
+theme_type_variation = &"TextDark"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 28
