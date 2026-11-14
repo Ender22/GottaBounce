@@ -1370,9 +1370,19 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   bleats + rate limit. ScoreScreen taunts need PartyMatch to poll each human's taunt during STAGE_END/SCOREBOARD.
   After WK-128 releases Player.gd.
 
-### [ ] WK-132 [P1][S] Bounce SFX hog the voice pool (~19/s, 7-14 of 14 voices, 0.95 s ring) and silence other sounds
+### [x] WK-132 [P1][S] Bounce SFX hog the voice pool (~19/s, 7-14 of 14 voices, 0.95 s ring) and silence other sounds — 7764470
 - Source: WK-53a sound-designer. Cap concurrent bounce voices (~5) and/or shorten the bounce tail; smash/KO/bleat must
   never be starved. Owner: sound-designer. Accept: busy-arena run (vortex/pinball) — 0 dropped priority sounds.
+
+
+### [ ] WK-133 [P1][M] Singularity: all four bots get pinned to the black-hole core bumper and the stage stalls
+- Source: WK-132 sound-designer (screenshot: 4 bots squashed on the core, ~100 surface_bounced/s at 38-95 px/s).
+  Gameplay bug (bot recovery vs radial gravity + bounce core from 93b5357). Owner: gameplay-programmer (bots/gravity).
+  Accept: 40-stage Singularity batch — no stage with all bots stationary > 3 s; recording shows normal fighting.
+
+### [ ] WK-134 [P2][S] `surface_bounced` fires every physics tick of resting contact (not just real impacts)
+- Source: WK-132. Audio now filters it, but every other listener (FX, telemetry, fuel?) gets the flood — emit only on
+  impacts above a speed threshold or on contact-begin. Check fuel refund + Juice don't depend on the flood (WK-128!).
 
 
 ## P2 — visible polish gaps
