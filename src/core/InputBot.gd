@@ -62,7 +62,7 @@ static var aim_sweep_enabled := true
 static var wk95_brain_enabled := true
 # EXPERIMENT (default OFF = spec BR-4 as written): HOT also requires that a full normal-boost brake could
 # NOT stop the outward motion before the blast line (v^2 / 2a > distance to bounds - margin).
-static var wk95_hot_stopdist := false
+static var wk95_hot_stopdist := true   # director ruling 2026-11-14 (DECISIONS): ON - meets owner super=attack ruling (9.8% traversal supers)
 
 # --- Motion-health telemetry geometry (process-gate 2026-07-04: make "looks dumb" a NUMBER). ---
 const MH_STUCK_WINDOW := 1.0           # s window for the no-progress (stuck) test
@@ -575,16 +575,12 @@ func _danger_recover(it: InputIntent) -> bool:
 	dir = dir.normalized() if dir.length() > 1.0 else Vector2.UP
 	var land_dist := me.global_position.distance_to(land)
 	var land_dir := dir
-	if wk95_brain_enabled:
-		# WK-95: ARRIVE at the landing point instead of ramming it. Thrust along (desired velocity - current
-		# velocity), with the desired speed easing off near the point. Steered flight holds whatever line it
-		# is given, so a plain "aim at the point" overshot it and CIRCLED it (the 0.45 s void look-ahead kept
-		# re-flagging danger): visible orange loops in the first after-recordings.
-		var cap: float = Tuning.normal_boost_max_speed * me.profile.eff_boost_power()
-		var vdes: Vector2 = land_dir * minf(cap, 2.5 * land_dist)
-		var err: Vector2 = vdes - me.velocity
-		if err.length() > 60.0:
-			dir = err.normalized()
+	# WK-95e: the WK-95 "arrive" steering that used to sit here (thrust along desired-minus-current velocity,
+	# easing off near the landing point) was REMOVED. A 320-stage A/B showed it was the whole stuck/underside
+	# regression: it held bots hovering and dribbling at the landing point while danger persisted and pushed
+	# them into island undersides. Without it: stuck 2.76 -> 1.74/stage, underside 4.79 -> 3.61, boosted
+	# underside 1.28 -> 0.42 (pre-WK-95 1.87 / 3.37 / 0.42). The circling it was added for no longer
+	# appears in the wk95e_after_* recordings.
 	# low recovery_skill: panic flail (the funny death). high skill: clean, hard recovery.
 	# WK-94: the flail is the slow-drifting _panic_cur (a thumb wandering under stress), no longer a
 	# fresh ±0.8 rad roll EVERY physics frame (which made the aim arrow strobe/spin).

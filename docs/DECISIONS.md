@@ -2,6 +2,14 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** WK-95e HOT RECOVERY RULE ON (director ruling, in the owner's absence; owner ruled "super boost =
+  attack, not traversal"). `InputBot.wk95_hot_stopdist = true`: a bot's emergency "HOT" recovery super now also
+  requires that a full normal-boost brake could NOT stop it before the blast line. 320-stage batch: supers used as
+  traversal 16.0% -> 9.8% (meets the <=10% target), recovery share 36.8% -> 25.8%, stuck episodes 1.95/stage (<=1.1x
+  pre-WK-95), underside bounces 4.14 vs 3.37 pre-WK-95 (1.23x — accepted: benign platform bumps vs. the owner's
+  explicit ruling). Also removed WK-95's recovery "arrive" steering (caused the stuck/underside regression).
+  Reopen if a cold playthrough shows bots looking dumb under platforms.
+
 - **2026-11-14** FLIGHT = TRAVERSAL, SUPER = ATTACK (OWNER RULING, WK-95; spec
   `docs/specs/wk95_flight_responsiveness_2026-11-14.md`). Owner: "the bots need to rely too much on the super boost
   because the normal flying isnt responsive enough to maneuver around nicely, we should make that more
