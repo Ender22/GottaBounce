@@ -81,13 +81,27 @@ func on_kill(_runner, _killer_idx: int, _victim_idx: int, _cause) -> void:
 func match_winner(_runner) -> int:
 	return -1
 
-## {text, color} for the stage-end banner (e.g. "P2 SURVIVES!").
+## {text, color[, subline]} for the stage-end banner (e.g. "COURSE CLEAR!"). No `subline` -> the runner's
+## stage deltas line. BRAWL leads with the stage's KOs and puts the survivor in the subline (WK-15 / D-04).
 func stage_end_banner(_runner) -> Dictionary:
 	return {}
 
 ## {text, color, subline} for the match-end banner (e.g. "P1 WINS THE MATCH!").
 func match_end_banner(_runner) -> Dictionary:
 	return {}
+
+# --- teaching seams (WK-15 / CC-11.1 / audit D-13): presentation descriptors, read once per stage-1 intro ---
+## The one-line rule ("SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs"). BRAWL prints it on the stage-1 intro card;
+## modes without an intro card show it as the gold goal chip above the controls legend. "" = no rule line.
+## Called AFTER next_level_path() for the stage, so a per-course objective (TRIALS) is already known.
+func goal_line(_runner) -> String:
+	return ""
+
+## The verbs the stage-1 controls legend teaches, in order. Ids ControlsLegend understands:
+## "move" / "fly" / "super" / "powerup" / "pause". Default = no powerups (Sports courts / Trials courses spawn
+## none by authoring); BRAWL adds "powerup".
+func legend_verbs() -> Array:
+	return ["move", "fly", "super", "pause"]
 
 ## Additive seam (owner 2026-07-18, SPORTS 2v2): a mode may override WHERE player `idx` respawns
 ## mid-stage (the multi-life _respawn_after_death path). Returns a world Vector2 or null -> the

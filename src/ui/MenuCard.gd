@@ -14,7 +14,7 @@ extends Button
 @onready var _name: Label = $Content/VBox/NameStrip/Labels/NameLabel
 @onready var _tag: Label = $Content/VBox/NameStrip/Labels/TagLabel
 @onready var _ribbon: Control = $Ribbon
-@onready var _check: Label = $Check
+@onready var _check: Control = $Check   # WK-92(4): PadGlyph "check" drawn at 150 px (the font has no tick)
 @onready var _badge: PanelContainer = $Content/VBox/Plate/Badge
 
 # Difficulty-star icons (frontend_ui_audit_2026-07-10 §3.7 — kills the ASCII "*.." row).
@@ -192,7 +192,6 @@ func set_locked(on: bool) -> void:
 func show_check(on: bool) -> void:
 	_check.visible = on
 	if on:
-		_check.add_theme_color_override("font_color", accent)
 		_check.pivot_offset = _check.size * 0.5
 		_check.scale = Vector2.ZERO
 		var t := _check.create_tween()

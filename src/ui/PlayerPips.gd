@@ -5,7 +5,8 @@ extends Control
 ##   - HUMANS: a "P#" pip (lobby label, PartyMatch.player_tag) in the goat's colour, ALWAYS on while alive.
 ##     Full alpha through the intro + Tuning.pip_intro_linger into COMBAT, then fades to Tuning.pip_idle_alpha
 ##     (~70 %, never gone). Any (re)spawn puts it back at full alpha for Tuning.pip_full_hold.
-##   - BOTS: a "CPU" tag during the stage intro only, faded out with the old name-tag timing.
+##   - BOTS: their NAME ("VEX") + a small "CPU" sub-tag (CC-8.5), during the stage intro only, faded out with
+##     the old name-tag timing. Humans keep the one-token "P#" pip (persistent, so it stays minimal).
 ##   - Off-screen goats get no pip (the EdgeIndicators chevron is the cue); a goat near the top edge gets
 ##     its pip flipped below it so it never leaves the screen.
 ##
@@ -32,9 +33,9 @@ func debug_state() -> Array:
 	var out: Array = []
 	for i in range(_pips.size()):
 		var pip = _pips[i]
-		out.append({"tag": pip.get_node("Tab/Label").text, "visible": pip.visible,
-			"alpha": snappedf(pip.modulate.a, 0.01), "pos": pip.position,
-			"font_px": pip.get_node("Tab/Label").get_theme_font_size("font_size")})
+		out.append({"tag": pip.get_node("Tab/Box/Label").text, "sub": pip.get_node("Tab/Box/Sub").text,
+			"visible": pip.visible, "alpha": snappedf(pip.modulate.a, 0.01), "pos": pip.position,
+			"font_px": pip.get_node("Tab/Box/Label").get_theme_font_size("font_size")})
 	return out
 
 func _sync_roster() -> void:
@@ -57,7 +58,9 @@ func _sync_roster() -> void:
 	for i in range(players.size()):
 		var pip = PIP_SCENE.instantiate()
 		add_child(pip)
-		pip.setup(_match.player_tag(i), _match.player_color(i), not _match.is_human_player(i))
+		var cpu: bool = not _match.is_human_player(i)
+		# WK-88 (CC-8.5): the NAME everywhere; only the CPU intro pip carries the sub-tag
+		pip.setup(_match.player_name(i), _match.player_color(i), cpu, "CPU" if cpu else "")
 		pip.visible = false
 		_pips.append(pip)
 		_shown.append(false)
@@ -104,6 +107,10 @@ func _process(delta: float) -> void:
 		var centre: Vector2 = (p.global_position - cam_center) * z + vp * 0.5
 		if not frame.has_point(centre):
 			pip.visible = false   # off-screen: the edge chevron is the cue
+			continue
+		var edge_ind = _match.get("_edge_indicators")   # WK-36: bubbled goats (incl. its hysteresis band) get no pip
+		if edge_ind != null and is_instance_valid(edge_ind) and edge_ind.has_method("is_bubbled") and edge_ind.is_bubbled(p):
+			pip.visible = false
 			continue
 		var rv: Variant = p.get("_radius")
 		var r: float = float(rv) if rv != null else 44.0

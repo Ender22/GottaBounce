@@ -1,5 +1,5 @@
 extends Panel
-## One corner HUD card: identity (head + P#) + fuel gauge. Glossy Toybox treatment: pastel card
+## One corner HUD card: identity (head + NAME + small sub-tag, CC-8.5) + fuel gauge. Glossy Toybox treatment: pastel card
 ## body tinted to the player skin, vivid fuel in the full skin color, dark-chocolate outlines from
 ## assets/ui/theme.tres. Dead-this-round = dim + skull over the head icon.
 ## SCORE PIPS REMOVED (owner 2026-07-16): the score display is now the between-stage ScoreScreen
@@ -11,7 +11,8 @@ var _color := Color.WHITE
 var _fuel_was_full := true
 var _was_locked := false
 
-@onready var _name_label: Label = $Margin/VBox/IdentityRow/NameLabel
+@onready var _name_label: Label = $Margin/VBox/IdentityRow/NameBox/NameLabel
+@onready var _sub_label: Label = $Margin/VBox/IdentityRow/NameBox/SubLabel
 @onready var _head: TextureRect = $Margin/VBox/IdentityRow/HeadSlot/Head
 @onready var _skull: Control = $Margin/VBox/IdentityRow/HeadSlot/Skull
 @onready var _fuel_bg: Panel = $Margin/VBox/FuelSlot/FuelBG
@@ -20,8 +21,8 @@ var _was_locked := false
 
 var _pu_id := ""
 
-## `label` (WK-10): the identity text, "P3" (lobby label) for a human or "CPU" for a bot. "" = legacy
-## slot number (idx + 1) for any caller that does not know the roster (set_label can update it later).
+## `label` (WK-10/WK-88): the fighter's NAME (PartyMatch.player_name: "P3" / "VEX"). "" = legacy slot number
+## (idx + 1) for any caller that does not know the roster (set_label can update it later).
 func setup(idx: int, color: Color, skin: String, label: String = "") -> void:
 	_color = color
 	_name_label.text = label if label != "" else "P%d" % (idx + 1)
@@ -36,10 +37,13 @@ func setup(idx: int, color: Color, skin: String, label: String = "") -> void:
 		_head.texture = load(head_path)
 	_fuel_fill.self_modulate = color
 
-## WK-10: identity text on the card ("P3" / "CPU"), set by the HUD from PartyMatch.player_tags().
-func set_label(text: String) -> void:
+## WK-88 (CC-8.5): NAME on the card ("P3" / "VEX") + the small sub-tag under it (goat name / "CPU"), set by
+## the HUD from PartyMatch.player_names() / player_subtags(). "" sub = name only.
+func set_label(text: String, sub: String = "") -> void:
 	if text != "":
 		_name_label.text = text
+	_sub_label.text = sub
+	_sub_label.visible = sub != ""
 
 ## Fuel gauge, mapped 0..1 (GDD §10 glanceable). Flashes bright when a full tank is banked —
 ## the super-boost-ready tell. `locked` = Unlimited Boost: the gauge glows solid (spec 3.2).

@@ -2,6 +2,16 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** SPORTS TEAM COLOURWAYS: RED = POGO (pink) + BILLY (orange), BLUE = BUTCH (blue) + ZIGGY (green)
+  (WK-27; supersedes the audit §E.6 / v5 spec §4 mapping BLUE = BUTCH + VEX). Picking the goat picks the team, so the
+  colourway IS the team read. In the WK-27 rendered check VEX's sprite measured magenta (~hue 300, RGB 228/101/228)
+  against POGO's pink (~hue 331); at couch scale (1/4-size frames) the two read as the same pink, and a BLUE VEX near
+  the red goal looked like a RED player. With ZIGGY every cross-team pair is >= 90 deg apart in hue and warm vs cool
+  holds. POGO (the mascot, P1's default) stays on RED. VEX and PUFF are not offered in Sports. `SportsMode.TEAM_SKINS` is
+  the one mapping (lobby carousel, team fill, and the cold-boot repaint all read it). Evidence:
+  `tools/out/wk/wk27_couch_scale.png`, `WK-27_*.png`. Reopen if ZIGGY blends into green grass floors in play, or if VEX
+  gets a cooler (bluer) sprite.
+
 - **2026-11-14** ADAPTIVE BETWEEN-STAGE SCORE HOLD (WK-21/WK-41; audit D-09; director-approved). The score-hold knob
   MOVED from `PartyMatch.SCORE_HOLD` (3.4) to `Tuning.score_hold_normal` (2.0) / `Tuning.score_hold_dramatic` (3.4),
   superseding the knob reference in the 2026-07-16 BETWEEN-STAGE SCORE SCREEN entry (the screen itself stays, per that

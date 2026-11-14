@@ -24,6 +24,11 @@ const MAX_FIGHTERS := 4
 ## WK-06 (audit §E.2/E.12): per-human cosmetic flair id ("" = none), compacted like human_devices. EMPTY =
 ## legacy rule (Settings.equipped_flair rides human 0 only). PartyMatch still suppresses flair in SPORTS.
 @export var flair_ids: PackedStringArray = PackedStringArray()
+## WK-27 (audit §E.2/E.6): per-human SPORTS team (0 = RED, 1 = BLUE), compacted like human_devices. The Herd
+## Lobby derives it from the goat colourway (picking the goat picks the team). EMPTY = legacy (cold boot / QA
+## harness / recorder): SportsMode splits humans-first into halves and repaints team colourways. Ignored by
+## every non-sports mode (the lobby writes it empty there).
+@export var team_ids: PackedInt32Array = PackedInt32Array()
 @export var bot_difficulty: int = 0                        # 0 = mixed (Tuning.bot_levels rotation); 1..5 = fixed level
 @export var character_ids: PackedStringArray = PackedStringArray(["bouncer"])   # per-player character; missing -> "bouncer"
 @export var skin_ids: PackedStringArray = PackedStringArray(["pink", "blue", "green", "yellow"])  # per-player color skin
@@ -65,6 +70,12 @@ func flair_for(i: int) -> String:
 	if i >= 0 and i < flair_ids.size():
 		return str(flair_ids[i])
 	return ""
+
+## SPORTS team for human `i` from the lobby (0 RED / 1 BLUE), -1 if none written (see team_ids).
+func team_for(i: int) -> int:
+	if i >= 0 and i < team_ids.size():
+		return team_ids[i]
+	return -1
 
 ## Character id for a player slot, falling back to "bouncer" for any index the roster doesn't cover.
 func character_for(i: int) -> String:

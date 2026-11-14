@@ -22,8 +22,13 @@ const COURT_SET_PATH := "res://levels/sports_courts.json"
 # team presentation (matches GoalZone.TEAM_COLORS)
 const TEAM_NAMES := ["RED", "BLUE"]
 const TEAM_COLORS := [Color("#ff4b6a"), Color("#3fa9ff")]
-# team colorway skins (spec §4: warm = team 0, cool = team 1) so teammates read as one side
-const TEAM_SKINS := [["pink", "orange"], ["blue", "purple"]]
+# team colorway skins (spec §4: warm = team 0, cool = team 1) so teammates read as one side.
+# WK-27: this is ALSO the Herd Lobby's sports roster — RED = POGO (pink) / BILLY (orange), BLUE = BUTCH
+# (blue) / ZIGGY (green); VEX / PUFF are not offered in Sports. Picking the goat picks the team.
+# BLUE was BUTCH / VEX until the WK-27 rendered check: VEX's sprite is magenta (~hue 300) and read as POGO's
+# pink at couch distance, so a BLUE VEX looked like a RED player. Green keeps every cross-team pair >= 90deg
+# apart in hue (DECISIONS 2026-11-14 "Sports team colourways").
+const TEAM_SKINS := [["pink", "orange"], ["blue", "green"]]
 
 # --- mode-owned state (spec §4) ---
 var _team_scores: Array = [0, 0]
@@ -85,6 +90,40 @@ static func sport_for_mode(mid: StringName) -> String:
 		&"rocketball": return "soccer"
 		&"dropshot": return "dropshot"
 		_: return ""
+
+## WK-27: which team a goat colourway belongs to (TEAM_SKINS is the ONE mapping). -1 = not a sports goat.
+static func team_for_skin(skin: String) -> int:
+	for t in range(TEAM_SKINS.size()):
+		if (TEAM_SKINS[t] as Array).has(skin):
+			return t
+	return -1
+
+## WK-27 team fill: the ONE rule both the Herd Lobby's CPU preview and spawn_plan use, so the lobby shows
+## exactly the CPUs the match spawns. `human_skins` / `human_teams` are per human (already validated),
+## `total` is the even seat count (2 = 1V1, 4 = 2V2). Returns [{team, skin, bot_level}] in spawn order
+## (RED's CPUs, then BLUE's). Each team's empty seats take that team's UNUSED colourway; the k-th CPU on
+## RED and the k-th CPU on BLUE draw the same level (bot-level mirroring, the 2026-07-19 fairness fix).
+static func team_fill(human_skins: Array, human_teams: Array, total: int, bot_difficulty: int) -> Array:
+	var seats: int = maxi(1, total / 2)
+	var levels: Array = Tuning.bot_levels
+	var out: Array = []
+	for t in range(TEAM_SKINS.size()):
+		var used: Array = []
+		var n: int = 0
+		for h in range(mini(human_skins.size(), human_teams.size())):
+			if int(human_teams[h]) == t:
+				n += 1
+				used.append(str(human_skins[h]))
+		var pool: Array = []
+		for sk in (TEAM_SKINS[t] as Array):
+			if not used.has(sk):
+				pool.append(sk)
+		if pool.is_empty():
+			pool = (TEAM_SKINS[t] as Array).duplicate()
+		for k in range(maxi(0, seats - n)):
+			var lvl: int = clampi(bot_difficulty, 1, 5) if bot_difficulty > 0 else int(levels[k % levels.size()])
+			out.append({"team": t, "skin": str(pool[k % pool.size()]), "bot_level": lvl})
+	return out
 
 func id() -> StringName:
 	return _mode_key
@@ -213,8 +252,10 @@ func _court_unlocked(court_id: String) -> bool:
 	return true
 
 ## Humans first, then bots, clamped to an EVEN total >= 2 (spec §1; clamp + log, never crash). Build
-## _teams in the SAME order the runner spawns (plan[i] -> player i), splitting the roster in half. Each
-## descriptor sets `team` (reused field) + a team colorway skin so teammates read as one side.
+## _teams in the SAME order the runner spawns (plan[i] -> player i). Each descriptor sets `team`.
+## WK-27: when the Herd Lobby wrote MatchConfig.team_ids, each human plays on the team their goat picked,
+## WEARING that goat (no repaint), and CPUs fill each team's empty seats (_team_plan). Otherwise (cold boot,
+## QA harness, recorder) the legacy rule: split the roster in half and repaint team colourway skins.
 func spawn_plan(_runner, config: MatchConfig) -> Array:
 	# WK-02 roster cap: clamp BEFORE the even-split math so teams stay balanced (an odd total <= 3 rounds
 	# up to <= 4, so the even clamp below can never exceed MatchConfig.MAX_FIGHTERS).
@@ -232,6 +273,8 @@ func spawn_plan(_runner, config: MatchConfig) -> Array:
 			bots += 1
 		total = humans + bots
 		push_warning("SportsMode: odd team total -> clamped to even (%d humans + %d bots = %d)" % [humans, bots, total])
+	if humans > 0 and config.team_ids.size() >= humans:
+		return _team_plan(config, humans, total)
 	var half: int = total / 2
 	_teams = []
 	var out: Array = []
@@ -253,6 +296,65 @@ func spawn_plan(_runner, config: MatchConfig) -> Array:
 			"human": is_human, "skin": skin, "character": config.character_for(i),
 			"bot_level": lvl, "seed_damage": 0, "team": team,
 		})
+	return out
+
+## WK-27 lobby-driven plan: humans keep their slot order (the runner maps plan[h] -> human device h), each on
+## MatchConfig.team_ids[h] in their picked goat; then team_fill's CPUs. Defensive against a config the lobby
+## would never write: an overfilled team first grows the format (<= MAX_FIGHTERS), then moves its highest
+## humans across; a skin that isn't one of the team's colourways (or is a teammate's) becomes an unused one.
+func _team_plan(config: MatchConfig, humans: int, total: int) -> Array:
+	var teams: Array = []
+	var skins: Array = []
+	var count: Array = [0, 0]
+	for h in range(humans):
+		var t: int = clampi(config.team_for(h), 0, 1)
+		teams.append(t)
+		skins.append(config.skin_for(h))
+		count[t] = int(count[t]) + 1
+	var need: int = 2 * maxi(int(count[0]), int(count[1]))
+	if need > total:
+		total = mini(need, MatchConfig.MAX_FIGHTERS)
+		push_warning("SportsMode: lobby teams %s overfill the format -> %d seats" % [str(teams), total])
+	var seats: int = total / 2
+	for t in range(2):
+		while int(count[t]) > seats:
+			for h in range(humans - 1, -1, -1):
+				if int(teams[h]) == t:
+					teams[h] = 1 - t
+					count[t] = int(count[t]) - 1
+					count[1 - t] = int(count[1 - t]) + 1
+					push_warning("SportsMode: human %d moved to %s (team over capacity)" % [h, TEAM_NAMES[1 - t]])
+					break
+	for h in range(humans):
+		var t: int = int(teams[h])
+		var clash: bool = false
+		for o in range(h):
+			if int(teams[o]) == t and str(skins[o]) == str(skins[h]):
+				clash = true
+		if team_for_skin(str(skins[h])) == t and not clash:
+			continue
+		for c in (TEAM_SKINS[t] as Array):
+			var taken: bool = false
+			for o in range(humans):
+				if o != h and int(teams[o]) == t and str(skins[o]) == str(c):
+					taken = true
+			if not taken:
+				skins[h] = str(c)
+				break
+		if team_for_skin(str(skins[h])) != t:
+			skins[h] = str((TEAM_SKINS[t] as Array)[0])
+	_teams = []
+	var out: Array = []
+	for h in range(humans):
+		_teams.append(int(teams[h]))
+		out.append({"human": true, "skin": str(skins[h]), "character": config.character_for(h),
+			"bot_level": 0, "seed_damage": 0, "team": int(teams[h])})
+	var fill: Array = team_fill(skins, teams, total, config.bot_difficulty)
+	for b in range(fill.size()):
+		var d: Dictionary = fill[b]
+		_teams.append(int(d["team"]))
+		out.append({"human": false, "skin": str(d["skin"]), "character": config.character_for(humans + b),
+			"bot_level": int(d["bot_level"]), "seed_damage": 0, "team": int(d["team"])})
 	return out
 
 # --- stage lifecycle ---
@@ -327,6 +429,12 @@ func stage_end_banner(runner) -> Dictionary:
 		_last_scoring_team = scoring
 	return {"text": "%s   RED %d — %d BLUE" % [goal_word(), int(_team_scores[0]), int(_team_scores[1])],
 		"color": TEAM_COLORS[scoring]}
+
+## WK-15 (CC-11.1 / D-13): the stage-1 goal chip above the controls legend — the sport's one-line rule.
+func goal_line(_runner) -> String:
+	if _sport == "dropshot":
+		return "SPIKE IT OVER THE NET  ·  DON'T LET IT DROP  ·  FIRST TO %d" % _goal_cap
+	return "HEADBUTT THE BALL INTO THEIR GOAL  ·  FIRST TO %d" % _goal_cap
 
 ## The score exclamation ("GOAL!" for soccer, "POINT!" for DROPSHOT). Read by the HUD flash too.
 func goal_word() -> String:

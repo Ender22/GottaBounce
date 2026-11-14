@@ -63,11 +63,23 @@ texture = ExtResource("3_skull")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="NameLabel" type="Label" parent="Margin/VBox/IdentityRow"]
+[node name="NameBox" type="VBoxContainer" parent="Margin/VBox/IdentityRow"]
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = -6
+
+[node name="NameLabel" type="Label" parent="Margin/VBox/IdentityRow/NameBox"]
+layout_mode = 2
 theme_type_variation = &"CardName"
 text = "P1"
+
+[node name="SubLabel" type="Label" parent="Margin/VBox/IdentityRow/NameBox"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"CardTag"
+theme_override_font_sizes/font_size = 20
+text = "CPU"
 
 [node name="Spacer" type="Control" parent="Margin/VBox/IdentityRow"]
 layout_mode = 2

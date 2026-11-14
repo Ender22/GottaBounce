@@ -6,7 +6,7 @@ extends CanvasLayer
 ## reveal/breather beat. Shown by PartyMatch during its SCOREBOARD state (BRAWL only, via
 ## GameMode.wants_scoreboard) — auto-advances, skippable with accept after a short guard.
 ##
-## Presentation: each player row = goat head + P# + a colored RACE BAR toward the kill target
+## Presentation: each player row = goat head + NAME (+ small sub-tag, CC-8.5) + a colored RACE BAR toward the kill target
 ## (the finish line IS the "first to N" teaching device, replacing the pips) + big tally + this
 ## stage's +/- delta chip. Bars animate from the pre-stage score to the new truth, staggered.
 
@@ -28,8 +28,8 @@ const CHOCO := Color(0.231373, 0.141176, 0.105882)
 
 var _tw: Tween
 
-## rows: [{pn:int, tag:String, color:Color, skin:String, score:int, delta:int}], target = kills_to_win.
-## pn = 1-based player index (row identity); tag = the displayed identity ("P3" / "CPU", WK-10).
+## rows: [{pn:int, name:String, sub:String, color:Color, skin:String, score:int, delta:int}], target = kills_to_win.
+## pn = 1-based player index (row identity); name/sub = CC-8.5 identity (WK-88): "P3"+"POGO" / "VEX"+"CPU".
 func present(rows: Array, target: int) -> void:
 	visible = true
 	_root.modulate.a = 1.0
@@ -99,9 +99,12 @@ func _build_row(r: Dictionary, target: int) -> Dictionary:
 	var head_path := "res://assets/characters/bouncer_%s_idle.png" % str(r["skin"])
 	if ResourceLoader.exists(head_path):
 		head.texture = load(head_path)
-	var name_l: Label = row.get_node("PName")
-	name_l.text = str(r.get("tag", "P%d" % int(r["pn"])))   # WK-10: "P3" (lobby label) / "CPU"
+	var name_l: Label = row.get_node("NameBox/PName")
+	name_l.text = str(r.get("name", "P%d" % int(r["pn"])))   # WK-88 (CC-8.5): "P3" / "VEX"
 	name_l.add_theme_color_override("font_color", color)
+	var sub_l: Label = row.get_node("NameBox/PSub")
+	sub_l.text = str(r.get("sub", ""))                          # small tag: goat name / "CPU"
+	sub_l.visible = sub_l.text != ""
 	var fill: Panel = row.get_node("BarSlot/BarFill")
 	var fill_sb: StyleBoxFlat = StyleBoxFlat.new()
 	fill_sb.bg_color = color

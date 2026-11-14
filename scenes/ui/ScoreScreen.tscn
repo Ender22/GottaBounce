@@ -76,13 +76,26 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="PName" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
-custom_minimum_size = Vector2(64, 0)
+[node name="NameBox" type="VBoxContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
+custom_minimum_size = Vector2(124, 0)
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = -6
+
+[node name="PName" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/NameBox"]
+layout_mode = 2
 theme_type_variation = &"CardName"
 theme_override_font_sizes/font_size = 30
 text = "P1"
+
+[node name="PSub" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/NameBox"]
+layout_mode = 2
+theme_type_variation = &"CardName"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 18
+text = "CPU"
 
 [node name="BarSlot" type="Control" parent="Root/Center/Panel/Box/Rows/RowTemplate"]
 custom_minimum_size = Vector2(430, 32)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/ui/VictoryScreen.gd" id="1_vs"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
@@ -13,6 +13,25 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="name_ribbon"]
+content_margin_left = 34.0
+content_margin_top = 4.0
+content_margin_right = 34.0
+content_margin_bottom = 6.0
+bg_color = Color(0.231373, 0.141176, 0.105882, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 0.823529, 0.247059, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+shadow_color = Color(0.12, 0.07, 0.05, 0.4)
+shadow_size = 4
+shadow_offset = Vector2(0, 3)
 
 [sub_resource type="StyleBoxFlat" id="row_winner"]
 content_margin_left = 10.0
@@ -104,18 +123,43 @@ text = "WINNER!"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="NameL" type="Label" parent="Root"]
+[node name="NameL" type="CenterContainer" parent="Root"]
 layout_mode = 0
 offset_left = 120.0
-offset_top = 852.0
+offset_top = 828.0
 offset_right = 1120.0
-offset_bottom = 924.0
-pivot_offset = Vector2(500, 36)
+offset_bottom = 916.0
+pivot_offset = Vector2(500, 44)
+mouse_filter = 2
+
+[node name="Ribbon" type="PanelContainer" parent="Root/NameL"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("name_ribbon")
+
+[node name="Box" type="HBoxContainer" parent="Root/NameL/Ribbon"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="NameText" type="Label" parent="Root/NameL/Ribbon/Box"]
+layout_mode = 2
+size_flags_vertical = 4
 theme_type_variation = &"BannerSub"
-theme_override_constants/outline_size = 16
-theme_override_font_sizes/font_size = 52
-text = "POGO — PLAYER 1"
-horizontal_alignment = 1
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 56
+text = "P1"
+vertical_alignment = 1
+
+[node name="SubText" type="Label" parent="Root/NameL/Ribbon/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerSub"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 32
+text = "POGO"
 vertical_alignment = 1
 
 [node name="TrayArea" type="Control" parent="Root"]
@@ -170,13 +214,26 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
+[node name="NameBox" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = -6
+
+[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+layout_mode = 2
 theme_type_variation = &"CardName"
 theme_override_font_sizes/font_size = 28
-text = "POGO"
+text = "P1"
+
+[node name="PSub" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+layout_mode = 2
+theme_type_variation = &"CardName"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 18
+text = "CPU"
 
 [node name="BarSlot" type="Control" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
 custom_minimum_size = Vector2(240, 32)

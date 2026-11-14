@@ -75,6 +75,44 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
+[sub_resource type="StyleBoxFlat" id="team_red"]
+content_margin_left = 18.0
+content_margin_right = 18.0
+bg_color = Color(1, 0.294118, 0.415686, 0.92)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+expand_margin_top = 8.0
+expand_margin_bottom = 8.0
+shadow_color = Color(0.12, 0.07, 0.05, 0.35)
+shadow_size = 6
+shadow_offset = Vector2(0, 5)
+
+[sub_resource type="StyleBoxFlat" id="team_blue"]
+content_margin_left = 18.0
+content_margin_right = 18.0
+bg_color = Color(0.247059, 0.662745, 1, 0.92)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+expand_margin_top = 8.0
+expand_margin_bottom = 8.0
+shadow_color = Color(0.12, 0.07, 0.05, 0.35)
+shadow_size = 6
+shadow_offset = Vector2(0, 5)
+
 [node name="HerdLobby" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -177,6 +215,58 @@ offset_bottom = 232.0
 mouse_filter = 2
 theme_override_constants/separation = 22
 alignment = 1
+
+[node name="RedGroup" type="PanelContainer" parent="Roster"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("team_red")
+
+[node name="Row" type="HBoxContainer" parent="Roster/RedGroup"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+
+[node name="TeamName" type="Label" parent="Roster/RedGroup/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 44
+text = "RED"
+vertical_alignment = 1
+
+[node name="TeamVs" type="Label" parent="Roster"]
+visible = false
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.823529, 0.247059, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 14
+theme_override_font_sizes/font_size = 56
+text = "VS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BlueGroup" type="PanelContainer" parent="Roster"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("team_blue")
+
+[node name="Row" type="HBoxContainer" parent="Roster/BlueGroup"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+
+[node name="TeamName" type="Label" parent="Roster/BlueGroup/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 44
+text = "BLUE"
+vertical_alignment = 1
 
 [node name="Slots" type="Control" parent="."]
 layout_mode = 0

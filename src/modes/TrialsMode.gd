@@ -197,6 +197,22 @@ func stage_end_banner(_runner) -> Dictionary:
 			text = "ALL LANDED!"
 	return {"text": text, "color": Color("#ffd23f")}
 
+## WK-15 (CC-11.1 / D-13): the stage-1 goal chip above the controls legend, per the FIRST course's
+## objective type (called after next_level_path cached it). Same verbs as the TrialsHUD sub-readout.
+func goal_line(_runner) -> String:
+	match _objective_type():
+		OBJ_SURVIVE:
+			return "STAY UP FOR %d SECONDS" % int(round(survive_target()))
+		OBJ_DESTROY:
+			return "SMASH EVERY BLOCK"
+		OBJ_PUZZLE:
+			return "KNOCK THE BALL INTO THE GOAL"
+		OBJ_COLLECT:
+			return "GRAB EVERY TOKEN"
+		OBJ_PRECISION:
+			return "LAND SOFTLY ON EVERY PAD"
+	return "FLY INTO THE GOLD RING"
+
 ## The set summary — BINARY (v10 §5): no total time, no medal tallies.
 func match_end_banner(_runner) -> Dictionary:
 	return {"text": "TRIALS COMPLETE!", "color": Color("#ffd23f"), "subline": "All courses cleared."}

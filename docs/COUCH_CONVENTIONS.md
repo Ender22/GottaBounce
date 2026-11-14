@@ -157,6 +157,24 @@ and pad players see pad buttons. Rules 2-5 of that brief still stand.
   above their goat during play (fading to ~70 % alpha, never gone). Bots are tagged **CPU**, never "P3".
 - **CC-8.4** No placeholder or debug text anywhere: no "P1" on unused HUD cards, no version stamps outside the title
   and Options, no dev servers in a player build.
+- **CC-8.5** One fighter, one name (WK-88, audit CD1-04). Every fighter has exactly one **NAME** and may carry one
+  small **sub-tag**:
+
+  | | NAME (always, identity colour) | sub-tag (smaller, only where a second token fits) |
+  |---|---|---|
+  | Human | `P#` — the lobby label (`P3` stays P3 with an empty P2 slot) | their goat's name (`POGO`) |
+  | CPU | their goat's name (`VEX`) | `CPU` |
+
+  - The NAME is the only word that names a fighter. HUD cards, identity pips, stage/match banners, MATCH POINT,
+    stage tallies, the ScoreScreen, the Victory screen and pause chips all print the same NAME.
+  - The sub-tag sits right after or under the NAME, smaller and lower-weight. It is never shown alone and never
+    replaces the NAME. Shown on: HUD card (under the name), ScoreScreen row, Victory winner ribbon and standings
+    rows, and a CPU's stage-intro pip. Not shown on: one-line announcer text (banners, top band, tallies), pause
+    chips, or a human's persistent pip (it stays one token).
+  - So `CPU` is a sub-tag, never a name ("who is CPU?"). `P#` never names a CPU (CC-8.3). Two CPUs in one line
+    stay distinct ("BILLY +1 · VEX +1").
+  - Code: `PartyMatch.player_name(i)` / `player_subtag(i)` (+ `player_names()` / `player_subtags()`). Nothing
+    player-facing prints `player_tag(i)` (it is the QA "P#/CPU" kind readout).
 
 ## 9. Feedback sounds (every input answers)
 - **CC-9.1** Distinct UI sounds: navigate (soft tick), confirm (pop), back (low boop), deny (buzz), join (a chime
@@ -176,6 +194,11 @@ and pad players see pad buttons. Rules 2-5 of that brief still stand.
 - **CC-11.1** Every mode's first stage shows the controls legend (device-aware glyphs, per CC-1.6). A CONTROLS screen
   (one shared scene) can be reached from Pause and Options. It shows the full move set, including "hold X to aim,
   release to fire".
+- **CC-11.2** Every mode's first stage also states the goal in one line (WK-15, audit D-04/D-13). The mode owns the
+  words (`GameMode.goal_line`) and the verbs the legend teaches (`GameMode.legend_verbs`). BRAWL prints its rule
+  under the arena name on the stage-1 intro card ("SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs"). Modes without an intro
+  card (Sports, Trials) show it as a gold goal chip above the controls legend. Rule copy never contradicts scoring:
+  BRAWL scores KOs, so its banners lead with KOs and the survivor is a sub-line.
 
 ## 12. Release hygiene
 - **CC-12.1** No dev or automation server runs unless a dev flag is passed. No `push_warning` spam in the console

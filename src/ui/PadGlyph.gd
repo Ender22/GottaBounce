@@ -12,6 +12,7 @@ extends Control
 ##   "pad" / "kb"           device icons (a controller silhouette / a keyboard) for lobby panel headers
 ##   ring                   0..1 hold-progress arc drawn around the glyph (hold-B exit ring)
 ## WK-81/WK-07 additions: "star" (36 px gold flair icon), "check" (green READY tick), "lock" (padlock).
+## WK-92: `icon_size` scales the "check" (MenuCard's 150 px lock-in stamp); every other glyph ignores it.
 ## Set `glyph` in a .tscn (exported) or call setup() from code (ControlsLegend does).
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
@@ -26,6 +27,11 @@ const PILL_COLOR := Color("#3b3f4a")       # Xbox charcoal for the centre button
 const RING_COLOR := Color("#ffd23f")
 
 @export var glyph := ""                    # set in .tscn; "" = wait for setup()
+@export var icon_size := 36.0:             # "check" only: drawn diameter-ish box (36 = READY tick)
+	set(v):
+		icon_size = maxf(v, 8.0)
+		if _label != null:
+			setup(_glyph)
 @export var ring := 0.0:                   # hold-progress 0..1 (0 = no ring)
 	set(v):
 		ring = clampf(v, 0.0, 1.0)
@@ -79,8 +85,8 @@ func setup(g: String) -> void:
 		w = 64.0
 	elif _glyph == "star" or _glyph == "check" or _glyph == "lock":
 		_label.text = ""
-		w = 36.0
-		custom_minimum_size = Vector2(w, 36.0)
+		w = icon_size if _glyph == "check" else 36.0
+		custom_minimum_size = Vector2(w, w)
 		queue_redraw()
 		return
 	else:
@@ -138,9 +144,11 @@ func _draw() -> void:
 	elif _glyph == "star":
 		_draw_star(c, 17.0)
 	elif _glyph == "check":
-		draw_circle(c, 16.0, FACE_COLORS["A"])
-		draw_arc(c, 16.0, 0.0, TAU, 32, CHOCO, 3.0, true)
-		draw_polyline(PackedVector2Array([c + Vector2(-8, 0), c + Vector2(-2, 7), c + Vector2(9, -7)]), Color.WHITE, 4.5, true)
+		var k: float = icon_size / 36.0
+		draw_circle(c, 16.0 * k, FACE_COLORS["A"])
+		draw_arc(c, 16.0 * k, 0.0, TAU, 48, CHOCO, 3.0 * k, true)
+		draw_polyline(PackedVector2Array([c + Vector2(-8, 0) * k, c + Vector2(-2, 7) * k, c + Vector2(9, -7) * k]),
+			Color.WHITE, 4.5 * k, true)
 	elif _glyph == "lock":
 		draw_arc(c + Vector2(0, -3), 7.0, PI, TAU, 16, CHOCO, 4.0, true)
 		draw_line(c + Vector2(-7, -3), c + Vector2(-7, 1), CHOCO, 4.0)

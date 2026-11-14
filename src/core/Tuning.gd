@@ -269,9 +269,20 @@ var bubble_outline_px: float = 4.0            # chocolate outer outline
 var bubble_rim_px: float = 8.0                # goat-colour identity rim
 var bubble_band_gap_px: float = 2.5           # chocolate separators between rim / fuel ring / window
 var bubble_fuel_px: float = 9.0               # fuel ring width (fill = get_fuel_ratio(), clockwise from 12 o'clock)
-var bubble_goat_fill: float = 0.5             # goat BALL radius as a fraction of the cream window radius
+var bubble_goat_fill: float = 0.6             # goat BALL radius as a fraction of the cream window radius (rendered QA:
+                                              #   0.5 left the goat small in a sea of cream; at 0.6 the jetpack just
+                                              #   tucks under the frame band, by design)
 var bubble_pop_time: float = 0.14             # s (real time) pop-in when a goat leaves the frame
+var bubble_hide_delay: float = 0.15           # s a bubbled goat must be back IN view before the bubble drops (WK-93
+                                              #   recording: a goat grazing the frame line flickered the bubble every
+                                              #   frame). The pip stays hidden while bubbled. A bubble only APPEARS once
+                                              #   the goat's body is fully past the viewport edge (rendered QA: at the old
+                                              #   inset-40 rule the 150 px bubble sat on top of the half-visible goat).
+var bubble_repop_grace: float = 0.35          # s after a bubble drops in which a re-exit shows it at full size (no re-pop)
 var bubble_fuel_color: Color = Color(1.0, 0.80, 0.22)        # jetpack-gold fuel arc
+var bubble_fuel_alt_color: Color = Color(1.0, 0.99, 0.94)    # used instead when the goat's rim colour clashes with gold
+var bubble_fuel_hue_clash: float = 0.09       # hue distance (0..0.5) under which rim + gold fuel merge (rendered QA:
+                                              #   yellow/orange goats read as one thick yellow band) -> alt colour
 var bubble_fuel_low_color: Color = Color(1.0, 0.30, 0.22)    # below bubble_fuel_low: red, pulsing
 var bubble_fuel_locked_color: Color = Color(0.45, 0.92, 1.0) # Unlimited Boost (fuel_locked): cyan, like the HUD
 var bubble_fuel_track: Color = Color(0.43, 0.30, 0.24)       # empty part of the fuel ring

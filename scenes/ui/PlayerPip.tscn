@@ -24,10 +24,26 @@ offset_bottom = -12.0
 mouse_filter = 2
 theme_type_variation = &"PlayerPip"
 
-[node name="Label" type="Label" parent="Tab"]
+[node name="Box" type="VBoxContainer" parent="Tab"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = -8
+
+[node name="Label" type="Label" parent="Tab/Box"]
 layout_mode = 2
 theme_type_variation = &"PlayerPipLabel"
 text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Sub" type="Label" parent="Tab/Box"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"PlayerPipLabel"
+theme_override_colors/font_color = Color(1, 0.97, 0.9, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 18
+text = "CPU"
 horizontal_alignment = 1
 vertical_alignment = 1
 

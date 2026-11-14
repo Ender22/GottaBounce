@@ -242,12 +242,45 @@ func match_winner(runner) -> int:
 		return widx
 	return -1
 
+## WK-15 / audit D-04: BRAWL scores KOs, never survival, so the stage banner LEADS with the stage's KOs
+## ("VEX +2!") and the survivor is only a subline fact ("P1 +1  ·  VEX +2   ·   P1 SURVIVED"). Names follow
+## the CC-8.5 naming rule (runner.player_name: humans "P#", CPUs their goat name), in their goat colour.
 func stage_end_banner(runner) -> Dictionary:
+	var best := 0
+	var leaders: Array = []
+	for i in range(runner.players.size()):
+		var d: int = runner.stage_display_delta(i)
+		if d > best:
+			best = d
+			leaders = [i]
+		elif d == best and d > 0:
+			leaders.append(i)
+	var text := "NO KOs!"
+	var col := Color.WHITE
+	if leaders.size() == 1:
+		text = "%s +%d!" % [runner.player_name(int(leaders[0])), best]
+		col = runner.player_color(int(leaders[0]))
+	elif leaders.size() == 2:
+		text = "%s & %s +%d!" % [runner.player_name(int(leaders[0])), runner.player_name(int(leaders[1])), best]
+	elif leaders.size() > 2:
+		text = "KOs ALL ROUND!"
+	var parts: Array[String] = []
+	var tally: String = runner._deltas_line()
+	if tally != "":
+		parts.append(tally)
 	if runner._stage_winner >= 0:
-		# WK-08/10: the survivor's lobby label ("P3") or goat name for a CPU, in their goat colour
-		return {"text": "%s SURVIVES!" % runner.player_name(runner._stage_winner),
-			"color": runner.player_color(runner._stage_winner)}
-	return {"text": "NOBODY SURVIVES", "color": Color.WHITE}
+		parts.append("%s SURVIVED" % runner.player_name(runner._stage_winner))
+	else:
+		parts.append("NOBODY SURVIVED")
+	return {"text": text, "color": col, "subline": "   ·   ".join(parts)}
+
+## WK-15 (D-04 / D-13): the rule, stated where a first-timer looks — the stage-1 intro card.
+func goal_line(runner) -> String:
+	return "SMASH 'EM OFF-SCREEN  ·  FIRST TO %d KOs" % int(runner.match_target_kills)
+
+## BRAWL arenas spawn powerups, so its legend teaches the B button too.
+func legend_verbs() -> Array:
+	return ["move", "fly", "super", "powerup", "pause"]
 
 func match_end_banner(runner) -> Dictionary:
 	var widx: int = runner._match_winner

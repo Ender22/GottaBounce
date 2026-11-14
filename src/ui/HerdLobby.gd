@@ -13,6 +13,11 @@ extends MenuScreen
 ## built-in focus never sees it. Per-device D-pad / stick repeat with stick hysteresis (Tuning.lobby_*).
 ## Slot index = P-number (slot 0 = P1); a P3 in a lobby with an empty P2 is compacted to human index 1
 ## on proceed but keeps the "P3" label (MatchConfig.human_labels).
+##
+## SPORTS (WK-27, audit §E.6): picking the goat picks the team. The carousel offers only the four team
+## colourways (SportsMode.TEAM_SKINS: RED = POGO / BILLY, BLUE = BUTCH / ZIGGY), each panel wears a RED/BLUE
+## ribbon, a full team's goats are skipped (1V1 = 1 seat a side, 2V2 = 2), the CPU tray previews the exact
+## team-fill CPUs, and proceed writes MatchConfig.team_ids so the match spawns the picked goats on their teams.
 
 const MEDAL := preload("res://scenes/ui/RosterMedallion.tscn")
 const PORTRAIT := "res://assets/ui/portraits/portrait_%s.png"
@@ -70,6 +75,11 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _f_random: Control = $Footer/HintRow/GRandom/Glyph
 @onready var _f_go: Control = $Footer/HintRow/GGo/Glyph
 @onready var _f_hold: Control = $Footer/HintRow/GHold/Glyph
+@onready var _red_group: Control = $Roster/RedGroup
+@onready var _blue_group: Control = $Roster/BlueGroup
+@onready var _team_vs: Control = $Roster/TeamVs
+@onready var _cpu_minus: Control = $CpuRow/CpuTray/Row/Minus
+@onready var _cpu_plus: Control = $CpuRow/CpuTray/Row/Plus
 
 ## Slot state (audit §E.2): {state, device, goat, flair, row}. The lobby is the ONLY writer; InputRouter's
 ## join registry mirrors it. Eval-readable for QA (`slots`, `banner_up`, `cpus()`).
@@ -84,6 +94,8 @@ var _flair_vals: Array = []   # "" (NONE), unlocked ids, "__locked" tease
 var _flair_labels: Array = []
 var _tex_cache := {}
 var _pending_flair := ""
+var _pool: Array = []         # WK-27: goat indices this mode's carousel offers, in carousel order
+var _hint_default := ""       # the amber hint's authored text (BRAWL "need a CPU"); SPORTS swaps in "team full"
 
 # input bookkeeping (all per device key)
 var _holds := {}              # "<key>|h" / "<key>|v" -> {dir, src, t}  (repeat timers, msec)
@@ -119,14 +131,21 @@ func _ready() -> void:
 		_mode = "brawl"
 	for i in range(MAX_SLOTS):
 		slots.append(_empty_slot())
-	# roster ribbon: one medallion per goat (instanced from the scene — data-driven, not a widget wall)
+	_build_pool()
+	# roster ribbon: one medallion per goat (instanced from the scene — data-driven, not a widget wall).
+	# _medals stays indexed by goat; SPORTS regroups the pool's four into the RED / BLUE team plates.
 	for g in range(HEROES.size()):
 		var m: Control = MEDAL.instantiate()
 		_roster.add_child(m)
 		(m as Object).call("setup", g, _hero(g)["color"], _portrait(g))
 		_medals.append(m)
+	if _mode == "sports":
+		_group_sports_roster()
 	for i in range(MAX_SLOTS):
-		(_slot_views[i] as Object).call("setup_slot", i, _idle_tex(str((HEROES[i] as Dictionary)["skin"])))
+		var sil_g: int = int(_pool[i % _pool.size()])
+		(_slot_views[i] as Object).call("setup_slot", i, _idle_tex(str((HEROES[sil_g] as Dictionary)["skin"])))
+		(_slot_views[i] as Object).call("set_sports_layout", _mode == "sports")
+	_hint_default = _hint_text.text
 	_build_flair_vals()
 	_pending_flair = Settings.take_pending_flair_unlock()
 	_back_btn.pressed.connect(_exit)
@@ -155,7 +174,10 @@ func first_focus() -> Control:
 	return null   # no viewport focus on this screen (E.12)
 
 func stagger_items() -> Array:
-	return _medals   # roster ribbon pops in; panels animate themselves (join motion) so they aren't staggered
+	# roster ribbon pops in; panels animate themselves (join motion) so they aren't staggered
+	if _mode == "sports":
+		return [_red_group, _team_vs, _blue_group]   # WK-27: the two team plates + VS, not hidden medallions
+	return _medals
 
 func enter() -> void:
 	get_viewport().gui_release_focus()
@@ -191,6 +213,14 @@ func _restore_lobby() -> void:
 			slots[i] = {"state": st, "device": dev, "goat": clampi(int(sd.get("goat", 0)), 0, HEROES.size() - 1),
 				"flair": str(sd.get("flair", "")), "row": 0}
 			InputRouter.join(dev, i)
+	# WK-27: a goat this mode doesn't offer (VEX kept from a BRAWL lobby, now in ROCKETBALL) re-seats on the
+	# balanced default, un-readied (never a silently invalid READY).
+	for i in range(MAX_SLOTS):
+		if slots[i]["state"] == S_EMPTY:
+			continue
+		if not _pool.has(int(slots[i]["goat"])):
+			slots[i]["state"] = S_PICKING
+			slots[i]["goat"] = _default_goat(i)
 	for i in range(MAX_SLOTS):
 		var s: Dictionary = slots[i]
 		if s["state"] == S_EMPTY:
@@ -240,7 +270,144 @@ func _hero(g: int) -> Dictionary:
 	var sk := str(h["skin"])
 	h["name"] = PlayerIdentity.name_for_skin(sk)
 	h["color"] = PlayerIdentity.color_for_skin(sk)
+	var t: int = _goat_team(g)
+	if t >= 0:
+		h["team"] = t
+		h["team_name"] = SportsMode.TEAM_NAMES[t]
+		h["team_color"] = SportsMode.TEAM_COLORS[t]
 	return h
+
+# ------------------------------------------------------------------ SPORTS teams (WK-27, audit §E.6)
+## The carousel pool: every goat in BRAWL / TRIALS; in SPORTS the team colourways in team order
+## (RED: POGO, BILLY · BLUE: BUTCH, ZIGGY) straight from SportsMode.TEAM_SKINS, the one mapping.
+func _build_pool() -> void:
+	_pool = []
+	if _mode == "sports":
+		for t in range(SportsMode.TEAM_SKINS.size()):
+			for sk in (SportsMode.TEAM_SKINS[t] as Array):
+				var g: int = _goat_for_skin(str(sk))
+				if g >= 0:
+					_pool.append(g)
+	if _pool.is_empty():
+		for g in range(HEROES.size()):
+			_pool.append(g)
+
+func _goat_for_skin(sk: String) -> int:
+	for g in range(HEROES.size()):
+		if str((HEROES[g] as Dictionary)["skin"]) == sk:
+			return g
+	return -1
+
+## Team of goat `g` in this lobby: 0 RED / 1 BLUE in SPORTS, -1 elsewhere (and for non-sports goats).
+func _goat_team(g: int) -> int:
+	if _mode != "sports" or g < 0 or g >= HEROES.size():
+		return -1
+	return SportsMode.team_for_skin(str((HEROES[g] as Dictionary)["skin"]))
+
+## Eval-readable (QA): the team slot `i` is on, -1 if EMPTY / not sports.
+func slot_team(i: int) -> int:
+	if i < 0 or i >= MAX_SLOTS or slots[i]["state"] == S_EMPTY:
+		return -1
+	return _goat_team(int(slots[i]["goat"]))
+
+## Seats in the match: RULES FORMAT (2 = 1V1, 4 = 2V2); 3-4 joined humans force 2V2 (E.6).
+func _sports_seats_total() -> int:
+	return _sports_total if _joined_count() <= _sports_total else 4
+
+func _team_seats() -> int:
+	return _sports_seats_total() / 2
+
+## READY humans on team `t`, not counting slot `except_si`.
+func _team_ready_count(t: int, except_si: int) -> int:
+	var n := 0
+	for i in range(MAX_SLOTS):
+		if i != except_si and slots[i]["state"] == S_READY and _goat_team(int(slots[i]["goat"])) == t:
+			n += 1
+	return n
+
+## SPORTS: goat `g`'s team already has every seat LOCKED by other humans (E.6 "goats of a full team are
+## skipped for the remaining players"). Like goat exclusivity, only READY players hold a seat — two PICKING
+## players may browse the same team; the first to lock wins it.
+func _team_full_for(g: int, si: int) -> bool:
+	var t: int = _goat_team(g)
+	return t >= 0 and _team_ready_count(t, si) >= _team_seats()
+
+## Slot `si` can't land on / lock goat `g`: another human locked it, or (SPORTS) its team is full.
+func _blocked(g: int, si: int) -> bool:
+	return _locked_by_other(g, si) >= 0 or _team_full_for(g, si)
+
+## The goat a slot starts on (E.4: first goat no other joined human is on). SPORTS first balances: start on
+## the team with FEWER joined humans (tie -> RED), never on a blocked goat — so two friends who just mash A
+## land on opposite sides, the Rocket League / Strikers default. Teammates are one cycle away.
+func _default_goat(si: int) -> int:
+	var used: Array = []
+	var per_team: Array = [0, 0]
+	for i in range(MAX_SLOTS):
+		if i == si or slots[i]["state"] == S_EMPTY:
+			continue
+		var og: int = int(slots[i]["goat"])
+		used.append(og)
+		var ot: int = _goat_team(og)
+		if ot >= 0:
+			per_team[ot] = int(per_team[ot]) + 1
+	var order: Array = []
+	if _mode == "sports":
+		var first: int = 1 if int(per_team[1]) < int(per_team[0]) else 0
+		for want in [first, 1 - first]:
+			for g in _pool:
+				if _goat_team(int(g)) == want:
+					order.append(g)
+	else:
+		order = _pool.duplicate()
+	for g in order:
+		if not used.has(g) and not _blocked(int(g), si):
+			return int(g)
+	for g in order:
+		if not _blocked(int(g), si):
+			return int(g)
+	return int(order[0]) if not order.is_empty() else 0
+
+## The roster ribbon in SPORTS: [RED  POGO BILLY]  VS  [BUTCH ZIGGY  BLUE]; VEX / PUFF medallions hidden.
+func _group_sports_roster() -> void:
+	_red_group.visible = true
+	_blue_group.visible = true
+	_team_vs.visible = true
+	var red_row: Node = _red_group.get_node("Row")
+	var blue_row: Node = _blue_group.get_node("Row")
+	for g in range(_medals.size()):
+		var m: Control = _medals[g]
+		var t: int = _goat_team(g)
+		if t < 0 or not _pool.has(g):
+			m.visible = false
+			continue
+		_roster.remove_child(m)
+		(red_row if t == 0 else blue_row).add_child(m)
+	blue_row.move_child(blue_row.get_node("TeamName"), -1)   # mirror: the BLUE name sits on the outside edge
+
+## The CPUs a SPORTS match will spawn for the current picks (SportsMode.team_fill — the same rule spawn_plan
+## runs, so the tray never lies). Joined humans count in slot order with their goat's team. Eval-readable.
+func sports_fill() -> Array:
+	var skins: Array = []
+	var teams: Array = []
+	for s in slots:
+		if s["state"] == S_EMPTY:
+			continue
+		skins.append(str((HEROES[int(s["goat"])] as Dictionary)["skin"]))
+		teams.append(_goat_team(int(s["goat"])))
+	return SportsMode.team_fill(skins, teams, _sports_seats_total(), GameConfig.match_config.bot_difficulty)
+
+## The team that has more joined humans than seats (-1 = none). Only reachable by a format change or a
+## leave shrinking the seats under READY players; roster_state turns it into the amber hint.
+func _overfull_team() -> int:
+	var seats: int = _team_seats()
+	for t in range(2):
+		var n := 0
+		for s in slots:
+			if s["state"] != S_EMPTY and _goat_team(int(s["goat"])) == t:
+				n += 1
+		if n > seats:
+			return t
+	return -1
 
 func _empty_slot() -> Dictionary:
 	return {"state": S_EMPTY, "device": "", "goat": 0, "flair": "", "row": 0}
@@ -440,19 +607,12 @@ func _join(key: String, sound: bool) -> void:
 		_deny_sound()
 		MenuFX.reject_shake($Slots)
 		return
-	var used: Array = []
-	for i in range(MAX_SLOTS):
-		if slots[i]["state"] != S_EMPTY:
-			used.append(int(slots[i]["goat"]))
-	var g := 0
-	for c in range(HEROES.size()):
-		if not used.has(c):
-			g = c
-			break
 	var fl := ""
 	if si == 0 and Settings.equipped_flair != "" and _flair_vals.has(Settings.equipped_flair):
 		fl = Settings.equipped_flair   # P-slot 0's flair persists to Settings (E.2)
-	slots[si] = {"state": S_PICKING, "device": key, "goat": g, "flair": fl, "row": 0}
+	slots[si] = {"state": S_PICKING, "device": key, "goat": 0, "flair": fl, "row": 0}
+	var g: int = _default_goat(si)   # computed with this slot joined, so SPORTS seats count it (3rd human -> 2V2)
+	slots[si]["goat"] = g
 	InputRouter.join(key, si)
 	_clear_device_input(key)
 	var v: Object = _slot_views[si]
@@ -496,7 +656,7 @@ func _resolve_locks() -> void:
 		if s["state"] != S_PICKING:
 			continue
 		var g: int = int(s["goat"])
-		if _locked_by_other(g, si) >= 0:
+		if _blocked(g, si) or not _pool.has(g):   # WK-27: a full team refuses the lock like a taken goat
 			(_slot_views[si] as Object).call("deny")
 			(_medals[g] as Object).call("wiggle")
 			_deny_sound()
@@ -554,6 +714,9 @@ func _step_dir(key: String, axis: String, dir: int) -> void:
 		_ping(si)   # READY / spinning: the stick does nothing, so it says "that's you"
 		return
 	if axis == "v":
+		if _mode == "sports":
+			_ping(si)   # WK-27: no FLAIR row in SPORTS (flair is never worn there) — the stick only picks goats
+			return
 		var nr: int = clampi(int(s["row"]) + dir, 0, 1)
 		if nr != int(s["row"]):
 			s["row"] = nr
@@ -571,12 +734,15 @@ func _step_dir(key: String, axis: String, dir: int) -> void:
 ## PICKING players may browse the same goat (E.4).
 func _cycle_goat(si: int, dir: int) -> void:
 	var s: Dictionary = slots[si]
+	var pos: int = maxi(0, _pool.find(int(s["goat"])))
 	var g: int = int(s["goat"])
-	for _n in range(HEROES.size()):
-		g = posmod(g + dir, HEROES.size())
-		if _locked_by_other(g, si) >= 0:
-			(_medals[g] as Object).call("wiggle")
+	for _n in range(_pool.size()):
+		pos = posmod(pos + dir, _pool.size())
+		var c: int = int(_pool[pos])
+		if _blocked(c, si):   # WK-27: SPORTS also skips a full team's goats
+			(_medals[c] as Object).call("wiggle")
 			continue
+		g = c
 		break
 	if g == int(s["goat"]):
 		return
@@ -614,9 +780,9 @@ func _random_pick(si: int) -> void:
 
 func _spin_step(si: int) -> void:
 	var free: Array = []
-	for g in range(HEROES.size()):
-		if g != int(slots[si]["goat"]) and _locked_by_other(g, si) < 0:
-			free.append(g)
+	for g in _pool:
+		if int(g) != int(slots[si]["goat"]) and not _blocked(int(g), si):
+			free.append(int(g))
 	if free.is_empty():
 		return
 	var g: int = free[randi() % free.size()]
@@ -709,7 +875,8 @@ func _cpu_skins(n: int) -> Array:
 	return out
 
 # ------------------------------------------------------------------ proceed (E.5)
-## "" = not ready · "need_cpu" = 1 READY human, 0 CPUs in BRAWL (amber hint) · "valid" = banner.
+## "" = not ready · "need_cpu" = 1 READY human, 0 CPUs in BRAWL (amber hint) · "team_full" = SPORTS team
+## over its seats (amber hint) · "valid" = banner.
 func roster_state() -> String:
 	if _rules_owner != "":
 		return ""   # WK-07: nobody launches while someone is editing the rules (banner + hint slide out)
@@ -724,6 +891,8 @@ func roster_state() -> String:
 		return ""
 	if _mode == "brawl" and joined + cpus() < 2:
 		return "need_cpu"
+	if _mode == "sports" and _overfull_team() >= 0:
+		return "team_full"   # E.5 SPORTS rule: no team's seats overfilled (amber hint names the team)
 	return "valid"
 
 func _try_proceed() -> void:
@@ -766,10 +935,13 @@ func _proceed() -> void:
 	var skins := PackedStringArray()
 	var chars := PackedStringArray()
 	var flairs := PackedStringArray()
+	var teams := PackedInt32Array()
 	for i in range(MAX_SLOTS):
 		var s: Dictionary = slots[i]
 		if s["state"] == S_EMPTY:
 			continue
+		if _mode == "sports":
+			teams.append(maxi(0, _goat_team(int(s["goat"]))))
 		devs.append(str(s["device"]))
 		labels.append(i + 1)
 		skins.append(str((HEROES[int(s["goat"])] as Dictionary)["skin"]))
@@ -781,12 +953,12 @@ func _proceed() -> void:
 	cfg.skin_ids = skins
 	cfg.character_ids = chars
 	cfg.flair_ids = flairs
+	cfg.team_ids = teams   # WK-27: SPORTS teams from the goat colourways; empty in every other mode
 	match _mode:
 		"brawl":
 			cfg.bot_count = cpus()
 		"sports":
-			var total: int = _sports_total if cfg.human_count <= _sports_total else 4
-			cfg.bot_count = maxi(0, total - cfg.human_count)
+			cfg.bot_count = maxi(0, _sports_seats_total() - cfg.human_count)
 		_:
 			cfg.bot_count = 0
 	_persist()
@@ -942,6 +1114,7 @@ func _rules_step(axis: String, dir: int) -> void:
 	AudioManager.play_sfx("ui_click", {"pitch": 1.15, "pitch_var": 0.0, "volume_db": -6.0})
 	_refresh_rules_bar()
 	_refresh_cpu_tray()
+	_refresh_taken()   # WK-27: 2V2 -> 1V1 can fill a team under a browsing player ("RED IS FULL" chip)
 	_rules_text.pivot_offset = _rules_text.size * 0.5
 	MenuFX.value_pop(_rules_text, 1.06)
 	_persist()
@@ -978,10 +1151,14 @@ func _refresh_all(animate: bool) -> void:
 func _refresh_taken() -> void:
 	for i in range(MAX_SLOTS):
 		var s: Dictionary = slots[i]
-		var by := -1
+		var txt := ""
 		if s["state"] == S_PICKING:
-			by = _locked_by_other(int(s["goat"]), i)
-		(_slot_views[i] as Object).call("set_taken_by", by + 1 if by >= 0 else 0)
+			var by: int = _locked_by_other(int(s["goat"]), i)
+			if by >= 0:
+				txt = "TAKEN BY P%d" % (by + 1)
+			elif _team_full_for(int(s["goat"]), i):
+				txt = "%s IS FULL" % SportsMode.TEAM_NAMES[_goat_team(int(s["goat"]))]
+		(_slot_views[i] as Object).call("set_taken_text", txt)
 
 func _refresh_medals() -> void:
 	for g in range(_medals.size()):
@@ -1005,7 +1182,10 @@ func _kb_joined() -> bool:
 	return _slot_of("kb") >= 0
 
 func _refresh_cpu_tray() -> void:
-	_cpu_row.visible = _mode == "brawl"
+	_cpu_row.visible = _mode != "trials"
+	if _mode == "sports":
+		_refresh_sports_tray()
+		return
 	if _mode != "brawl":
 		return
 	var n: int = cpus()
@@ -1019,6 +1199,29 @@ func _refresh_cpu_tray() -> void:
 			var lvl: int = Tuning.bot_levels[b % Tuning.bot_levels.size()] if cfg.bot_difficulty == 0 else clampi(cfg.bot_difficulty, 1, 5)
 			(chip.get_node("Box/Tag") as Label).text = "CPU L%d" % lvl
 	_cpu_none.visible = n == 0
+
+## WK-27 SPORTS tray: a read-only preview of the CPUs that will fill each team's empty seats (no LB/RB —
+## the seat count comes from FORMAT in RULES). Each chip rims in its team colour.
+func _refresh_sports_tray() -> void:
+	for n in [_lb_glyph, _rb_glyph, _cpu_minus, _cpu_plus]:
+		(n as Control).visible = false
+	var fill: Array = sports_fill()
+	for b in range(_cpu_chips.size()):
+		var chip: Control = _cpu_chips[b]
+		chip.visible = b < fill.size()
+		if b >= fill.size():
+			continue
+		var d: Dictionary = fill[b]
+		(chip.get_node("Box/Head") as TextureRect).texture = _idle_tex(str(d["skin"]))
+		(chip.get_node("Box/Tag") as Label).text = "CPU L%d" % int(d["bot_level"])
+		var base: StyleBoxFlat = chip.get_theme_stylebox("panel") as StyleBoxFlat
+		var sb: StyleBoxFlat = base.duplicate() as StyleBoxFlat if base != null else StyleBoxFlat.new()
+		var tc: Color = SportsMode.TEAM_COLORS[int(d["team"])]
+		sb.bg_color = Color(tc.r, tc.g, tc.b, 0.22)
+		sb.border_color = tc
+		sb.set_border_width_all(4)
+		chip.add_theme_stylebox_override("panel", sb)
+	_cpu_none.visible = fill.is_empty()
 
 func _refresh_rules_bar() -> void:
 	_rules_row.visible = _mode != "trials"
@@ -1036,7 +1239,13 @@ func _refresh_rules_bar() -> void:
 func _refresh_banner(animate: bool) -> void:
 	var st := roster_state()
 	var want_banner: bool = st == "valid"
-	var want_hint: bool = st == "need_cpu"
+	var want_hint: bool = st == "need_cpu" or st == "team_full"
+	if want_hint:
+		# WK-27: the amber band also names an overfilled SPORTS team (no glyph — the fix is a goat change)
+		var full: int = _overfull_team() if st == "team_full" else -1
+		_hint_glyph.visible = full < 0
+		_hint_text.text = _hint_default if full < 0 else "%s IS FULL · SOMEONE SWITCH TO %s" % [
+			SportsMode.TEAM_NAMES[full], SportsMode.TEAM_NAMES[1 - full]]
 	if want_banner != banner_up:
 		banner_up = want_banner
 		if banner_up:
@@ -1094,6 +1303,8 @@ func _apply_mode_chrome() -> void:
 		_:
 			_banner_text.text = "READY TO FIGHT!"
 	(get_node("Footer/HintRow/GJoin/Label") as Label).text = "JOIN / READY"
+	if _mode == "sports":
+		(get_node("Footer/HintRow/GFlair/Label") as Label).text = "GOAT = TEAM"   # no FLAIR row in SPORTS
 
 ## Shared-chrome glyphs — CC-1.6 as amended by the lobby review (WK-81 F2):
 ##  - any JOINED pad -> pad glyphs; only the keyboard joined -> key caps; nobody joined -> the last device.

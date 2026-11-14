@@ -264,7 +264,8 @@ func _ready() -> void:
 	add_child(_hud)
 	_hud.setup(players, player_colors(), _skins())
 	if _hud.has_method("set_labels"):
-		_hud.set_labels(player_tags())   # WK-10: HUD cards read the lobby P# label / "CPU", never the raw slot
+		# WK-10/WK-88 (CC-8.5): NAME ("P3" / goat name for a CPU) + small sub-tag (goat name / "CPU")
+		_hud.set_labels(player_names(), player_subtags())
 	# Sports/Trials match-end: the HUD owns a real focusable REMATCH/SETUP/QUIT row (VictoryScreen bar).
 	# Connect ONCE at HUD creation so a rematch (same HUD instance) never stacks duplicate handlers.
 	if _hud.has_signal("match_button_pressed"):
@@ -283,11 +284,9 @@ func _ready() -> void:
 		_score_gate.verb.connect(func(v: String, _k: String) -> void:
 			if v == "accept" and state == "SCOREBOARD":
 				_score_skip = true)
-		# match ceremony pieces share the same BRAWL gate (brief §1/§2/§3)
+		# match ceremony pieces share the same BRAWL gate (brief §1/§3)
 		_intro_card = INTRO_CARD_SCENE.instantiate()
 		add_child(_intro_card)
-		_legend = LEGEND_SCENE.instantiate()
-		add_child(_legend)
 		_victory = VICTORY_SCENE.instantiate()
 		add_child(_victory)
 		_victory.rematch_pressed.connect(func() -> void:
@@ -298,6 +297,11 @@ func _ready() -> void:
 			get_tree().change_scene_to_file(SHELL_SCENE))
 		_victory.menu_pressed.connect(func() -> void:
 			get_tree().change_scene_to_file(SHELL_SCENE))
+
+	# WK-15 (CC-11.1): the stage-1 controls legend runs in EVERY mode (was BRAWL-only behind wants_scoreboard).
+	# The mode supplies its verbs + one-line goal (GameMode.legend_verbs / goal_line).
+	_legend = LEGEND_SCENE.instantiate()
+	add_child(_legend)
 
 	# off-screen player edge chevrons (camera_2x_policy §3): own CanvasLayer, BELOW the HUD (layer 0
 	# vs the HUD's default layer 1) so corner cards stay on top of any edge indicator.
@@ -684,9 +688,14 @@ func _begin_stage() -> void:
 	elif _intro_card != null:
 		# stage intro card rides the pop-in/countdown window (0.0s added; suppressed on tiebreaker —
 		# that banner owns the drama). Exits on the first countdown beat in _tick_countdown.
-		_intro_card.present(stage_index, level_name, _pending_match_point.size() > 0)
+		# WK-15 (D-04/D-13): stage 1 states the rule under the arena name ("SMASH 'EM OFF-SCREEN · FIRST TO 10 KOs")
+		var rule: String = _mode.goal_line(self) if stage_index == 1 else ""
+		_intro_card.present(stage_index, level_name, _pending_match_point.size() > 0, rule)
 	if _legend != null and stage_index == 1:
-		_legend.present()   # first-stage controls legend (brief §2); fades 4s into COMBAT
+		# first-stage controls legend (brief §2, every mode — WK-15); fades 4s into COMBAT. Modes with no intro
+		# card (Sports/Trials) carry their goal as the legend's gold chip; BRAWL's rule lives on the intro card.
+		var goal: String = _mode.goal_line(self) if _intro_card == null else ""
+		_legend.present(_mode.legend_verbs(), goal)
 
 func _tick_intro(delta: float) -> void:
 	_state_t += delta
@@ -1051,7 +1060,8 @@ func _enter_stage_end(deferred := false) -> void:
 	# WK-41: fit the banner (pop-in 0.15 + hold + pop-out 0.2) into what is LEFT of the freeze, so it has fully
 	# popped out when the score screen arrives. A deferred end already spent double_ko_window of the freeze, and
 	# the full-length banner used to be cut mid-hold by the score screen. round_end_freeze itself is unchanged.
-	_hud.show_center(txt, col, maxf(0.05, Tuning.round_end_freeze - _state_t - 0.35), _deltas_line())
+	var sub: String = str(banner.get("subline", _deltas_line()))   # BRAWL: KO tally + survivor (WK-15 / D-04)
+	_hud.show_center(txt, col, maxf(0.05, Tuning.round_end_freeze - _state_t - 0.35), sub)
 	_hud.animate_scores(scores.duplicate())
 	# WK-41 (BRAWL ceremony path only): the stage is over, so drop stale top-band announcer lines (TWO LEFT!, a
 	# queued FIRST BLOOD!). They would sit on top of the STAGE_END banner. The audio announcer is unaffected.
@@ -1112,12 +1122,11 @@ func _enter_scoreboard() -> void:
 		_hud.clear_top()
 	var rows: Array = []
 	for i in range(players.size()):
-		var d: int = _stage_deltas[i] if i < _stage_deltas.size() else 0
-		if _revived_this_stage and i == _stage_winner and d < 0:
-			d = 0   # SD survivor display floor (parity with _deltas_line)
+		var d: int = stage_display_delta(i)   # SD survivor display floor (parity with _deltas_line)
 		rows.append({
 			"pn": i + 1,
-			"tag": player_tag(i),      # WK-10: "P3" (lobby label) / "CPU"
+			"name": player_name(i),    # WK-88 (CC-8.5): "P3" / "VEX"
+			"sub": player_subtag(i),   # small tag: goat name for a human / "CPU"
 			"color": player_color(i),  # WK-08: the goat's colour
 			"skin": (players[i].skin if is_instance_valid(players[i]) else "pink"),
 			"score": int(scores[i]),
@@ -1210,7 +1219,8 @@ func _enter_match_end(widx: int) -> void:
 		for i in range(players.size()):
 			rows.append({
 				"pn": i + 1,
-				"tag": player_tag(i),
+				"name": player_name(i),    # WK-88 (CC-8.5)
+				"sub": player_subtag(i),
 				"label": player_label(i),
 				"color": player_color(i),
 				"skin": (players[i].skin if is_instance_valid(players[i]) else "pink"),
@@ -1219,7 +1229,8 @@ func _enter_match_end(widx: int) -> void:
 			})
 		var winner := {
 			"pn": widx + 1,
-			"tag": player_tag(widx),
+			"name": player_name(widx),
+			"sub": player_subtag(widx),
 			"label": player_label(widx),
 			"skin": (players[widx].skin if is_instance_valid(players[widx]) else "pink"),
 			"color": player_color(widx),
@@ -1365,7 +1376,7 @@ func pause_context() -> Dictionary:
 		parts.append("FIRST TO %d" % match_target_kills)
 		for i in range(players.size()):
 			var sc: int = int(scores[i]) if i < scores.size() else 0
-			chips.append({"text": "%s  %d" % [player_tag(i), sc], "color": player_color(i)})
+			chips.append({"text": "%s  %d" % [player_name(i), sc], "color": player_color(i)})   # CC-8.5 NAME
 	return {"line": "  ·  ".join(parts), "chips": chips}
 
 ## WK-80(f): the pause hosts Options full-screen; the corner HUD cards / controls legend must not show
@@ -1385,16 +1396,22 @@ func set_match_overlays_hidden(hidden: bool) -> void:
 func _deltas_line() -> String:
 	var parts: Array[String] = []
 	for i in range(_stage_deltas.size()):
-		var d: int = _stage_deltas[i]
-		# SD display fix (pacing6): on a sudden-death stage the announced SURVIVOR lost their last life
-		# into the double-KO and was revived, so their true net stage delta can be negative — a "P1
-		# SURVIVES! P1 -1" banner reads wrong. Floor the SURVIVOR's own displayed delta to >=0 (a 0
-		# suppresses it from the line). DISPLAY ONLY — cumulative scores & kill-credit are untouched.
-		if _revived_this_stage and i == _stage_winner and d < 0:
-			d = 0
+		var d: int = stage_display_delta(i)
 		if d != 0:
 			parts.append("%s %+d" % [player_name(i), d])
 	return "  ·  ".join(parts)
+
+## Player i's stage delta AS DISPLAYED. SD display fix (pacing6): on a sudden-death stage the announced
+## SURVIVOR lost their last life into the double-KO and was revived, so their true net stage delta can be
+## negative — a "P1 SURVIVED · P1 -1" line reads wrong. Floor the SURVIVOR's own displayed delta to >= 0 (a 0
+## suppresses it from the line). DISPLAY ONLY — cumulative scores & kill-credit are untouched.
+func stage_display_delta(i: int) -> int:
+	if i < 0 or i >= _stage_deltas.size():
+		return 0
+	var d: int = _stage_deltas[i]
+	if _revived_this_stage and i == _stage_winner and d < 0:
+		d = 0
+	return d
 
 func _scoreline() -> String:
 	var parts: Array[String] = []
@@ -1486,7 +1503,9 @@ func player_label(i: int) -> int:
 			h += 1
 	return _config.label_for(h) if _config != null else h + 1
 
-## WK-10 identity tag: "P3" for a human (lobby label), "CPU" for a bot (CC-8.3: never "P3" for a bot).
+## WK-10 identity KIND: "P3" for a human (lobby label), "CPU" for a bot (CC-8.3: never "P3" for a bot).
+## QA / legacy only — WK-88: no player-facing surface prints this any more; display text is player_name(i)
+## (+ player_subtag(i) where a second token fits). See COUCH_CONVENTIONS CC-8.5.
 func player_tag(i: int) -> String:
 	var n: int = player_label(i)
 	return ("P%d" % n) if n > 0 else "CPU"
@@ -1497,14 +1516,36 @@ func player_tags() -> Array:
 		out.append(player_tag(i))
 	return out
 
-## Name used in announcer text (banners, MATCH POINT, delta/score lines): humans "P3"; a bot is named by
-## its goat ("BILLY") so two CPUs in one line stay distinguishable. Colour = player_color(i).
+## WK-88 / COUCH_CONVENTIONS CC-8.5 — THE one name of fighter i, on EVERY surface (HUD card, pip, banners,
+## MATCH POINT, delta/score lines, ScoreScreen, Victory, pause chips): humans "P3" (lobby label); a CPU is
+## named by its goat ("VEX") so two CPUs stay distinguishable and the card matches the banner. Colour =
+## player_color(i). "CPU" is never a name — it is the CPU's sub-tag (player_subtag).
 func player_name(i: int) -> String:
 	if is_human_player(i):
 		return player_tag(i)
 	if i >= 0 and i < players.size() and is_instance_valid(players[i]):
 		return PlayerIdentity.name_for_skin(str(players[i].skin))
 	return "CPU"
+
+## CC-8.5 secondary token, printed small right after / under the name wherever a second token fits (HUD card,
+## ScoreScreen row, Victory ribbon + rows, a CPU's intro pip): a human's goat name ("POGO"), or "CPU".
+## Never shown alone and never instead of player_name. One-line announcer text omits it.
+func player_subtag(i: int) -> String:
+	if is_human_player(i):
+		return PlayerIdentity.name_for_skin(str(players[i].skin))
+	return "CPU"
+
+func player_names() -> Array:
+	var out: Array = []
+	for i in range(players.size()):
+		out.append(player_name(i))
+	return out
+
+func player_subtags() -> Array:
+	var out: Array = []
+	for i in range(players.size()):
+		out.append(player_subtag(i))
+	return out
 
 ## Small white/gold star pop at each intro pop-in (spec §1).
 func _spawn_star_burst(pos: Vector2) -> void:

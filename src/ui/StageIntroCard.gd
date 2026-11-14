@@ -4,6 +4,8 @@ extends CanvasLayer
 ## gates state (adding time here is a design REJECT — the no-added-time rule IS the skip):
 ## PartyMatch presents it at _begin_stage() and exits it on the first countdown beat.
 ## Suppressed for sudden-death revives / tiebreakers by the caller (those own the drama).
+## WK-15 (D-04/D-13): on stage 1 the caller passes the mode's one-line rule ("SMASH 'EM OFF-SCREEN · FIRST
+## TO 10 KOs") — it lands under the gold underline. Other stages pass "" and the line stays hidden.
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const GOLD := Color("#ffd23f")
@@ -15,6 +17,7 @@ const REST_Y := 100.0          # card top at rest (vertical center of the block 
 @onready var _ribbon_label: Label = $Root/Card/RibbonSlot/Ribbon/RibbonLabel
 @onready var _name_label: Label = $Root/Card/NameL
 @onready var _underline: Panel = $Root/Card/UnderlineSlot/Underline
+@onready var _rule_label: Label = $Root/Card/RuleL
 
 var _tw: Tween
 var _bob: Tween
@@ -22,7 +25,7 @@ var _bob: Tween
 func _ready() -> void:
 	visible = false
 
-func present(stage_num: int, arena_name: String, match_point: bool) -> void:
+func present(stage_num: int, arena_name: String, match_point: bool, rule: String = "") -> void:
 	visible = true
 	_kill_tweens()
 	_ribbon_label.text = ("STAGE %d — MATCH POINT" % stage_num) if match_point else ("STAGE %d" % stage_num)
@@ -38,6 +41,9 @@ func present(stage_num: int, arena_name: String, match_point: bool) -> void:
 	elif nm.length() > 16:
 		fs = 68
 	_name_label.add_theme_font_size_override("font_size", fs)
+	_rule_label.text = rule
+	_rule_label.visible = rule != ""
+	_rule_label.modulate.a = 0.0
 	_card.modulate.a = 0.0
 	_name_label.scale = Vector2(0.6, 0.6)
 	_underline.scale = Vector2(0.0, 1.0)
@@ -58,6 +64,7 @@ func present(stage_num: int, arena_name: String, match_point: bool) -> void:
 	_tw.tween_property(_name_label, "scale", Vector2.ONE, 0.22) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.10)
 	_tw.tween_property(_underline, "scale:x", 1.0, 0.22).set_ease(Tween.EASE_OUT).set_delay(0.32)
+	_tw.tween_property(_rule_label, "modulate:a", 1.0, 0.16).set_delay(0.42)
 	_tw.chain().tween_callback(_start_bob)
 	AudioManager.play_sfx("ui_click")
 

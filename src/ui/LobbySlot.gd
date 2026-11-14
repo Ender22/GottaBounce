@@ -28,6 +28,8 @@ const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smas
 @onready var _banner: Panel = $NameBanner
 @onready var _name: Label = $NameBanner/Name
 @onready var _blurb: Label = $Blurb
+@onready var _ribbon: Panel = $TeamRibbon
+@onready var _ribbon_text: Label = $TeamRibbon/TeamText
 @onready var _flair_row: Panel = $FlairRow
 @onready var _flair_val: Label = $FlairRow/FlairValue
 @onready var _fchev_l: Control = $FlairRow/FChevL
@@ -57,7 +59,9 @@ var _join_rest_y := 0.0
 var _rest_x := 0.0
 var _lifted := false
 var _kb_wanted := false
-var _taken_label := 0
+var _taken_text := ""                  # the chip's standing text ("TAKEN BY P2" / "RED IS FULL"); "" = hidden
+var _sports := false                    # WK-27: SPORTS layout (team ribbon under the name, no FLAIR row)
+var _team := -1                         # WK-27: team of the goat shown (-1 = none / not sports)
 var _rules_focus := -1
 var _breathe: Tween
 var _idle: Tween
@@ -72,6 +76,8 @@ var device_label := ""                  # eval-readable ("KEYBOARD" / "XBOX" / "
 
 func _ready() -> void:
 	_bust_rest = _bust.position
+	_blurb.set_meta("rest_top", _blurb.offset_top)
+	_blurb.set_meta("rest_bottom", _blurb.offset_bottom)
 	_join_rest_y = _join_box.position.y
 	_rest_x = position.x
 	for c in [_chev_l, _chev_r, _fchev_l, _fchev_r]:
@@ -83,6 +89,15 @@ func setup_slot(idx: int, silhouette: Texture2D) -> void:
 	_plabel.text = "P%d" % (idx + 1)
 	_sil.texture = silhouette
 	_rest_x = position.x
+
+## WK-27 (audit §E.6/§E.9 "SPORTS adds a team ribbon"): SPORTS panels show a RED/BLUE team ribbon under the
+## goat's name, and drop the FLAIR row (flair is never worn in Sports — team-read is sacred, PartyMatch
+## suppresses it), so the blurb slides down into the freed space. Called once by the lobby.
+func set_sports_layout(on: bool) -> void:
+	_sports = on
+	_blurb.offset_top = (408.0 if on else float(_blurb.get_meta("rest_top", 354.0)))
+	_blurb.offset_bottom = (474.0 if on else float(_blurb.get_meta("rest_bottom", 418.0)))
+	_apply_mode_rows(_joined and not _on_back)
 
 # ------------------------------------------------------------------ states
 
@@ -117,7 +132,7 @@ func _apply_empty_visibility() -> void:
 	_bust.modulate.a = 1.0
 	_sil.visible = true
 	_disc.visible = false
-	for n in [_chev_l, _chev_r, _taken, _banner, _blurb, _flair_row, _status, _stamp, _dev_name, _dev_icon]:
+	for n in [_chev_l, _chev_r, _taken, _banner, _blurb, _flair_row, _ribbon, _status, _stamp, _dev_name, _dev_icon]:
 		(n as Control).visible = false
 	_header.modulate.a = 1.0
 	_join.visible = true
@@ -136,11 +151,13 @@ func show_join(device_key: String, hero: Dictionary, tex: Texture2D) -> void:
 	_header.modulate.a = 1.0
 	for n in [_bust, _disc, _chev_l, _chev_r, _banner, _blurb, _flair_row, _status, _dev_name, _dev_icon]:
 		(n as Control).visible = true
+	_team = -1   # the ribbon pops only on a team CHANGE while cycling, not on the join itself
+	_apply_mode_rows(true)
 	for c in [_chev_l, _chev_r]:
 		(c as Control).modulate.a = 1.0
 	_stamp.visible = false
 	_taken.visible = false
-	_taken_label = 0
+	_taken_text = ""
 	_apply_hero(hero, tex)
 	_set_status_picking()
 	pivot_offset = size * 0.5
@@ -218,6 +235,34 @@ func _apply_hero(hero: Dictionary, tex: Texture2D) -> void:
 	_disc.add_theme_stylebox_override("panel", ds)
 	_set_badge(_color, Color.WHITE)
 	_set_joined_plate()
+	_apply_team(int(hero.get("team", -1)), str(hero.get("team_name", "")), hero.get("team_color", Color.WHITE))
+
+## WK-27 team ribbon: "RED TEAM" / "BLUE TEAM" on the team colour. Cycling across the RED/BLUE boundary pops
+## it (1.25 -> 1.0, TRANS_BACK) so "you just switched sides" reads at a glance from the couch.
+func _apply_team(team: int, team_name: String, team_color: Color) -> void:
+	var changed: bool = team != _team and _team >= 0
+	_team = team
+	if team < 0:
+		_ribbon.visible = false
+		return
+	_ribbon_text.text = "%s TEAM" % team_name
+	var sb := StyleBoxFlat.new()
+	var base: StyleBoxFlat = _ribbon.get_theme_stylebox("panel") as StyleBoxFlat
+	if base != null:
+		sb = base.duplicate() as StyleBoxFlat
+	sb.bg_color = team_color
+	_ribbon.add_theme_stylebox_override("panel", sb)
+	_apply_mode_rows(_joined and not _on_back)
+	if changed:
+		_ribbon.pivot_offset = _ribbon.size * 0.5
+		_ribbon.scale = Vector2(1.25, 1.25)
+		var t := _ribbon.create_tween()
+		t.tween_property(_ribbon, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Front-face rows that depend on the mode: FLAIR row (not in SPORTS) vs team ribbon (SPORTS only).
+func _apply_mode_rows(front: bool) -> void:
+	_flair_row.visible = front and not _sports
+	_ribbon.visible = front and _sports and _team >= 0
 
 ## Which row the panel's stick drives: 0 = GOAT (chevrons bright), 1 = FLAIR (6 px gold ring on the row).
 func set_row(row: int) -> void:
@@ -252,11 +297,15 @@ func flair_nudge(dir: int) -> void:
 
 ## "TAKEN BY P2" chip over the bust when another human has LOCKED the goat this panel is showing.
 func set_taken_by(label: int) -> void:
-	_taken_label = label
-	_taken.visible = label > 0 and not _on_back
-	if label > 0:
-		_taken.text = "TAKEN BY P%d" % label
-	_bust.modulate = Color(1, 1, 1, 0.55) if label > 0 else Color.WHITE
+	set_taken_text("TAKEN BY P%d" % label if label > 0 else "")
+
+## WK-27: the same chip with any blocking reason ("RED IS FULL" in SPORTS 1V1). "" = not blocked.
+func set_taken_text(text: String) -> void:
+	_taken_text = text
+	_taken.visible = text != "" and not _on_back
+	if text != "":
+		_taken.text = text
+	_bust.modulate = Color(1, 1, 1, 0.55) if text != "" else Color.WHITE
 
 ## A short-lived chip in the TakenChip style ("P1 HAS THE RULES", 1.2 s), then the real taken state returns.
 func flash_chip(text: String, secs: float) -> void:
@@ -269,7 +318,7 @@ func flash_chip(text: String, secs: float) -> void:
 	get_tree().create_timer(secs).timeout.connect(func() -> void:
 		if gen != _flash_gen or not is_instance_valid(self):
 			return
-		set_taken_by(_taken_label))
+		set_taken_text(_taken_text))
 
 ## PICKING <-> READY (E.10 lock / un-ready motion). WK-81 F7: READY fades the carousel chevrons out —
 ## the locked panel looks finished; un-ready fades them back.
@@ -469,8 +518,9 @@ func _set_face(back: bool) -> void:
 	_rules_face.visible = back
 	for n in [_well, _banner, _blurb, _flair_row, _status, _dev_name, _dev_icon]:
 		(n as Control).visible = not back and _joined
+	_apply_mode_rows(not back and _joined)
 	_stamp.visible = not back and _ready_on
-	_taken.visible = not back and _taken_label > 0
+	_taken.visible = not back and _taken_text != ""
 	_set_joined_plate()
 	if back:
 		# rows stagger in 0.04 s apart from y+14, alpha 0 -> 1 (0.14 s)

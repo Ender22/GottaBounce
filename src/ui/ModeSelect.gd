@@ -11,9 +11,11 @@ const CARD := preload("res://scenes/ui/MenuCard.tscn")
 const MODES := [
 	{"id": "trials", "name": "TRIALS", "tag": "Fly the line. Land it, and you're home.",
 		"color": Color("#4aa8ff"), "glyph": "T", "soon": false},
-	{"id": "brawl", "name": "BRAWL", "tag": "Last one flying wins.",
+	# WK-15 / audit D-04: BRAWL scores KOs, not survival — the tagline says so ("%d" = remembered KOs-to-win;
+	# explicit break between the two sentences so "KOs." never orphans on the wrap)
+	{"id": "brawl", "name": "BRAWL", "tag": "Smash 'em off-screen.\nFirst to %d KOs.",
 		"color": Color("#ff5fa8"), "glyph": "B", "soon": false},
-	{"id": "rocketball", "name": "ROCKETBALL", "tag": "Headbutt the ball, not each other. (Okay, each other too.)",
+	{"id": "rocketball", "name": "ROCKETBALL", "tag": "Headbutt the ball, not each other. Okay, each other too.",
 		"color": Color("#ff7a2d"), "glyph": "R", "soon": false},
 	{"id": "dropshot", "name": "DROPSHOT", "tag": "Spike it over. Don't let it drop.",
 		"color": Color("#22b3c9"), "glyph": "D", "soon": false},
@@ -43,6 +45,8 @@ func _ready() -> void:
 		_row.add_child(card)
 		var data := (m as Dictionary).duplicate()
 		data["name_variation"] = &"ModeTitle"
+		if str(data["tag"]).contains("%d"):
+			data["tag"] = str(data["tag"]) % int(GameConfig.rules_for("brawl").get("kills_to_win", 10))
 		if MODE_ART.has(m["id"]):
 			data["art"] = MODE_ART[m["id"]]
 		card.set_card(data)

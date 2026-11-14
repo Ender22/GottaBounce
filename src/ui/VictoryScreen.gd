@@ -31,7 +31,12 @@ const CONFETTI_COLORS: Array[Color] = [
 @onready var _shadow: TextureRect = $Root/Shadow
 @onready var _bust: TextureRect = $Root/Bust
 @onready var _winner_l: Label = $Root/WinnerL
-@onready var _name_l: Label = $Root/NameL
+# WK-92(1): the winner's name sits on a chocolate ribbon (StageIntroCard language); yellow PUFF straight over
+# the gold rays was unreadable. WK-88 (CC-8.5): NAME big in the goat colour + the small sub-tag (goat name / "CPU").
+@onready var _name_l: Control = $Root/NameL
+@onready var _name_ribbon: PanelContainer = $Root/NameL/Ribbon
+@onready var _name_text: Label = $Root/NameL/Ribbon/Box/NameText
+@onready var _name_sub: Label = $Root/NameL/Ribbon/Box/SubText
 @onready var _tray: PanelContainer = $Root/TrayArea/TrayCenter/Tray
 @onready var _rows_box: VBoxContainer = $Root/TrayArea/TrayCenter/Tray/Box/Rows
 @onready var _template: PanelContainer = $Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate
@@ -65,9 +70,9 @@ func _ready() -> void:
 			if _armed:
 				_activate(idx))
 
-## winner: {skin:String, pn:int, label:int, tag:String, color:Color, human:bool}.
-## rows: [{pn, tag:String, label:int, color:Color, skin, score:int, human:bool}]. pn = 1-based player index
-## (row identity / winner match); tag/label = displayed identity (WK-10: "P3" lobby label / "CPU").
+## winner: {skin:String, pn:int, label:int, name:String, sub:String, color:Color, human:bool}.
+## rows: [{pn, name:String, sub:String, label:int, color:Color, skin, score:int, human:bool}]. pn = 1-based
+## player index (row identity / winner match); name/sub = CC-8.5 identity (WK-88): "P3"+"POGO" / "VEX"+"CPU".
 ## (any order — sorted desc here). target: kills-to-win for the race bars.
 func present(winner: Dictionary, rows: Array, target: int) -> void:
 	visible = true
@@ -91,12 +96,15 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 		var tex: Texture2D = load(tex_path)
 		_bust.texture = tex
 		_shadow.texture = tex
-	var wname := PlayerIdentity.name_for_skin(skin)
-	# WK-10: the human's lobby label ("PLAYER 3" even with an empty P2 slot), never the raw slot index
-	var wlabel: int = int(winner.get("label", winner.get("pn", 1)))
-	var sub := ("PLAYER %d" % wlabel) if bool(winner.get("human", true)) else "CPU"
-	_name_l.text = "%s — %s" % [wname, sub]
-	_name_l.add_theme_color_override("font_color", winner.get("color", Color.WHITE))
+	var wcol: Color = winner.get("color", Color.WHITE)
+	_name_text.text = str(winner.get("name", "P%d" % int(winner.get("pn", 1))))
+	# a touch toward white so the darkest goat colour (VEX purple) still reads on chocolate; WK-42 owns contrast
+	_name_text.add_theme_color_override("font_color", wcol.lerp(Color.WHITE, 0.15))
+	_name_sub.text = str(winner.get("sub", ""))
+	_name_sub.visible = _name_sub.text != ""
+	var rsb: StyleBoxFlat = (_name_ribbon.get_theme_stylebox("panel") as StyleBoxFlat).duplicate()
+	rsb.border_color = wcol
+	_name_ribbon.add_theme_stylebox_override("panel", rsb)
 	if ResourceLoader.exists(RAYS_PATH):
 		_rays.texture = load(RAYS_PATH)
 	else:
@@ -198,10 +206,12 @@ func _build_row(r: Dictionary, target: int, is_winner: bool) -> Dictionary:
 	var head_path := "res://assets/characters/bouncer_%s_idle.png" % str(r["skin"])
 	if ResourceLoader.exists(head_path):
 		head.texture = load(head_path)
-	var name_l: Label = row.get_node("RowBox/PName")
-	var who := PlayerIdentity.name_for_skin(str(r["skin"]))
-	name_l.text = "%s  %s" % [who, str(r.get("tag", "P%d" % int(r["pn"])))]   # WK-10: "P3" / "CPU"
+	var name_l: Label = row.get_node("RowBox/NameBox/PName")
+	name_l.text = str(r.get("name", "P%d" % int(r["pn"])))   # WK-88 (CC-8.5): "P3" / "VEX"
 	name_l.add_theme_color_override("font_color", color)
+	var sub_l: Label = row.get_node("RowBox/NameBox/PSub")
+	sub_l.text = str(r.get("sub", ""))                        # small tag: goat name / "CPU"
+	sub_l.visible = sub_l.text != ""
 	var fill: Panel = row.get_node("RowBox/BarSlot/BarFill")
 	var fill_sb := StyleBoxFlat.new()
 	fill_sb.bg_color = color
