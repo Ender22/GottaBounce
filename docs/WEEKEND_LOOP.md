@@ -42,6 +42,8 @@ start of every loop tick (it survives context compaction; your memory of earlier
 5. Only on a pass: commit with message `weekend: <ID> <summary>`, update STATUS + BACKLOG.
    On a fail: fix once or twice; if still failing, revert the item's files, mark it
    `[~] attempted — <why>` in BACKLOG, move on. Never loop forever on one item.
+5b. Disk hygiene after each commit: delete the item's raw recording frames (keep sheets/reports/data.json) and any
+   scratchpad project copy it made (check `df -h /c /d`; keep >= 20 GB free on both).
 6. Every ~6 items (or when the backlog's top is exhausted): a fresh `creative-director` cold
    playthrough of the integrated build; new findings go to BACKLOG via `producer` re-rank. Every
    ~12 items: a `soak-test` bot-match run for crashes/leaks.

@@ -27,6 +27,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   (two WK-99s). Producer runs alone on BACKLOG, director marks items only between producer runs.
 - **Continue builders via SendMessage** (keeps their context) for follow-up slices — far cheaper than re-briefing.
 
+- **DISK HYGIENE.** Raw recording frames (tools/out/rec/*/frameNNNNNNNN.jpg|png, ~45k files / 6.9 GB in one day,
+  synced by Dropbox) and agents' scratchpad project copies (~2.2 GB each, 25 GB total) filled C: to 0 bytes and D: to
+  4.5 GB, breaking batches mid-run. After an item commits, delete its raw frames (keep sheets/reports/data.json) and
+  its scratch project copy. Check for junctions before any recursive delete of a scratch copy.
+
 ## Engine / game facts discovered
 - **DISPLAY OFF = BOGUS PERF DATA.** When the laptop screen sleeps (15-min AC timeout) Windows Modern Standby caps a
   windowed game to ~30 Hz with ~500 ms present() stalls, then can freeze it entirely. All "16 FPS / 0.5 s hitch" data
