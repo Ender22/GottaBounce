@@ -45,7 +45,7 @@ and SHIP. Sports items: 3 of 10 (was 6), because 4 sports items have now landed.
 1. WK-123 [P1][M] (in progress) Flight School lessons 2-3 require the super (CD2-01) + co-op HOME players stop blocking (CD2-02) + Refuel Ridge gap (WK-95f d) — level-designer (+ gameplay-programmer for HOME parking)
 2. ~~WK-20a~~ done 2721c7c — [P1][M] (in progress) Who wins and why: CPU share, self-KO −1, stage length and first-death time, human-style drivers -> game-designer rulings — qa-playtester + game-designer
 3. WK-108 [P1][M] (in progress) Sports bots route/keep goal + kickoff goals ≤ 10 % with human-style drivers (CD2-03 folded in) — gameplay-programmer + game-designer
-4. WK-20c / WK-20b [P1][S] Apply whatever the WK-20a ruling calls for (self-KO / CPU mix / Lv0 gate); BLOCKED on the ruling, pulled the moment it lands — gameplay-programmer
+4. ~~WK-20c~~ done 6f4f51b — / WK-20b [P1][S] Apply whatever the WK-20a ruling calls for (self-KO / CPU mix / Lv0 gate); BLOCKED on the ruling, pulled the moment it lands — gameplay-programmer
 5. WK-124 [P1][S] Sports goal-to-kickoff restart back to ≤ 2.8 s game time (PROTECT regression, now 3.27 s) — gameplay-programmer + ui-ux-designer
 6. WK-37a [P1][S] Ghost-goat spec (no game slot, can run in parallel now): the dead are 48 % of a weaker player's match — game-designer
 7. ~~WK-18~~ done 2aa8f87 — [P1][S] 28 px floor for anything a player reads (HUD, legend, lobby badges, sports score bug) — ui-ux-designer
@@ -837,7 +837,7 @@ WK-CD3 runs ~6 items after this re-rank (after Next-10 #7 or so). WK-89 runs ins
   up as a recommendation for the owner and the studio works the feeding knobs meanwhile. Do not silently revert it.
 - Status: in-progress (Next-10 #2; qa-playtester measuring, results pending -> game-designer rulings; game slot)
 
-### [ ] WK-20c [P1][S] (conditional on WK-20a) Apply the game-designer's self-KO / CPU-mix ruling
+### [x] WK-20c [P1][S] (conditional on WK-20a) Apply the game-designer's self-KO / CPU-mix ruling — 6f4f51b
 - Source: CD1-02 via WK-20a · Area: brawl · Owner: gameplay-programmer · Deps: WK-20a ruling · WK-25's −1 OOPS pop follows the result
 - Accept: re-run the WK-20a human-style batch: the ruled behaviour holds (eval `scores` deltas on self-falls) and the RULES toggle,
   if any, persists per mode (WK-07 memory); DECISIONS entry in the same commit.
