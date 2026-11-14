@@ -1392,6 +1392,16 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   below (PlayerPips). Art-director regrade with tools/out/wk37c_R1_sheet.png etc. Move ghost consts into Tuning.
 
 
+### [ ] WK-135 [P1][M] Bumpers are standable (bodies come to rest on them — INV-11 violation, WK-128 spec finding E17)
+- Source: WK-128 build (tools/out/wk/WK-128_*). Bodies rest on bumper tops (move <0.01 px/s); resting contact repeats
+  every tick. With refund gates ON this hard-locked stages (0-fuel bot pinned on Singularity's bumper core forever); it
+  is also the root of WK-133 (bots pinned to the core) and the surface_bounced flood (WK-134). Fix: minimum bounce
+  speed on bumpers (physics change — game-designer prediction first; protected bounce constants untouched). Unblocks
+  WK-128 part (b) (once-per-real-bounce refund + bumper hard-hit gate, built but OFF) and the sports economy ruling
+  (sports ran on ~146 bumper refunds per bot-minute from grinding walls/ceilings).
+- Accept: A9 probe — nothing rests on a bumper; Singularity 40-stage batch with no hangs; then re-run WK-128 part (b).
+
+
 ## P2 — visible polish gaps
 
 ### [x] WK-130 [P2][S] Per-agent automation port: parallel rendered games without hijacking or killing each other — 1a91a55
