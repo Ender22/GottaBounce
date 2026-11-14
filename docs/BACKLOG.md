@@ -31,10 +31,10 @@ bug that has overridden every arena since July first (WK-86), then finish the KO
 WK-41 raised: 9-13 s of overlays per ~15 s fight = 35-40 % of a match). WK-25 now waits on the self-KO ruling (the −1 OOPS
 pop is moot if the rule changes). WK-CD2 sits at 7 = after item 6. WK-36 drops to on-deck #1.
 
-1. WK-86 [P1][S] Powerup spawners follow the loaded stage, not Islands Void (CD1-01) — gameplay-programmer — IN PROGRESS
-2. WK-24 [P1][S] Hits carry the attacker's colour (burst, streak, last-touch ring) — gameplay-programmer — IN FLIGHT (verifying)
-3. WK-23 [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer — IN FLIGHT (verifying)
-4. WK-82 [P1][S] Lobby hold-B exit only from a B that changed nothing — director-built — IN FLIGHT (verifying)
+1. ~~WK-86~~ done 4d5d356 — [P1][S] Powerup spawners follow the loaded stage, not Islands Void (CD1-01) — gameplay-programmer — IN PROGRESS
+2. ~~WK-24~~ done 4d5d356 — [P1][S] Hits carry the attacker's colour (burst, streak, last-touch ring) — gameplay-programmer — IN FLIGHT (verifying)
+3. ~~WK-23~~ done 4d5d356 — [P1][M] Screen-edge KO blast in the victim's colour — gameplay-programmer — IN FLIGHT (verifying)
+4. ~~WK-82~~ done 4d5d356 — [P1][S] Lobby hold-B exit only from a B that changed nothing — director-built — IN FLIGHT (verifying)
 5. WK-20a [P1][M] Who wins and why: +25 % knockback side effects AND the self-KO −1 rule, measured with human-style drivers + game-designer ruling — qa-playtester + game-designer
 6. WK-21 + WK-41 [P1][S+S] Between-stage budget: adaptive ScoreScreen hold + overlays in sequence / one prompt (pull together) — gameplay-programmer + ui-ux-designer
 7. WK-CD2 [P1][M] Creative-director cold playthrough #2 (KO readability, scoring ruling, downtime budget) — creative-director
@@ -176,7 +176,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 > not by the goat. WK-08 lands the shared `player_color()` first; every later identity item reads it.
 > **SYSTEMIC — two visual languages** (R-11, R-22, R-28, R-12): in-match panels are dark-navy dev-look; WK-34/35 own it.
 
-### [ ] WK-86 [P1][S] Powerup spawners follow the loaded stage (every mode has used Islands Void's three points since July)
+### [x] WK-86 [P1][S] Powerup spawners follow the loaded stage (every mode has used Islands Void's three points since July) — 4d5d356
 - Area: brawl | sports | trials · Owner: gameplay-programmer (fix) + game-designer (no-spawner intent) · Source: creative-director WK-CD1 (CD1-01)
 - Evidence: eval in a live Rocketball match: `_pu_director.points = [(480,900),(2810,600),(5100,780)]` (= `levels/islands_void.json`)
   while `_pu_points = []`; live bubbles at (480,908) and (5100,777). Same points in Dropshot ((2810,607), outside its 0..2800 court)
@@ -228,7 +228,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   Next instance WK-CD3 ~6 items later.
 - Status: open
 
-### [ ] WK-82 [P1][S] Lobby hold-B exits only from a B press that changed nothing; 6 px ring
+### [x] WK-82 [P1][S] Lobby hold-B exits only from a B press that changed nothing; 6 px ring — 4d5d356
 - Source: ui-ux-designer lobby review L8 (docs/audit/2026-11-14_lobby_review.md); producer code re-check 2026-11-14
 - Area: menus · Owner: gameplay-programmer · Deps: none
 - Evidence: HerdLobby.gd:509-540 (`_on_back_press` arms `_hold_b` on EVERY B, including the press that un-readies or leaves
@@ -413,7 +413,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Accept: `assets/fx/ko_blast_*.png` strip, transparent, toybox style, approved by art-director on a rendered test frame.
 - Status: done 5a999db
 
-### [ ] WK-23 [P1][M] Screen-edge KO blast in the victim's colour (the punchline becomes visible)
+### [x] WK-23 [P1][M] Screen-edge KO blast in the victim's colour (the punchline becomes visible) — 4d5d356
 - Sources: D-01 (design audit rated P0), R-31 (KO blast-line part) · **OWNER-RULED**: camera rules untouched — presentation only
 - Area: brawl · Owner: gameplay-programmer · Deps: WK-22, WK-08
 - Do: `KOEdgeBlast` CanvasLayer on `KillPipeline.killed`; project death point onto viewport edge (EdgeIndicators math);
@@ -424,7 +424,7 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
   is a speck leaving the frame.
 - Status: in-progress (built, rendered verification pending)
 
-### [ ] WK-24 [P1][S] Hits carry the attacker's colour (impact burst, knockback streak, last-touch ring)
+### [x] WK-24 [P1][S] Hits carry the attacker's colour (impact burst, knockback streak, last-touch ring) — 4d5d356
 - Sources: D-06, D-02 (part 2 last-touch tag)
 - Area: brawl · Owner: gameplay-programmer · Deps: WK-08
 - Accept (rendered): frame-grab 10 smashes: burst/streak hue = attacker colour 10/10; victim in credit window shows a thin
@@ -536,6 +536,24 @@ decision (S, after WK-20a/b) · WK-14 singular focus (S) · WK-29 device-aware g
 - Status: open
 
 ---
+
+### [ ] WK-90 [P1][S] Hit-stop fires after ~3 frames regardless of duration (Godot 4.7 timer arg quirk) — design call first
+- Source: WK-23/24 programmer, 2026-11-14. `Juice._hitstop` uses `create_timer(t, true, false, true)`, which in 4.7 fires
+  after ~3 frames whatever `t` is (reproduced outside eval). Designed 30-100 ms freeze + 120 ms ease-out actually lasts a
+  few frames: ~0.1 s at 120 FPS, ~0.75 s at 16 FPS — so hit feel is FRAME-RATE DEPENDENT today.
+- Owner: game-designer ruling (feel was tuned around the bug) -> gameplay-programmer. Hitstun triad untouched.
+- Do: measure actual freeze duration at 30/60/120 FPS; designer decides target (designed values vs. tuned-in feel);
+  fix the timer call so duration is real-time and FPS-independent.
+- Accept: freeze duration within ±10 ms of the Tuning value at 30 and 60 FPS (eval timestamps); qa feel note.
+
+### [ ] WK-91 [P1][M] Performance: 16-30 FPS at 1920x1080 on the studio machine (~90 draw calls)
+- Source: WK-23/24 programmer, 2026-11-14 (not caused by the new FX). A couch party game must hold 60.
+- Owner: performance-analyst (measure + attribute) -> gameplay-programmer.
+- Do: `gbplay perf` + frame-time capture on 3 arenas at 1280x720 vs 1920x1080; isolate GPU vs CPU (shader-heavy
+  backdrops? particle counts? physics?); check renderer setting (Forward+/Mobile/Compatibility) and vsync; A/B the top 3
+  suspects. Recommend fixes with evidence.
+- Accept: report with attribution; follow-up fix item(s) filed; target >= 55 fps average at 1080p on this machine.
+
 
 ## P2 — visible polish gaps
 
