@@ -9,21 +9,54 @@ var _client: StreamPeerTCP
 var _buffer: String = ""
 var _busy: bool = false
 var _busy_since: float = 0.0
-const PORT: int = 9090
+## WK-130: port is per-instance so parallel agents can each drive their own game.
+## Resolution order: user cmdline arg `--gb-port=N` (after `--`), then env var GB_PORT, then DEFAULT_PORT.
+## N = 0 disables the server entirely (headless batches, Movie Maker recordings never bind a port).
+const DEFAULT_PORT: int = 9090
+const PORT_ARG_PREFIX: String = "--gb-port="
 const BUSY_TIMEOUT: float = 30.0
+## The port actually in use (0 = server disabled). Readable via eval: `return McpInteractionServer.port`.
+var port: int = DEFAULT_PORT
 var _key_map: Dictionary
 var _held_keys: Dictionary = {}
 
 func _ready() -> void:
 	# Ensure MCP server keeps processing even when game is paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	port = _resolve_port()
+	if port == 0:
+		print("McpInteractionServer: disabled (port 0)")
+		set_process(false)
+		return
 	_init_key_map()
 	_server = TCPServer.new()
-	var err: int = _server.listen(PORT, "127.0.0.1")
+	var err: int = _server.listen(port, "127.0.0.1")
 	if err != OK:
-		push_error("McpInteractionServer: Failed to listen on port %d, error: %d" % [PORT, err])
+		push_error("McpInteractionServer: Failed to listen on port %d, error: %d" % [port, err])
+		_server = null
 		return
-	print("McpInteractionServer: Listening on 127.0.0.1:%d" % PORT)
+	print("McpInteractionServer: Listening on 127.0.0.1:%d (pid %d)" % [port, OS.get_process_id()])
+
+
+func _resolve_port() -> int:
+	for a in OS.get_cmdline_user_args():
+		var s: String = str(a)
+		if s.begins_with(PORT_ARG_PREFIX):
+			return _parse_port(s.substr(PORT_ARG_PREFIX.length()), "cmdline " + PORT_ARG_PREFIX)
+	var env: String = OS.get_environment("GB_PORT").strip_edges()
+	if env != "":
+		return _parse_port(env, "env GB_PORT")
+	return DEFAULT_PORT
+
+
+func _parse_port(raw: String, source: String) -> int:
+	var t: String = raw.strip_edges()
+	if t.is_valid_int():
+		var n: int = t.to_int()
+		if n >= 0 and n <= 65535:
+			return n
+	push_warning("McpInteractionServer: invalid port '%s' from %s, using %d" % [raw, source, DEFAULT_PORT])
+	return DEFAULT_PORT
 
 
 func _process(_delta: float) -> void:

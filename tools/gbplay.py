@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gbplay - drive the running GottaBounce game over the in-game TCP server (port 9090).
+"""gbplay - drive the running GottaBounce game over the in-game TCP server (default port 9090).
 
 The game must be running WINDOWED (not headless) with the McpInteractionServer autoload.
 Start it with:  tools/run_game.ps1   (or godot console exe --path . <scene>)
@@ -20,6 +20,10 @@ Usage (one-shot commands):
   python tools/gbplay.py script demo.jsonl         # run a sequence of raw commands
   python tools/gbplay.py burst out_dir 10 --interval 0.5   # screenshot burst -> frames
 
+Port (WK-130): --port N (anywhere on the line), else env GB_PORT, else 9090. Parallel agents each
+launch their own game on their own port (run_game.ps1 -Port N) and pass the same port here:
+  python tools/gbplay.py --port 9101 eval "return OS.get_process_id()"
+
 Exit code 0 on success; prints JSON responses to stdout.
 """
 import argparse
@@ -33,7 +37,24 @@ import sys
 import time
 
 HOST = "127.0.0.1"
-PORT = 9090
+DEFAULT_PORT = 9090
+
+
+def default_port():
+    """env GB_PORT if set and valid, else 9090."""
+    raw = os.environ.get("GB_PORT", "").strip()
+    if raw:
+        try:
+            n = int(raw)
+            if 1 <= n <= 65535:
+                return n
+        except ValueError:
+            pass
+        print(f"WARNING: ignoring invalid GB_PORT={raw!r}, using {DEFAULT_PORT}", file=sys.stderr)
+    return DEFAULT_PORT
+
+
+PORT = default_port()
 TIMEOUT = 35.0
 
 
@@ -156,9 +177,16 @@ def main():
     p.add_argument("--ms", type=int, default=0, help="hold duration in ms")
     p.add_argument("--interval", type=float, default=0.5)
     p.add_argument("--samples", type=int, default=4, help="perf: fps samples for the display check")
+    p.add_argument("--port", type=int, default=PORT,
+                   help="game server port (default: env GB_PORT, else 9090)")
     a = p.parse_args()
 
-    c = GameClient()
+    try:
+        c = GameClient(port=a.port)
+    except OSError as e:
+        print(f"Cannot reach {HOST}:{a.port} ({e}). Is your game running on that port? "
+              f"(tools/run_game.ps1 -Port {a.port})", file=sys.stderr)
+        sys.exit(2)
     try:
         if a.cmd == "screenshot":
             out(c.screenshot(a.args[0] if a.args else "screenshot.png"))

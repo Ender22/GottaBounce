@@ -21,8 +21,11 @@ start of every loop tick (it survives context compaction; your memory of earlier
   `docs/BACKLOG.md`. Commit both.
 - Respect `CLAUDE.md` non-negotiables, `Tuning.gd` DO-NOT-TOUCH list (skill
   `gottabounce-change-control`), INV contract (skill `gottabounce-architecture-contract`).
-- One rendered game at a time (port 9090). Serialize every agent that runs the game. Stop strays
-  with `tools/stop_game.ps1` before launching.
+- One rendered game PER PORT (WK-130). Each agent picks its own port — 9100 + agent slot (9101,
+  9102, ...) — and passes it everywhere: `run_game.ps1 -Port N`, `gbplay.py --port N`,
+  `stop_game.ps1 -Port N` (or `GB_PORT=N`). Never run no-arg `stop_game.ps1` / `run_game.ps1 -KillAll`
+  while other agents run — they kill every Godot. Recordings bind no port (`--gb-port=0`). Take
+  perf/feel timings with no other rendered game running (CPU sharing).
 
 ## One tick
 1. `git status` + `git log -3` — if a previous tick left uncommitted work, finish/validate it or

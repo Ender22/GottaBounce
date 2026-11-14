@@ -28,12 +28,28 @@ All facts below verified against the repo on 2026-07-03 (static reads only — s
 ## The 60-second loop (copy-paste)
 
 ```powershell
-powershell -File tools/run_game.ps1                       # launch Arena.tscn windowed, wait for port 9090
-python tools/gbplay.py screenshot tools/out/check.png     # capture — then actually LOOK at the PNG
-python tools/gbplay.py hold-action boost --ms 800         # drive input
-python tools/gbplay.py eval "return Tuning.gravity"       # inspect any live value (note: 'return' required)
-powershell -File tools/stop_game.ps1                      # ALWAYS stop when done
+powershell -File tools/run_game.ps1 -Port 9101                       # launch windowed on YOUR port, wait for server
+python tools/gbplay.py --port 9101 screenshot tools/out/check.png    # capture — then actually LOOK at the PNG
+python tools/gbplay.py --port 9101 hold-action boost --ms 800        # drive input
+python tools/gbplay.py --port 9101 eval "return Tuning.gravity"      # inspect any live value ('return' required)
+powershell -File tools/stop_game.ps1 -Port 9101                      # ALWAYS stop when done (only YOUR game)
 ```
+
+### Per-agent ports (WK-130) — parallel agents no longer share 9090
+
+Each agent picks its OWN port — **9100 + agent slot** (9101, 9102, ...) — and passes it EVERYWHERE:
+`run_game.ps1 -Port N`, `gbplay.py --port N`, `stop_game.ps1 -Port N`. Alternatively set env
+`GB_PORT=N` once in the shell: the game, `gbplay.py` and `run_game.ps1` all honour it.
+- Game side: autoload `src/dev/mcp_interaction_server.gd` reads user cmdline arg `--gb-port=N` (after
+  `--`), else env `GB_PORT`, else 9090. `--gb-port=0` / `GB_PORT=0` = **no server at all** (use for
+  headless batches; `record_match.ps1` always passes it). Live check: `eval "return McpInteractionServer.port"`.
+- Precedence: cmdline arg > env var > 9090. Invalid values warn and fall back to 9090.
+- Bare `run_game.ps1` / `gbplay.py` / `stop_game.ps1` (no port) still mean 9090 / kill-everything, so
+  old command lines keep working — but in a multi-agent session ALWAYS pass your port.
+- Verify you are driving your own game: `gbplay.py --port N eval "return OS.get_process_id()"` must
+  equal the "game PID" run_game printed.
+- Verified 2026-11-14 (WK-130): two games on 9101/9102 at once, each eval returned its own PID, ENTER
+  sent to 9101 changed only 9101's screen; a record_match run alongside bound no port.
 
 Run from the repo root: `D:\Dropbox\MyGames\GottaBounce - FablePause` (path contains spaces — quote it).
 Any shell call that launches Godot needs `dangerouslyDisableSandbox: true`. Prefer the Bash tool for
@@ -42,41 +58,56 @@ skill `gottabounce-build-and-env`).
 
 ## run_game.ps1 — what it actually does
 
-Source: `tools/run_game.ps1`. Usage: `powershell -File tools/run_game.ps1 [scene] [-Wait]`
+Source: `tools/run_game.ps1`. Usage:
+`powershell -File tools/run_game.ps1 [scene] [-Port N] [-KillAll] [-Wait] [-Resolution WxH] [-Position x,y]`
 
-Step by step (verified against the script, 2026-07-03):
-1. Kills **every** process named `Godot*` (zombie hygiene — this also kills the sibling old
-   project's game if it is running).
-2. Sleeps 300 ms.
-3. `Start-Process` on `C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe` with
-   args: `--path "<repo>" --resolution 1280x720 --position 50,50 [scene]`. The optional `[scene]`
-   is a `res://` path, e.g. `res://scenes/SmokeTest.tscn`; with no scene it boots the main scene
-   `res://scenes/Arena.tscn` (per `project.godot`).
-4. Redirects stdout to `$env:TEMP\gottabounce_run.log` and stderr to
-   `$env:TEMP\gottabounce_run.log.err`. Read these when the game misbehaves at launch.
-5. Polls TCP 127.0.0.1:9090 for up to 20 s. Prints `Interaction server UP on 9090` on success —
-   on timeout it only prints a WARNING and **does not fail**; the process may still be running
-   broken. Check the log file before retrying.
-6. `-Wait` blocks until the game process exits (rarely wanted; omit it).
+Step by step (WK-130 version, 2026-11-14):
+1. Port = `-Port` if given, else env `GB_PORT`, else 9090.
+2. **Kills nothing by default.** `-KillAll` restores the old behaviour (force-kill EVERY `Godot*`
+   process — other agents' games and recordings too; only use when you own the machine).
+3. If something already LISTENS on the port (checked via `netstat`, no TCP connect, so it never
+   kicks another agent's gbplay client) it prints `ABORT: port N is already in use by PID ...` and
+   exits 2. Pick another port, or `stop_game.ps1 -Port N` if it is your own stale game.
+4. `Start-Process` on `C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe` with
+   args: `--path "<repo>" --resolution 1280x720 --position 50,50 [scene] [-- --gb-port=N]` (the
+   user arg is passed when `-Port`/`GB_PORT` is set or the port is not 9090). The optional `[scene]`
+   is a `res://` path, e.g. `res://scenes/SmokeTest.tscn`; with no scene it boots the main scene.
+5. Logs: `$env:TEMP\gottabounce_run.log[.err]` on 9090, `$env:TEMP\gottabounce_run_<N>.log[.err]`
+   on other ports (so parallel agents don't clobber each other's logs).
+6. Waits up to 20 s for a listener on the port, then prints
+   `Interaction server UP on N (game PID <child>, launcher PID <wrapper>)`. The `_console.exe` is a
+   launcher that spawns the real `Godot_v4.7-stable_win64.exe` as a child — the CHILD owns the
+   socket and is what `OS.get_process_id()` returns. If the listener is not our child it prints a
+   WARNING. On timeout it only warns and **does not fail** — check the log before retrying.
+   `-Port 0` launches with no automation server and skips the wait.
+7. `-Wait` blocks until the game process exits (rarely wanted; omit it).
 
 The game window is **windowed 1280x720**, positioned at 50,50. The project's design viewport is
 1920x1080 (`project.godot`, stretch mode `canvas_items`) — see "Resolution note" below.
 
 ## stop_game.ps1 — always run it
 
-Source: `tools/stop_game.ps1` — one line: force-stops all `Godot*` processes. Safe to run anytime.
-It is also the zombie-killer: stray Godot instances hog CPU, hold port 9090, and make later runs
-act slow or connect to a stale window. If runs feel slow or gbplay talks to the "wrong" game:
-stop everything, relaunch.
+Source: `tools/stop_game.ps1`.
+- `stop_game.ps1 -Port N` (WK-130): stops ONLY the Godot process listening on port N plus its
+  `_console.exe` launcher parent. Refuses if the listener is not a Godot process. Use this.
+- `stop_game.ps1` with no args: force-stops ALL `Godot*` processes — including other agents' games,
+  headless batches and Movie Maker recordings. Only when you know you are alone on the machine.
+Stray Godot instances hog CPU and hold ports; if your runs feel slow, check `tasklist` for strays
+but do not kill PIDs you did not start.
 
-## The one-instance rule
+## The one-instance-PER-PORT rule
 
-- Port 9090 is exclusive: exactly ONE game instance at a time.
+- Each port is exclusive: ONE game per port, so one game per agent (see "Per-agent ports" above).
+  Several agents can each run their own game in parallel on different ports.
 - The server accepts one TCP client; a new connection kicks the previous one.
 - Commands are single-flight: while one runs, others get
   `{"error": "Server busy processing another command. Try again."}`. A stuck busy flag
   force-resets after 30 s (server-side watchdog in `src/dev/mcp_interaction_server.gd`).
-- Therefore: **never run two game-driving agents/sessions in parallel.**
+- Therefore: **never let two agents drive the SAME port.** Never probe another agent's port either
+  (even a bare TCP connect kicks their client).
+- CPU caveat: two rendered games at once share the machine — fps-sensitive measurements (perf,
+  feel timings) should still be taken with no other rendered game running. Movie Maker recordings
+  are fixed-step and unaffected.
 
 ### The wrong-project trap (check this when anything looks off)
 
@@ -179,7 +210,7 @@ skipped. Each line is a raw wire command, plus two client-side pseudo-commands:
 
 ### Wire protocol (5 lines)
 
-1. TCP 127.0.0.1:9090, served by autoload `src/dev/mcp_interaction_server.gd` inside the game.
+1. TCP 127.0.0.1:<port> (default 9090; `--gb-port=N` / `GB_PORT`), served by autoload `src/dev/mcp_interaction_server.gd`.
 2. Request = one line of JSON + `\n`: `{"command": "...", "params": {...}}`. Response = one line of JSON.
 3. One client at a time; a new connection disconnects the old.
 4. Single-flight: concurrent commands get a busy error; server busy-watchdog resets after 30 s.
@@ -214,8 +245,9 @@ per-player max speed, ringouts/suicides, kills.
 tunneling (physics bug); the void above it is legit Smash-style recovery space. Any nonzero
 `tunnel frames` is a finding.
 
-Notes: the headless run still starts the 9090 server, so the one-instance rule applies to
-Playtest runs too. The harness self-quits after `<seconds>`. Its `ScriptProvider` advances by
+Notes: the headless run starts the automation server too (9090 by default) — append
+`--gb-port=0` after the mode/seconds (`-- botwar 60 --gb-port=0`; Playtest only reads the first two
+user args) or set `GB_PORT=0` so headless batches never bind a port. The harness self-quits after `<seconds>`. Its `ScriptProvider` advances by
 `1.0 / Engine.physics_ticks_per_second` (120 tps here) — the old 1/60 hardcode that ran scripts
 2x fast is already fixed; story in skill `gottabounce-debugging-playbook`. What the summary
 numbers must look like to PASS → skill `gottabounce-validation-and-qa`.
@@ -256,8 +288,9 @@ powershell -File tools/record_match.ps1 -Name wk93_brawl20 -Arena pendulum_heigh
 - **More analysis:** `python tools/rec_sheet.py tools/out/rec/<Name> --range 300:420 --every 1 --prefix swing`
   (dense sheet of a span), `--strobe 300:402` (one frame with every frame's pendulum-ball position as a dot:
   spacing = speed), `--report`. Read individual frames with the Read tool — LOOK at them.
-- **One-instance rule applies:** the recording instance binds 9090 too. The script aborts if any Godot
-  process is running (never `stop_game.ps1` another agent's game); `-Force` overrides.
+- **Binds no port (WK-130):** the script passes `--gb-port=0`, so recordings run alongside other agents'
+  games and recordings. The old "abort if any Godot is running" check is gone (`-Force` is a no-op kept
+  for old command lines). Never `stop_game.ps1` (no-arg) while a recording runs — it kills it.
 - Movie Maker renders at the project viewport size (1920x1080) regardless of `--resolution`.
 
 ## SmokeTest scene
@@ -336,7 +369,8 @@ briefs assume 1920x1080.
 
 | Symptom | First move | Deep triage |
 |---|---|---|
-| Port 9090 dead / connection refused | `stop_game.ps1`, check `$env:TEMP\gottabounce_run.log[.err]`, relaunch | skill `gottabounce-debugging-playbook` |
+| Port dead / connection refused | did you pass the SAME `--port` to gbplay as `-Port` to run_game? `stop_game.ps1 -Port N`, check `$env:TEMP\gottabounce_run[_N].log[.err]`, relaunch | skill `gottabounce-debugging-playbook` |
+| run_game `ABORT: port N is already in use` | someone (maybe another agent) holds N — pick another port; never kill their PID | "Per-agent ports" above |
 | Behavior looks like a different game | wrong-project check one-liner (above) | skill `gottabounce-debugging-playbook` |
 | `Server busy` responses | wait ≤30 s (watchdog), don't parallel-drive | this file, one-instance rule |
 | eval returns null | you forgot `return`, or PowerShell ate a `$` | eval specifics above |

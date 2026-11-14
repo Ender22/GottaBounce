@@ -11,8 +11,9 @@
 # Output: tools/out/rec/<Name>/frame00000000.jpg ... (png kept only with -Format png -KeepPng), data.json,
 #         sheet.png (contact sheet), sheet_overlay.png (with per-player markers/aim lines), aim_report.png,
 #         plus a text summary from rec_sheet.py.
-# The game binds port 9090 (McpInteractionServer autoload) - only ONE Godot may run. This script refuses
-# to start if any Godot process is running (use -Force to ignore; never kill another agent's game).
+# WK-130: the recording runs with --gb-port=0, so it binds NO automation port and can run alongside other
+# agents' games/recordings (Movie Maker frames are fixed-step, so CPU sharing does not change the output).
+# -Force is kept for old command lines and is now a no-op. Never kill another agent's game.
 param(
     [Parameter(Mandatory = $true)][string]$Name,
     [string]$Mode = "brawl",
@@ -43,12 +44,6 @@ $outDir = Join-Path $recRoot $Name
 # the wall clock to ~30 Hz with 500 ms stalls (or freezes Godot) - warn, never block.
 $displayCheck = Join-Path $PSScriptRoot "display_check.ps1"
 if (Test-Path $displayCheck) { try { & $displayCheck } catch { } ; $global:LASTEXITCODE = 0 }
-
-$running = Get-Process | Where-Object { $_.ProcessName -like 'Godot*' }
-if ($running -and -not $Force) {
-    Write-Output "ABORT: a Godot process is running (PID $($running.Id -join ',')). The game slot is busy."
-    exit 2
-}
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $gdi = Join-Path $recRoot ".gdignore"

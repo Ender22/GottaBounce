@@ -1,42 +1,98 @@
-# Launch the game windowed (rendered) so gbplay.py can drive it on port 9090.
-# Usage: powershell -File tools/run_game.ps1 [scene] [-Wait] [-Resolution 1920x1080] [-Position 0,0]
+# Launch the game windowed (rendered) so gbplay.py can drive it.
+# Usage: powershell -File tools/run_game.ps1 [scene] [-Port 9101] [-KillAll] [-Wait] [-Resolution 1920x1080] [-Position 0,0]
+#
+# WK-130 - parallel agents: each agent picks its OWN port (e.g. 9100 + agent slot) and passes it everywhere:
+#   powershell -File tools/run_game.ps1 -Port 9101
+#   python tools/gbplay.py --port 9101 screenshot tools/out/x.png
+#   powershell -File tools/stop_game.ps1 -Port 9101
+# -Port N   : the game's automation server listens on 127.0.0.1:N (passes "-- --gb-port=N").
+#             Default: env GB_PORT if set, else 9090. -Port 0 = no automation server at all.
+# -KillAll  : OLD behaviour - force-kill EVERY Godot process first (other agents' games too). Off by default.
+# Without -KillAll nothing is killed; if something already listens on the port, the script refuses to launch.
 param(
     [string]$Scene = "",
     [switch]$Wait,
     [string]$Resolution = "1280x720",
-    [string]$Position = "50,50"
+    [string]$Position = "50,50",
+    [int]$Port = -1,
+    [switch]$KillAll
 )
 $godot = "C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe"
 $proj = Split-Path $PSScriptRoot -Parent
 
-# Kill any stale game instances first (zombie processes hog CPU and steal port 9090)
-Get-Process | Where-Object { $_.ProcessName -like 'Godot*' } | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Milliseconds 300
+if ($Port -lt 0) {
+    $Port = 9090
+    if ($env:GB_PORT) {
+        $parsed = 0
+        if ([int]::TryParse($env:GB_PORT.Trim(), [ref]$parsed) -and $parsed -ge 0 -and $parsed -le 65535) { $Port = $parsed }
+        else { Write-Output "WARNING: ignoring invalid GB_PORT='$($env:GB_PORT)', using 9090" }
+    }
+}
 
-$logPath = Join-Path $env:TEMP "gottabounce_run.log"
+# PID listening on 127.0.0.1:<p>, or 0. Uses netstat (no TCP connect - connecting to a game's server
+# would kick whatever client is driving it).
+function Get-ListenerPid([int]$p) {
+    foreach ($line in (netstat -ano -p TCP)) {
+        $f = ($line.Trim() -split '\s+')
+        if ($f.Count -ge 5 -and $f[3] -eq 'LISTENING' -and $f[1] -match (':' + $p + '$')) { return [int]$f[4] }
+    }
+    return 0
+}
+
+if ($KillAll) {
+    # Old behaviour: kill every Godot (zombies hog CPU and hold ports). Kills OTHER agents' games too.
+    Get-Process | Where-Object { $_.ProcessName -like 'Godot*' } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 300
+}
+
+if ($Port -gt 0) {
+    $holder = Get-ListenerPid $Port
+    if ($holder -ne 0) {
+        $hp = Get-Process -Id $holder -ErrorAction SilentlyContinue
+        $hn = if ($hp) { $hp.ProcessName } else { "?" }
+        Write-Output "ABORT: port $Port is already in use by PID $holder ($hn). Pick another -Port (e.g. 9100 + your agent slot),"
+        Write-Output "       or stop your own game with: powershell -File tools/stop_game.ps1 -Port $Port"
+        exit 2
+    }
+}
+
+$logName = if ($Port -eq 9090) { "gottabounce_run.log" } else { "gottabounce_run_$Port.log" }
+$logPath = Join-Path $env:TEMP $logName
 $argList = @("--path", "`"$proj`"", "--resolution", $Resolution, "--position", $Position)
 if ($Scene -ne "") { $argList += $Scene }
+# Only pass the user arg when it differs from the plain default, so a bare run is byte-identical to before.
+if ($Port -ne 9090 -or $PSBoundParameters.ContainsKey('Port') -or $env:GB_PORT) { $argList += @("--", "--gb-port=$Port") }
 
 $proc = Start-Process -FilePath $godot -ArgumentList $argList -PassThru `
     -RedirectStandardOutput $logPath -RedirectStandardError "$logPath.err"
-Write-Output "Started PID $($proc.Id); log: $logPath"
+Write-Output "Started PID $($proc.Id) (port $Port); log: $logPath"
 
 # WK-100: display-off pre-flight (runs while Godot boots, so it adds no wait). Warning only.
 $displayCheck = Join-Path $PSScriptRoot "display_check.ps1"
 if (Test-Path $displayCheck) { try { & $displayCheck } catch { } ; $global:LASTEXITCODE = 0 }
 
-# Wait for the TCP server to come up (max 20s)
-$deadline = (Get-Date).AddSeconds(20)
-$up = $false
-while ((Get-Date) -lt $deadline) {
-    try {
-        $t = New-Object Net.Sockets.TcpClient
-        $t.Connect("127.0.0.1", 9090)
-        $t.Close()
-        $up = $true
-        break
-    } catch { Start-Sleep -Milliseconds 500 }
+if ($Port -eq 0) {
+    Write-Output "Interaction server disabled (-Port 0) - gbplay cannot drive this instance."
+} else {
+    # Wait for the TCP server to come up (max 20s)
+    $deadline = (Get-Date).AddSeconds(20)
+    $listener = 0
+    while ((Get-Date) -lt $deadline) {
+        $listener = Get-ListenerPid $Port
+        if ($listener -ne 0) { break }
+        if ($proc.HasExited) { break }
+        Start-Sleep -Milliseconds 500
+    }
+    if ($listener -ne 0) {
+        # The _console.exe launcher spawns the real Godot exe as a child; the child owns the socket.
+        $ours = ($listener -eq $proc.Id)
+        if (-not $ours) {
+            $lp = Get-CimInstance Win32_Process -Filter "ProcessId=$listener" -ErrorAction SilentlyContinue
+            if ($lp -and $lp.ParentProcessId -eq $proc.Id) { $ours = $true }
+        }
+        if ($ours) { Write-Output "Interaction server UP on $Port (game PID $listener, launcher PID $($proc.Id))" }
+        else { Write-Output "WARNING: port $Port is held by PID $listener, which is NOT the game just launched (PID $($proc.Id))" }
+    }
+    else { Write-Output "WARNING: server not reachable on $Port after 20s - check $logPath" }
 }
-if ($up) { Write-Output "Interaction server UP on 9090" }
-else { Write-Output "WARNING: server not reachable after 20s - check $logPath" }
 if ($Wait) { Wait-Process -Id $proc.Id }
