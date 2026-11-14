@@ -295,11 +295,48 @@ func _spawn_player(i: int, desc: Dictionary) -> void:
 	if sd > 0 and p.has_method("seed_damage"):
 		p.seed_damage(sd)
 	if bool(desc.get("human", false)):
-		# every mode's spawn plan lists humans FIRST, so slot i == human index for device assignment
-		p.set_provider(InputHuman.for_human(i, _config.human_count if _config != null else 1))
+		# every mode's spawn plan lists humans FIRST, so slot i == human index for device assignment.
+		# WK-04: exactly one device per human; "" = the legacy any-device provider (lone unassigned human).
+		var dev: String = _human_device_key(i)
+		p.set_provider(InputHuman.new() if dev == "" else InputHuman.for_device(dev))
 		p.add_to_group("human")
 	else:
 		p.set_provider(InputBot.new(p, self, int(desc.get("bot_level", 2))))
+
+## WK-04 device plan (CC-3.1), resolved ONCE per scene from the config (rematch keeps it):
+##  - MatchConfig.human_devices non-empty (the lobby wrote it) -> human i = human_devices[i] exactly; a human
+##    past the end of the list gets an unbound provider + warning (config bug; never a shared keyboard).
+##  - empty + 1 human -> "" = legacy any-device (cold boot straight into Arena.tscn, QA harness).
+##  - empty + 2+ humans (today's HUMANS stepper, until the Herd Lobby writes human_devices) ->
+##    InputRouter.default_devices(): one distinct device each, from devices SEEN, never enumeration.
+## Result is public (`human_device_keys`, per human index) for QA eval and the pause-owner -> P# mapping.
+var human_device_keys: PackedStringArray = PackedStringArray()
+
+func _human_device_key(i: int) -> String:
+	if human_device_keys.is_empty():
+		var n: int = _config.human_count if _config != null else 1
+		if _config != null and not _config.human_devices.is_empty():
+			for h in range(n):
+				var k: String = _config.device_for(h)
+				if k == "":
+					push_warning("PartyMatch: human %d has no device in human_devices %s -> unbound" % [h, str(_config.human_devices)])
+					k = "none"
+				human_device_keys.append(k)
+		elif n <= 1:
+			human_device_keys.append("")
+		else:
+			human_device_keys = InputRouter.default_devices(n)
+	if i >= 0 and i < human_device_keys.size():
+		return human_device_keys[i]
+	return "none"
+
+## Human index driven by device `key` ("kb" / "pad:N"), -1 if none. A legacy any-device human (key "")
+## matches every keyboard/pad key. WK-09 uses this to label the pause owner.
+func human_index_for_device(key: String) -> int:
+	for h in range(human_device_keys.size()):
+		if human_device_keys[h] == key or (human_device_keys[h] == "" and key != ""):
+			return h
+	return -1
 
 ## v4_gauntlet: free every non-human player and compact the parallel per-player arrays so indices stay
 ## consistent (humans keep their stable 0..h-1 indices; bots are always appended after them). Called from
@@ -1001,17 +1038,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		return
 	if e.is_action_pressed(&"pause") and not e.is_echo() and not is_instance_valid(_pause_overlay):
 		get_viewport().set_input_as_handled()
-		_open_pause(_device_key(e))
-
-## Device identity from the EVENT CLASS (CC-3.2): Godot reports keyboard events as device 0, the same
-## number as joypad 0, so the device id alone can't tell them apart. "" = mouse/other (no owner).
-## TODO(InputRouter, audit E.8): replace with InputRouter.device_key(e) when that autoload lands.
-static func _device_key(e: InputEvent) -> String:
-	if e is InputEventKey:
-		return "kb"
-	if e is InputEventJoypadButton or e is InputEventJoypadMotion:
-		return "pad:%d" % e.device
-	return ""
+		# owner = the device that pressed pause, keyed by event class (CC-3.2) via the router
+		_open_pause(InputRouter.device_key(e))
 
 ## owner_key = the device that pressed pause; only it drives the menu (CC-1.5). "" = any device.
 func _open_pause(owner_key: String = "") -> void:

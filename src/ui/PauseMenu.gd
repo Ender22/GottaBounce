@@ -19,7 +19,7 @@ const OPTIONS := preload("res://scenes/ui/Options.tscn")
 
 var match_ref
 var _options: Control = null
-# Device that opened the pause ("kb" / "pad:N", see PartyMatch._device_key). "" = no owner, any device
+# Device that opened the pause ("kb" / "pad:N", InputRouter.device_key). "" = no owner, any device
 # drives the menu (also the fallback if the owner's pad disconnects while paused).
 var _owner_key := ""
 # Destructive-action confirm (ui_audit_2026-07-10 §1.6#2): first press of RESTART / QUIT TO MENU arms
@@ -31,13 +31,13 @@ var _arm_gen := 0
 func setup(m, owner_key: String = "") -> void:
 	match_ref = m
 	_owner_key = owner_key
-	if _owner_key.begins_with("pad:") and not Input.joy_connection_changed.is_connected(_on_joy_changed):
-		Input.joy_connection_changed.connect(_on_joy_changed)
+	if InputRouter.is_pad(_owner_key) and not InputRouter.device_lost.is_connected(_on_device_lost):
+		InputRouter.device_lost.connect(_on_device_lost)
 
-## Owner's pad died mid-pause → release ownership so the menu can't become a dead end.
-## TODO(C-07): the DisconnectOverlay replaces this fallback.
-func _on_joy_changed(device: int, connected: bool) -> void:
-	if not connected and _owner_key == "pad:%d" % device:
+## Owner's pad died mid-pause → release ownership so the menu can't become a dead end. Router signal, so
+## InputRouter.simulate_device_lost() exercises the same path. TODO(C-07): DisconnectOverlay replaces this.
+func _on_device_lost(key: String) -> void:
+	if key == _owner_key:
 		_owner_key = ""
 
 ## Pause-owner gate (CC-1.5). _input runs before GUI focus navigation, so marking a non-owner event
@@ -45,11 +45,7 @@ func _on_joy_changed(device: int, connected: bool) -> void:
 func _input(e: InputEvent) -> void:
 	if _owner_key == "":
 		return
-	var k := ""
-	if e is InputEventKey:
-		k = "kb"
-	elif e is InputEventJoypadButton or e is InputEventJoypadMotion:
-		k = "pad:%d" % e.device
+	var k: String = InputRouter.device_key(e)
 	if k != "" and k != _owner_key:
 		get_viewport().set_input_as_handled()
 

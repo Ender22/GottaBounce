@@ -10,11 +10,17 @@ extends RefCounted
 ## LOCAL MULTIPLAYER (couch play): each human polls a per-device CLONE of the base actions
 ## ("boost__d1" = boost events re-scoped to joypad 1). Clones are generated at runtime from the
 ## authored [input] bindings — we only re-scope the device filter, never invent bindings, so
-## INV-8 holds and rebinding in project.godot still flows to every player. Single-human keeps
-## the legacy any-device behavior (keyboard + every pad drive P1).
+## INV-8 holds and rebinding in project.godot still flows to every player.
+## WK-04 (CC-3.1): every human is driven by EXACTLY ONE device — for_device("kb" | "pad:N"). The legacy
+## any-device instance (InputHuman.new(): keyboard + every pad) is used ONLY for a lone human with no
+## assigned device (cold boot straight into Arena.tscn / QA harness). Nobody shares the keyboard.
 
 const DEV_ANY := -1     # legacy single-human: base actions as-authored (keyboard + every pad)
-const DEV_NONE := -2    # keyboard-only slot (fewer pads connected than humans)
+const DEV_NONE := -2    # no joypad (keyboard-only when keyboard=true; reads NOTHING when keyboard=false)
+
+## The device this provider listens to (InputRouter key): "kb", "pad:N", "" = legacy any-device,
+## "none" = unbound (reads nothing). QA reads it via eval; WK-28 (disconnect takeover) will rebind it.
+var device_key: String = ""
 
 var _a_left: StringName = &"move_left"
 var _a_right: StringName = &"move_right"
@@ -43,22 +49,22 @@ func _init(device: int = DEV_ANY, keyboard: bool = true) -> void:
 	_a_super = _ensure_action(&"super", device, keyboard)
 	_a_pow = _ensure_action(&"use_powerup", device, keyboard)
 
-## Device assignment for local couch play (humans are players 0..human_count-1):
-## enough pads → human i gets pad i and P1 keeps the keyboard too; fewer pads → P1 takes the
-## keyboard and P2+ take the pads in connect order. A single human keeps the legacy any-device
-## instance so solo play is byte-for-byte unchanged.
-static func for_human(index: int, human_count: int) -> InputHuman:
-	if human_count <= 1:
-		return InputHuman.new()
-	var pads: Array[int] = Input.get_connected_joypads()
-	if pads.size() >= human_count:
-		return InputHuman.new(pads[index], index == 0)
-	if index == 0:
-		return InputHuman.new(DEV_NONE, true)
-	var pad_i := index - 1
-	if pad_i < pads.size():
-		return InputHuman.new(pads[pad_i], false)
-	return InputHuman.new(DEV_NONE, true)   # overflow: share the keyboard, never a dead stick
+## Exactly-one-device provider (WK-04 / audit C-05): "kb" -> keyboard events only (no pad, ever);
+## "pad:N" -> joypad N only (no keyboard). Any other key -> an UNBOUND provider that reads nothing (a
+## config bug — warned — never silently any-device). Keys come from InputRouter.device_key(event).
+static func for_device(key: String) -> InputHuman:
+	var h: InputHuman
+	if key == "kb":
+		h = InputHuman.new(DEV_NONE, true)
+	elif key.begins_with("pad:") and key.substr(4).is_valid_int():
+		h = InputHuman.new(key.substr(4).to_int(), false)
+	else:
+		push_warning("InputHuman.for_device: unknown device key '%s' -> unbound provider" % key)
+		h = InputHuman.new(DEV_NONE, false)
+		h.device_key = "none"
+		return h
+	h.device_key = key
+	return h
 
 ## Clone `base`'s events into a per-device action (created once, reused across matches). Joypad
 ## events get device re-scoped; keyboard events are included only for the keyboard-owning slot.

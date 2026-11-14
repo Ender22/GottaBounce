@@ -165,6 +165,9 @@ var cam_close_fraction: float = 0.75
 # --- Input (FEEL §6) ---
 var stick_deadzone: float = 0.22
 var input_buffer: float = 0.10               # seconds
+# InputRouter (WK-03): a joypad stick/trigger motion only counts as "this device is active" (last_device_key,
+# seen-order) at |axis| >= this. Keeps resting-stick drift on an idle couch pad from flipping glyphs/ownership.
+var input_activity_axis: float = 0.5
 
 # --- v1 kill-race match / stage loop (docs/specs/v1_party_killrace.md §7) ---
 var intro_pop_stagger: float = 0.20    # s between STAGE_INTRO spawn pop-ins (pacing6: 0.35->0.20, 4 pops in 0.8s)

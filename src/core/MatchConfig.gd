@@ -14,6 +14,13 @@ const MAX_FIGHTERS := 4
 @export var mode_id: StringName = &"brawl"                  # which GameMode to run (§3 registry key)
 @export var human_count: int = 1                            # local humans (players 0..human_count-1)
 @export var bot_count: int = 3                              # bots; invariant humans+bots <= MAX_FIGHTERS
+## WK-04 (CC-3.1): the ONE device driving each human, by human index ("kb" / "pad:N", InputRouter keys).
+## Written by the lobby on proceed (compacted in slot order). EMPTY = legacy: 1 human -> any device (cold
+## boot / QA harness); 2+ humans -> InputRouter.default_devices() (interim, until the Herd Lobby ships).
+@export var human_devices: PackedStringArray = PackedStringArray()
+## WK-04 (audit §E.2): the lobby slot NUMBER each human shows ("P3" even if compacted to human index 1).
+## Empty / short -> index + 1. Name tags / HUD read label_for(i), never the raw index (WK-10).
+@export var human_labels: PackedInt32Array = PackedInt32Array()
 @export var bot_difficulty: int = 0                         # 0 = mixed (Tuning.bot_levels rotation); 1..5 = fixed level
 @export var character_ids: PackedStringArray = PackedStringArray(["bouncer"])   # per-player character; missing -> "bouncer"
 @export var skin_ids: PackedStringArray = PackedStringArray(["pink", "blue", "green", "yellow"])  # per-player color skin
@@ -37,6 +44,18 @@ func clamp_roster() -> bool:
 	human_count = h
 	bot_count = b
 	return changed
+
+## Device key assigned to human `i` by the lobby, "" if none (see human_devices).
+func device_for(i: int) -> String:
+	if i >= 0 and i < human_devices.size():
+		return str(human_devices[i])
+	return ""
+
+## P-number shown for human `i` (lobby slot + 1 semantics: 1 = "P1"). Falls back to i + 1.
+func label_for(i: int) -> int:
+	if i >= 0 and i < human_labels.size() and human_labels[i] > 0:
+		return human_labels[i]
+	return i + 1
 
 ## Character id for a player slot, falling back to "bouncer" for any index the roster doesn't cover.
 func character_for(i: int) -> String:
