@@ -232,6 +232,14 @@ var end_screen_arm: float = 1.0            # s after an end screen appears befor
 var end_screen_ff_rearm: float = 0.6       # s minimum after a fast-forward (Victory) before the row arms
 var scoreboard_skip_guard: float = 1.2     # s after the between-stage score screen appears before A skips it
 
+# --- Between-stage budget (WK-21/WK-41 · audit D-09 · DECISIONS 2026-07-16 names the score hold as THE knob) ---
+# The ScoreScreen hold is ADAPTIVE: quiet stages get the short hold, dramatic stages (lead change / a player newly
+# at match point / tiebreaker next) keep the owner's original 3.4 s. round_end_freeze + the countdown are owner-ruled
+# and are NOT part of this block. Budget: STAGE_END -> COMBAT <= 6 s normal, <= 8 s dramatic (wall clock).
+var score_hold_normal: float = 2.0         # s ScoreScreen auto-advance on a non-dramatic stage
+var score_hold_dramatic: float = 3.4       # s on a lead change / newly-reached match point / tiebreaker (ex PartyMatch.SCORE_HOLD)
+var scoreboard_fade_out: float = 0.15      # s ScoreScreen fade; runs INSIDE the hold so the intro card never overlaps it
+
 # --- Player identity pips (WK-10 · CC-8.3 · audit C-09/R-05/R-17) — presentation timing, not player feel ---
 var pip_idle_alpha: float = 0.70        # a human's P# pip alpha once settled in combat (never 0 — never gone)
 var pip_full_hold: float = 1.0          # s a human's pip stays at FULL alpha after a (re)spawn / pop-in

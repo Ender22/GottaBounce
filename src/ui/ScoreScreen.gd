@@ -22,6 +22,9 @@ const CHOCO := Color(0.231373, 0.141176, 0.105882)
 @onready var _sub: Label = $Root/Center/Panel/Box/Sub
 @onready var _rows_box: VBoxContainer = $Root/Center/Panel/Box/Rows
 @onready var _template: HBoxContainer = $Root/Center/Panel/Box/Rows/RowTemplate
+# WK-41 (R-27): ONE prompt — a countdown ring, because the screen auto-advances. The old "(A) CONTINUE" hint
+# promised a wait that never happened. A (or FLY) still skips after the guard; it is just not advertised.
+@onready var _ring: Control = $Root/Center/Panel/Box/Prompt/Ring
 
 var _tw: Tween
 
@@ -67,12 +70,24 @@ func present(rows: Array, target: int) -> void:
 	for i in range(built.size()):
 		_animate_row(built[i], float(i) * ROW_STAGGER)
 
+## Fade out over Tuning.scoreboard_fade_out. PartyMatch starts this INSIDE the hold and only loads the next stage
+## (and its intro card) once the fade has finished — WK-41: the overlays run in sequence, never on top of each other.
 func dismiss() -> void:
 	if _tw != null and _tw.is_valid():
 		_tw.kill()
 	_tw = create_tween()
-	_tw.tween_property(_root, "modulate:a", 0.0, 0.15)
+	_tw.tween_property(_root, "modulate:a", 0.0, Tuning.scoreboard_fade_out)
 	_tw.tween_callback(func() -> void: visible = false)
+
+## WK-41 single prompt: the countdown ring's remaining fraction (1 = full hold left, 0 = advancing now).
+## Driven by PartyMatch's authoritative SCOREBOARD timer so the ring empties exactly when the screen leaves.
+func set_countdown(remaining: float) -> void:
+	if _ring != null:
+		_ring.remaining = remaining
+
+## True while any part of the screen is actually on screen (QA overlay audit; a finished fade = false).
+func is_showing() -> bool:
+	return visible and _root.modulate.a > 0.02
 
 ## Duplicate the hidden template row and fill its identity slots. Returns the animation handles.
 func _build_row(r: Dictionary, target: int) -> Dictionary:

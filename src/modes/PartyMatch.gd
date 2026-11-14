@@ -68,11 +68,35 @@ var _pause_overlay: CanvasLayer = null
 # NOTE: this deliberately extends the death->next-BOUNCE turnaround beyond the old <=4.5s contract
 # for BRAWL (owner-directed; the screen is skippable with accept after a short guard).
 const SCORE_SCENE := preload("res://scenes/ui/ScoreScreen.tscn")
-const SCORE_HOLD := 3.4        # auto-advance after this (real-time seconds)
-# WK-11: the skip guard is Tuning.scoreboard_skip_guard (1.2 s) through a MenuInputGate (fresh presses only).
+# WK-21 adaptive hold (audit D-09): Tuning.score_hold_normal (2.0 s) on a quiet stage, Tuning.score_hold_dramatic
+# (3.4 s, the owner's original SCORE_HOLD) on a lead change / newly-reached match point / tiebreaker.
+# WK-11: the skip guard is Tuning.scoreboard_skip_guard (1.2 s) through a MenuInputGate (fresh presses only);
+# WK-21 adds FLY (boost) as a skip verb on that gate.
 var _score_screen: CanvasLayer = null
 var _score_gate: MenuInputGate = null
 var _score_skip := false
+var _score_leave_t := -1.0       # SCOREBOARD time the fade-out started (-1 = still holding)
+var _stage_start_scores: Array = []  # scores at this stage's BOUNCE! (lead-change test for the adaptive hold)
+var score_hold := 0.0            # QA: the hold chosen for the current/last score screen (s)
+var score_hold_reason := ""      # QA: "normal" | "lead_change" | "match_point" | "tiebreaker"
+var _mp_banner: Array = []       # WK-41: [text, color] MATCH POINT top banner waiting for the intro card to leave
+
+# WK-21/41 between-stage instrumentation (QA, read via gbplay eval). One entry per state ENTRY:
+# {state, stage, t_ms (wall), clock (flow clock), wall_s / tick_s (duration, -1 while running), frames,
+#  max_frame_ms, stall_frames, stall_ms}. `tick_s` is what the state machine's timers SAW (sum of rdelta);
+# `wall_s - tick_s` is wall time the timers never saw, ~= `stall_ms`: frames longer than
+# max_physics_steps_per_frame / physics_ticks_per_second (8/120 = 66.7 ms) cap the physics steps, so the flow
+# timers stop advancing during a hitch / capture stall while the wall clock keeps running.
+# Note: a pause mid-measure shows up as one huge stall frame. between_stage_report() / between_stage_summary()
+# fold the log into per-transition STAGE_END -> COMBAT rows. overlay_overlaps counts frames where 2+
+# interstitial overlays were on screen together, keyed "STATE:a+b" (WK-41 accept: none in
+# STAGE_END/SCOREBOARD/STAGE_INTRO).
+const PHASE_LOG_MAX := 600
+const BURST_STATES := ["STAGE_END", "SCOREBOARD", "STAGE_INTRO", "COUNTDOWN"]
+var phase_log: Array = []
+var overlay_overlaps: Dictionary = {}
+var _flow_clock := 0.0
+var _last_frame_usec := 0
 
 # MATCH CEREMONY (docs/briefs/match_ceremony_2026-07-18.md — BRAWL opt-in via wants_scoreboard):
 # stage intro card (rides the existing STAGE_INTRO/countdown window, adds 0.0s and NEVER gates
@@ -112,7 +136,11 @@ const GOLD := Color("#ffd23f")
 const DANGER := Color("#ff4b3a")
 
 # --- QA contract (killrace §8) ---
-var state := "BOOT"
+var state := "BOOT":
+	set(v):
+		if v != state:
+			_log_phase(v)   # WK-21: every state entry is timestamped (wall + flow clock)
+		state = v
 var stage_index := 0
 var round_index := 0             # alias of stage_index (QA/tools may read either)
 var round_clock := 0.0           # stat-only combat clock; gates NOTHING (no timer SD anymore)
@@ -250,6 +278,7 @@ func _ready() -> void:
 		# WK-11 (C-14 / CC-10.2): the tally skip takes only FRESH accepts from JOINED devices, after a guard
 		_score_gate = MenuInputGate.new()
 		_score_gate.name = "ScoreGate"
+		_score_gate.extra_accept_actions = PackedStringArray(["boost"])   # WK-21 / D-09: FLY skips too (fresh press only)
 		add_child(_score_gate)
 		_score_gate.verb.connect(func(v: String, _k: String) -> void:
 			if v == "accept" and state == "SCOREBOARD":
@@ -437,6 +466,7 @@ func _physics_process(delta: float) -> void:
 	# UI/flow beats run on REAL time: hitstop scales `delta`, and the pillar-4 turnaround
 	# contract (last death -> next BOUNCE <= 4.5s) is measured on the wall clock.
 	var rdelta := delta / maxf(Engine.time_scale, 0.05)
+	_flow_clock += rdelta   # WK-21 instrumentation: the time the flow timers actually see
 	match state:
 		"STAGE_INTRO":
 			_tick_intro(rdelta)
@@ -452,6 +482,130 @@ func _physics_process(delta: float) -> void:
 			_tick_match_end(rdelta)
 	if state != "MATCH_END":
 		_update_camera()
+
+# ------------------------------------------------------------------- between-stage instrumentation (WK-21/41)
+
+## State-entry hook (called from the `state` setter): close the previous phase's durations, open a new one.
+func _log_phase(new_state: String) -> void:
+	var now := Time.get_ticks_msec()
+	if not phase_log.is_empty():
+		var prev: Dictionary = phase_log[phase_log.size() - 1]
+		prev["wall_s"] = float(now - int(prev["t_ms"])) / 1000.0
+		prev["tick_s"] = _flow_clock - float(prev["clock"])
+	phase_log.append({
+		"state": new_state, "stage": stage_index, "t_ms": now, "clock": _flow_clock,
+		"wall_s": -1.0, "tick_s": -1.0, "frames": 0, "max_frame_ms": 0.0, "stall_frames": 0, "stall_ms": 0.0,
+	})
+	if phase_log.size() > PHASE_LOG_MAX:
+		phase_log.pop_front()
+
+## Per-frame: frame-time stats into the open phase entry, and the overlay audit during the interstitial.
+func _process(_delta: float) -> void:
+	var now := Time.get_ticks_usec()
+	if _last_frame_usec > 0 and not phase_log.is_empty():
+		var ms: float = float(now - _last_frame_usec) / 1000.0
+		var e: Dictionary = phase_log[phase_log.size() - 1]
+		e["frames"] = int(e["frames"]) + 1
+		e["max_frame_ms"] = maxf(float(e["max_frame_ms"]), ms)
+		var cap_ms: float = 1000.0 * float(Engine.max_physics_steps_per_frame) / float(Engine.physics_ticks_per_second)
+		if ms > cap_ms:
+			e["stall_frames"] = int(e["stall_frames"]) + 1
+			e["stall_ms"] = float(e["stall_ms"]) + (ms - cap_ms)
+	_last_frame_usec = now
+	if state in BURST_STATES:
+		_audit_overlays()
+
+## WK-41 accept probe: which interstitial overlays are on screen THIS frame. 2+ at once -> count the frame.
+func _audit_overlays() -> void:
+	var on := PackedStringArray()
+	if _score_screen != null and _score_screen.is_showing():
+		on.append("scoreboard")
+	if _intro_card != null and _intro_card.is_showing():
+		on.append("intro_card")
+	if _hud != null and _hud.has_method("center_showing") and _hud.center_showing():
+		on.append("center_banner")
+	if _hud != null and _hud.has_method("top_showing") and _hud.top_showing():
+		on.append("top_banner")
+	if on.size() >= 2:
+		var k := "%s:%s" % [state, "+".join(on)]
+		overlay_overlaps[k] = int(overlay_overlaps.get(k, 0)) + 1
+
+## QA: fold phase_log into one row per completed STAGE_END -> COMBAT transition.
+## Row: {from_stage, to_stage, wall_s, tick_s, stall_ms, since_death_s, score_hold, hold_reason, skipped,
+##       phases: {STATE: {wall_s, tick_s, frames, max_frame_ms, stall_frames, stall_ms}}}.
+## wall_s = STAGE_END entry -> COMBAT entry on the wall clock (the WK-21 budget number). since_death_s = last
+## death -> STAGE_END (the double-KO window), reported separately because it is COMBAT time.
+func between_stage_report() -> Array:
+	var out: Array = []
+	var cur: Dictionary = {}
+	for e in phase_log:
+		var st: String = str(e["state"])
+		if st == "STAGE_END":
+			cur = {
+				"from_stage": int(e["stage"]), "to_stage": -1, "wall_s": 0.0, "tick_s": 0.0, "stall_ms": 0.0,
+				"since_death_s": float(e.get("since_death_s", -1.0)), "score_hold": -1.0, "hold_reason": "",
+				"skipped": false, "phases": {},
+			}
+		if cur.is_empty():
+			continue
+		if st == "COMBAT":
+			cur["to_stage"] = int(e["stage"])
+			out.append(cur)
+			cur = {}
+			continue
+		if st != "STAGE_END" and st != "SCOREBOARD" and st != "STAGE_INTRO" and st != "COUNTDOWN":
+			cur = {}   # MATCH_END / MATCH_START / SUDDEN_DEATH: not a between-stage transition
+			continue
+		if float(e["wall_s"]) < 0.0:
+			break      # this phase is still running
+		var phases: Dictionary = cur["phases"]
+		phases[st] = {
+			"wall_s": e["wall_s"], "tick_s": e["tick_s"], "frames": e["frames"],
+			"max_frame_ms": e["max_frame_ms"], "stall_frames": e["stall_frames"], "stall_ms": e["stall_ms"],
+		}
+		cur["wall_s"] = float(cur["wall_s"]) + float(e["wall_s"])
+		cur["tick_s"] = float(cur["tick_s"]) + float(e["tick_s"])
+		cur["stall_ms"] = float(cur["stall_ms"]) + float(e["stall_ms"])
+		if e.has("score_hold"):
+			cur["score_hold"] = e["score_hold"]
+			cur["hold_reason"] = e["hold_reason"]
+			cur["skipped"] = e.get("skipped", false)
+	return out
+
+## QA one-liner for the WK-21 accept: medians/maxima of STAGE_END -> COMBAT split normal vs dramatic.
+func between_stage_summary() -> Dictionary:
+	var normal: Array = []
+	var dramatic: Array = []
+	for r in between_stage_report():
+		if str(r["hold_reason"]) == "normal":
+			normal.append(float(r["wall_s"]))
+		else:
+			dramatic.append(float(r["wall_s"]))
+	return {
+		"n_normal": normal.size(), "median_normal_s": _median(normal), "max_normal_s": _max_of(normal),
+		"n_dramatic": dramatic.size(), "median_dramatic_s": _median(dramatic), "max_dramatic_s": _max_of(dramatic),
+		"overlay_overlaps": overlay_overlaps.duplicate(),
+	}
+
+## QA: clear the between-stage log + overlay audit (start a clean measurement window).
+func reset_flow_metrics() -> void:
+	phase_log.clear()
+	overlay_overlaps.clear()
+
+func _median(a: Array) -> float:
+	if a.is_empty():
+		return -1.0
+	var s := a.duplicate()
+	s.sort()
+	var n := s.size()
+	var h: int = n >> 1
+	return float(s[h]) if n % 2 == 1 else (float(s[h - 1]) + float(s[h])) * 0.5
+
+func _max_of(a: Array) -> float:
+	var m := -1.0
+	for v in a:
+		m = maxf(m, float(v))
+	return m
 
 ## BOOT/rematch entry: zero everything match-scoped, then straight into the first STAGE_INTRO (spec §1).
 func _start_match() -> void:
@@ -555,13 +709,26 @@ func _start_countdown() -> void:
 	state = "COUNTDOWN"
 	_state_t = 0.0
 	_cd_beat = -1
+	_mp_banner = []
 	if _pending_match_point.size() > 0:   # announced at the next stage's countdown (spec §4)
 		var names: Array[String] = []
 		for i in _pending_match_point:
 			names.append(player_name(int(i)))
 		var c: Color = player_color(int(_pending_match_point[0])) if _pending_match_point.size() == 1 else Color.WHITE
-		_hud.show_top("MATCH POINT — " + " & ".join(names), c, 1.2)
+		_mp_banner = ["MATCH POINT — " + " & ".join(names), c]
 		_pending_match_point.clear()
+		# WK-41: the stage intro card shares the top of the screen — the banner waits for it to leave
+		# (it exits on the "3" beat, ~0.2 s). No card (tiebreaker / non-BRAWL) -> shown now, as before.
+		if _intro_card == null or not _intro_card.is_showing():
+			_flush_match_point_banner()
+
+func _flush_match_point_banner() -> void:
+	if _mp_banner.is_empty():
+		return
+	var txt: String = str(_mp_banner[0])
+	var col: Color = _mp_banner[1]
+	_mp_banner = []
+	_hud.show_top(txt, col, 1.2)
 
 func _tick_countdown(delta: float) -> void:
 	_state_t += delta
@@ -572,6 +739,8 @@ func _tick_countdown(delta: float) -> void:
 		_cd_beat = beat
 		_hud.show_center(str(3 - beat), Color.WHITE, Tuning.countdown_beat)
 		EventBus.countdown_tick.emit(3 - beat)   # audio: 3 / 2 / 1 beep
+	if not _mp_banner.is_empty() and (_intro_card == null or not _intro_card.is_showing()):
+		_flush_match_point_banner()   # WK-41: intro card gone -> the MATCH POINT line takes the top band
 	if _state_t >= Tuning.countdown_beat * 3.0:
 		_bounce_go()
 
@@ -580,6 +749,8 @@ func _bounce_go() -> void:
 	state = "COMBAT"
 	round_clock = 0.0
 	combat_start_msec = Time.get_ticks_msec()
+	_stage_start_scores = scores.duplicate()   # WK-21: lead-change baseline for this stage's score screen
+	_flush_match_point_banner()   # WK-41 safety: never drop the announcement if the card outlived the countdown
 	_cur_stats = {
 		"stage_index": stage_index, "level_name": level_name,
 		"kill_shape": _kill_shape,   # v2a §4b#1: QA aggregator selects K1 vs K1'/DC1/AS1 from THIS
@@ -877,8 +1048,18 @@ func _enter_stage_end(deferred := false) -> void:
 	var banner: Dictionary = _mode.stage_end_banner(self)
 	var txt: String = str(banner.get("text", "NOBODY SURVIVES"))
 	var col: Color = banner.get("color", Color.WHITE)
-	_hud.show_center(txt, col, Tuning.round_end_freeze - 0.35, _deltas_line())
+	# WK-41: fit the banner (pop-in 0.15 + hold + pop-out 0.2) into what is LEFT of the freeze, so it has fully
+	# popped out when the score screen arrives. A deferred end already spent double_ko_window of the freeze, and
+	# the full-length banner used to be cut mid-hold by the score screen. round_end_freeze itself is unchanged.
+	_hud.show_center(txt, col, maxf(0.05, Tuning.round_end_freeze - _state_t - 0.35), _deltas_line())
 	_hud.animate_scores(scores.duplicate())
+	# WK-41 (BRAWL ceremony path only): the stage is over, so drop stale top-band announcer lines (TWO LEFT!, a
+	# queued FIRST BLOOD!). They would sit on top of the STAGE_END banner. The audio announcer is unaffected.
+	if _score_screen != null and _hud.has_method("clear_top"):
+		_hud.clear_top()
+	# instrumentation: last death -> STAGE_END (the double-KO wait, spent in COMBAT) for the between-stage report
+	if not phase_log.is_empty() and last_death_msec > 0:
+		phase_log[phase_log.size() - 1]["since_death_s"] = float(Time.get_ticks_msec() - last_death_msec) / 1000.0
 
 func _tick_stage_end(delta: float) -> void:
 	_state_t += delta
@@ -910,12 +1091,25 @@ func _tick_stage_end(delta: float) -> void:
 
 ## SCOREBOARD (owner 2026-07-16): the brief Duck-Game-style tally between stages. Rows carry each
 ## player's cumulative kills + this stage's delta (same survivor display-floor rule as the old
-## deltas banner line). Auto-advances after SCORE_HOLD; a FRESH accept from a joined device skips after
-## Tuning.scoreboard_skip_guard (WK-11 MenuInputGate — combat mashing / a held boost never skips it).
+## deltas banner line). WK-21: auto-advances after an ADAPTIVE hold (Tuning.score_hold_normal, or
+## Tuning.score_hold_dramatic on a lead change / newly-reached match point / tiebreaker). A FRESH accept or
+## FLY from a joined device skips after Tuning.scoreboard_skip_guard (WK-11 MenuInputGate; combat mashing or a
+## held boost never skips it). WK-41: the fade-out runs inside the hold, and the next stage (with its intro
+## card) loads only after the fade, so the two overlays never share a frame.
 func _enter_scoreboard() -> void:
 	state = "SCOREBOARD"
 	_state_t = 0.0
+	_score_leave_t = -1.0
+	score_hold_reason = _compute_hold_reason()
+	score_hold = Tuning.score_hold_normal if score_hold_reason == "normal" else Tuning.score_hold_dramatic
+	if not phase_log.is_empty():
+		var e: Dictionary = phase_log[phase_log.size() - 1]
+		e["score_hold"] = score_hold
+		e["hold_reason"] = score_hold_reason
+		e["skipped"] = false
 	_hud.hide_center()
+	if _hud.has_method("clear_top"):
+		_hud.clear_top()
 	var rows: Array = []
 	for i in range(players.size()):
 		var d: int = _stage_deltas[i] if i < _stage_deltas.size() else 0
@@ -930,17 +1124,54 @@ func _enter_scoreboard() -> void:
 			"delta": d,
 		})
 	_score_screen.present(rows, match_target_kills)
+	_score_screen.set_countdown(1.0)
 	_score_skip = false
 	if _score_gate != null:
 		_score_gate.open(Tuning.scoreboard_skip_guard)
 
+## WK-21 dramatic-hold test, in priority order. "lead_change" = the leader SET (everyone tied at the top score,
+## top score > 0) differs from this stage's BOUNCE! baseline, and there WAS a leader before. A first lead out of
+## 0-0 is NOT a lead change; a tie for the lead, or breaking one, IS. "match_point" = someone newly reached
+## target-1 this stage (the same set the next countdown announces).
+func _compute_hold_reason() -> String:
+	if _tiebreaker_next:
+		return "tiebreaker"
+	if _pending_match_point.size() > 0:
+		return "match_point"
+	var before: Array = _leader_set(_stage_start_scores)
+	if not before.is_empty() and before != _leader_set(scores):
+		return "lead_change"
+	return "normal"
+
+func _leader_set(arr: Array) -> Array:
+	var best := 0
+	for s in arr:
+		best = maxi(best, int(s))
+	var out: Array = []
+	if best <= 0:
+		return out
+	for i in range(arr.size()):
+		if int(arr[i]) == best:
+			out.append(i)
+	return out
+
 func _tick_scoreboard(delta: float) -> void:
 	_state_t += delta
-	if _state_t >= SCORE_HOLD or _score_skip:
-		_score_skip = false
-		if _score_gate != null:
-			_score_gate.close()
-		_score_screen.dismiss()
+	var fade: float = Tuning.scoreboard_fade_out
+	if _score_leave_t < 0.0:
+		_score_screen.set_countdown(1.0 - _state_t / maxf(score_hold - fade, 0.01))   # ring empties as the fade starts
+		# auto path: start the fade `fade` before the hold ends, so the whole screen takes exactly score_hold
+		if _score_skip or _state_t >= score_hold - fade:
+			if _score_skip and not phase_log.is_empty():
+				phase_log[phase_log.size() - 1]["skipped"] = true
+			_score_skip = false
+			_score_leave_t = _state_t
+			if _score_gate != null:
+				_score_gate.close()
+			_score_screen.dismiss()
+		return
+	# WK-41: only after the fade has finished does the next stage load and its intro card appear
+	if _state_t >= _score_leave_t + fade:
 		_begin_stage()
 
 func _enter_match_end(widx: int) -> void:

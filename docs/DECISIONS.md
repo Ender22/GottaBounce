@@ -2,6 +2,18 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-14** ADAPTIVE BETWEEN-STAGE SCORE HOLD (WK-21/WK-41; audit D-09; director-approved). The score-hold knob
+  MOVED from `PartyMatch.SCORE_HOLD` (3.4) to `Tuning.score_hold_normal` (2.0) / `Tuning.score_hold_dramatic` (3.4),
+  superseding the knob reference in the 2026-07-16 BETWEEN-STAGE SCORE SCREEN entry (the screen itself stays, per that
+  owner ruling). The dramatic hold applies on a TIEBREAKER next, a player NEWLY reaching match point (target-1) this
+  stage, or a LEAD CHANGE. LEAD CHANGE = the leader set (every player tied at the top score, top score > 0) at
+  scoreboard time differs from the set at this stage's BOUNCE!, AND a leader existed before. A first lead out of 0-0 is
+  NOT a lead change; tying the lead or breaking a tie IS. FLY also skips (same WK-11 gate: fresh press, 1.2 s guard,
+  joined devices). The screen's single prompt is a countdown ring (the "(A) CONTINUE" hint is gone). The fade runs
+  inside the hold, and the next stage's intro card appears only after it. `round_end_freeze` and the countdown are
+  untouched (owner-ruled). Budget: STAGE_END -> COMBAT <= 6 s normal / <= 8 s dramatic. Reopen if a rendered pass
+  misses the budget, or if players report the quiet-stage tally is too short to read.
+
 - **2026-11-14** KNOCKBACK STREAK = ATTACKER'S COLOUR (WK-24). While a victim is launched with a known
   attacker, the knockback streak takes the attacker's goat colour, overriding the victim's cosmetic streak
   flair (readability of "who hit whom" beats cosmetics; D-02/D-06). Flair still shows on self-propelled

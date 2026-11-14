@@ -23,6 +23,10 @@ var _arm_msec := 0
 var _down := {}      # "<device>|<button>" -> true while physically held (tracked even while closed)
 var _stale := {}     # buttons held at open(): ignored until released once
 var _stick := {}     # "<device>|h|v" -> -1/0/1 latched stick direction (hysteresis)
+# Opt-in extra actions that also count as "accept" (WK-21 / audit D-09: the between-stage ScoreScreen also skips on
+# FLY, because players' hands are on FLY, not on a menu button). Empty by default, so other screens are unchanged.
+# All three gate rules still apply: fresh press only, after the arm delay, from a joined device.
+var extra_accept_actions: PackedStringArray = PackedStringArray()
 
 func _enter_tree() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -130,6 +134,9 @@ func _verb_of(e: InputEvent) -> String:
 		return "accept"
 	if e.is_action_pressed("menu_back"):
 		return "back"
+	for a in extra_accept_actions:
+		if e.is_action_pressed(a):
+			return "accept"
 	return ""
 
 ## Left stick as a digital direction with the lobby's hysteresis (press >= lobby_stick_press, release

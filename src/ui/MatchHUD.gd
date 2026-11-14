@@ -150,6 +150,22 @@ func _run_top(text: String, color: Color, hold: float) -> void:
 	_top_tw.parallel().tween_property(_top_label, "scale", Vector2(1.2, 1.2), POP_OUT)
 	_top_tw.tween_callback(_top_done)
 
+## WK-41: the stage is over — drop any in-flight / queued top-band announcer line (TWO LEFT!, FIRST BLOOD!) so it
+## never sits on top of the STAGE_END banner or leaks into the score screen. Called only on the BRAWL ceremony path.
+func clear_top() -> void:
+	if _top_tw != null and _top_tw.is_valid():
+		_top_tw.kill()
+	_top_queue.clear()
+	_top_label.visible = false
+	_top_busy = false
+
+## QA overlay audit (WK-41): is a banner actually on screen this frame?
+func center_showing() -> bool:
+	return _center_box.visible and _center_box.modulate.a > 0.02
+
+func top_showing() -> bool:
+	return _top_label.visible and _top_label.modulate.a > 0.02
+
 func _top_done() -> void:
 	_top_label.visible = false
 	_top_busy = false

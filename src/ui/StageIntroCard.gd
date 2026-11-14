@@ -84,6 +84,11 @@ func exit() -> void:
 		visible = false
 		_card.scale = Vector2.ONE)
 
+## True while the card is actually on screen (QA overlay audit + WK-41 sequencing: PartyMatch holds the
+## MATCH POINT top banner until this goes false, so the two never share the top of the screen).
+func is_showing() -> bool:
+	return visible and _card.modulate.a > 0.02
+
 func _kill_tweens() -> void:
 	if _tw != null and _tw.is_valid():
 		_tw.kill()

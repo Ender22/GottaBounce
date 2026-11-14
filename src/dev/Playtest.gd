@@ -148,4 +148,18 @@ func _summary() -> void:
 	print("per-player max speed: %s" % str(_max_speed))
 	print("ringouts/suicides: %s" % str(_ringouts))
 	print("kills: %s" % str(_kills))
+	# WK-21/41 between-stage budget (headless = flow-timer budget only; render stalls need the rendered run)
+	if _main != null and _main.has_method("between_stage_report"):
+		print("between-stage (STAGE_END -> COMBAT) per transition:")
+		for r in _main.between_stage_report():
+			var ph: Dictionary = r["phases"]
+			var parts: Array = []
+			for st in ["STAGE_END", "SCOREBOARD", "STAGE_INTRO", "COUNTDOWN"]:
+				if ph.has(st):
+					parts.append("%s %.2f/%.2f" % [st, float(ph[st]["wall_s"]), float(ph[st]["tick_s"])])
+			print("  stage %d->%d  wall %.2fs tick %.2fs stall %.0fms  hold %.1f (%s%s)  death->END %.2fs | %s" % [
+				int(r["from_stage"]), int(r["to_stage"]), float(r["wall_s"]), float(r["tick_s"]),
+				float(r["stall_ms"]), float(r["score_hold"]), str(r["hold_reason"]),
+				", skipped" if bool(r["skipped"]) else "", float(r["since_death_s"]), "  ".join(parts)])
+		print("between-stage summary: %s" % str(_main.between_stage_summary()))
 	print("=======================================================\n")
