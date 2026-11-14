@@ -20,8 +20,8 @@ Standard: `docs/COUCH_CONVENTIONS.md` (CC-x.y). Procedure: `docs/WEEKEND_LOOP.md
 Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 files · M = one full slice · L = split it.
 
 ## Next 10
-1. WK-01 Pause on Start/Esc/P, B never pauses (built — finish rendered verification, commit)
-2. WK-02 Roster cap = 4 fighters + HUD shows only real players (kills the 5-fighter / P5 default)
+1. ~~WK-01~~ done 933a77a
+2. ~~WK-02~~ done 933a77a
 3. WK-03 InputRouter autoload + device keys + gbplay simulated-pad testability
 4. WK-04 Each human driven by exactly one device (`InputHuman.for_device`, no keyboard sharing)
 5. WK-05 Herd Lobby slice 1: press-A-to-join panels, independent goat cycling
@@ -33,13 +33,25 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
 
 ---
 
+### [ ] WK-80 [P1][S] QA nits from WK-01 verification (focus restore, glyph unity, stray errors)
+- Source: qa-playtester WK-01 pass 2026-11-14. Owner: gameplay-programmer + ui-ux-designer.
+- (a) Backing out of a submenu must restore focus to the item that opened it: PauseMenu `_close_options` focuses
+  RESUME (should be OPTIONS); MainMenu back-from-Options lands on PLAY; ModeSelect returns focus to TRIALS after
+  B from CharacterSelect (should be the mode you came from) — players accidentally enter the wrong thing.
+- (b) One START glyph style: legend uses charcoal pill, PauseMenu hint bar a cream "START" keycap — unify.
+- (c) Options opened from pause should show "START Resume" in its hint bar; label pause-top B as "Resume".
+- (d) `PowerupSystem.gd:255` "invalid previously freed instance" x10 from round_sweep at stage change — fix.
+- (e) Painted backdrop doesn't reach screen edges (pale strips L/B on Daisy Ring, L/R on meadow).
+- (f) Options: focus bar overlaps the "M" of MASTER VOLUME; from pause, Options BACK + hint bar overlap HUD cards.
+- Accept: each sub-item screenshot-verified in tools/out/wk/WK-80_*.png; no PowerupSystem errors across 3 stages.
+
 ## P0 — broken normal couch play (controls, joining/selecting, roster)
 
 > **SYSTEMIC — input/device model** (C-01..C-07, C-10, C-14, R-01, R-02, R-03, R-32): one global action map, one
 > shared focus cursor, devices by `get_connected_joypads()` order. Fix is the InputRouter + Herd Lobby chain
 > (WK-03 -> WK-07), not more per-screen patches. Any new input bug: check whether the router already owns it.
 
-### [ ] WK-01 [P0][S] Pause = Start/Esc/P only; B never pauses; pause owner gating; swallow-until-release on resume
+### [x] WK-01 [P0][S] Pause = Start/Esc/P only; B never pauses; pause owner gating; swallow-until-release on resume — 933a77a
 - Sources: C-01, C-02 (action-map part: `pause`, `menu_start`, `menu_view`, `menu_random`+R), C-19, R-01; partial C-06 (owner device gating only)
 - Area: brawl/trials/sports (all live matches) · Owner: gameplay-programmer · Deps: none
 - Evidence: tools/out/cd_audit/20_padB_midmatch.png, 55_padB_with_powerup.png; PartyMatch.gd:986-991 (pre-fix)
@@ -50,7 +62,7 @@ Legend: `[ ]` open · `[~]` attempted · `[x]` done · Size S = one pass, 1-2 fi
   START glyph. Screens `tools/out/wk/WK-01_*.png`.
 - Status: **built, rendered verification in progress**
 
-### [ ] WK-02 [P0][S] Roster cap = 4 fighters; HUMANS up lowers BOTS; HUD hides unused cards
+### [x] WK-02 [P0][S] Roster cap = 4 fighters; HUMANS up lowers BOTS; HUD hides unused cards — 933a77a
 - Sources: R-03, C-15 (hide part + out-of-bounds `skins[i]`), D-17 (cap part — see Deferred for 6-8 players)
 - Area: menus/HUD · Owner: gameplay-programmer · Deps: none
 - Evidence: tools/out/cd_audit/11_humans2.png, 17_launch_1.5s.png, 25_victory_settled.png ("BILLY P5" wins); MatchHUD.gd:32-34 (VERIFY error)

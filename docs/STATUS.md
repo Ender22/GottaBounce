@@ -4,6 +4,19 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**WEEKEND POLISH RUN (started 2026-11-14, branch `weekend/polish`, UNATTENDED — owner: "i dont want to be
+involved much, this project is about seeing what ai can do on its own"):** owner verdict after a 4-month gap:
+"kinda fun but a shitty prototype... nonsense controls (B opens pause on xbox)... 2 users using 2 controllers
+totally cant select their character like a normal game". Procedure `docs/WEEKEND_LOOP.md` (re-read every tick);
+ranked work `docs/BACKLOG.md` (79+ items from 3 audits in `docs/audit/2026-11-14_*`); standard
+`docs/COUCH_CONVENTIONS.md`; autonomy rulings DECISIONS 2026-11-14. Studio gained CCGS-adapted roles (producer,
+accessibility-specialist, sound-designer, performance-analyst) + skills (ux-review, bug-triage, team-polish,
+soak-test, scope-check) — `docs/reference/CCGS_IMPORT.md`. `.claude/settings.json` deny rules block push /
+destructive git / recursive deletes (they match whole command text — reword commit messages that mention them).
+DONE: WK-01 Start/Esc/P pause, B never pauses, pause-owner gating, no input leak on resume (933a77a, QA 8/8);
+WK-02 4-fighter cap + HUD hides unused cards (933a77a). NEXT: WK-03 InputRouter -> WK-04 one-device-per-human ->
+WK-05..07 Herd Lobby (Smash-style per-pad join/select/ready).
+
 **OWNER BATCH 2026-07-19 (4 asks, all shipped + rendered-verified):**
 1. **Title layout** — Backdrop bobbers rearranged per owner ("big, at the sides, facing each other"):
    3 BIG goats per side (240/290/340px, sizes step down the column), left column native-right-facing,
