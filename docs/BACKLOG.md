@@ -1365,8 +1365,8 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
 
 
 ### [ ] WK-53b [P2][S] Living-goat taunt (Player.gd hook) + ScoreScreen taunts
-- Source: WK-53a. Hook: Player._physics_process right after  (~l.548), before stun clears it:
-  . AudioManager already handles living
+- Source: WK-53a. Hook: Player._physics_process right after `var intent = provider.poll()` (~l.548), before stun
+  clears it: `if intent.taunt and not _dead: EventBus.bleated.emit(<player index>, false)`. AudioManager handles living
   bleats + rate limit. ScoreScreen taunts need PartyMatch to poll each human's taunt during STAGE_END/SCOREBOARD.
   After WK-128 releases Player.gd.
 

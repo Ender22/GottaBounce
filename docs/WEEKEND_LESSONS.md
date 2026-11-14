@@ -38,6 +38,9 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   4.5 GB, breaking batches mid-run. After an item commits, delete its raw frames (keep sheets/reports/data.json) and
   its scratch project copy. Check for junctions before any recursive delete of a scratch copy.
 
+- Shell heredocs that write docs: always quote the delimiter (<<'EOF'); an unquoted one ran backticked code as command
+  substitution and silently deleted text.
+
 ## Engine / game facts discovered
 - **DISPLAY OFF = BOGUS PERF DATA.** When the laptop screen sleeps (15-min AC timeout) Windows Modern Standby caps a
   windowed game to ~30 Hz with ~500 ms present() stalls, then can freeze it entirely. All "16 FPS / 0.5 s hitch" data
