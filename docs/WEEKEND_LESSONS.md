@@ -239,3 +239,6 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   lane (WK-116) was editing neighbouring lobby files in the same 10-min window, and the restore would silently clobber any edit it
   made to that file meanwhile. Reproduce pre-fix behaviour in a scratch project copy, or gate the fix behind a runtime-flippable
   flag for the repro, never by rewriting the working tree.
+- **Hunk staging can split a signature change across commits** (54150be committed HerdLobby calling LobbySlot.show_disconnected
+  with 2 args while the LobbySlot signature hunk stayed unstaged because it lacked the WK tag; fixed in 14ff3f6). After a partial
+  stage, check untagged hunks in the same files, or parse-gate a `git stash --keep-index`-style snapshot before committing.
