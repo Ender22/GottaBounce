@@ -81,6 +81,14 @@ static var wk95_hot_stopdist := true   # director ruling 2026-11-14 (DECISIONS):
 # line); recovery flight BRAKES against the velocity when about to cross a blast line; the recovery super's aim
 # leans into the current velocity. OFF reproduces the WK-108 brain. Flip via gbplay eval: InputBot.wk127_enabled = false
 static var wk127_enabled := true
+# A/B regression switch for WK-128 BR-128 (default ON; docs/specs/wk128_fuel_exploits_2026-11-14.md §7.4). A face now
+# pays once per REAL bounce, so the refuel dive's "boost toward the floor whenever moving away from it" turned every
+# bounce into an entry-chop hop that never re-arms (a bot needing two refunds would dribble forever without income).
+# ON: in the refuel dive (flat + radial) don't thrust toward the surface while still rising off a paying contact whose
+# face has not re-armed — let the bounce carry to its apex, then dive as before. must_cross dives are unaffected.
+# OFF = the WK-127 dive. NO EFFECT while the Tuning refund gate is OFF (pending WK-135): no face ever stays unarmed, so
+# Player.refund_rearm_pending() is always false. Flip via gbplay eval: InputBot.wk128_refuel_wait = false
+static var wk128_refuel_wait := true
 
 # --- Motion-health telemetry geometry (process-gate 2026-07-04: make "looks dumb" a NUMBER). ---
 const MH_STUCK_WINDOW := 1.0           # s window for the no-progress (stuck) test
@@ -114,6 +122,10 @@ var _dodge_dir := Vector2.ZERO   # pending dodge-super direction (fires snap, §
 var _sim_normal := Vector2.UP    # WK-127: contact normal of the last _sim_step hit (scratch for the predictors)
 var _aim_dump := false           # WK-127: this offensive aim turned unsafe (a whiff would exit a blast line) -> dump it
 var _braking := false            # WK-127: the recovery is braking before a blast line this frame (fast stick slew)
+var _refuel_dive := false        # WK-128: the cached decision is a refuel dive (BR-128 re-checks it every frame)
+var _refuel_dir := Vector2.ZERO  # WK-128: that dive's direction into the surface
+var _refuel_cross := false       # WK-128: ...and it is a must_cross translation (BR-128 does not apply)
+var _mh_below_floor_s := 0.0     # WK-128 §8: s with fuel below the effective refuel floor (motion-health feed)
 # WK-95 BR-7: purpose of the super this bot last pressed (attack / finisher_attack / dodge / recovery_hot /
 # recovery_unreachable / attack_dump (WK-127); the pre-WK-95 brain also emits recovery_lowfuel). PartyMatch copies it into
 # round_stats.supers_fired[].purpose_bot at fire time. Telemetry only — never read by the decision code.
@@ -222,6 +234,8 @@ func poll() -> InputIntent:
 	# motion-health reads the PREVIOUS frame's committed intent (it.aim/it.boost persist across polls)
 	# against the resulting motion this frame — covers every path (hunt/recover/aim) uniformly.
 	_update_motion_health(dt, it.boost, it.aim)
+	if me.fuel < _eff_refuel_floor():
+		_mh_below_floor_s += dt
 	_clean_dodge_flags()
 	# §5.5: finisher mode is a per-poll runtime flag — recomputed from the live alive-count every
 	# tick, so it reverts automatically when a stage reset repopulates the arena. Dial overrides are
@@ -263,6 +277,9 @@ func poll() -> InputIntent:
 			_decide()
 	it.aim = _cached_aim
 	it.boost = _cached_boost
+	# WK-128 BR-128 (reflex, every frame — a cached dive boost can outlive the bounce it was decided before)
+	if it.boost and _refuel_dive and not _refuel_cross and wk128_refuel_wait and me.refund_rearm_pending(_refuel_dir):
+		it.boost = false
 	if _cached_super:
 		_cached_super = false
 		it.super_hold = true   # press: Player enters AIM this frame; _tick_aiming takes over next
@@ -809,6 +826,7 @@ func _danger_recover(it: InputIntent) -> bool:
 func _decide() -> void:
 	var pos: Vector2 = me.global_position
 	_cached_super = false
+	_refuel_dive = false
 	# --- refuel rhythm (rule 2): below the floor, dive to a bounce surface — one bounce re-arms
 	if me.fuel < _eff_refuel_floor():
 		# Radial frame: the refuel dive is ALONG the local pull — the well's round body / shell
@@ -822,8 +840,13 @@ func _decide() -> void:
 				else pos + rdown * Tuning.bot_radial_dive_fallback
 			var rdir := (rtarget - pos).normalized()
 			_cached_aim = rdir
+			_refuel_dive = true
+			_refuel_dir = rdir
+			_refuel_cross = false
 			# boost only when falling AWAY from the surface (same trigger as the flat dive)
 			_cached_boost = me.fuel > 2.0 and me.velocity.dot(rdir) < -60.0
+			if _cached_boost and wk128_refuel_wait and me.refund_rearm_pending(rdir):
+				_cached_boost = false   # WK-128 BR-128: ride this paying bounce to its apex (a chop-hop would not pay)
 			_hunt = false
 			return
 		var sr := _stage()
@@ -844,7 +867,12 @@ func _decide() -> void:
 		# boost if falling AWAY from the surface, OR if we must TRANSLATE horizontally to reach
 		# ground (over the pit): otherwise the bot just drops straight into the gap.
 		var must_cross: bool = absf(tx - pos.x) > 120.0
+		_refuel_dive = true
+		_refuel_dir = dir
+		_refuel_cross = must_cross
 		_cached_boost = me.fuel > 2.0 and (me.velocity.dot(dir) < -60.0 or must_cross)
+		if _cached_boost and not must_cross and wk128_refuel_wait and me.refund_rearm_pending(dir):
+			_cached_boost = false   # WK-128 BR-128: ride this paying bounce to its apex (a chop-hop would not pay)
 		if _cached_boost and must_cross:
 			_cached_aim = _fly_aim(dir)   # WK-95 BR-2: a crossing dive flies a held line
 		_hunt = false
@@ -1708,6 +1736,10 @@ func motion_health() -> Dictionary:
 		"blocked_ascent_secs": snappedf(_mh_blocked_ascent_secs, 0.01),
 		"blocked_ascent": _mh_blocked_now,
 		"detours": _mh_detours,
+		# WK-128 §7.4/§8: fuel-integrity feed (Player.wk128_stats(): presses, bills, refunds by class, blocked
+		# refunds, nopay_contacts, dribble_episodes, income/spend, P-a1 counter) + bot time below the refuel floor
+		"time_below_refuel_floor": snappedf(_mh_below_floor_s, 0.01),
+		"wk128": me.wk128_stats() if me != null and is_instance_valid(me) else {},
 	}
 
 ## Reset per stage (called from PartyMatch._bounce_go) so numbers are per-stage.
@@ -1725,3 +1757,6 @@ func reset_motion_health() -> void:
 	_mh_blocked_ascent_episodes = 0
 	_mh_blocked_ascent_secs = 0.0
 	_mh_detours = 0
+	_mh_below_floor_s = 0.0
+	if me != null and is_instance_valid(me):
+		me.reset_wk128_stats()   # WK-128: per-stage fuel-integrity telemetry

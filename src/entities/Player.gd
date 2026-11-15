@@ -94,6 +94,39 @@ var _last_sting_applied := 0.0     # §8 QA feed: the fuel the last qualifying s
 var _last_hazard_contact_msec: int = 0   # v1_moving_hazard §2: ticks_msec of the last hazard shove
                                          # (WY1 instrumentation — "void death within ~1.5s of a hazard").
 
+# --- WK-128 fuel integrity (docs/specs/wk128_fuel_exploits_2026-11-14.md §4). Fuel-LEDGER state only — no physics.
+# (a) relight bill R1-R5: an "episode" runs from a free light to the next paying contact / respawn / hitstun end /
+# super fire. Inside it, every fresh press after the first pays drain x min(coast gap, Tuning.boost_relight_bill_max).
+var _rl_lit := false          # this episode has already lit the jetpack (the next fresh press is billed)
+var _rl_gap := 0.0            # s since boosting last stopped (physics time, R4)
+var _rl_bill := 0.0           # fuel the last re-light actually paid (refunded by a paying contact within the grace, R3)
+var _rl_bill_t := 0.0         # grace countdown for that refund
+var _rl_ep_clock := 0.0       # QA P-a1: s since this episode's first light
+var _rl_ep_spend := 0.0       # QA P-a1: fuel spent (thrust drain + bills) since this episode's first light
+var _rl_ep_flagged := false
+# (b) refund integrity F1-F6: faces that paid and have not yet re-armed. key -> {p: pay position, n: outward normal,
+# e: re-arm distance, m: max excursion reached, r: round collider, c: round centre}. Faces start armed (absent).
+var _faces: Dictionary = {}
+var _last_pay_key := ""       # the most recent paying face (bot refuel-wait reads it via refund_rearm_pending)
+var _bumper_pay_cd := 0.0     # Alt B (spec §10): s until a bumper may pay this player again (Tuning.bumper_refund_cooldown)
+# Dribble detector (QA telemetry only, §7.4): >= DRIBBLE_CONTACTS consecutive contacts on one face with the body never
+# getting a real bounce's height away in between. Uses FIXED spec thresholds (not the Tuning gate, which A/B can switch
+# off) so the pathology is measured identically in both arms.
+const DRIBBLE_CONTACTS := 3
+const DRIBBLE_FRAC := 0.9
+const DRIBBLE_MIN_PX := 60.0
+const DRIBBLE_BUMPER_PX := 200.0
+var _drb_key := ""
+var _drb_n := 0
+var _drb_p := Vector2.ZERO
+var _drb_nrm := Vector2.UP
+var _drb_e := 0.0
+var _drb_r := false
+var _drb_c := Vector2.ZERO
+## §8 per-player telemetry (QA feed). Bots: reset per stage with InputBot.reset_motion_health and reported through
+## motion_health() into round_stats.motion_health; anyone: read wk128_stats() via gbplay eval.
+var wk128 := {}
+
 func damage_launch_mult() -> float:
 	# §12.3: victim's pre-hit launch multiplier (x1.0 / x1.33 / x1.66), indexed by damage_level.
 	return Tuning.dmg_launch_mult[damage_level]
@@ -521,6 +554,7 @@ func _physics_process(delta: float) -> void:
 		if _stun_timer <= 0.0:
 			_stunned_by = null   # hitstun over: pairwise smash immunity / chain credit end with it
 			_spin_vel = 0.0      # tumble ends with the stun (kill-zone spec §3.2)
+			_wk128_reset_relight()   # WK-128 R1/E1: a smashed victim's first boost after hitstun is never billed
 		# Buffered super press during hitstun (spec §1 edge case): remember it for input_buffer
 		# so it fires the AIM state on the first free frame — the recovery gamble input.
 		# (_sb_was_held reads false through a stun — the zeroed intent below keeps it false —
@@ -585,6 +619,7 @@ func _physics_process(delta: float) -> void:
 	# only the rest — bounce + boost-up keeps the bounce, banking with your momentum keeps it, while aiming
 	# against/across your motion still brakes 75% (and a victim aiming back at the stage is chopped as before).
 	if boosting and not _boost_was_held:
+		_wk128_fresh_press()   # WK-128 R2: bill a mid-air re-light (fuel ledger only; the chop below is unchanged)
 		if Tuning.boost_enter_keep_directional:
 			var v_fwd := maxf(0.0, velocity.dot(aim_dir))
 			var v_rest := velocity - aim_dir * v_fwd
@@ -609,7 +644,11 @@ func _physics_process(delta: float) -> void:
 		if aiming:
 			_boost_grip(aim_dir, g, delta)   # WK-95 §3.1 G4: grip only with the stick held (neutral = pure lift)
 		if not fuel_locked:
+			var f0 := fuel
 			fuel = maxf(0.0, fuel - Tuning.normal_boost_drain() * delta)
+			_wk128_add("boost_fuel_spent", f0 - fuel)
+			_rl_ep_spend += f0 - fuel
+		_wk128_add("boost_time", delta)
 	elif not _sb_aiming and _pulled <= 0.0:
 		# (skipped while black-hole-pulled: the auto-brake toward vx=0 would fight the pull)
 		# v2 feel: air_control_mult scales air_drift_max_speed AND air_drift_accel together. Air drift
@@ -625,6 +664,7 @@ func _physics_process(delta: float) -> void:
 		wings_flaps -= 1
 
 	_supercharge_timer = maxf(0.0, _supercharge_timer - delta)
+	_wk128_tick(boosting, delta)
 
 	# Global safety cap: prevents elastic-wall+boost runaway and high-speed escapes through geometry.
 	velocity = velocity.limit_length(Tuning.max_speed)
@@ -635,6 +675,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if slow_factor < 1.0:
 		velocity = pre_v
+	_wk128_track_faces()   # F1: excursion off the faces that paid (re-arm before this frame's contacts are judged)
 	_resolve_bounces(g, intent.boost, intent.aim)
 	_handle_smashes()
 	# Re-cap after bounce/smash resolution (a bounce adds launch speed on top of tangential).
@@ -685,6 +726,7 @@ func _fire_super(auto_fired: bool) -> void:
 	_sb_aim_t = 0.0
 	_super_recent = Tuning.super_active_time
 	_sb_lockout = Tuning.pu_unlimited_super_lockout if fuel_locked else Tuning.super_refire_lockout
+	_wk128_reset_relight()        # WK-128 R1: a super fire starts a new relight episode
 	EventBus.super_boosted.emit(self)
 	EventBus.super_fired.emit(self, fuel_at_fire, aim_time, auto_fired)
 
@@ -747,6 +789,7 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			# v2 feel: bounce_apex_mult scales ONLY the target height passed to resolve() — NOT the
 			# min_bounce floor (inside resolve, unscaled) and NOT the fuel-refund tier lookup below.
 			var launch_h: float = tier_h * profile.eff_bounce_apex()
+			var tier_in: float = maxf(0.0, -velocity.dot(n))   # WK-128: pre-resolve incoming normal speed (telemetry)
 			velocity = BounceResolver.resolve(velocity, n, launch_h, g.length(), boost_held)
 			# Directional influence: holding a direction along the surface as you bounce nudges the
 			# launch that way, so you can steer your arc (e.g. press right on a floor -> up-and-right).
@@ -755,16 +798,18 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			var launch_speed: float = maxf(0.0, velocity.dot(n))
 			_squash_surface(collider, n, col.get_position())
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())   # tier mat FX
-			_on_bounced(boost_held, Tuning.fuel_per_bounce * sqrt(tier_h / Tuning.bounce_height_trampoline), launch_speed, col.get_position(), n)
+			_on_bounced(boost_held, Tuning.fuel_per_bounce * sqrt(tier_h / Tuning.bounce_height_trampoline), launch_speed, col.get_position(), n, collider, tier_in)
 			return
 		elif collider.has_meta("bumper"):
+			var bump_in: float = maxf(0.0, -velocity.dot(n))   # WK-128 F2: pre-reflect incoming normal impact speed
 			velocity = BounceResolver.resolve_bumper(velocity, n)
 			var rebound_speed: float = maxf(0.0, velocity.dot(n))
 			_squash_surface(collider, n, col.get_position())
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())
 			# Bumpers refund fuel too (QA fix): a dry rebound made the spec's miss -> wall-rebound
 			# -> return-shot chain impossible. Same refuel/telegraphy path as tier bounces.
-			_on_bounced(boost_held, Tuning.fuel_per_bumper, rebound_speed, col.get_position(), n)
+			# WK-128 F2: ...but only on a HARD hit (>= bumper_refund_min_speed — supers, launches, supercharged slams).
+			_on_bounced(boost_held, Tuning.fuel_per_bumper, rebound_speed, col.get_position(), n, collider, bump_in)
 			return
 
 ## Trampoline "give". For squishy pads, only the tiles near the contact dent in (with a falloff),
@@ -812,7 +857,7 @@ func _axis_snap(n: Vector2) -> Vector2:
 		return Vector2(signf(n.x), 0.0)
 	return Vector2(0.0, signf(n.y))
 
-func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, launch_speed: float = 0.0, contact: Vector2 = global_position, contact_normal: Vector2 = Vector2.UP) -> void:
+func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, launch_speed: float = 0.0, contact: Vector2 = global_position, contact_normal: Vector2 = Vector2.UP, collider: Object = null, incoming_speed: float = -1.0) -> void:
 	# v2.1 ruling (spec §2.3a): hitstun ends by TIME, never by touching a surface.
 	# If opponent-inflicted hitstun is active on contact, this is a DRY REFLECT — the physical
 	# bounce/ricochet still resolves upstream (BounceResolver), squash FX and the juicy-bounce
@@ -830,14 +875,201 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 	var g_dir := GravityField.get_gravity_at(contact).normalized()
 	var is_underside: bool = contact_normal.dot(g_dir) > 0.5
 	if _stun_timer <= 0.0 and not is_underside:
-		fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
-		if boost_held:
-			_supercharge_timer = Tuning.supercharge_window
+		# WK-128 F1-F3: a face pays once per REAL bounce (re-arm by distance) and bumpers only on hard hits. A
+		# non-paying contact still bounces (physics upstream is unchanged) but refunds nothing and — F5 — opens no
+		# supercharge thrust window. (F4: stunned / underside contacts never reach here, so they neither consume nor
+		# reset arm or relight state.)
+		if _wk128_contact_pays(collider, contact_normal, launch_speed, incoming_speed, -g_dir):
+			var f0 := fuel
+			fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
+			_wk128_add("fuel_income", fuel - f0)
+			if boost_held:
+				_supercharge_timer = Tuning.supercharge_window
+			_wk128_paid()   # R3 waiver of a just-billed re-light, then R1 (next press free)
 		_stun_timer = 0.0
 		_stunned_by = null
 	_squash_timer = 0.12
 	EventBus.bounced.emit(self)
 	EventBus.bounced_juicy.emit(self, launch_speed, contact)
+
+# ---------------------------------------------------------------- WK-128 fuel integrity (fuel ledger only, no physics)
+
+func _wk128_add(k: String, v: float) -> void:
+	wk128[k] = float(wk128.get(k, 0.0)) + v
+
+## §8 telemetry snapshot: boost_presses, relights_billed, relight_bill_fuel, relight_bills_waived, relight_waived_fuel,
+## refunds_tier_floor / refunds_tier_wall / refunds_bumper, refunds_blocked_rearm, refunds_blocked_speed, nopay_contacts,
+## dribble_episodes, fuel_income, boost_fuel_spent, air_time, boost_time, qa_bill_over_hold (P-a1: must stay 0).
+func wk128_stats() -> Dictionary:
+	var d := {}
+	for k in wk128.keys():
+		d[k] = snappedf(float(wk128[k]), 0.01)
+	return d
+
+func reset_wk128_stats() -> void:
+	wk128.clear()
+
+## R1: the next fresh press is free (paying contact, respawn, hitstun end, super fire).
+func _wk128_reset_relight() -> void:
+	_rl_lit = false
+	_rl_gap = 0.0
+	_rl_bill = 0.0
+	_rl_bill_t = 0.0
+
+## R2: called on the fresh-press frame (boosting and not _boost_was_held), before this frame's thrust drain. The first
+## light of an episode is free; every later one pays drain x min(coast gap, boost_relight_bill_max). P-a1 by
+## construction: a bill never exceeds what holding through the same gap would have drained.
+func _wk128_fresh_press() -> void:
+	_wk128_add("boost_presses", 1.0)
+	if not _rl_lit:
+		_rl_lit = true
+		_rl_ep_clock = 0.0
+		_rl_ep_spend = 0.0
+		_rl_ep_flagged = false
+	elif Tuning.boost_relight_bill_max > 0.0 and not fuel_locked:   # R5: no bill under Unlimited Boost
+		var bill: float = Tuning.normal_boost_drain() * minf(_rl_gap, Tuning.boost_relight_bill_max)
+		var f0 := fuel
+		fuel = maxf(fuel - bill, minf(fuel, Tuning.boost_relight_min_left))   # E13: a sputter, never a dead button
+		var paid := f0 - fuel
+		if paid > 0.0:
+			_rl_bill = paid
+			_rl_bill_t = Tuning.boost_relight_grace
+			_rl_ep_spend += paid
+			_wk128_add("relights_billed", 1.0)
+			_wk128_add("relight_bill_fuel", paid)
+	_rl_gap = 0.0
+
+## Per-tick ledger clocks (R4: the gap runs on physics time while not boosting; super-aim time counts).
+func _wk128_tick(boosting: bool, delta: float) -> void:
+	if not boosting:
+		_rl_gap += delta
+	_rl_bill_t = maxf(0.0, _rl_bill_t - delta)
+	_bumper_pay_cd = maxf(0.0, _bumper_pay_cd - delta)
+	if _rl_lit:
+		_rl_ep_clock += delta
+		if not _rl_ep_flagged and _rl_ep_spend > Tuning.normal_boost_drain() * _rl_ep_clock + 0.01:
+			_rl_ep_flagged = true
+			_wk128_add("qa_bill_over_hold", 1.0)   # P-a1 violated (debug counter; must stay 0)
+	_wk128_add("air_time", delta)
+
+## R3 + R1 on a paying contact: refund a re-light billed within the grace (the supercharge "tap into the bounce"),
+## then start a new episode.
+func _wk128_paid() -> void:
+	if _rl_bill_t > 0.0 and _rl_bill > 0.0:
+		var f0 := fuel
+		fuel = minf(Tuning.fuel_max, fuel + _rl_bill)
+		_wk128_add("relight_bills_waived", 1.0)
+		_wk128_add("relight_waived_fuel", fuel - f0)
+	_wk128_reset_relight()
+
+## F6 face key: (collider, axis-snapped normal) for rect bodies; (collider) for round ones.
+func _wk128_face_key(collider: Object, n: Vector2, rnd: bool) -> String:
+	if collider == null:
+		return "~"
+	if rnd:
+		return str(collider.get_instance_id())
+	return "%d:%d:%d" % [collider.get_instance_id(), roundi(n.x), roundi(n.y)]
+
+## Distance the body centre has moved off a face since `p0`: along the outward normal for rect faces, as altitude
+## along the local radial for round colliders (F1 — an orbit round a moon must re-arm).
+func _wk128_excursion(p0: Vector2, n: Vector2, rnd: bool, c: Vector2) -> float:
+	if rnd:
+		return global_position.distance_to(c) - p0.distance_to(c)
+	return (global_position - p0).dot(n)
+
+func _wk128_launch_h(launch_speed: float) -> float:
+	var gm: float = maxf(GravityField.get_gravity_at(global_position).length(), 1.0)
+	return launch_speed * launch_speed / (2.0 * gm)
+
+## F1 per tick: a face re-arms (drops out of _faces) once the body has been E away from it. Also advances the
+## telemetry dribble detector.
+func _wk128_track_faces() -> void:
+	if not _faces.is_empty():
+		var done: Array = []
+		for k in _faces:
+			var f: Dictionary = _faces[k]
+			if _wk128_excursion(f["p"], f["n"], f["r"], f["c"]) >= float(f["e"]):
+				done.append(k)
+		for k in done:
+			_faces.erase(k)
+	if _drb_n > 0 and _wk128_excursion(_drb_p, _drb_nrm, _drb_r, _drb_c) >= _drb_e:
+		_drb_n = 0
+
+## F1/F2/F3 gate for a non-stunned, non-underside contact. True = this contact pays (and arms the face).
+## `launch_speed` = post-bounce speed along the normal (tier faces: sets the launch height h_launch);
+## `incoming` = pre-resolve speed into the face (bumpers: the F2 hard-hit test; < 0 = unknown, treated as hard).
+func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, incoming: float, up: Vector2) -> bool:
+	var bumper: bool = collider != null and collider.has_meta("bumper")
+	var rnd: bool = collider != null and collider.has_meta("round")
+	var c: Vector2 = (collider as Node2D).global_position if (rnd and collider is Node2D) else Vector2.ZERO
+	var key := _wk128_face_key(collider, n, rnd)
+	var h: float = _wk128_launch_h(launch_speed)
+	# dribble detector (telemetry): consecutive contacts on one face without a real bounce's height in between
+	if key == _drb_key and _drb_n > 0:
+		_drb_n += 1
+		if _drb_n == DRIBBLE_CONTACTS:
+			_wk128_add("dribble_episodes", 1.0)
+	else:
+		_drb_key = key
+		_drb_n = 1
+	_drb_p = global_position
+	_drb_nrm = n
+	_drb_e = DRIBBLE_BUMPER_PX if bumper else maxf(DRIBBLE_MIN_PX, DRIBBLE_FRAC * h)
+	_drb_r = rnd
+	_drb_c = c
+	if collider != null:
+		if bumper and incoming >= 0.0 and incoming < Tuning.bumper_refund_min_speed:
+			_wk128_add("refunds_blocked_speed", 1.0)   # F2: cruise-speed wall touch — a bounce, not a refuel
+			_wk128_add("nopay_contacts", 1.0)
+			return false
+		if bumper and _bumper_pay_cd > 0.0 and _super_recent <= 0.0:   # Alt B cap (one bumper refund per player per bumper_refund_cooldown); F3: supers skip it
+			_wk128_add("refunds_blocked_cooldown", 1.0)
+			_wk128_add("nopay_contacts", 1.0)
+			return false
+		if _super_recent <= 0.0 and _faces.has(key):   # F1: this face already paid for this bounce (F3: supers skip)
+			# Re-base a TIER face on this contact and THIS bounce's own launch height. Without it, a paying bounce that
+			# was supercharged (x1.4 height) and then cut short (boosted back down / stomped) left E at 0.9 x 1.4 h, and
+			# every later natural bounce (no boost held, e.g. at 0 fuel) fell short of it forever: bots sat at 0 fuel
+			# for 280 s (WK-128 build finding; deviation from spec F1 "from the paying contact", flagged in the report).
+			# A dribble still never re-arms: by definition it never reaches its own bounce's height.
+			if not bumper:
+				var fb: Dictionary = _faces[key]
+				fb["p"] = global_position
+				fb["e"] = maxf(Tuning.refund_rearm_min_px, Tuning.refund_rearm_frac * h)
+			_wk128_add("refunds_blocked_rearm", 1.0)
+			_wk128_add("nopay_contacts", 1.0)
+			return false
+		var e: float = Tuning.refund_rearm_bumper_px if bumper \
+			else maxf(Tuning.refund_rearm_min_px, Tuning.refund_rearm_frac * h)
+		if e > 0.0:
+			_faces[key] = {"p": global_position, "n": n, "e": e, "r": rnd, "c": c}
+		else:
+			_faces.erase(key)   # re-arm OFF (A/B): every contact pays, as pre-WK-128
+		_last_pay_key = key
+		if bumper:
+			_bumper_pay_cd = Tuning.bumper_refund_cooldown
+	# (collider == null: a legacy caller with no face, e.g. a ghost cloud via GhostPuff — pays as before)
+	if bumper:
+		_wk128_add("refunds_bumper", 1.0)
+	elif n.dot(up) > 0.5:
+		_wk128_add("refunds_tier_floor", 1.0)
+	else:
+		_wk128_add("refunds_tier_wall", 1.0)
+	return true
+
+## BR-128 hook for the bot refuel dive: true while I am still moving away from the face that last paid me and it has not
+## re-armed (thrusting back into it now would only dribble — the contact would not pay). `into` (optional) = the
+## direction the caller wants to thrust INTO a surface; then only a face roughly facing against it counts.
+func refund_rearm_pending(into: Vector2 = Vector2.ZERO) -> bool:
+	if _last_pay_key == "" or not _faces.has(_last_pay_key):
+		return false
+	var f: Dictionary = _faces[_last_pay_key]
+	var n: Vector2 = f["n"]
+	if bool(f["r"]):
+		n = (global_position - (f["c"] as Vector2)).normalized()
+	if into != Vector2.ZERO and n.dot(-into.normalized()) < 0.5:
+		return false
+	return velocity.dot(n) > 0.0
 
 func _handle_smashes() -> void:
 	var my_speed := velocity.length()
@@ -1236,6 +1468,7 @@ func force_super_boost() -> void:
 		dir = velocity.normalized()
 	velocity = dir * Tuning.super_boost_impulse_full
 	_super_recent = Tuning.super_active_time   # a ring launch is a super — smash license + channel-break
+	_wk128_reset_relight()                     # WK-128 R1: a super (incl. a ring launch) starts a new relight episode
 	EventBus.super_boosted.emit(self)
 
 func cancel_super_aim() -> void:
@@ -1315,6 +1548,12 @@ func respawn(pos: Vector2) -> void:
 	_sb_buffer = 0.0
 	_sb_was_held = false
 	_boost_was_held = false
+	_wk128_reset_relight()          # WK-128 E2: respawn clears relight state and face memory
+	_faces.clear()
+	_last_pay_key = ""
+	_bumper_pay_cd = 0.0
+	_drb_key = ""
+	_drb_n = 0
 	secs_since_input = 0.0
 	_spawn_protect = SPAWN_PROTECT_TIME
 	# clear powerup state (PowerupSystem's death sweep also runs; this covers round respawns)

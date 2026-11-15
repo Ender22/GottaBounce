@@ -34,8 +34,45 @@ var fuel_max: float = 100.0
 var tank_seconds: float = 3.5
 var fuel_per_bounce: float = 20.0
 var fuel_per_bumper: float = 20.0    # bumper walls refund fuel too — enables the miss -> wall-rebound
-                                     # -> return-shot chain (lethality spec player fantasy). Same as
-                                     # fuel_per_bounce for now: FLAGGED FOR DESIGNER REVIEW.
+                                     # -> return-shot chain (lethality spec player fantasy). VALUE RULED
+                                     # 2026-07-03 (DECISIONS: keep 20, DO-NOT-TOUCH — "the number was never the
+                                     # bug; the state condition was"). WK-128 adds a refund GATE (once per real
+                                     # bounce / hard hits only) that is OFF pending WK-135 — see the WK-128 block.
+
+# --- Fuel integrity (WK-128, docs/specs/wk128_fuel_exploits_2026-11-14.md §4.3) — state conditions on the existing
+# fuel sources/sinks; NO physics or protected constant changes. Every lever has an OFF value for A/B (§4.4).
+# (a) RELIGHT BILL: re-lighting the jetpack mid-air bills the coast since release, capped. The first light after a
+#     paying bounce, respawn, hitstun end or super fire is free; a billed re-light followed by a paying contact
+#     within boost_relight_grace is refunded (supercharge "tap into the bounce" stays free).
+# (b) REFUND GATE — BUILT, SHIPPED OFF (director ruling 2026-11-15): "one refund per real bounce" (a face re-arms only
+#     after the body moves E off it: tier max(min_px, frac x launch height) re-based on each blocked contact; bumper
+#     bumper_px; round colliders by altitude) + the bumper hard-hit gate + the Alt B 1 s cap. ALL OFF pending WK-135
+#     (standable bumpers / resting contact: a 0-fuel goat resting on a bumper, e.g. the Singularity core, was locked
+#     forever -> brawl stages never ended) + a sports economy ruling (sports bots lived on bumper refunds: rocketball
+#     goals/min 5.35 -> 2.88 with the gate, 3.68 with Alt B). Refunds behave exactly as pre-WK-128 at these values.
+#     Re-test values: spec frac 0.9 / min_px 60 / bumper_px 200 / min_speed 900 / cooldown 0; Alt B bumper_px 400 /
+#     min_speed 0 / cooldown 1.0. Evidence: tools/out/wk/WK-128_*.
+# INVARIANTS (re-check if ANY side moves; #12/#13 are dormant while the refund gate is OFF, #14 is live):
+#   #12 bumper_refund_min_speed (900) > normal_boost_max_speed x CharacterProfile.BOOST_MAX (800 x 1.12 = 896) —
+#       plain flight never pays off a bumper. If either side moves, the bumper fuel pump reopens.
+#   #13 min_bounce_height (48) < refund_rearm_min_px (60) < bounce_height_marshmallow x APEX_MIN (0.95) x
+#       refund_rearm_frac (0.9) = 103 — micro-bounces never pay twice, every natural bounce pays.
+#   #14 boost_relight_bill_max x normal_boost_drain() (0.20 x 28.57 = 5.71) >= the pulse parity fee (5.14 vertical /
+#       >= 4.7 horizontal at 10%). RE-DERIVE if gravity, boost_gravity_scale, normal_boost_accel/max_speed or
+#       tank_seconds change (the fee scales with 1600 / (accel - 1280 + 1600)).
+var boost_relight_bill_max: float = 0.20      # s of coast billed on a mid-air re-light (5.71 fuel). Band 0.15-0.25.
+                                              # 0.0 = OFF (pre-WK-128 tapping). Invariant #14
+var boost_relight_grace: float = 0.20         # s: a paying contact this soon after a billed re-light refunds the bill.
+                                              # Keep == supercharge_window (the FEEL §3.4 "pop" beat)
+var boost_relight_min_left: float = 1.0       # fuel a near-empty re-light always leaves (~4 ticks of thrust: a sputter,
+                                              # never a dead button)
+var refund_rearm_frac: float = 0.0            # OFF (WK-135). x the paying bounce's launch height to travel off a TIER
+                                              # face before it pays again (spec 0.9). 0 with min_px 0 = OFF. Invariant #13
+var refund_rearm_min_px: float = 0.0          # OFF (WK-135). px floor of the tier re-arm distance (spec 60). Invariant #13
+var refund_rearm_bumper_px: float = 0.0       # OFF (WK-135). px off a BUMPER face before it pays again (spec 200, Alt B 400)
+var bumper_refund_min_speed: float = 0.0      # OFF (WK-135). px/s incoming normal speed for a bumper contact to pay (spec
+                                              # 900 = smash_impact_min; invariant #12: > 800 x BOOST_MAX 1.12 = 896)
+var bumper_refund_cooldown: float = 0.0       # OFF (WK-135). s between bumper refunds per player (Alt B 1.0)
 
 # --- Normal boost (FEEL §3.2) ---
 var normal_boost_accel: float = 5400.0       # WK-95 (owner ruling 2026-11-14): 4600 -> 5400, snappier start/
