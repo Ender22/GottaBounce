@@ -4,6 +4,9 @@ Progress lives in `docs/STATUS.md` (weekend block) + `docs/BACKLOG.md` (checked 
 This file is for the NON-OBVIOUS things learned the hard way. Add a line whenever something surprises you.
 
 ## Process
+- **PC FREEZE (2026-11-15 ~02:00):** 5 parallel agents (one running 8 headless Godot processes, plus 3-4 rendered
+  games and Movie Maker recordings) froze the whole machine and killed the session. Cap: <= 3 agents with Godot at once,
+  <= 1 headless batch at a time with <= 2 processes. Per-agent ports make parallelism POSSIBLE, not free.
 - **Validate motion with real recordings, not stills/bursts.** Owner spotted bot super-aim spinning wildly from a
   20 s watch; our screenshot bursts never caught it. Use the WK-93 Movie Maker recorder (fixed fps, every frame)
   for any motion / feel / bot / hazard change and look at the contact sheet frame by frame.

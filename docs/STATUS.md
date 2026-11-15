@@ -4,6 +4,23 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
+**>>> RESUME HERE (2026-11-15 ~02:00, after a PC FREEZE + before context compaction) <<<**
+The PC froze with 5 agents running in parallel (8-process headless batches + several rendered games + recordings).
+Uncommitted PARTIAL work in the tree, by lane (agent transcripts are saved; resume each with SendMessage to its id):
+- WK-128 bill-only (fuel tapping fix ON, refund gates OFF; verify batch NOT done) — src/core/Tuning.gd (WK-128 block),
+  src/entities/Player.gd, src/core/InputBot.gd — agent a1c09a2f2907373ae. Commit only after brawl batch shows no hangs.
+- WK-37d ghost tags + islands_void faintness (lane G, port 9102) — assets/shaders/ghost.gdshader, src/core/GhostBot.gd,
+  src/entities/GhostGoat.gd, GhostPuff.gd, src/systems/GhostDirector.gd, src/ui/PlayerPips.gd (+ maybe a WK-37d block
+  at the END of Tuning.gd — stage with tools/stage_hunks.py) — agent a98a0dbfd05308d91.
+- WK-34 review fixes + WK-35 panel kit B (lane U, port 9104) — assets/ui/theme.tres, scenes/ui/{MatchHUD,ScoreScreen,
+  SportsHUD,SportsVictory,TrialsHUD,VictoryScreen}.tscn, src/ui/{MenuFX,OptionsScreen,ScoreScreen,SportsHUD,
+  SportsVictory,TrialsHUD,VictoryScreen}.gd, new src/ui/ToyKit.gd — agent a19fec0d5fc7e4508.
+- WK-66a sports net art (lane V) — assets/world/sports/ (new), tools/art.py (chroma key), assets/CATALOG.md —
+  agent a467d6184da9237d6.
+- WK-135 standable-bumpers spec (doc only, docs/specs/wk135_*) — agent af926bde2ee0bc6f7.
+Keep-awake script died with the session: restart `scratchpad/keepawake.ps1` (background) before rendered timing work.
+CONCURRENCY CAP from now on: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
+
 **WEEKEND POLISH RUN (started 2026-11-14, branch `weekend/polish`, UNATTENDED — owner: "i dont want to be
 involved much, this project is about seeing what ai can do on its own"):** owner verdict after a 4-month gap:
 "kinda fun but a shitty prototype... nonsense controls (B opens pause on xbox)... 2 users using 2 controllers

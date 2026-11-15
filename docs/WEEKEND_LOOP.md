@@ -27,6 +27,8 @@ start of every loop tick (it survives context compaction; your memory of earlier
   while other agents run — they kill every Godot. Recordings bind no port (`--gb-port=0`). Take
   perf/feel timings with no other rendered game running (CPU sharing).
 
+- CONCURRENCY CAP: <= 3 agents running Godot at once; <= 1 headless batch (<= 2 processes). The PC froze at 5.
+
 ## One tick
 1. `git status` + `git log -3` — if a previous tick left uncommitted work, finish/validate it or
    revert just those files (`git restore <path>`), never leave it dangling.
