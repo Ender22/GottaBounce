@@ -2698,3 +2698,8 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   well (Singularity core) so Singularity reverts to arm-B behaviour; (2) then the spec fallback bot_pin_contacts 4 -> 3 as a
   Singularity-only 40-stage A/B with a per-episode dump (thrust dir, hitstun, black-hole state, contact point) and a fixed-fps
   recording at stuck moments. Only 9 of 17 pinned Singularity bot-stages logged a break: many pins aren't "thrusting into the face".
+
+### [ ] WK-162 [P3][S] Sky-drop cloud bank can read as a soft floor
+- Source: CD4-02 blind read (`tools/out/wk/CD4-01_blind_480.png`): "drop / falling looks fatal" PASS, but the dense cloud band sits flush
+  under the platforms and "a new player could take it for a soft floor". Tune the WK-85a knobs (Tuning "# WK-85a": cloud bank offset /
+  alpha / density) so the bank sits lower or thinner and the open sky gap under the platforms is visible. Applies to Trials + Islands Void.
