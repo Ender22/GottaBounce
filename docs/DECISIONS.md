@@ -2,6 +2,11 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-15** WK-131 A/B RULING (docs/audit/2026-11-15_wk131_ab.md): KEEP KICKOFF GATES, open at 3.5 s (the spec's pre-registered
+  step): goals within 4 s of GO 32.4 % legacy / 17.8 % gates@3.0 / 2.8 % gates@3.5 / 19.2 % live ball / 29.9 % formation; goals within
+  1 s of the open 13 -> 4 (p = 0.036); CENTER rally median 10.4 s (in band); restart 2.667 s. CPU own goals 8.3 % (within +5 pp bar).
+  Open follow-ups: CPU supporter home at gate open only 33 % (bar 50 %) -> WK-108b; WK-116 long-rally tail (83.8 s) stays open.
+
 - **2026-11-15** WK-20d LADDER RULING (director, on docs/audit/2026-11-15_wk20d_r1.md): R1 spawn spread DROPPED (deaths moved from side
   edges to the void: +2.9 pp pooled). R3 whiff brake DROPPED (+2.3 pp, median -2.7 s, fewer claw-backs). R4 fumble reserve NOT adopted
   (-7.1 pp, halves disagree; R2+R4 adds nothing over R2). R2 SPAWN TRUCE ADOPTED: -15.5 pp human self-KO share (CI -22.3..-8.6, both
