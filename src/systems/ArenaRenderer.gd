@@ -164,7 +164,9 @@ var _body_is_grass := true
 var _body_fill_tint := Color.WHITE   # WK-85: tint of the tiled fill under tall themed bodies
 static var _grey_earth: Texture2D = null   # WK-85: desaturated earth tile (built once, see _grey_earth_texture)
 var _surfaces := {}          # StaticBody2D -> { tier, art, mat, w, top, last_ms } for bounce FX
-var _warned := {}
+# WK-179 (soak F2): static = one line per PROCESS. Every stage builds a new renderer, so a per-instance dict repeated the same
+# missing-art warnings every stage (131 lines in an 86-min soak) and buried the real warnings in the run log.
+static var _warned := {}
 var _t := 0.0
 
 # WK-91 (perf): stage-load hitch fix. Every theme change used to decode its art synchronously inside the
@@ -1186,13 +1188,16 @@ func _mat_texture(tier: String) -> Dictionary:
 ## the post 3-sliced VERTICALLY (never a rotated horizontal platform).
 func _paint_bumper(art: Node2D, w: float, h: float) -> void:
 	var vertical := h >= w
-	if ResourceLoader.exists(BUMPER_POST_TEX) and vertical:
+	var has_post := ResourceLoader.exists(BUMPER_POST_TEX)
+	if has_post and vertical:
 		art.add_child(ThreeSlice.build(load(BUMPER_POST_TEX), w + WALL_FACE_BLEED * 2.0, h + 8.0, 0.22, true))
 		return
-	# Temporary stand-in until world/bumper_post.png lands: marshmallow mat strip tinted bumper-grey.
+	# Stand-in: marshmallow mat strip tinted bumper-grey. HORIZONTAL bumpers always take it (the post art is a vertical
+	# piece; there is no horizontal bumper art yet), vertical ones only when bumper_post.png is missing.
 	var fb := str(TIERS["marshmallow"]["mat"])
 	if ResourceLoader.exists(fb):
-		_warn_once("bumper", "ArenaRenderer: missing " + BUMPER_POST_TEX + " — grey mat strip stand-in")
+		if not has_post:   # WK-179 (soak F2): only a truly missing post warns (horizontal bumpers logged a false "missing")
+			_warn_once("bumper", "ArenaRenderer: missing " + BUMPER_POST_TEX + " — grey mat strip stand-in")
 		var strip := ThreeSlice.build(load(fb), maxf(w, h) + 8.0, minf(w, h) + WALL_FACE_BLEED * 2.0,
 			0.18, false, TIERS["bumper"]["primary"])
 		if vertical:

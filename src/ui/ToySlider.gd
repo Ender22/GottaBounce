@@ -41,9 +41,12 @@ func set_focus_active(on: bool) -> void:
 	var t := _knob.create_tween()
 	t.tween_property(_knob, "scale", Vector2(1.15, 1.15) if on else Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-func step(d: int) -> void:
+## WK-46: quiet = an auto-repeat of a held direction; at the end of the range it stops without the deny shake.
+func step(d: int, quiet := false) -> void:
 	var nv := clampf(value + d * 0.05, 0.0, 1.0)
 	if is_equal_approx(nv, value):
+		if quiet:
+			return
 		MenuFX.reject_shake(_knob)
 		AudioManager.play_sfx("ui_click", {"pitch": 0.6, "volume_db": -6.0})
 		return
@@ -70,8 +73,8 @@ func _refresh() -> void:
 
 func _gui_input(e: InputEvent) -> void:
 	if e.is_action_pressed("ui_left") or e.is_action_pressed("move_left"):
-		step(-1)
+		step(-1, InputRouter.is_repeat(e))   # WK-46
 		accept_event()
 	elif e.is_action_pressed("ui_right") or e.is_action_pressed("move_right"):
-		step(1)
+		step(1, InputRouter.is_repeat(e))   # WK-46
 		accept_event()

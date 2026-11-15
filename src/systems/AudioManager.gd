@@ -296,6 +296,7 @@ func _ready() -> void:
 	EventBus.combat_started.connect(_on_combat_started)
 	EventBus.match_started.connect(_on_match_started)
 	EventBus.match_won.connect(_on_match_won)
+	EventBus.unlock_celebrated.connect(_on_unlock_celebrated)   # WK-179
 	EventBus.first_blood.connect(_on_first_blood)
 	EventBus.two_left.connect(_on_two_left)
 	EventBus.hazard_whoosh.connect(_on_hazard_whoosh)   # WK-96 pendulum pass
@@ -597,6 +598,11 @@ func _on_match_started() -> void:
 func _on_match_won(_widx) -> void:
 	play_sfx("match_win", {"volume_db": MATCH_WIN_DB, "bus": _stinger_bus})   # WK-163 (was 0 on SFX)
 	play_music(MUSIC_SCOREBOARD, true, 0.0)
+
+## WK-179 (soak F1): the lobby NEW FLAIR card and the arena-select CIRCUIT UNLOCKED banner reuse the win fanfare sample but
+## NOT match_won (that also swaps the music to the scoreboard loop, which then played in the front end until the next match).
+func _on_unlock_celebrated(_kind) -> void:
+	play_sfx("match_win", {"volume_db": Tuning.wk179_unlock_sting_db, "bus": _stinger_bus, "tag": "unlock_sting"})
 
 ## WK-163: FIRST BLOOD / TWO LEFT land on the same tick as a KO, so on the SFX bus the KO duck ate 4 dB of them. Moved to the
 ## Stingers bus at their old absolute level (was -1 / -2 on SFX: -2.5 bus, ~1 dB compression on the TWO LEFT peak).

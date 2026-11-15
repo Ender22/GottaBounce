@@ -485,6 +485,8 @@ func _input(e: InputEvent) -> void:
 		return
 	if e is InputEventKey and (e as InputEventKey).echo:
 		return   # we run our own per-device repeat
+	if InputRouter.is_synthetic(e):
+		return   # WK-46: InputRouter's menu repeat is for focus-driven screens; the lobby runs its own (below)
 	if Time.get_ticks_msec() - _enter_msec < int(Tuning.lobby_entry_grace * 1000.0):
 		return
 	if e is InputEventJoypadMotion:
@@ -636,7 +638,7 @@ func _process(_delta: float) -> void:
 		var h: Dictionary = _holds[k]
 		if now >= int(h["t"]):
 			h["t"] = int(h["t"]) + int(Tuning.lobby_repeat_rate * 1000.0)
-			_step_dir(str(h["key"]), str(h["axis"]), int(h["dir"]))
+			_step_dir(str(h["key"]), str(h["axis"]), int(h["dir"]), true)   # WK-46: a repeat never wraps
 	# same-frame lock ties resolve here, after every event of the frame was routed
 	if not _lock_queue.is_empty():
 		_resolve_locks()
@@ -855,41 +857,47 @@ func _tick_hold_b(now: int) -> void:
 		_hold_b.clear()
 		_exit()
 
-func _step_dir(key: String, axis: String, dir: int) -> void:
+## WK-46: `rep` = an auto-repeat of a held direction (from _process). A repeat never wraps a list (the RULES rows, the
+## goat carousel, the flair row) and stays quiet where a fresh press would ping / deny-shake.
+func _step_dir(key: String, axis: String, dir: int, rep := false) -> void:
 	if _rules_owner != "" and key == _rules_owner:
-		_rules_step(axis, dir)
+		_rules_step(axis, dir, rep)
 		return
 	var si := _slot_of(key)
 	if si < 0:
 		return
 	var s: Dictionary = slots[si]
 	if s["state"] != S_PICKING or _spinning[si]:
-		_ping(si)   # READY / spinning: the stick does nothing, so it says "that's you"
+		if not rep:   # WK-46
+			_ping(si)   # READY / spinning: the stick does nothing, so it says "that's you"
 		return
 	if axis == "v":
 		if _mode == "sports":
-			_ping(si)   # WK-27: no FLAIR row in SPORTS (flair is never worn there) — the stick only picks goats
+			if not rep:   # WK-46
+				_ping(si)   # WK-27: no FLAIR row in SPORTS (flair is never worn there) — the stick only picks goats
 			return
 		var nr: int = clampi(int(s["row"]) + dir, 0, 1)
 		if nr != int(s["row"]):
 			s["row"] = nr
 			(_slot_views[si] as Object).call("set_row", nr)
 			_move_sound()
-		else:
+		elif not rep:   # WK-46
 			_ping(si)
 		return
 	if int(s["row"]) == 0:
-		_cycle_goat(si, dir)
+		_cycle_goat(si, dir, rep)
 	else:
-		_cycle_flair(si, dir)
+		_cycle_flair(si, dir, rep)
 
 ## Cycle (wraps), skipping goats LOCKED by another human; each skipped goat's medallion wiggles. Two
 ## PICKING players may browse the same goat (E.4).
-func _cycle_goat(si: int, dir: int) -> void:
+func _cycle_goat(si: int, dir: int, rep := false) -> void:
 	var s: Dictionary = slots[si]
 	var pos: int = maxi(0, _pool.find(int(s["goat"])))
 	var g: int = int(s["goat"])
 	for _n in range(_pool.size()):
+		if rep and not Tuning.wk46_repeat_wraps and (pos + dir < 0 or pos + dir >= _pool.size()):
+			break   # WK-46: a held direction stops at the end of the carousel (a fresh press still wraps)
 		pos = posmod(pos + dir, _pool.size())
 		var c: int = int(_pool[pos])
 		if _blocked(c, si):   # WK-27: SPORTS also skips a full team's goats
@@ -971,9 +979,11 @@ func _build_flair_vals() -> void:
 		_flair_vals.append("__locked")
 		_flair_labels.append("NEXT AT %d KOs" % int(nxt.get("threshold", 0)))   # locked tease, greyed
 
-func _cycle_flair(si: int, dir: int) -> void:
+func _cycle_flair(si: int, dir: int, rep := false) -> void:
 	var s: Dictionary = slots[si]
 	var idx: int = maxi(0, _flair_vals.find(str(s.get("flair_view", s["flair"]))))
+	if rep and not Tuning.wk46_repeat_wraps and (idx + dir < 0 or idx + dir >= _flair_vals.size()):
+		return   # WK-46: a held direction stops at the end of the flair row (a fresh press still wraps)
 	idx = posmod(idx + dir, _flair_vals.size())
 	var v := str(_flair_vals[idx])
 	s["flair_view"] = v
@@ -1293,9 +1303,12 @@ func _rules_view_data() -> Dictionary:
 		rows.append({"title": (def as Dictionary)["title"], "label": str((dv[1] as Array)[idx]), "locked": locked})
 	return {"rows": rows, "focus": _rules_row_i}
 
-func _rules_step(axis: String, dir: int) -> void:
+func _rules_step(axis: String, dir: int, rep := false) -> void:
 	var view: Object = _slot_views[_rules_slot]
+	var clamp_rep: bool = rep and not Tuning.wk46_repeat_wraps   # WK-46
 	if axis == "v":
+		if clamp_rep and (_rules_row_i + dir < 0 or _rules_row_i + dir >= _rules_defs.size()):
+			return   # WK-46 (WK-174 cause): a held D-pad stops on the last row instead of wrapping back to FORMAT
 		_rules_row_i = posmod(_rules_row_i + dir, _rules_defs.size())
 		_move_sound()
 		view.call("refresh_rules", _rules_view_data(), -1, 0)
@@ -1308,6 +1321,8 @@ func _rules_step(axis: String, dir: int) -> void:
 	var ni: int = idx + dir
 	var locked: bool = str(def["field"]) == "sports_total" and _joined_count() > 2
 	if ni < 0 or ni >= vals.size() or locked:
+		if rep:
+			return   # WK-46: holding at the end of a value list is quiet (the fresh press already shook)
 		view.call("shake_rule", _rules_row_i)
 		_deny_sound()
 		return
@@ -1744,7 +1759,7 @@ func _play_flair_celebration(fid: String) -> void:
 		if not is_instance_valid(_unlock_card):
 			return
 		AudioManager.play_sfx("ui_click", {"pitch": 1.5, "pitch_var": 0.0, "volume_db": 0.0})
-		EventBus.match_won.emit(0)   # reuse the win fanfare sting (presentation only)
+		EventBus.unlock_celebrated.emit("flair")   # WK-179: the fanfare only (match_won also swapped the music to the scoreboard loop)
 		_unlock_name.text = display
 		_unlock_owner.text = "THE HERD'S %d KOs EARNED IT  ·  EVERY PLAYER CAN WEAR IT" % int(item.get("threshold", 0))
 		# WK-145 (UX4-26): the disc shows the flair itself, worn by a tiny goat (P1's, or the first seated goat), over

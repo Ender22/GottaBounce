@@ -29,6 +29,7 @@ extends Node
 ##   simulate_device_lost(key) / simulate_device_found(key)   QA hooks — same code path as a real unplug
 ##   $DeviceWatch (WK-28b)               child node: in-match DisconnectOverlay + connect / disconnect toasts
 ##   cursor_shown / cursor_allowed()     WK-39 mouse-cursor policy (CC-2.4 / CC-12.2), see "cursor" below
+##   is_repeat(e) / is_synthetic(e)      WK-46 menu auto-repeat (CC-5.3), see "menu repeat" below
 
 signal device_lost(key: String)
 signal device_found(key: String)
@@ -66,6 +67,7 @@ func _ready() -> void:
 	# is a belt-and-braces duplicate; _note() is idempotent.
 	get_tree().root.window_input.connect(_note)
 	get_tree().root.window_input.connect(_cursor_note)   # WK-39: once per event (NOT also from _input — motion accumulates)
+	get_tree().root.window_input.connect(_menu_note)     # WK-46: once per event (holds / the stick latch accumulate)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	# WK-28b: what a hot-plug MEANS on screen (in-match disconnect overlay, connect toasts) lives in DeviceWatch, a
 	# child node loaded by path (autoload gotcha: no class refs). Added first so it hears device_lost before any
@@ -76,11 +78,13 @@ func _ready() -> void:
 
 func _input(e: InputEvent) -> void:
 	_note(e)
+	_menu_filter(e)   # WK-46: an autoload's _input runs AFTER every scene node's _input and BEFORE GUI focus navigation
 
 func _process(_dt: float) -> void:
 	# live match play: hidden no matter what the mouse does (it can't do anything there)
 	if cursor_shown and not cursor_allowed():
 		_set_cursor(false)
+	_menu_tick()   # WK-46
 
 # ---------------------------------------------------------------------------------------------- cursor
 
@@ -307,3 +311,212 @@ func rumble_player(player, weak: float, strong: float, dur: float) -> void:
 				rumble(k, weak, strong, dur)
 		return
 	rumble(key, weak, strong, dur)
+
+# ---------------------------------------------------------------------------------- menu repeat (WK-46)
+## CC-5.3: a held D-pad / left stick / arrow-or-WASD key repeats after Tuning.wk46_repeat_delay, then every
+## Tuning.wk46_repeat_rate, on every FOCUS-driven menu (title, mode select, arena select, Options, pause, the disconnect
+## overlay). Godot's own focus navigation never repeats a pad, and the keyboard rode the OS key echo (its own delay and
+## rate, and it wrapped). How:
+##  * Holds are tracked per device from Window.window_input (so a scene's set_input_as_handled can't starve a release).
+##    One held direction per device; the newest press wins; releasing that button / key / stick ends it.
+##  * A repeat is a COPY of the held press (same class, same device, so the pause-owner gate and the CC-3.3 shared-menu
+##    filter judge it exactly like the real press), tagged with meta SYNTH_META = "repeat". The left stick is turned
+##    into the action map's D-pad button for that direction (press + release pair) both for its first step and for
+##    repeats, and its raw motion is kept away from the focus system while a Control has focus: one step per push
+##    (hysteresis lobby_stick_press / lobby_stick_release, dominant axis on diagonals), never a burst of steps.
+##  * Auto-repeat never wraps (Tuning.wk46_repeat_wraps): a repeat whose focus neighbour lies BEHIND the focused
+##    control (the wire_col / wire_row wrap link) is turned into a no-op for that one event. Widgets that clamp
+##    (sliders, steppers, shelf ends) skip their deny shake on a repeat (is_repeat), so holding at an end is quiet.
+##  * Only while a Control holds GUI focus. No focus = live play or the Herd Lobby (its own per-device repeat): nothing
+##    is sent and due holds are dropped (a hold never carries across a screen change, CC-5.7).
+const SYNTH_META := &"gb_menu_synth"   # "press" (stick first step) | "repeat" | "release" (stick D-pad release)
+const REPEAT_DIR_META := &"gb_menu_dir"
+var menu_repeat_count := 0     # QA: repeats sent
+var menu_repeat_blocked := 0   # QA: repeats that would have wrapped and were held at the end instead
+var menu_stick_steps := 0      # QA: stick first-steps sent (one per push)
+var _mholds: Dictionary = {}   # device key -> {"dir": Vector2i, "src": "k<code>" | "b<idx>" | "stick", "ev": InputEvent, "pad": int, "t": msec}
+var _mstick: Dictionary = {}   # device key -> {"x": float, "y": float, "dir": Vector2i}
+
+## True for a WK-46 auto-repeat event (a held direction, not a fresh press). Screens that clamp / deny use it.
+func is_repeat(e: InputEvent) -> bool:
+	return e != null and str(e.get_meta(SYNTH_META, "")) == "repeat"
+
+## True for any event WK-46 synthesised (repeat, stick first step, stick release). Screens with their own repeat
+## (the Herd Lobby) ignore these.
+func is_synthetic(e: InputEvent) -> bool:
+	return e != null and e.has_meta(SYNTH_META)
+
+func _menu_focus() -> Control:
+	var vp := get_viewport()
+	return vp.gui_get_focus_owner() if vp != null else null
+
+## Direction of a press from the action map (ui_* or move_*, like every menu handler). echo = also accept OS echoes.
+func _menu_dir(e: InputEvent, echo := false) -> Vector2i:
+	if e.is_action_pressed("ui_left", echo) or e.is_action_pressed("move_left", echo):
+		return Vector2i(-1, 0)
+	if e.is_action_pressed("ui_right", echo) or e.is_action_pressed("move_right", echo):
+		return Vector2i(1, 0)
+	if e.is_action_pressed("ui_up", echo) or e.is_action_pressed("move_up", echo):
+		return Vector2i(0, -1)
+	if e.is_action_pressed("ui_down", echo) or e.is_action_pressed("move_down", echo):
+		return Vector2i(0, 1)
+	return Vector2i.ZERO
+
+func _menu_src(e: InputEvent) -> String:
+	if e is InputEventKey:
+		var k := e as InputEventKey
+		return "k%d" % (k.physical_keycode if k.physical_keycode != 0 else k.keycode)
+	if e is InputEventJoypadButton:
+		return "b%d" % (e as InputEventJoypadButton).button_index
+	return ""
+
+func _menu_note(e: InputEvent) -> void:
+	if not Tuning.wk46_menu_repeat or is_synthetic(e):
+		return
+	var key := device_key(e)
+	if key == "":
+		return
+	if e is InputEventJoypadMotion:
+		_menu_stick(key, e as InputEventJoypadMotion)
+		return
+	if e is InputEventKey and (e as InputEventKey).echo:
+		return
+	var src := _menu_src(e)
+	if src == "":
+		return
+	if e.is_pressed():
+		var d := _menu_dir(e)
+		if d != Vector2i.ZERO:
+			_mholds[key] = {"dir": d, "src": src, "ev": e, "pad": -1,
+				"t": Time.get_ticks_msec() + int(Tuning.wk46_repeat_delay * 1000.0)}
+	elif _mholds.has(key) and str((_mholds[key] as Dictionary)["src"]) == src:
+		_mholds.erase(key)
+
+## Left stick -> one digital direction per push (hysteresis, dominant axis). Same strengths as the lobby / MenuInputGate.
+func _menu_stick(key: String, e: InputEventJoypadMotion) -> void:
+	var horiz := e.is_action("move_left") or e.is_action("move_right")
+	if not horiz and not (e.is_action("move_up") or e.is_action("move_down")):
+		return
+	var st: Dictionary = _mstick.get(key, {"x": 0.0, "y": 0.0, "dir": Vector2i.ZERO})
+	if horiz:
+		st["x"] = e.get_action_strength("move_right") - e.get_action_strength("move_left")
+	else:
+		st["y"] = e.get_action_strength("move_down") - e.get_action_strength("move_up")
+	_mstick[key] = st
+	var x: float = st["x"]
+	var y: float = st["y"]
+	var cur: Vector2i = st["dir"]
+	if cur != Vector2i.ZERO:
+		var v: float = x if cur.x != 0 else y
+		var cs: int = cur.x if cur.x != 0 else cur.y
+		if absf(v) < Tuning.lobby_stick_release or (v > 0.0) != (cs > 0):
+			st["dir"] = Vector2i.ZERO
+			cur = Vector2i.ZERO
+			if _mholds.has(key) and str((_mholds[key] as Dictionary)["src"]) == "stick":
+				_mholds.erase(key)
+	if cur == Vector2i.ZERO and maxf(absf(x), absf(y)) >= Tuning.lobby_stick_press:
+		var d := Vector2i(1 if x > 0.0 else -1, 0) if absf(x) >= absf(y) else Vector2i(0, 1 if y > 0.0 else -1)
+		st["dir"] = d
+		_mholds[key] = {"dir": d, "src": "stick", "ev": null, "pad": e.device,
+			"t": Time.get_ticks_msec() + int(Tuning.wk46_repeat_delay * 1000.0)}
+		if _menu_focus() != null:
+			menu_stick_steps += 1
+			_send_dpad(e.device, d, "press")
+
+## The action map's joypad button for a ui_* direction, on `pad` (the stick's stand-in press).
+func _dpad_event(pad: int, d: Vector2i, pressed: bool) -> InputEventJoypadButton:
+	var act := "ui_right" if d.x > 0 else ("ui_left" if d.x < 0 else ("ui_down" if d.y > 0 else "ui_up"))
+	for ev in InputMap.action_get_events(act):
+		if ev is InputEventJoypadButton:
+			var b := (ev as InputEventJoypadButton).duplicate() as InputEventJoypadButton
+			b.device = pad
+			b.pressed = pressed
+			return b
+	return null
+
+func _send_dpad(pad: int, d: Vector2i, kind: String) -> void:
+	var p := _dpad_event(pad, d, true)
+	var r := _dpad_event(pad, d, false)
+	if p == null or r == null:
+		return
+	p.set_meta(SYNTH_META, kind)
+	p.set_meta(REPEAT_DIR_META, d)
+	r.set_meta(SYNTH_META, "release")
+	Input.parse_input_event(p)
+	Input.parse_input_event(r)   # never leave a D-pad button "held" in Input's state
+
+func _menu_tick() -> void:
+	if _mholds.is_empty():
+		return
+	var now := Time.get_ticks_msec()
+	var focus := _menu_focus()
+	var rate := int(Tuning.wk46_repeat_rate * 1000.0)
+	for key in _mholds.keys():
+		var h: Dictionary = _mholds[key]
+		if now < int(h["t"]):
+			continue
+		if focus == null or not Tuning.wk46_menu_repeat:
+			_mholds.erase(key)   # no focus-driven menu (live play / lobby / mid screen change): this hold is done
+			continue
+		# a hitch never fires a burst of catch-up repeats
+		h["t"] = maxi(int(h["t"]) + rate, now + rate / 2)
+		menu_repeat_count += 1
+		var d: Vector2i = h["dir"]
+		if str(h["src"]) == "stick":
+			_send_dpad(int(h["pad"]), d, "repeat")
+			continue
+		var src_ev: InputEvent = h["ev"]
+		if src_ev == null:
+			continue
+		var ev := src_ev.duplicate() as InputEvent
+		ev.set_meta(SYNTH_META, "repeat")
+		ev.set_meta(REPEAT_DIR_META, d)
+		Input.parse_input_event(ev)
+
+## Pre-GUI filter (runs from _input, after every scene node's _input): while a Control has focus, raw left-stick
+## motion and OS key echoes on a direction never reach focus navigation (the stand-in presses / repeats above replace
+## them), and an auto-repeat that would wrap is held at the end of the list.
+func _menu_filter(e: InputEvent) -> void:
+	if not Tuning.wk46_menu_repeat:
+		return
+	var f := _menu_focus()
+	if f == null:
+		return
+	if e is InputEventJoypadMotion:
+		if e.is_action("move_left") or e.is_action("move_right") or e.is_action("move_up") or e.is_action("move_down") \
+				or e.is_action("ui_left") or e.is_action("ui_right") or e.is_action("ui_up") or e.is_action("ui_down"):
+			get_viewport().set_input_as_handled()
+		return
+	if e is InputEventKey and (e as InputEventKey).echo and _menu_dir(e, true) != Vector2i.ZERO:
+		get_viewport().set_input_as_handled()
+		return
+	if is_repeat(e) and not Tuning.wk46_repeat_wraps:
+		var d: Vector2i = e.get_meta(REPEAT_DIR_META, Vector2i.ZERO)
+		_hold_at_end(f, d)
+
+## If the focus neighbour in `d` lies behind `f` (a wrap link), point that neighbour at `f` itself for this one event
+## (Godot treats a self neighbour as "stay": no focus change, no move blip), restored at the end of the frame. The
+## focused control's own _gui_input still gets the event first (a slider keeps stepping).
+func _hold_at_end(f: Control, d: Vector2i) -> void:
+	if d == Vector2i.ZERO:
+		return
+	var side: Side = SIDE_RIGHT if d.x > 0 else (SIDE_LEFT if d.x < 0 else (SIDE_BOTTOM if d.y > 0 else SIDE_TOP))
+	var n: Control = f.find_valid_focus_neighbor(side)
+	if n == null or n == f:
+		return
+	var fc := f.get_global_rect().get_center()
+	var nc := n.get_global_rect().get_center()
+	var wraps := (d.x > 0 and nc.x < fc.x - 1.0) or (d.x < 0 and nc.x > fc.x + 1.0) \
+			or (d.y > 0 and nc.y < fc.y - 1.0) or (d.y < 0 and nc.y > fc.y + 1.0)
+	if not wraps:
+		return
+	var props: Array[StringName] = [&"focus_neighbor_left", &"focus_neighbor_top", &"focus_neighbor_right", &"focus_neighbor_bottom"]
+	var prop: StringName = props[side]
+	var old: NodePath = f.get(prop)
+	f.set(prop, f.get_path_to(f))
+	menu_repeat_blocked += 1
+	_restore_neighbor.call_deferred(f, prop, old)
+
+func _restore_neighbor(f: Control, prop: StringName, old: NodePath) -> void:
+	if is_instance_valid(f):
+		f.set(prop, old)

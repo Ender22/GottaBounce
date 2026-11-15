@@ -130,9 +130,12 @@ func _on_minus() -> void:
 func _on_plus() -> void:
 	step(1)
 
-func step(d: int) -> void:
+## WK-46: quiet = an auto-repeat of a held direction; at the end of the range it stops without the deny shake.
+func step(d: int, quiet := false) -> void:
 	var ni := clampi(index + d, 0, labels.size() - 1)
 	if ni == index:
+		if quiet:
+			return
 		MenuFX.reject_shake(self)
 		AudioManager.play_sfx("ui_click", {"pitch": 0.6, "volume_db": -6.0})
 		return
@@ -162,10 +165,10 @@ func _gui_input(e: InputEvent) -> void:
 		return
 	if editing:
 		if e.is_action_pressed("ui_left") or e.is_action_pressed("move_left"):
-			step(-1)
+			step(-1, InputRouter.is_repeat(e))   # WK-46
 			accept_event()
 		elif e.is_action_pressed("ui_right") or e.is_action_pressed("move_right"):
-			step(1)
+			step(1, InputRouter.is_repeat(e))   # WK-46
 			accept_event()
 		elif e.is_action_pressed("ui_accept") or e.is_action_pressed("menu_accept") \
 				or e.is_action_pressed("ui_cancel") or e.is_action_pressed("menu_back"):

@@ -113,6 +113,8 @@ func accent_for(c: Control) -> Color:
 
 ## WK-40: a single row — up / down have nowhere to go, so they deny (CC-5.2 / CC-9.2: tick + shake).
 func _on_card_gui(e: InputEvent, c: Control) -> void:
+	if InputRouter.is_repeat(e):
+		return   # WK-46: holding up / down denies once (the fresh press), not at the repeat rate
 	if e.is_action_pressed("ui_up") or e.is_action_pressed("ui_down"):
 		AudioManager.play_sfx("ui_click", {"pitch": 0.55, "pitch_var": 0.0, "volume_db": -6.0})
 		MenuFX.reject_shake(c)

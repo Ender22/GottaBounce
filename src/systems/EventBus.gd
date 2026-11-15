@@ -25,6 +25,7 @@ signal combat_ended()                 # a stage's combat closed (STAGE_END / MAT
                                       # still live combat). See src/entities/SpinningHammer.gd et al.
 signal match_started()                # a fresh match begins (music (re)start)
 signal match_won(winner_idx)          # match-end hero moment
+signal unlock_celebrated(kind)        # WK-179: a front-end unlock card ("flair" / "circuit") - fanfare only, the music never changes
 signal first_blood(attacker_idx)      # first credited kill of the match
 signal two_left()                     # down to the final two (>=3 started)
 signal player_damaged(player, level)  # transient damage escalated to Lv1 / Lv2

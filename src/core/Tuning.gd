@@ -1440,3 +1440,15 @@ var wk173_chip_name_gap: float = 6.0          # px between the name's right edge
 # its death, before a double-KO sudden-death revive at +0.16 s). Read ONLY by src/systems/GhostDirector.gd.  # WK-178
 var wk178_ghost_game_time: bool = true        # ghost_spawn_delay counts scaled (game) seconds. false = real seconds (WK-37)  # WK-178
 var wk178_hold_while_revivable: bool = true   # a due ghost waits while its goat could still be revived (double-KO window open / stage decision pending)  # WK-178
+# --- WK-179 soak findings (docs/audit/2026-11-16_wk176_soak.md). F1: an unlock celebration (lobby NEW FLAIR card, arena-select  # WK-179
+# CIRCUIT UNLOCKED) plays its own fanfare via EventBus.unlock_celebrated and never touches the music (it used match_won, which  # WK-179
+# swapped the front-end loop to scoreboard.mp3 until the next match). Read ONLY by src/systems/AudioManager.gd.  # WK-179
+var wk179_unlock_sting_db: float = -3.0        # dB of the unlock fanfare (the match_win sample) on the Stingers bus; the match win plays it at -1  # WK-179
+# --- WK-46 menu auto-repeat on a held D-pad / left stick / arrow-or-WASD key (CC-5.3), for every focus-driven menu (title, mode  # WK-46
+# select, arena select, Options, pause, disconnect overlay). src/core/InputRouter.gd sends the repeats as synthetic copies of  # WK-46
+# the held press (same device, tagged); the Herd Lobby keeps its own per-device repeat (lobby_repeat_*). Auto-repeat never wraps  # WK-46
+# past the end of a list (a fresh press still wraps where the screen wraps). Stick hysteresis = lobby_stick_press / _release.  # WK-46
+var wk46_menu_repeat: bool = true              # false = the pre-WK-46 behaviour (pads never repeat, keyboard rides the OS key echo)  # WK-46
+var wk46_repeat_delay: float = 0.40            # s a held direction waits before the first repeat (CC-5.3)  # WK-46
+var wk46_repeat_rate: float = 0.09             # s between repeats once repeating (CC-5.3; = lobby_repeat_rate)  # WK-46
+var wk46_repeat_wraps: bool = false            # true = auto-repeat may wrap like a fresh press (the WK-174 "lands back on the start row" bug)  # WK-46

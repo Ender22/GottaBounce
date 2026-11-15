@@ -833,6 +833,8 @@ func _on_card_gui(e: InputEvent, card: Button) -> void:
 	var shelf_id := int(card.get_meta("shelf", 0))
 	var cards: Array[Button] = _a_cards if shelf_id == 0 else _b_cards
 	var idx := int(card.get_meta("idx", 0))
+	if InputRouter.is_repeat(e) and not (e is InputEventMouseButton):
+		return   # WK-46: a held direction at a shelf end / on a single shelf just stops (the fresh press gave the deny)
 	if (e.is_action_pressed("ui_up") or e.is_action_pressed("ui_down")) and _b_cards.is_empty():
 		AudioManager.play_sfx("ui_click", {"pitch": 0.55, "pitch_var": 0.0, "volume_db": -6.0})   # WK-40: no shelf to go to
 		MenuFX.reject_shake(card)
@@ -977,7 +979,7 @@ func _play_unlock_celebration(cid: String) -> void:
 	# delay until the stagger has mostly landed, then celebrate
 	get_tree().create_timer(0.5).timeout.connect(func() -> void:
 		AudioManager.play_sfx("ui_click", {"pitch": 1.5, "pitch_var": 0.0, "volume_db": 0.0})
-		EventBus.match_won.emit(0)   # reuse the win fanfare sting (presentation only)
+		EventBus.unlock_celebrated.emit("circuit")   # WK-179: the fanfare only (match_won also swapped the music to the scoreboard loop)
 		if is_instance_valid(target):
 			(_shelf_a as Object).call("scroll_to", target)
 		if banner is Label:
