@@ -1973,7 +1973,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Accept: a ghost steered into a platform renders on top (or is pushed clear) in a rendered screenshot; ghost spacing and tags unchanged.
 - Status: open (on deck, lane G)
 
-### [ ] WK-66c [P3][S] Dropshot net: taller-tape re-art (contingency)
+### [x] WK-66c [P3][S] Dropshot net: taller-tape re-art (contingency) — 334b45f
 - Also from WK-66b: Trials solved glow barely visible (raise `trials_goal_glow_pad` to several hundred); background parallax
   fences show through the gold-goal mesh (pocket shade 0.16 too light); Ball Cannon goal starts off-screen (camera).
 - Source: WK-66a F5 blind read: best guess "volleyball net" but "reads more like a lattice pole at 480 px; I got net from the setting".
