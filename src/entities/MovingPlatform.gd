@@ -80,12 +80,19 @@ var _prev_pos: Vector2 = Vector2.ZERO
 var _shape: CollisionShape2D
 var _top_sensor: Area2D
 var _rail: Line2D
+# WK-66a: "skin": "net" = the DOME's moving Dropshot net. The collider/motion/carry are unchanged; the steel
+# deck + path rail are replaced by the shared volleyball-set net art (src/systems/SportsNetArt.gd).  # WK-66a
+const NET_ART := preload("res://src/systems/SportsNetArt.gd")   # WK-66a
+var skin: String = ""            # WK-66a
+var net_tint: Color = Color.WHITE   # WK-66a
 
 func setup_from_json(o: Dictionary) -> void:
 	w = float(o.get("w", 420.0))
 	h = float(o.get("h", 48.0))
 	tier = str(o.get("tier", ""))
 	vehicle = bool(o.get("vehicle", false))
+	skin = str(o.get("skin", ""))   # WK-66a
+	net_tint = Color(str(o.get("net_tint", Tuning.net_tint_default.to_html(false))))   # WK-66a
 	period_s = maxf(0.3, float(o.get("period_s", 4.0)))
 	phase = float(o.get("phase", 0.0))
 	dwell_frac = clampf(float(o.get("dwell_frac", 0.12)), 0.0, 0.45)
@@ -152,6 +159,13 @@ func _ready() -> void:
 	var ends := _path_endpoints()
 	_rail.points = PackedVector2Array([ends[0], ends[1]])
 	add_child(_rail)
+	if skin == "net":   # WK-66a: no steel rod / rail line through the see-through net
+		_rail.visible = false
+		var art: Node2D = NET_ART.new()
+		art.name = "NetArt"
+		add_child(art)
+		art.call("setup_dropshot", w, h, net_tint)
+		set_meta("net_fx", art)   # ripple feed (Ball contact report + ArenaRenderer surface_bounced)
 
 	_pos = _compute_pos(0.0)
 	_prev_pos = _pos
@@ -223,6 +237,8 @@ func _carry_riders(d: Vector2) -> void:
 
 # ------------------------------------------------------------------ telegraphy (INV-12: display only)
 func _draw() -> void:
+	if skin == "net":   # WK-66a: the net art child draws it
+		return
 	if vehicle:
 		_draw_vehicle()
 	else:

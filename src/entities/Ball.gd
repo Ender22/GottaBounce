@@ -82,6 +82,9 @@ var _gloss: Node2D
 var _hit_fx: float = 0.0             # 1 -> 0 over HIT_FX_TIME after a strike
 var _hit_amt: float = 0.0            # 0..1 strike strength (scales squash/flash)
 var _hit_dir: Vector2 = Vector2.RIGHT  # WORLD strike direction (squash axis)
+# WK-66a net ripple feed (presentation only): contact REPORTING (contact_monitor) never changes the solve.
+var _wk66a_prev_speed: float = 0.0     # WK-66a
+var _wk66a_touching: Array = []        # WK-66a colliders with meta "net_fx" in contact last step
 
 ## DROPSHOT beach-ball preset (owner item 5): floatier, bouncier, bigger, slower cap. Call BEFORE
 ## add_child. All values from Tuning (append-only block, 2026-07-18).
@@ -100,6 +103,8 @@ func _ready() -> void:
 	gravity_scale = 0.0                              # gravity comes from the field (INV-1), like StormBall/Player
 	mass = BALL_MASS
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY    # a fast ball never tunnels a wall / goal mouth
+	contact_monitor = true          # WK-66a: report contacts so a net / goal frame can ripple (no physics change)
+	max_contacts_reported = 4       # WK-66a
 	z_index = 40
 	var pm := PhysicsMaterial.new()
 	pm.bounce = restitution
@@ -135,6 +140,25 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	var gm: float = gravity_mult * (_hang_mult if _hang_t >= 0.0 else 1.0)   # WK-104 kickoff hang
 	state.linear_velocity += g * gm * state.step
 	state.linear_velocity = state.linear_velocity.limit_length(max_speed)
+	_wk66a_net_contacts(state)   # WK-66a
+
+## WK-66a: a NEW contact with a net-tagged collider (Dropshot net, goal back post / wall caps) tells its
+## SportsNetArt where and how hard it was hit (speed = the faster of last step / now, i.e. pre-bounce).
+## Read-only on the physics state; the art call is deferred out of the physics callback.
+func _wk66a_net_contacts(state: PhysicsDirectBodyState2D) -> void:   # WK-66a
+	var now: Array = []
+	for i in range(state.get_contact_count()):
+		var c: Object = state.get_contact_collider_object(i)
+		if c == null or not c.has_meta("net_fx") or now.has(c):
+			continue
+		now.append(c)
+		if not _wk66a_touching.has(c):
+			var fx: Object = c.get_meta("net_fx")
+			if is_instance_valid(fx):
+				var spd: float = maxf(_wk66a_prev_speed, state.linear_velocity.length())
+				fx.call_deferred("on_ball_contact", state.get_contact_collider_position(i), spd)
+	_wk66a_touching = now
+	_wk66a_prev_speed = state.linear_velocity.length()
 
 func _physics_process(delta: float) -> void:
 	# tick down per-player contact cooldowns

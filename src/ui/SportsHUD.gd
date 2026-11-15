@@ -130,9 +130,11 @@ func _goal_flash(team: int) -> void:
 	_flash.color = Color(col.r, col.g, col.b, 0.0)
 	_flash.visible = true
 	_flash_tw = create_tween()
-	_flash_tw.tween_property(_flash, "color:a", 0.45, 0.10)
-	_flash_tw.tween_interval(0.5)
-	_flash_tw.tween_property(_flash, "color:a", 0.0, 0.3)
+	# WK-66a AD follow-up 1: a short low wash (was 0.45 alpha for 0.9 s) so the goal-net bulge, frame flash and
+	# confetti stay visible. Total = in + hold + out <= 0.25 s, peak alpha <= 0.25 (Tuning WK-66a block).
+	_flash_tw.tween_property(_flash, "color:a", Tuning.goal_hud_flash_alpha, Tuning.goal_hud_flash_in)   # WK-66a
+	_flash_tw.tween_interval(Tuning.goal_hud_flash_hold)   # WK-66a
+	_flash_tw.tween_property(_flash, "color:a", 0.0, Tuning.goal_hud_flash_out)   # WK-66a
 	_flash_tw.tween_callback(func() -> void: _flash.visible = false)
 
 ## WK-16 "score tick": the scoring team's chip digit punches up (scale + white flash) and settles.

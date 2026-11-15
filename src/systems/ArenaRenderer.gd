@@ -50,6 +50,7 @@ const HILLS_TEX := "res://assets/bg/hills_far.png"
 const CLOUD_TEXES: Array[String] = ["res://assets/bg/cloud_a.png", "res://assets/bg/cloud_b.png"]
 const PROP_TEXES: Array[String] = ["res://assets/bg/bush_round.png", "res://assets/bg/fence_wood.png"]
 const BUMPER_POST_TEX := "res://assets/world/bumper_post.png"
+const NET_ART := preload("res://src/systems/SportsNetArt.gd")   # WK-66a sports nets
 const TUFT_TEXES: Array[String] = [
 	"res://assets/world/grass/decal_tuft_a.png", "res://assets/world/grass/decal_tuft_b.png"]
 const FLOWER_TEX := "res://assets/world/grass/decal_flower_white.png"
@@ -842,6 +843,9 @@ func _process(delta: float) -> void:
 func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -> void:
 	var w: float = p["w"]
 	var h: float = p["h"]
+	if str(p.get("skin", "")) == "net":   # WK-66a: Dropshot net — volleyball-set art, NOT the bumper post
+		_paint_net(p, body, w, h)
+		return
 	var tier := str(p.get("tier", "marshmallow"))
 	var top := -h * 0.5
 	# pit_void_rendering.md §6.3: a cap within ~50px of a void edge is a DEATH edge — suppress its
@@ -920,6 +924,18 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 	if tier == "spring":
 		_springs.append({ "pivot": pivot, "next_t": _t + randf_range(2.0, 5.0) })
 	_surfaces[body] = { "tier": tier, "art": art, "mat": pivot, "w": w, "top": top, "last_ms": -9999 }
+
+## WK-66a (docs/briefs/sports_nets_2026-11-15.md 3a): a "skin": "net" platform keeps its bumper collider and
+## meta untouched; only the art changes — the shared volleyball set + rope mesh (SportsNetArt) instead of the
+## studded bumper post, tinted per court ("net_tint"). Not registered in _surfaces (no wall squash/ring):
+## contacts ripple the mesh instead (meta "net_fx" -> Ball contact report + _on_surface_bounced).
+func _paint_net(p: Dictionary, body: StaticBody2D, w: float, h: float) -> void:
+	var art: Node2D = NET_ART.new()
+	art.name = "NetArt"
+	body.add_child(art)
+	var tint := Color(str(p.get("net_tint", Tuning.net_tint_default.to_html(false))))
+	art.call("setup_dropshot", w, h, tint)
+	body.set_meta("net_fx", art)
 
 func _canonical_height(h: float) -> float:
 	return 64.0 if absf(h - 64.0) <= absf(h - 128.0) else 128.0
@@ -1379,6 +1395,15 @@ func _void_chevron(root: Node2D, cx: float, cy: float) -> void:
 # ============================== BOUNCE FX (brief §2, code FX) ==============================
 
 func _on_surface_bounced(surface: Object, _player: Node, n: Vector2, contact: Vector2) -> void:
+	# WK-66a: a goat hitting a Dropshot net ripples the mesh (0.4x) instead of the wall FX. Goal-tagged wall
+	# columns return false for goats, so they keep the normal bumper reaction below.
+	if surface != null and is_instance_valid(surface) and surface.has_meta("net_fx"):
+		var fx: Object = surface.get_meta("net_fx")
+		var spd: float = 0.0
+		if _player is CharacterBody2D:
+			spd = (_player as CharacterBody2D).velocity.length()
+		if is_instance_valid(fx) and bool(fx.call("on_contact", contact, spd, true)):
+			return
 	var info: Dictionary = _surfaces.get(surface, {})
 	if info.is_empty():
 		return

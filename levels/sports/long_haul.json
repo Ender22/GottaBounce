@@ -25,8 +25,8 @@
     { "x": 1990, "y": 1040, "w": 120,  "h": 110,  "tier": "bumper" }
   ],
   "objects": [
-    { "type": "goal_zone", "x": 245,  "y": 950, "w": 130, "h": 340, "team": 0 },
-    { "type": "goal_zone", "x": 2955, "y": 950, "w": 130, "h": 340, "team": 1 },
+    { "type": "goal_zone", "x": 245,  "y": 950, "w": 130, "h": 340, "team": 0, "net_mouth_x": 290, "net_back_x": 140 },
+    { "type": "goal_zone", "x": 2955, "y": 950, "w": 130, "h": 340, "team": 1, "net_mouth_x": 2910, "net_back_x": 3060 },
     { "type": "player_spawn", "x": 500,  "y": 1260 },
     { "type": "player_spawn", "x": 750,  "y": 960 },
     { "type": "player_spawn", "x": 2700, "y": 1260 },

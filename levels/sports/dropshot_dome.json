@@ -18,7 +18,7 @@
     { "x": 2210, "y": 1350, "w": 90,   "h": 100,  "tier": "bumper" }
   ],
   "objects": [
-    { "type": "moving_platform", "x": 1235, "y": 860, "w": 30, "h": 490, "tier": "bumper", "axis_deg": 90, "amplitude": 110, "period_s": 7.0, "dwell_frac": 0.1 },
+    { "type": "moving_platform", "x": 1235, "y": 860, "w": 30, "h": 490, "tier": "bumper", "axis_deg": 90, "amplitude": 110, "period_s": 7.0, "dwell_frac": 0.1, "skin": "net", "net_tint": "#E4EEFF" },
     { "type": "drop_tile", "x": 290,  "y": 1350, "w": 240, "h": 100 },
     { "type": "drop_tile", "x": 530,  "y": 1350, "w": 240, "h": 100 },
     { "type": "drop_tile", "x": 770,  "y": 1350, "w": 240, "h": 100 },

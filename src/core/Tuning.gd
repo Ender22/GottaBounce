@@ -703,3 +703,55 @@ var bot_ghost_bleat_min_gap: float = 2.0      # s min gap between one bot ghost'
 var ghost_pip_scale: float = 0.9333           # 30 px label -> 28 px (the WK-18 floor; can't go smaller)  # WK-37d
 var ghost_pip_full_alpha: float = 0.65        # spawn / moved-again alpha (< a living human's idle 0.70)  # WK-37d
 var ghost_pip_near_alpha: float = 0.25        # when no placement keeps it off a living goat  # WK-37d
+
+# --- WK-66a sports nets (docs/briefs/sports_nets_2026-11-15.md sections 3-5 + 8). Presentation only: none of  # WK-66a
+# these touch a collider, the goal latch or the ball. Art facts (slice fractions, measured rows) live in  # WK-66a
+# src/systems/SportsNetArt.gd next to the textures; these are the look/feel knobs.  # WK-66a
+var net_mesh_tile_wpx: float = 128.0          # world px per 256 px mesh tile (= 32 wpx diamond cell)  # WK-66a
+var net_dropshot_draw_w: float = 80.0         # Dropshot frame draw width (88 in the brief; 80 keeps the post bleed at 17 px)  # WK-66a
+var net_tape_rise: float = 12.0               # top-tape top edge this far above the collider top  # WK-66a
+var net_veil_alpha: float = 0.10              # Dropshot hole veil (white)  # WK-66a
+var net_ripple_amp_px: float = 11.0           # ripple amplitude at full speed (wpx; AD F4: was 7)  # WK-66a
+var net_ripple_speed_ref: float = 1900.0      # ball speed that gives the full amplitude  # WK-66a
+var net_ripple_amp_min_frac: float = 0.15     # amplitude floor (fraction of full) for any counted contact  # WK-66a
+var net_ripple_min_speed: float = 120.0       # contacts slower than this (resting / rolling) make no ripple  # WK-66a
+var net_ripple_wavelength: float = 70.0       # wpx (AD F4: was 90)  # WK-66a
+var net_ripple_time: float = 0.35             # s to decay to 0  # WK-66a
+var net_ripple_travel: float = 900.0          # wpx/s the wave front runs along the net from the contact  # WK-66a
+var net_ripple_falloff: float = 260.0         # wpx e-fold of the wave away from the contact  # WK-66a
+var net_ripple_player_mult: float = 0.4       # goat body contact vs ball  # WK-66a
+var net_ripple_goal_mult: float = 0.5         # goal near-miss (back post / tubes) vs Dropshot net  # WK-66a
+var net_ripple_cooldown: float = 0.06         # s between ripples from the same net (resting contact guard)  # WK-66a
+var net_tape_dip_px: float = 3.0              # top-tape dip on a top contact (frame offset, never a stretch)  # WK-66a
+var net_tape_dip_time: float = 0.1            # s  # WK-66a
+var net_tape_zone_px: float = 34.0            # contact within this of the collider top = a tape contact  # WK-66a
+var net_tint_default: Color = Color("#FFFFFF")  # Dropshot per-court modulate when the court JSON has none  # WK-66a
+var goal_frame_back_tuck: float = 6.0         # goal frame starts this far behind the back post inner face  # WK-66a
+var goal_frame_mouth_bleed: float = 8.0       # mouth post cap reaches this far past the wall face  # WK-66a
+var goal_net_depth_default: float = 150.0     # net depth when a goal_zone has no net_back_x  # WK-66a
+var goal_mesh_white_mix: float = 0.30         # goal mesh = lerp(team, white, this)  # WK-66a
+var goal_mesh_alpha: float = 0.95             # WK-66a
+var goal_veil_alpha: float = 0.18             # team-colour hole veil  # WK-66a
+var goal_front_veil_alpha: float = 0.22       # cords-only veil drawn over the ball (z 42)  # WK-66a
+var goal_bulge_radius: float = 90.0           # wpx (Gaussian 2-sigma)  # WK-66a
+var goal_bulge_peak: float = 20.0             # wpx peak push toward the back post  # WK-66a
+var goal_bulge_freq_hz: float = 3.4           # damped spring: ~2 visible wobbles ...  # WK-66a
+var goal_bulge_decay: float = 6.0             # ... settled (< 3 %) by goal_bulge_time  # WK-66a
+var goal_bulge_time: float = 0.6              # s  # WK-66a
+var goal_flash_hold: float = 0.08             # s the goal frame holds white on a score  # WK-66a
+var goal_flash_fade: float = 0.4              # s back to team colour  # WK-66a
+var dome_gap_glow_min: float = 88.0           # under-net gap (wpx) that lights the hem (a goat fits)  # WK-66a
+var dome_gap_glow_color: Color = Color("#7FF6FF")   # additive, team-neutral  # WK-66a
+var dome_gap_glow_hz: float = 2.0             # hem pulse rate  # WK-66a
+var dome_gap_glow_a_min: float = 0.55         # WK-66a
+var dome_gap_glow_a_max: float = 0.9          # WK-66a
+var dome_gap_pool_size: Vector2 = Vector2(200.0, 56.0)   # floor light pool under the slot (puff_soft, NORMAL blend; AD F3)  # WK-66a
+var dome_gap_pool_alpha: float = 0.6          # AD F3: was 0.35 additive (invisible on beige tiles)  # WK-66a
+var dome_gap_fade: float = 0.15               # s glow fade in / out  # WK-66a
+var net_tape_scale: float = 1.45              # AD F1: knobs+tape band redrawn at this x the body scale (uniform; range 1.35-1.6)  # WK-66a
+var net_dropshot_tile_wpx: float = 80.0       # AD F2: Dropshot-only mesh tile (20 wpx cell, ~2.8 diamonds across; goals keep 128)  # WK-66a
+var goal_hud_flash_alpha: float = 0.25        # AD follow-up 1: SportsHUD full-screen goal wash peak (was 0.45)  # WK-66a
+var goal_hud_flash_in: float = 0.05           # s rise  # WK-66a
+var goal_hud_flash_hold: float = 0.05         # s hold (was 0.5)  # WK-66a
+var goal_hud_flash_out: float = 0.15          # s fade (total 0.25 s, was 0.9)  # WK-66a
+var dome_gap_pool_drop: float = 0.4           # pool centre this x its height BELOW the floor top (lands on the tiles, not the gap)  # WK-66a

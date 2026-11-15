@@ -21,8 +21,8 @@
     { "x": 2660, "y": 550,  "w": 80,   "h": 500,"tier": "bumper" }
   ],
   "objects": [
-    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0 },
-    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1 },
+    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0, "net_mouth_x": 290, "net_back_x": 140 },
+    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1, "net_mouth_x": 2510, "net_back_x": 2660 },
 
     { "type": "bomb", "trigger": "proximity", "x": 900,  "y": 1180, "blast_radius": 280, "kill_radius": 140, "trigger_radius": 180, "telegraph_lead": 0.75, "recur": 6.0 },
     { "type": "bomb", "trigger": "proximity", "x": 1900, "y": 1180, "blast_radius": 280, "kill_radius": 140, "trigger_radius": 180, "telegraph_lead": 0.75, "recur": 6.0 },

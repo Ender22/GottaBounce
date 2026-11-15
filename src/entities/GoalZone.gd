@@ -36,6 +36,13 @@ var scored: bool = false
 var _t: float = 0.0
 var _flash: float = 0.0
 var _live: bool = false     # combat gate: latch only during live play (stale-latch doctrine)
+# WK-66a net art (docs/briefs/sports_nets_2026-11-15.md 3b): with net data the drawn cage replaces the old _draw.
+# net_mouth_x = world x of the court-side wall face (mouth plane), net_back_x = world x of the back post's
+# inner face. Display only; the trigger rect above stays w x h.  # WK-66a
+const NET_ART := preload("res://src/systems/SportsNetArt.gd")   # WK-66a
+var net_mouth_x: float = NAN   # WK-66a
+var net_back_x: float = NAN    # WK-66a
+var _net_art: Node2D = null    # WK-66a
 
 func setup_from_json(o: Dictionary) -> void:
 	w = float(o.get("w", 200.0))
@@ -44,6 +51,10 @@ func setup_from_json(o: Dictionary) -> void:
 	mouth = str(o.get("mouth", ""))
 	style = str(o.get("style", ""))
 	position = Vector2(float(o.get("x", 0.0)), float(o.get("y", 0.0)))
+	if o.has("net_mouth_x"):   # WK-66a
+		net_mouth_x = float(o["net_mouth_x"])   # WK-66a
+	if o.has("net_back_x"):   # WK-66a
+		net_back_x = float(o["net_back_x"])   # WK-66a
 
 func _ready() -> void:
 	add_to_group("goal_zone")
@@ -60,6 +71,28 @@ func _ready() -> void:
 		EventBus.combat_started.connect(_on_combat_started)
 	if not EventBus.combat_ended.is_connected(_on_combat_ended):
 		EventBus.combat_ended.connect(_on_combat_ended)
+	_build_net_art()   # WK-66a
+
+## WK-66a: the Rocketball cage (side-view goal mounted in the wall gap). Only left/right mouths get art; a
+## hidden concede strip (DROPSHOT floor) or an up/down mouth draws nothing. Opt-in: the zone needs net_mouth_x
+## and/or net_back_x. A missing one defaults (mouth plane 20 px inside the zone's mouth-side edge; net depth
+## Tuning.goal_net_depth_default).
+func _build_net_art() -> void:   # WK-66a
+	if style == "hidden" or (is_nan(net_mouth_x) and is_nan(net_back_x)):
+		return   # no net data -> legacy draw (TRIALS goals)
+	var md: float = _mouth_dir().x
+	if absf(md) < 0.5:
+		return
+	var mx: float = net_mouth_x
+	if is_nan(mx):
+		mx = global_position.x + md * (w * 0.5 - 20.0)
+	var bx: float = net_back_x
+	if is_nan(bx):
+		bx = mx - md * Tuning.goal_net_depth_default
+	_net_art = NET_ART.new()
+	_net_art.name = "NetArt"
+	add_child(_net_art)
+	_net_art.call("setup_goal", self, h, mx, bx, md, _team_color())
 
 func _on_combat_started() -> void:
 	_live = true
@@ -138,8 +171,12 @@ func _score_burst(at: Vector2) -> void:
 		host.get_tree().create_timer(1.6).timeout.connect(p.queue_free)
 
 # ------------------------------------------------------------------ display (goal mouth / net)
+# WK-66a: a goal_zone with net data (net_mouth_x / net_back_x: the Rocketball courts) draws the SportsNetArt
+# cage instead (child "NetArt"; score reaction = its bulge + white frame flash off the `scored` latch). Goals
+# WITHOUT net data (the TRIALS s3_/t_ courses: free-standing, up to 700x620, mouth not against a wall) keep
+# this legacy draw unchanged until they get their own cage layout (out of WK-66a scope).
 func _draw() -> void:
-	if style == "hidden":
+	if style == "hidden" or _net_art != null:   # WK-66a
 		return   # DROPSHOT concede strip: invisible (the broken floor tile is the visible mouth)
 	var col := _team_color()
 	var dark := Color(0.10, 0.08, 0.07, 0.95)

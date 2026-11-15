@@ -21,8 +21,8 @@
     { "x": 2660, "y": 550,  "w": 80,   "h": 500,"tier": "bumper" }
   ],
   "objects": [
-    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0 },
-    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1 },
+    { "type": "goal_zone", "x": 240,  "y": 800, "w": 140, "h": 300, "team": 0, "net_mouth_x": 290, "net_back_x": 140 },
+    { "type": "goal_zone", "x": 2560, "y": 800, "w": 140, "h": 300, "team": 1, "net_mouth_x": 2510, "net_back_x": 2660 },
     { "type": "spinning_hammer", "pivot": { "x": 1400, "y": 300 }, "arm_len": 520, "arc_deg": 130, "base_deg": 0, "period_s": 4.5, "dwell_frac": 0.26, "radius": 72, "head_len": 150, "head_w": 96 },
     { "type": "bomb", "trigger": "fuse", "x": 1080, "y": 1180, "fuse_s": 2.0, "telegraph_lead": 1.0, "recur": 2.6, "blast_radius": 300, "kill_radius": 150, "arm_delay": 0.3 },
     { "type": "bomb", "trigger": "fuse", "x": 1720, "y": 1180, "fuse_s": 2.0, "telegraph_lead": 1.0, "recur": 2.6, "blast_radius": 300, "kill_radius": 150, "arm_delay": 0.3 },
