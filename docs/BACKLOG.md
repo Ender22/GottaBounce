@@ -571,7 +571,7 @@ first. Its re-judge list is in the WK-CD5 entry.
 - Accept: each new court passes the flight-required check and the WK-107 fit check; one 2v2 bot recording per court, rally median 6-20 s.
 - Status: open
 
-### [ ] WK-116 [P2][S] Rally long tail on big courts (60-80 s grinds): measure after WK-104 + WK-107, then rule (SP-15)
+### [x] WK-116 [P2][S] Rally long tail on big courts (60-80 s grinds): measure after WK-104 + WK-107, then rule (SP-15) — 14ff3f6
 - Area: sports (rules) · Owner: game-designer · Source: WK-98 SP-15
 - Evidence: M3 LONG HAUL rallies 27.8, 61.3, 8.1, 19.4, 2.6, 8.5, 2.3, 2.4, 31.7, 12.8, 81.8 s; M1 CENTER had 31 s and 43 s; ball median
   y 1349 on LONG HAUL (hugs the floor). Match length 5.5 min (M3) vs 75 s (M6).
