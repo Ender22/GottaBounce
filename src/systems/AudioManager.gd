@@ -68,6 +68,17 @@ const SFX := {
 	# --- WK-26 super-aim wind-up: the owner's lower.mp3 slide whistle, tonal part reversed + stretched to the 2 s fuse
 	# (a rising 250 Hz -> 1.2 kHz "fweeeep" that tops out at the auto-fire). Provenance in assets/sfx/LICENSES.md. ---
 	"super_aim":         ["res://assets/sfx/super_aim.ogg"],
+	# --- WK-131 Rocketball kickoff gates (brief docs/briefs/kickoff_gate_2026-11-15.md §11; provenance in LICENSES.md) ---
+	# gate_clonk: hollow wood-block knock (Kenney impactWood, ~230 Hz body, pitched up into 250-400 Hz) + a quiet low spring
+	# "boing" tail layered in _on_kickoff_gate_hit. gate_whine: the wind-up ratchet is TICKS (one per warning swing peak,
+	# 3 -> 8 per s, emitted by the gate so sound and brightness lock) - a toy click, pitch rising. whistle_double: referee pea
+	# whistle "TWEET-TWEET" derived from the owner's slide-whistle recording (lower.mp3). crowd_ooh: NO crowd "ooh" exists in
+	# the library and audio is never downloaded -> silent placeholder until the sound-designer sources a CC0 one (WK-131b).
+	"gate_clonk":        ["res://assets/sfx/kenney_impactWood_medium_000.ogg", "res://assets/sfx/kenney_impactWood_medium_001.ogg"],
+	"gate_boing":        ["res://assets/sfx/spring_short.ogg"],
+	"gate_whine":        ["res://assets/sfx/btnClick_Start.mp3"],
+	"whistle_double":    ["res://assets/sfx/whistle_double.ogg"],
+	"crowd_ooh":         [],
 }
 
 # --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
@@ -111,6 +122,7 @@ const PRIORITY_SFX := {
 	"go": true, "first_blood": true, "two_left": true, "match_win": true,
 	"goal_red": true, "goal_blue": true, "goal_crowd": true, "own_goal": true, "own_goal_groan": true,
 	"ball_power": true, "sports_fall": true, "tile_break": true,
+	"whistle_double": true,   # WK-131: the gates-open whistle is a payoff beat
 }
 const FILLER_SFX := {"bounce": true}
 # Per-sound voice caps: past the cap the sound recycles its OWN oldest voice. "countdown" doubles as the Bomb.gd
@@ -222,6 +234,10 @@ func _ready() -> void:
 	EventBus.drop_tile_hit.connect(_on_drop_tile_hit)   # WK-121 Dropshot tile crack / break
 	EventBus.bleated.connect(_on_bleated)               # WK-53 ghost bleat + WK-53b living taunt (LivingCues emits)
 	EventBus.super_aim_started.connect(_on_super_aim_started)   # WK-26 super-aim wind-up
+	EventBus.kickoff_gate_hit.connect(_on_kickoff_gate_hit)     # WK-131 gate clonk (+ ooh)
+	EventBus.kickoff_gates_open.connect(_on_kickoff_gates_open) # WK-131 double whistle
+	EventBus.kickoff_gate_dropped.connect(_on_kickoff_gate_dropped)   # WK-131 stage-intro drop-in clonk
+	EventBus.kickoff_gate_tick.connect(_on_kickoff_gate_tick)   # WK-131 warning wind-up ticks
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -671,6 +687,53 @@ func _release_aim_voice(id: int) -> void:
 		v.stop()
 		v.set_meta("tag", "")
 	_aim_voices.erase(id)
+
+# --------------------------------------------------------------------- WK-131 kickoff gates
+
+const GATE_CLONK_BASE_PITCH := 1.25   # lifts the ~230 Hz wood knock into the brief's 250-400 Hz body (x 0.9-1.15 by speed)
+const GATE_CLONK_DB_SOFT := -12.0
+const GATE_CLONK_DB_HARD := -3.0      # under a power shot (-1), over a soft ball tap
+const GATE_CLONK_GAP := 0.08          # s: a ball pinned on the gate re-contacting can't machine-gun the clonk
+const GATE_OOH_GAP := 1.5             # s rate limit on the crowd ooh (brief §11)
+const GATE_TICK_DB := -9.0
+const GATE_WHISTLE_DB := 0.0          # the loudest gate cue, under the goal stinger (+4)
+var gate_clonks := 0                  # QA counters (audio has no visual proof)
+var gate_oohs_wanted := 0             # hard hits that WANT the ooh (silent until a crowd_ooh asset exists)
+var gate_ticks := 0
+var gate_whistles := 0
+var gate_whistle_ms := -1             # Time.get_ticks_msec() of the last whistle (QA: lines up with the open)
+var _gate_clonk_last := -10.0
+var _gate_ooh_last := -10.0
+
+## A ball clonked off a closed kickoff gate: hollow knock pitched and scaled by impact speed, a quiet rubbery boing tail,
+## and (>= Tuning.sports_gate_ooh_speed) the crowd ooh. No hit-stop, no shake: it is a block, not a goal.
+func _on_kickoff_gate_hit(_team, speed) -> void:
+	var now: float = Time.get_ticks_msec() / 1000.0
+	var v: float = float(speed)
+	if now - _gate_clonk_last >= GATE_CLONK_GAP:
+		_gate_clonk_last = now
+		var t: float = clampf(inverse_lerp(Tuning.sports_gate_fx_min_speed, 2400.0, v), 0.0, 1.0)
+		play_sfx("gate_clonk", {"volume_db": lerpf(GATE_CLONK_DB_SOFT, GATE_CLONK_DB_HARD, t),
+			"pitch": GATE_CLONK_BASE_PITCH * lerpf(1.15, 0.9, t), "pitch_var": 0.03})
+		play_sfx("gate_boing", {"volume_db": lerpf(-22.0, -15.0, t), "pitch": 0.72, "pitch_var": 0.04, "tier": TIER_FILLER})
+		gate_clonks += 1
+	if v >= Tuning.sports_gate_ooh_speed and now - _gate_ooh_last >= GATE_OOH_GAP:
+		_gate_ooh_last = now
+		gate_oohs_wanted += 1
+		play_sfx("crowd_ooh", {"volume_db": -8.0, "pitch_var": 0.03})   # no-op until an asset is listed
+
+func _on_kickoff_gates_open() -> void:
+	play_sfx("whistle_double", {"volume_db": GATE_WHISTLE_DB, "pitch_var": 0.0})
+	play_sfx("gate_whine", {"volume_db": GATE_TICK_DB + 3.0, "pitch": 1.6, "pitch_var": 0.0})   # the ratchet's final click on T
+	gate_whistles += 1
+	gate_whistle_ms = Time.get_ticks_msec()
+
+func _on_kickoff_gate_dropped() -> void:
+	play_sfx("gate_clonk", {"volume_db": -8.0, "pitch": GATE_CLONK_BASE_PITCH * 1.2, "pitch_var": 0.02})
+
+func _on_kickoff_gate_tick(n) -> void:
+	gate_ticks += 1
+	play_sfx("gate_whine", {"volume_db": GATE_TICK_DB, "pitch": minf(1.0 + 0.12 * float(n), 1.5), "pitch_var": 0.0})
 
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()

@@ -75,6 +75,24 @@ var _stage_touches: int = 0            # live touches this stage (rally length)
 var _longest_rally: Dictionary = {}    # {secs, touches} of the longest goal-ending rally, {} before the first goal
 var _last_save: Dictionary = {}        # {idx, t} of this stage's latest save (revoked on a quick concede)
 
+# --- WK-131 KICKOFF GATES (docs/specs/wk131_kickoff_rule_2026-11-15.md §8). Tuning.sports_kickoff_rule: 0 = legacy (no gate
+# node is ever made: byte-identical kickoff), 1 = GATES (open at Tuning.sports_gate_open_s of live ball), 2 = LIVE BALL (open
+# when both teams have touched, or at Tuning.sports_live_fallback_s). Soccer courts only (Dropshot's serve is PROTECT). ---
+const KICKOFF_GATE_SCENE := preload("res://scenes/entities/KickoffGate.tscn")   # WK-131
+const GATE_RULE_ROW := "GOALS OPEN %s SECONDS AFTER KICK OFF"   # WK-131 H6: the stage-1 gold rule row until the first open
+const GATE_OPEN_STICKER := "GOALS OPEN!"                        # WK-131: stage-1 open sticker (rides the same gold row)
+const GATE_STICKER_S := 0.7                                     # WK-131: s the sticker holds before the row's normal copy
+var _gates: Array = []                 # WK-131: this stage's KickoffGate nodes (freed with the level)
+var _gate_rule: int = 0                # WK-131: the rule latched at stage start (arms switch only between stages)
+var _ko_first_touch_t: float = -1.0    # WK-131 H3: ball clock of this stage's first live touch
+var _ko_teams_touched: Array = [false, false]   # WK-131 H3
+var _ko_gate_hits: int = 0             # WK-131: closed-gate contacts this stage (>= fx speed)
+var _ko_gate_speeds: Array = []        # WK-131
+var _ko_open_t: float = -1.0           # WK-131: ball clock of the open (-1 while closed / no gates)
+var _ko_armed_t: float = -1.0          # WK-131: rule 2: ball clock when both teams had touched
+var _ko_spit: bool = false             # WK-131
+var _ko_runner = null                  # WK-131: the runner (stage-1 rule-row swap at the open)
+
 # --- SPORT VARIANT (owner 2026-07-18 item 5, DROPSHOT) ---
 # The court JSON declares its sport via a top-level "sport" field ("soccer" default | "dropshot").
 # DROPSHOT = volleyball-like: floaty beach ball (Ball.configure_dropshot), a solid centre NET wall
@@ -126,6 +144,11 @@ const BOT_KEEPER_SHOT_SPEED := 550.0   # ball speed TOWARD my goal (px/s) that c
 const BOT_KEEPER_SHOT_TIME := 1.6      # ...if it would reach the goal line within this many seconds
 const BOT_KICKOFF_KEEP_S := 3.0        # for this long after GO the supporter drops into goal (one chases the
                                        # kickoff, one keeps: WK-104 measured 22-26 % of goals inside 4 s of GO)
+# WK-131 (H5): with KICKOFF GATES (rule 1) the goal can't be scored before the open, so the supporter keeps goal over
+# [open - BOT_GATE_RETURN_LEAD_S, open + BOT_GATE_KEEP_AFTER_S] instead (the cover point ~466 px from the mouth takes ~0.6 s
+# at 800 px/s, plus a ~0.2 s re-plan). Mode-owned bot timing, not player feel (spec §7).
+const BOT_GATE_RETURN_LEAD_S := 0.8    # WK-131
+const BOT_GATE_KEEP_AFTER_S := 1.0     # WK-131
 # (c) CROSS (L4+ only): with the ball in the attacking half, an L4+ supporter makes a run to the far post; the
 #     chaser, lined up behind the ball, crosses to it (aims through the ball at the teammate) when the teammate
 #     is nearer the enemy goal, roughly goalward of the ball, and no opponent is within BOT_CROSS_MARK_DIST of it.
@@ -250,6 +273,8 @@ func configure(runner, config: MatchConfig) -> void:
 	_longest_rally = {}
 	_stage_touches = 0
 	_last_save = {}
+	_gates = []   # WK-131
+	_ko_runner = null   # WK-131
 
 ## Resolve a court SELECTION to an arena PATH via the court-set (v8_sports_courts.md §4.2), keeping the
 ## CD #7 robustness fallback: SPORTS is an ENCLOSED-court mode, so ANY unresolved / locked / missing
@@ -495,6 +520,7 @@ func on_stage_ready(runner) -> void:
 	_last_save = {}
 	if is_instance_valid(_ball):
 		_ball.touched.connect(_on_ball_touched.bind(runner))
+	_spawn_kickoff_gates(runner)   # WK-131 H1
 
 ## GO! (dropshot only): unfreeze the ball held above the net and serve it toward the LAST SCORER's half,
 ## so the team that just scored must make the first touch (owner 2026-07-19 pressure inversion). Before
@@ -509,6 +535,7 @@ func on_combat_start(runner) -> void:
 		var toss: float = randf_range(minf(Tuning.sports_kickoff_toss_min, Tuning.sports_kickoff_toss_max),
 			maxf(Tuning.sports_kickoff_toss_min, Tuning.sports_kickoff_toss_max))
 		_ball.go_live(Vector2(0.0, -toss), Tuning.sports_kickoff_hang_gravity, Tuning.sports_kickoff_hang_s)
+		_start_kickoff_gates()   # WK-131 H2
 		return
 	var serve_team: int = _last_scoring_team if _last_scoring_team >= 0 else int(runner.stage_index) % 2
 	var side: float = -1.0 if serve_team == 0 else 1.0   # team 0 defends the LEFT half, team 1 the RIGHT
@@ -636,6 +663,7 @@ func _credit_goal(runner, scoring: int) -> Dictionary:
 			var aj: int = _touch_idx(runner, tlog[j])
 			if aj >= 0 and aj != si and int(_teams[aj]) == scoring 					and run_t - float((tlog[j] as Dictionary)["t"]) <= Tuning.sports_assist_window:
 				out["assist_idx"] = aj
+	out["ball_t"] = _latched_ball_t(runner, goal_t)   # WK-131 H4: GoalZone.scored_ball_t (primary kickoff clock)
 	if int(out["scorer_idx"]) >= 0:
 		out["scorer_name"] = str(runner.player_name(int(out["scorer_idx"])))
 	if int(out["assist_idx"]) >= 0:
@@ -698,6 +726,123 @@ func last_goal() -> Dictionary:
 func goal_count() -> int:
 	return _goal_count
 
+# ------------------------------------------------------------------ WK-131 KICKOFF GATES (spec §4 / §8)
+
+## True when this match's court gets kickoff gates (soccer + a non-zero rule). Rule 0 never builds a gate node.
+func _gates_rule_on() -> bool:
+	return _sport == "soccer" and int(Tuning.sports_kickoff_rule) != 0
+
+## H6: "GOALS OPEN 3 SECONDS AFTER KICK OFF" (the number from Tuning, never hard-coded).
+func _gate_rule_row() -> String:
+	var s: float = Tuning.sports_gate_open_s if int(Tuning.sports_kickoff_rule) != 2 else Tuning.sports_live_fallback_s
+	var num: String = str(int(s)) if is_equal_approx(s, roundf(s)) else ("%.1f" % s)
+	return GATE_RULE_ROW % num
+
+## H1 (on_stage_ready): one CLOSED gate per goal_zone, the latch gated until it opens. Also resets this stage's kickoff stats.
+func _spawn_kickoff_gates(runner) -> void:
+	_gates = []
+	_gate_rule = int(Tuning.sports_kickoff_rule) if _gates_rule_on() else 0
+	_ko_first_touch_t = -1.0
+	_ko_teams_touched = [false, false]
+	_ko_gate_hits = 0
+	_ko_gate_speeds = []
+	_ko_open_t = -1.0
+	_ko_armed_t = -1.0
+	_ko_spit = false
+	_ko_runner = runner
+	if _gate_rule == 0:
+		return
+	var lead := true
+	for z in runner.get_tree().get_nodes_in_group("goal_zone"):
+		if not is_instance_valid(z) or (z as Node).is_queued_for_deletion() or str(z.get("style")) == "hidden":
+			continue
+		var g: Node2D = KICKOFF_GATE_SCENE.instantiate() as Node2D
+		runner._level_root.add_child(g)   # after the zones -> drawn over the cage frame at the same z; freed with the level
+		g.call("setup", z, lead)
+		lead = false
+		z.call("set_gated", true)
+		g.connect("hit", _on_gate_hit)
+		g.connect("opened", _on_gate_opened)
+		_gates.append(g)
+
+## H2 (on_combat_start, after go_live): the gates run on the ball's live clock.
+func _start_kickoff_gates() -> void:
+	if _gates.is_empty() or not is_instance_valid(_ball):
+		return
+	var t: float = Tuning.sports_gate_open_s if _gate_rule == 1 else Tuning.sports_live_fallback_s
+	for g in _gates:
+		if is_instance_valid(g):
+			g.call("start", _ball, t)
+
+## H3 (_on_ball_touched): first-touch time + teams touched; rule 2 opens the gates once BOTH teams have touched.
+func _kickoff_touch(team: int) -> void:
+	if not is_instance_valid(_ball):
+		return
+	if _ko_first_touch_t < 0.0:
+		_ko_first_touch_t = _ball.ball_clock()
+	if team >= 0 and team < 2:
+		_ko_teams_touched[team] = true
+	if _gate_rule == 2 and _ko_open_t < 0.0 and _ko_armed_t < 0.0 and bool(_ko_teams_touched[0]) and bool(_ko_teams_touched[1]):
+		_ko_armed_t = _ball.ball_clock()
+		for g in _gates:
+			if is_instance_valid(g):
+				g.call("open_now")
+
+func _on_gate_hit(speed) -> void:
+	_ko_gate_hits += 1
+	_ko_gate_speeds.append(snappedf(float(speed), 1.0))
+
+## First gate open of the stage: record it; on match stage 1 the gold rule row flips to the sticker, then its normal copy.
+func _on_gate_opened(spit) -> void:
+	if bool(spit):
+		_ko_spit = true
+	if _ko_open_t >= 0.0:
+		return
+	_ko_open_t = _ball.ball_clock() if is_instance_valid(_ball) else 0.0
+	var runner = _ko_runner
+	if runner == null or not is_instance_valid(runner) or int(runner.stage_index) != 1:
+		return
+	var legend = runner.get("_legend")
+	if legend == null or not is_instance_valid(legend) or not legend.has_method("set_goal_text"):
+		return
+	legend.call("set_goal_text", GATE_OPEN_STICKER, true)
+	var stage: int = int(runner.stage_index)
+	runner.get_tree().create_timer(GATE_STICKER_S, false).timeout.connect(func() -> void:
+		if is_instance_valid(runner) and int(runner.stage_index) == stage and is_instance_valid(legend):
+			legend.call("set_goal_text", _goal_line_normal(), false))
+
+## H5: ball-clock seconds until the gates open (negative = seconds since they opened); INF when this stage has no gates
+## or the clock has not started (pre-GO counts from the scheduled time).
+func gates_open_in() -> float:
+	if _gates.is_empty() or not is_instance_valid(_ball):
+		return INF
+	var t: float = _ball.ball_clock()
+	if _ko_open_t >= 0.0:
+		return _ko_open_t - t
+	var g = _gates[0]
+	if not is_instance_valid(g):
+		return INF
+	var sched: float = float(g.call("scheduled_open"))
+	if sched == INF:
+		sched = Tuning.sports_gate_open_s if _gate_rule == 1 else Tuning.sports_live_fallback_s
+	return sched - t
+
+## H4 (QA, spec §5.3): this stage's kickoff numbers. first_touch_t / gates_open_t / armed_t are ball-clock seconds
+## (-1 = not happened); gate_hits = closed-gate contacts >= Tuning.sports_gate_fx_min_speed; spit = a resting ball was popped.
+func kickoff_stats() -> Dictionary:
+	return {"rule": _gate_rule, "first_touch_t": _ko_first_touch_t, "gate_hits": _ko_gate_hits,
+		"gate_hit_speeds": _ko_gate_speeds.duplicate(), "gates_open_t": _ko_open_t, "armed_t": _ko_armed_t,
+		"spit": _ko_spit, "teams_touched": _ko_teams_touched.duplicate()}
+
+## H4: the latched zone's ball clock at the latch (GoalZone.scored_ball_t), else the ball clock now.
+func _latched_ball_t(runner, fallback: float) -> float:
+	for z in runner.get_tree().get_nodes_in_group("goal_zone"):
+		if bool(z.get("scored")):
+			var bt: Variant = z.get("scored_ball_t")
+			if bt != null and float(bt) >= 0.0:
+				return float(bt)
+	return fallback
+
 # ------------------------------------------------------------------ WK-111 (SP-09) match stats + end framing
 
 ## The stat dict of player `idx` (created on first use).
@@ -718,6 +863,7 @@ func _on_ball_touched(p, is_power, runner) -> void:
 	if bool(is_power):
 		s["power"] = int(s["power"]) + 1
 	_stage_touches += 1
+	_kickoff_touch(int(_teams[idx]))   # WK-131 H3
 	if _sport != "soccer" or not is_instance_valid(_ball):
 		return
 	var tl: Array = _ball.touch_log()
@@ -878,9 +1024,14 @@ func present_match_end(runner) -> Dictionary:
 	return {"center": c, "zoom": z}
 
 ## WK-15 (CC-11.1 / D-13): the stage-1 goal chip above the controls legend — the sport's one-line rule.
-func goal_line(_runner) -> String:
+func goal_line(runner) -> String:
 	if _sport == "dropshot":
 		return "SPIKE IT OVER THE NET  ·  DON'T LET IT DROP  ·  FIRST TO %d" % _goal_cap
+	if _gates_rule_on() and runner != null and int(runner.stage_index) == 1:   # WK-131 H6: stage 1 teaches the gates
+		return _gate_rule_row()
+	return _goal_line_normal()
+
+func _goal_line_normal() -> String:
 	return "HEADBUTT THE BALL INTO THEIR GOAL  ·  FIRST TO %d" % _goal_cap
 
 ## The score exclamation ("GOAL!" for soccer, "POINT!" for DROPSHOT). Read by the HUD flash too.
@@ -1031,6 +1182,9 @@ func _keeper_point(runner, my_team: int, bot_player, ball_pos: Vector2) -> Varia
 	var toward: float = -bv.x * signf(axis)                 # ball speed toward MY goal line
 	var shot: bool = toward >= BOT_KEEPER_SHOT_SPEED and (ball_pos.x - own_goal.x) * signf(axis) / toward <= BOT_KEEPER_SHOT_TIME
 	var kickoff: bool = float(runner.round_clock) < BOT_KICKOFF_KEEP_S
+	if _gate_rule == 1 and not _gates.is_empty():   # WK-131 H5: keep goal around the open, not the (unscorable) first 3 s
+		var open_in: float = gates_open_in()
+		kickoff = open_in <= BOT_GATE_RETURN_LEAD_S and open_in >= -BOT_GATE_KEEP_AFTER_S
 	if frac > BOT_KEEPER_THIRD and not shot and not kickoff:
 		return null
 	var box: Rect2 = runner.bounds.grow(-SUPPORT_COURT_MARGIN)

@@ -169,3 +169,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   PauseMenu: `_input` runs last-child-first, so the overlay decides every key/pad event before the (suspended) pause menu or PartyMatch's
   pause action. QA: `InputRouter.get_node('DeviceWatch')` has `overlay`, `cpu_seats`, `_gone`, `log_lines`, `toast.shown_log`. A pad
   "lost" and never re-found stays in `_gone` until it presses something; a RESTART/REMATCH then starts its seat as a CPU (by design).
+- **Godot 2D combines bounce as clamp(A + B, 0, 1)** (not max / multiply). A surface meant to be DEADER than the ball needs an
+  ABSORBENT PhysicsMaterial (bounce counts negative): WK-131 gate = absorbent 0.25 vs the ball's 0.85 -> measured 0.596 rebound.
+- **gbplay `eval` re-indents every line, including lines inside a multi-line string**, so a runtime `GDScript.new()` probe whose
+  source is a `"""..."""` block fails with "Unexpected Indent". Pass the source as ONE json-escaped line (`"extends Node\n..."`).
+  Also: `grep -q true` on gbplay output always matches `"success": true` - grep for `'"result": true'`.
+- **A visual timeline that must end exactly on T at 30 fps (WK-131 0.2 s retract = 6 frames) loses a frame to float rounding**:
+  the ball clock is a sum of 1/120 steps, so a frame on T - 0.2 lands either side. Start the visual half a tick early.
+- Setting `Ball._clock` via eval before GO carries into the next live phase (go_live never resets it) - dev overrides leak.

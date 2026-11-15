@@ -67,3 +67,13 @@ signal living_taunt(player)
 # Emitted once per aim by Player._physics_process. AudioManager plays the "super_aim" wind-up (stopped when the aim
 # ends); LivingCues polls is_super_aiming() / get_super_aim_dir() for the "!" over the targeted goat.
 signal super_aim_started(player)
+
+# --- WK-131 Rocketball KICKOFF GATES (docs/specs/wk131_kickoff_rule_2026-11-15.md §8). KickoffGate emits; AudioManager (and QA) subscribe.
+# gate_team = the DEFENDING team of the gated goal (GoalZone.team); speed = the ball's pre-bounce speed (px/s). One per new ball contact.
+signal kickoff_gate_hit(gate_team, speed)
+# Both gates opened (rule 1: at Tuning.sports_gate_open_s of live ball; rule 2: when both teams touched or the fallback). Once per kickoff.
+signal kickoff_gates_open()
+# Presentation-only cues from the lead gate (one shared voice for both gates): the stage-intro drop-in, and each warning wind-up tick
+# (n = 0, 1, 2 ... locked to the brightness swing peaks).
+signal kickoff_gate_dropped()
+signal kickoff_gate_tick(n)

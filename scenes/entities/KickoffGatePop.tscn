@@ -1,0 +1,30 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/entities/KickoffGatePop.gd" id="1_pop"]
+[ext_resource type="Texture2D" path="res://assets/world/sports/gate_badge_locked.png" id="2_lock"]
+[ext_resource type="FontFile" path="res://assets/fonts/lilitaone/LilitaOne-Regular.ttf" id="3_font"]
+
+[sub_resource type="LabelSettings" id="LS_pop"]
+font = ExtResource("3_font")
+font_size = 49
+font_color = Color(1, 0.952941, 0.839216, 1)
+outline_size = 12
+outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+
+[node name="KickoffGatePop" type="Node2D"]
+z_as_relative = false
+z_index = 39
+script = ExtResource("1_pop")
+
+[node name="Box" type="Node2D" parent="."]
+
+[node name="Lock" type="Sprite2D" parent="Box"]
+texture_filter = 4
+texture = ExtResource("2_lock")
+
+[node name="Label" type="Label" parent="Box"]
+offset_right = 200.0
+offset_bottom = 60.0
+mouse_filter = 2
+text = "NOT YET!"
+label_settings = SubResource("LS_pop")

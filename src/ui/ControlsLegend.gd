@@ -265,6 +265,19 @@ func retire_goal() -> void:
 func goal_retired() -> bool:
 	return _goal_retired
 
+## WK-131 (spec §4.4 H6): the mode swaps the gold rule row's copy mid-legend (Rocketball stage 1: "GOALS OPEN 3 SECONDS
+## AFTER KICK OFF" -> "GOALS OPEN!" at the open -> the normal rule). `pop` re-runs the chip's press-bounce. No-op once the
+## legend has gone, been retired, or has no goal row.
+func set_goal_text(text: String, pop: bool = false) -> void:   # WK-131
+	if not visible or _dying or _goal_retired or not _goal_row.visible:
+		return
+	_goal_label.text = text
+	if pop:
+		_goal_chip.pivot_offset = _goal_chip.size * 0.5
+		var tw := create_tween()
+		tw.tween_property(_goal_chip, "scale", Vector2(1.12, 1.12), 0.07)
+		tw.tween_property(_goal_chip, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 ## eval-readable (QA): the legend's effective alpha (layer x rows).
 func shown_alpha() -> float:
 	return _root.modulate.a * _strip.modulate.a if visible else 0.0

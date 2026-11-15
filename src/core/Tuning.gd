@@ -954,3 +954,38 @@ var super_whiff_brake_speed: float = 0.0      # R3 WHIFF BRAKE: px/s a super tha
 var super_whiff_brake_time: float = 0.15      # R3: s the bleed takes (linear |v| cap v0 -> brake speed; scales only, never reverses)  # WK-20d
 var super_whiff_reserve: float = 0.0          # R4 FUMBLE RESERVE: a super that landed no smash returns min(this, fuel at fire) when its  # WK-20d
                                               # window ends; that fuel can't arm a super until the next paying contact. 0 = OFF; test 15  # WK-20d
+
+# --- WK-131 Rocketball KICKOFF GATES (spec docs/specs/wk131_kickoff_rule_2026-11-15.md §7, brief docs/briefs/kickoff_gate_2026-11-15.md §9).  # WK-131
+# Each soccer goal mouth gets a ball-only candy-stripe gate from the stage load until sports_gate_open_s of live-ball time  # WK-131
+# after GO. Read ONLY by src/modes/SportsMode.gd and src/entities/KickoffGate.gd (+ AudioManager cue levels). Brawl never reads it.  # WK-131
+var sports_kickoff_rule: int = 1              # 0 = legacy (no gates: exactly the pre-WK-131 kickoff), 1 = KICKOFF GATES, 2 = LIVE BALL (open when both teams touched)  # WK-131
+var sports_gate_open_s: float = 3.0           # s of live ball after GO when both gates open (rule 1). 3.5 is the spec's single pre-registered step  # WK-131
+var sports_gate_warn_s: float = 0.6           # s of warning before the open (badge/ring swing, pole lift, wind-up ticks)  # WK-131
+var sports_gate_retract_s: float = 0.2        # s the pole slides up into the top socket, ENDING at the open (visual; collision drops at the open)  # WK-131
+var sports_gate_bounce: float = 0.6           # ball-vs-gate restitution (a dead thud keeps a blocked shot in the attacking third)  # WK-131
+var sports_gate_spit_speed: float = 450.0     # px/s outward pop for a ball resting on the gate at the open (< the 833 px/s touch floor; not a touch)  # WK-131
+var sports_gate_spit_reach: float = 40.0      # px ball surface to gate face that counts as "resting on it" at the open  # WK-131
+var sports_gate_thickness: float = 48.0       # px gate collider thickness (> 2 ticks of ball travel at the 2400 cap; CCD is the main guard)  # WK-131
+var sports_gate_pop_cooldown: float = 0.5     # s between "NOT YET!" pops on one gate  # WK-131
+var sports_gate_ooh_speed: float = 1500.0     # px/s ball impact that also cues the crowd "ooh" (a real shot)  # WK-131
+var sports_live_fallback_s: float = 3.0       # rule 2: s after GO the gates open anyway if both teams have not touched  # WK-131
+# visual knobs (brief §9)  # WK-131
+var sports_gate_bar_w: float = 52.0           # wpx drawn pole width (the collider is sports_gate_thickness; 2 wpx bleed each face)  # WK-131
+var sports_gate_stripe_period: float = 44.0   # wpx candy-stripe period, measured across the 45 deg stripes (band = half)  # WK-131
+var sports_gate_badge_wpx: float = 64.0       # wpx padlock badge diameter  # WK-131
+var sports_gate_ring_r: float = 44.0          # wpx drain ring centreline radius  # WK-131
+var sports_gate_ring_band: float = 12.0       # wpx drain ring gold band (plus a 3 wpx chocolate outline each side)  # WK-131
+var sports_gate_flex_amp: float = 12.0        # wpx peak bow of the pole on a full-speed (>= 2000 px/s) hit  # WK-131
+var sports_gate_flex_sigma: float = 70.0      # wpx Gaussian width of the bow around the contact point  # WK-131
+var sports_gate_flex_time: float = 0.25       # s the bow's damped spring takes to settle (first half-wobble 0.12 s)  # WK-131
+var sports_gate_flash_time: float = 0.06      # s the pole + badge hold white on a hit  # WK-131
+var sports_gate_flash_fade: float = 0.12      # s the hit flash fades back  # WK-131
+var sports_gate_fx_min_speed: float = 150.0   # px/s contact speed below which a gate touch makes no FX / sound  # WK-131
+var sports_gate_warn_hz_from: float = 3.0     # Hz warning brightness swing (and wind-up ticks) at the start of the warning  # WK-131
+var sports_gate_warn_hz_to: float = 8.0       # Hz ... accelerating to this at the open (flash-safety cap 8 Hz)  # WK-131
+var sports_gate_warn_lift: float = 10.0       # wpx the pole lifts out of the bottom socket during the warning (collider unchanged)  # WK-131
+var sports_gate_warn_shake: float = 3.0       # wpx badge shake during the warning  # WK-131
+var sports_gate_scroll_max: float = 2.5       # stripe periods/s the barber-pole scroll reaches at the open  # WK-131
+var sports_gate_drop_in: bool = true          # the pole drops out of the top socket at stage intro (visual only)  # WK-131
+var sports_gate_drop_time: float = 0.15       # s the drop-in takes  # WK-131
+var sports_gate_pop_wpx: float = 34.0         # wpx cap height of the "NOT YET!" pop  # WK-131

@@ -33,6 +33,7 @@ const BALL_DEBRIS_IMPULSE := 900.0   # dropped-weight punt: ~1500 px/s (firm kno
 const LAYER_BALL := 1 << 6           # the ball's OWN, otherwise-unused bit (players neither sense nor collide)
 const MASK_SURFACES := 1 << 2        # bounces off every platform / bumper wall / floor / ceiling
 const MASK_PLAYERS := 1 << 0         # the sensing area detects Player bodies
+const MASK_KICKOFF_GATE := 1 << 7    # WK-131: the ball-only kickoff gates (KickoffGate.LAYER_GATE); players never mask it
 
 # --- Glossy Toybox sports-ball sprite (no-code-drawn-assets paydown; same pattern as the hammer/bomb/
 # crusher/wrecking-ball wirings). A white glossy ball with a baked-in gold equator seam. Image 669x642;
@@ -99,7 +100,7 @@ func configure_dropshot() -> void:
 func _ready() -> void:
 	add_to_group("sports_ball")
 	collision_layer = LAYER_BALL
-	collision_mask = MASK_SURFACES
+	collision_mask = MASK_SURFACES | MASK_KICKOFF_GATE   # WK-131 (no body sits on the gate bit unless a gate exists)
 	gravity_scale = 0.0                              # gravity comes from the field (INV-1), like StormBall/Player
 	mass = BALL_MASS
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY    # a fast ball never tunnels a wall / goal mouth

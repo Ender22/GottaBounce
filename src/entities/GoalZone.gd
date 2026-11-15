@@ -47,6 +47,11 @@ var _net_art: Node2D = null    # WK-66a
 # bottom tube lines (the snapped roof / crossbar face, or floor top - sink); the trigger rect never changes.  # WK-66b
 var net_top_y: float = NAN     # WK-66b
 var net_bottom_y: float = NAN  # WK-66b
+# WK-131 kickoff gates (docs/specs/wk131_kickoff_rule_2026-11-15.md §4.3 / §5.3): while a KickoffGate covers this mouth the
+# zone does not latch (the backup behind the collider; reuses the _live stale-latch gate). scored_ball_t = the ball's live clock
+# (Ball.ball_clock()) at the latch, the primary kickoff-goal clock for QA. Both inert when no gate exists.  # WK-131
+var _gated: bool = false       # WK-131
+var scored_ball_t: float = -1.0   # WK-131
 
 func setup_from_json(o: Dictionary) -> void:
 	w = float(o.get("w", 200.0))
@@ -121,6 +126,13 @@ func _build_trials_net_art(md: float) -> void:   # WK-66b
 	add_child(_net_art)
 	_net_art.call("setup_trials_goal", self, mx, bx, snapped, ty, by, md)
 
+## WK-131: KickoffGate closes / opens the latch (true from the stage load until the gate opens).
+func set_gated(on: bool) -> void:   # WK-131
+	_gated = on   # WK-131
+
+func is_gated() -> bool:   # WK-131
+	return _gated   # WK-131
+
 func _on_combat_started() -> void:
 	_live = true
 
@@ -139,6 +151,8 @@ func _physics_process(delta: float) -> void:
 			var rel: Vector2 = (b as Node2D).global_position - global_position
 			if absf(rel.x) <= w * 0.5 and absf(rel.y) <= h * 0.5:
 				scored = true
+				if b.has_method("ball_clock"):   # WK-131
+					scored_ball_t = float(b.call("ball_clock"))   # WK-131
 				_flash = 1.0
 				_score_burst((b as Node2D).global_position)
 				break
