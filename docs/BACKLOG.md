@@ -2578,7 +2578,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   a follow-up.
 - Status: **in-progress** (builder, lane D; re-rank #9). It holds the files above until it commits.
 
-### [ ] WK-154 [P1][S] Spawn padlock gets the goal gate's draining ring: say "how long", not just "locked" (CD4-04)
+### [x] WK-154 [P1][S] Spawn padlock gets the goal gate's draining ring: say "how long", not just "locked" (CD4-04) — 264646f
 - Area: brawl (HUD) · Owner: ui-ux-designer + gameplay-programmer
 - Source: WK-CD4 CD4-04. CD4 filed it P2. The producer raised it to P1: it is missing feedback on a core verb (SUPER), on about a third of
   newcomer super presses, in the default mode.
@@ -2600,7 +2600,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   - A WK-93 recording frame of a locked press, with ring + dry click (the click verified by `AudioManager.last_sfx`).
 - Status: open. Next-10 #2, lane U, one slice with WK-155.
 
-### [ ] WK-155 [P2][S] Kickoff-gate cues stay visible when they matter: GOALS OPEN! at full alpha, badge above goats, pole contrasts the trim (CD4-05)
+### [x] WK-155 [P2][S] Kickoff-gate cues stay visible when they matter: GOALS OPEN! at full alpha, badge above goats, pole contrasts the trim (CD4-05) — 264646f
 - Area: sports (readability) · Owner: ui-ux-designer (+ art-director for (c)) · Source: WK-CD4 CD4-05
 - Evidence:
   - (a) `CD4_21_kick_3`: "GOALS OPEN!" swaps into the stage-1 rule strip after it has faded to ~25 %. On later kickoffs only the whistle marks
