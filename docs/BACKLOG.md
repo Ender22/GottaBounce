@@ -1231,6 +1231,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Merged UX4-02 (re-rank #8, rendered re-confirm of L3): `InputRouter.simulate_device_lost("pad:2")` turned P2's BUTCH panel straight
   into PRESS A TO JOIN (`tools/out/ux/UX4_90`): no DISCONNECTED state, no kept goat/colour, no 10 s window. In-match side not built.
 - Split when pulled (lanes differ):
+  - **WK-28a DONE 6e57111** (lobby half shipped; WK-28b in-match overlay still open).
   - **WK-28a lobby half (S/M, lane L):** DISCONNECTED slot keeps goat + colour, 10 s RECONNECT ring, takeover by any unjoined pad,
     RULES flip closes keeping values. Files: `InputRouter.gd` (signal only), `HerdLobby.gd`, `LobbySlot.gd/.tscn`.
   - **WK-28b match half (S/M, lane U):** auto-pause overlay in the lost player's colour, RESUME WITHOUT P#, takeover; connect toasts.
