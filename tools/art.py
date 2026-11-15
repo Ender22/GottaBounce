@@ -8,6 +8,10 @@ Commands:
   info IN...                 report size, alpha coverage, bbox of opaque pixels
   sheet IN_DIR OUT COLS      pack same-size sprites into a sheet (row-major)
   check IN                   validate: has alpha? trimmed? report verdict + issues
+  keyout-color IN [OUT] [--key ff00ff] [--tol 90] [--no-trim]
+                             GLOBAL chroma key (reaches enclosed holes the corner flood can't):
+                             alpha from key-chroma, despill, edge pull to outline chocolate,
+                             transparent RGB = chocolate (no fringe at filtering), then trim
 
 Typical intake for a ChatGPT-generated sprite:
   python tools/art.py keyout downloaded.png assets/characters/bouncer_pink_idle.png
@@ -146,18 +150,85 @@ def sheet(in_dir, out, cols):
     return 0
 
 
+def keyout_color(src, dst=None, key="ff00ff", tol=90, no_trim=False, outline="3b241b"):
+    """Global chroma key for generations on a solid key colour (brief sports_nets_2026-11-15 s7).
+
+    Works for subjects whose fill is greyscale/near-neutral with a chocolate outline (every
+    tintable asset). Per pixel:
+      s = chroma of the pixel projected on the key's chroma direction (1.0 = pure key, ~0 = neutral)
+      - s >= S_HI or RGB distance to key <= tol  -> alpha 0
+      - s <= S_LO                                 -> alpha 255
+      - between                                   -> alpha ramps linearly (anti-aliased edge)
+    Despill: the key-direction chroma (s * key_chroma) is subtracted from every pixel, then the
+    brightness the key added is removed by un-mixing P = a*F + (1-a)*K.  Partial-alpha pixels are
+    pulled toward the outline chocolate (every edge borders the outline).  Alpha-0 pixels get
+    chocolate RGB so bilinear filtering / mipmaps never bleed the key colour back in.
+    """
+    import numpy as np
+    S_LO, S_HI = 0.10, 0.80
+    kk = np.array([int(key[i:i + 2], 16) for i in (0, 2, 4)], np.float32)
+    oc = np.array([int(outline[i:i + 2], 16) for i in (0, 2, 4)], np.float32)
+    img = _load(src)
+    arr = np.asarray(img).astype(np.float32)
+    rgb, a0 = arr[..., :3], arr[..., 3] / 255.0
+    kc = kk - kk.mean()
+    kc2 = float((kc * kc).sum())
+    if kc2 < 1:
+        print("ERROR: key colour is neutral grey; chroma key needs a saturated key")
+        return 1
+    chroma = rgb - rgb.mean(-1, keepdims=True)
+    s = np.clip((chroma @ kc) / kc2, 0.0, 1.0)
+    dist = np.sqrt(((rgb - kk) ** 2).sum(-1))
+    alpha = np.clip((S_HI - s) / (S_HI - S_LO), 0.0, 1.0)
+    alpha[(dist <= tol) | (s >= S_HI)] = 0.0
+    # despill: remove key chroma, then un-mix the key's brightness from partial pixels
+    f = rgb - s[..., None] * kc
+    am = np.maximum(alpha, 0.25)[..., None]
+    unmixed = (f - (1.0 - am) * (kk.mean())) / am
+    partial = (alpha > 0) & (alpha < 1)
+    f[partial] = unmixed[partial]
+    # pull partial edges toward the outline colour (edges border the chocolate outline)
+    t = np.where(partial, np.sqrt(1.0 - alpha), 0.0)[..., None]
+    f = f * (1 - t) + oc * t
+    f[alpha <= 0] = oc
+    alpha = alpha * a0
+    out = np.concatenate([np.clip(f, 0, 255), (alpha * 255.0)[..., None]], -1)
+    res = Image.fromarray((out + 0.5).astype(np.uint8), "RGBA")
+    dst = dst or src
+    res.save(dst)
+    al8 = (alpha * 255).astype(np.uint8)
+    # residual fringe audit: visible pixels that still carry key chroma after despill
+    fc = np.asarray(res).astype(np.float32)[..., :3]
+    s2 = np.clip(((fc - fc.mean(-1, keepdims=True)) @ kc) / kc2, 0, 1)
+    fringe = int(((al8 > 16) & (s2 > 0.12)).sum())
+    print(f"chroma-keyed #{key} (tol {tol}): {src} -> {dst}; transparent "
+          f"{100 * (al8 == 0).mean():.1f}%, partial {100 * ((al8 > 0) & (al8 < 255)).mean():.1f}%, "
+          f"residual key-tinted px {fringe}")
+    if no_trim:
+        return 0
+    return trim(dst)
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(2)
     cmd, args = sys.argv[1], sys.argv[2:]
     kw = {}
+    if cmd == "keyout-color":
+        if "--key" in args:
+            i = args.index("--key")
+            kw["key"] = args[i + 1].lstrip("#").lower()
+            args = args[:i] + args[i + 2:]
+        if "--no-trim" in args:
+            kw["no_trim"] = True
+            args.remove("--no-trim")
     if "--tol" in args:
         i = args.index("--tol")
         kw["tol"] = int(args[i + 1])
         args = args[:i] + args[i + 2:]
     fn = {"trim": trim, "keyout": keyout, "resize": resize, "info": info,
-          "check": check, "sheet": sheet}.get(cmd)
+          "check": check, "sheet": sheet, "keyout-color": keyout_color}.get(cmd)
     if fn is None:
         print(f"unknown command {cmd}\n{__doc__}")
         sys.exit(2)
