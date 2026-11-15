@@ -143,7 +143,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   tape contingency is still unjudged), WK-136's re-light feel, the WK-135 refund feel, and the UX4 "not assessed" CC-10.2 mash-arming check.
 
 **On deck (11+, in order; lane in brackets):**
-1. WK-119 + WK-141 sports readability: team-outlined tags + CPU pip that stays; legend first frame + sports legend out of the ball's band
+1. ~~WK-119~~ done 225c9a5 — + WK-141 sports readability: team-outlined tags + CPU pip that stays; legend first frame + sports legend out of the ball's band
    (P2/S+S) [H `PlayerPip.gd`/`PlayerPips.gd` + U `ControlsLegend.gd`; free now, takes the first spare slot]
 2. WK-60 select-screen prompt/copy: LOCKED card says "A FIGHT!" (P2/S), then WK-60b preview-region layout (P2/M) [M `ArenaSelect.gd/.tscn`]
 3. WK-28b in-match disconnect overlay (S/M) [U after WK-33: `PauseMenu.gd`; `PartyMatch.gd` hook only after WK-135]
@@ -589,7 +589,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept: a ramped 100 ms flick changes the goat on the first press, or Won't do with the result.
 - Status: open (unverified)
 
-### [ ] WK-119 [P2][S] Sports: team membership readable on the field (team-outlined tags + a CPU pip that stays) (SP-20 + UX4-09)
+### [x] WK-119 [P2][S] Sports: team membership readable on the field (team-outlined tags + a CPU pip that stays) (SP-20 + UX4-09) — 225c9a5
 - Area: sports | HUD · Owner: ui-ux-designer · Source: WK-98 SP-20 (WK-10-adjacent); UX4-09 merged and raised P3 -> P2 at re-rank #8
   (owner leans sports; a couch group cannot tell sides apart)
 - Evidence: `tools/out/sports/m6_rb2v2_bowl/goal_03_2-2.png`: only P1/P2 pips show; in 2v2, "which blue is my CPU teammate?" is colour only.
@@ -2165,7 +2165,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept (rendered): the three frames re-shot with the fixes; ui-ux Ship.
 - Status: open. Lane L after WK-138 (same files).
 
-### [ ] WK-146 [P3][S] Ghost / sudden-death HUD collisions: SHH badge over card names, edge-clamped ghost tag on a HUD card (UX4-23)
+### [x] WK-146 [P3][S] Ghost / sudden-death HUD collisions: SHH badge over card names, edge-clamped ghost tag on a HUD card (UX4-23) — 225c9a5
 - Area: HUD | brawl (ghosts) · Owner: ui-ux-designer (+ gameplay-programmer) · Source: ui-ux-designer UX4-23 2026-11-15
 - Evidence: `tools/out/ux/UX4_56`: the "SHH" ghost badge sits over the P2 / PUFF names on the HUD cards; a ghost's edge-clamped P2 tag lands on
   top of the P3 HUD card.
@@ -2175,7 +2175,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept (rendered): ghost stage with 2 ghosts near the corners: no badge over a name, no tag over a card.
 - Status: open
 
-### [ ] WK-147 [P3][S] Trials HUD: one goal surface, not two; off-screen bubble avoids the P1 pip (UX4-24)
+### [x] WK-147 [P3][S] Trials HUD: one goal surface, not two; off-screen bubble avoids the P1 pip (UX4-24) — 225c9a5
 - Area: trials | HUD · Owner: ui-ux-designer · Source: ui-ux-designer UX4-24 2026-11-15
 - Evidence: `tools/out/ux/UX4_80`, `UX4_81`: top panel "HOLD A / SPACE — FLY UP TO THE RING" and gold chip "FLY INTO THE GOLD RING" say the same
   thing; P3's off-screen bubble overlaps P1's pip next to the P1 card.
@@ -2397,3 +2397,7 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 ### [x] WK-149 [P3][S] Horizontal TV safe area for corner chips — a1904ba
 - Source: lobby ui-ux verdict (docs/audit/2026-11-15_ux_lobby_verdict.md). Corner chips (BACK chip, mode chip) sit at x ~50 / ~1870;
   clamp to x >= 96 and <= 1824 in `MenuScreen._fit_safe_area` (~8 lines; per-chip clamp, the vertical fit moves the whole band).
+
+### [ ] WK-150 [P3][S] Sports tags overlap when goats bunch (tags never avoid each other)
+- Source: WK-119 recording (`tools/out/wk/WK-119_rec_frames.png`, frame 148 ZIGGY over POGO). Four persistent, wider sports tags make
+  overlaps more frequent; add mutual avoidance like WK-37e ghost tags (PlayerPips.gd).
