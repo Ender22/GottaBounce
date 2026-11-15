@@ -2849,7 +2849,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   stays a human check (Needs a human #2).
 - Status: **in-progress (director, 2026-11-16).** Next-10 #1.
 
-### [ ] WK-171 [P3][S] (CD5-04) RULES rows need a one-line helper (PRESSURE NETS: ON says nothing)
+### [x] WK-171 [P3][S] (CD5-04) RULES rows need a one-line helper (PRESSURE NETS: ON says nothing) — 9f711f2
 - Area: menus (lobby RULES) · Owner: ui-ux-designer · Source: WK-CD5 CD5-04
 - Evidence: `tools/out/wk/CD5_16_sports_rules.png`, `CD5_16_rules_strip.png`. ON/OFF only; no rule line or legend explains it.
 - Do: a one-line helper under the focused rules row (e.g. "Long rallies make the goals bigger"), for every row in both modes; include WK-110's
@@ -2858,7 +2858,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 - Accept: rendered RULES panel in Brawl and Rocketball with focus on each row: helper text present, fits, no overlap; ui-ux Ship.
 - Status: open. Next-10 #10.
 
-### [ ] WK-172 [P3][S] (CD5-05) The session deck reshuffle can repeat an arena inside one match
+### [x] WK-172 [P3][S] (CD5-05) The session deck reshuffle can repeat an arena inside one match — 9f711f2
 - Area: brawl (circuits) · Owner: gameplay-programmer · Source: WK-CD5 CD5-05
 - Evidence: `tools/out/wk/CD5_data/m2.json`: Sunny Shoulders at stage 2 and again at stage 10, after the 20-arena deck ran out mid-match.
 - Do: when the deck reshuffles mid-match, push arenas already played in the current match to the back of the new deck (keep the CD4-01 rules:
@@ -2924,3 +2924,6 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   5. Not yet assessed by any pass: CC-10.2 arming under mashing.
 - Accept: findings doc in `docs/audit/`, every finding mapped to a WK id, then producer re-rank #11.
 - Status: open (trigger above).
+
+### [ ] WK-177 [P3][S] Draw circuits (the_foundry, mayhem_mile) can repeat an arena back-to-back across a match boundary
+- Source: WK-172 sim: the_foundry played the same arena twice in a row 9 times in 3640 draws (separate code path from the CD4-01 decks).
