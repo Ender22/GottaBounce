@@ -140,6 +140,57 @@ theme_type_variation = &"BannerTop"
 text = ""
 horizontal_alignment = 1
 
+[node name="TensionPlate" type="PanelContainer" parent="Root/TopBand/TopCenter"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyHudPlate"
+
+[node name="TensionBox" type="VBoxContainer" parent="Root/TopBand/TopCenter/TensionPlate"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="TensionRow" type="HBoxContainer" parent="Root/TopBand/TopCenter/TensionPlate/TensionBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="TensionTitle" type="Label" parent="Root/TopBand/TopCenter/TensionPlate/TensionBox/TensionRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BannerTop"
+theme_override_font_sizes/font_size = 54
+text = "MATCH POINT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TensionPill" type="PanelContainer" parent="Root/TopBand/TopCenter/TensionPlate/TensionBox/TensionRow"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
+
+[node name="TensionTeam" type="Label" parent="Root/TopBand/TopCenter/TensionPlate/TensionBox/TensionRow/TensionPill"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ToyIdLabel"
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 44
+text = "RED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TensionSub" type="Label" parent="Root/TopBand/TopCenter/TensionPlate/TensionBox"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 30
+text = "NEXT RED GOAL WINS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="CenterC" type="CenterContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 15

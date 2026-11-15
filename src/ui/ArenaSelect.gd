@@ -727,7 +727,8 @@ func _fill_chips(a: Dictionary, accent: Color) -> void:
 	if _sports:
 		# DROPSHOT scores POINTS (SportsMode.goal_word "POINT!"); ROCKETBALL scores GOALS
 		var sport := SportsMode.sport_for_mode(cfg.mode_id) if cfg != null else ""
-		rule = "FIRST TO %d %s" % [Tuning.sports_goal_target, "POINTS" if sport == "dropshot" else "GOALS"]
+		var cap: int = cfg.sports_goal_cap() if cfg != null else Tuning.sports_goal_target   # WK-110: the RULES GOALS / POINTS value
+		rule = "FIRST TO %d %s" % [cap, "POINTS" if sport == "dropshot" else "GOALS"]
 		var seats := humans + bots
 		var side := int(seats / 2.0)
 		roster = ("%dV%d  ·  " % [side, side] if seats >= 2 else "") + roster

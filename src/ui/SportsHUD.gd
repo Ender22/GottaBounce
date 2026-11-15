@@ -64,6 +64,15 @@ var _match_row: HBoxContainer = null
 var _victory: CanvasLayer = null       # WK-111 SportsVictory (lazy)
 var _victory_on := false               # WK-111: the end screen owns MATCH_END (set at show_match_end)
 @onready var _chip: Control = $Root/ScoreChip
+# --- WK-110 (SP-08) kickoff tension plate (cream ToyHudPlate in the top band): MATCH POINT + team pill / GOLDEN GOAL + sub-line ---
+@onready var _tension_plate: PanelContainer = $Root/TopBand/TopCenter/TensionPlate   # WK-110
+@onready var _tension_title: Label = $Root/TopBand/TopCenter/TensionPlate/TensionBox/TensionRow/TensionTitle   # WK-110
+@onready var _tension_pill: PanelContainer = $Root/TopBand/TopCenter/TensionPlate/TensionBox/TensionRow/TensionPill   # WK-110
+@onready var _tension_team: Label = $Root/TopBand/TopCenter/TensionPlate/TensionBox/TensionRow/TensionPill/TensionTeam   # WK-110
+@onready var _tension_sub: Label = $Root/TopBand/TopCenter/TensionPlate/TensionBox/TensionSub   # WK-110
+var _tension_tw: Tween = null          # WK-110
+var _tension_stage := -1               # WK-110: stage_index whose countdown already asked (one call per kickoff)
+var tension_log: Array = []            # WK-110 QA: [{stage, kind, title, team, scores, msec}] per plate shown this match
 
 func _ready() -> void:
 	_runner = get_parent()
@@ -88,6 +97,9 @@ func reset_scores() -> void:
 	_dismiss_victory()   # WK-111: a REMATCH re-runs _start_match -> reset_scores
 	_goal_sub_color = null
 	_goal_banner_next = false
+	_tension_stage = -1   # WK-110: a REMATCH starts again at stage 1
+	tension_log = []   # WK-110
+	_hide_tension_now()   # WK-110
 	_red_score.text = "0"
 	_blue_score.text = "0"
 
@@ -110,6 +122,71 @@ func _process(_delta: float) -> void:
 		_red_score.text = str(int(scores[0]))
 		_blue_score.text = str(int(scores[1]))
 	_cap.text = "TO %d" % cap
+	_poll_tension(mode)   # WK-110
+
+## WK-110 (SP-08): once per kickoff, the moment the countdown starts (the goal banner pops out on that "3"), ask the mode
+## whether this kickoff is MATCH POINT / GOLDEN GOAL and pop the plate. Stage 1 never qualifies (cap >= 2 needs a goal first).
+func _poll_tension(mode) -> void:   # WK-110
+	if not Tuning.wk110_tension_banner or not mode.has_method("tension_banner"):
+		return
+	var st: String = str(_runner.state)
+	var si: int = int(_runner.stage_index)
+	if st == "STAGE_END" and _tension_plate.visible:
+		_hide_tension_now()   # a goal inside the plate's tail: the goal banner owns the screen
+	if st != "COUNTDOWN" or si == _tension_stage:
+		return
+	_tension_stage = si
+	var b: Dictionary = mode.tension_banner()
+	if not b.is_empty():
+		show_tension(b)
+
+## WK-110: pop the tension plate. b = SportsMode.tension_banner(): {kind, team, title, sub, team_name?, color?}.
+func show_tension(b: Dictionary) -> void:   # WK-110
+	var golden: bool = str(b.get("kind", "")) == "golden_goal"
+	_tension_title.text = str(b.get("title", ""))
+	if golden:
+		_tension_title.add_theme_color_override("font_color", Tuning.wk110_golden_color)
+	else:
+		_tension_title.remove_theme_color_override("font_color")   # BannerTop white + chocolate outline
+	_tension_pill.visible = not golden and str(b.get("team_name", "")) != ""
+	if _tension_pill.visible:
+		ToyKit.id_pill(_tension_pill, _tension_team, str(b["team_name"]), b.get("color", Color.WHITE))
+	_tension_sub.text = str(b.get("sub", ""))
+	_tension_sub.visible = _tension_sub.text != ""
+	if _top_tw != null and _top_tw.is_valid():   # one top-band banner at a time (a stray word would sit under the plate)
+		_top_tw.kill()
+	_top_label.visible = false
+	_tension_plate.visible = true
+	_tension_plate.modulate.a = 1.0
+	_tension_plate.reset_size()
+	await get_tree().process_frame   # the container sizes the plate this frame; pivot on the real size
+	if not _tension_plate.visible:
+		return
+	_tension_plate.pivot_offset = _tension_plate.size * 0.5
+	_tension_plate.scale = Vector2(0.3, 0.3)
+	if _tension_tw != null and _tension_tw.is_valid():
+		_tension_tw.kill()
+	_tension_tw = create_tween()
+	_tension_tw.tween_property(_tension_plate, "scale", Vector2.ONE, POP_IN).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_tension_tw.tween_interval(Tuning.wk110_banner_hold)
+	_tension_tw.tween_property(_tension_plate, "modulate:a", 0.0, POP_OUT)
+	_tension_tw.parallel().tween_property(_tension_plate, "scale", Vector2(1.08, 1.08), POP_OUT)
+	_tension_tw.tween_callback(_hide_tension_now)
+	var sc: Array = _runner._mode.team_scores() if _runner != null and _runner._mode != null else []
+	tension_log.append({"stage": int(_runner.stage_index) if _runner != null else -1, "kind": str(b.get("kind", "")),
+		"title": _tension_title.text, "team": int(b.get("team", -1)), "scores": sc.duplicate(), "msec": Time.get_ticks_msec()})
+	EventBus.sports_tension.emit(str(b.get("kind", "")))
+
+func _hide_tension_now() -> void:   # WK-110
+	if _tension_tw != null and _tension_tw.is_valid():
+		_tension_tw.kill()
+	_tension_plate.visible = false
+	_tension_plate.modulate.a = 1.0
+	_tension_plate.scale = Vector2.ONE
+
+## WK-110 QA: true while the tension plate is up.
+func tension_showing() -> bool:   # WK-110
+	return _tension_plate.visible
 
 ## WK-106: every goal -> team flash + chip pop, and remember the scorer-line colour for the banner the runner
 ## shows right after (stage_end_banner emits this synchronously, then PartyMatch calls show_center).
@@ -234,6 +311,7 @@ func _hide_center_now() -> void:
 # ------------------------------------------------------------------ MATCH END (team-wins panel)
 func show_match_end(text: String, color: Color, subline: String) -> void:
 	hide_center()
+	_hide_tension_now()   # WK-110
 	var mode = _runner._mode if _runner != null else null
 	if mode != null and mode.has_method("match_stats"):
 		_show_victory(mode)
@@ -394,7 +472,7 @@ func show_top(text: String, color: Color, hold: float, font_size: int = 0) -> vo
 var pressure_words: Array = []   # WK-116 QA: words shown this match (text)
 func show_pressure_word(text: String, color: Color, hold: float, font_size: int = 0) -> void:   # WK-116
 	var waited: float = 0.0
-	while _top_label.visible and _top_label.text != text and waited < 3.0:
+	while ((_top_label.visible and _top_label.text != text) or _tension_plate.visible) and waited < 3.0:   # WK-110: the plate counts
 		await get_tree().create_timer(0.1, false).timeout
 		waited += 0.1
 	if waited > 0.0:

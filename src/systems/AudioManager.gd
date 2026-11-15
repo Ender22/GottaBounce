@@ -311,6 +311,7 @@ func _ready() -> void:
 	EventBus.kickoff_gate_tick.connect(_on_kickoff_gate_tick)   # WK-131 warning wind-up ticks
 	EventBus.super_lock_pressed.connect(_on_super_lock_pressed)   # WK-20e spawn-truce dry click
 	EventBus.sports_pressure.connect(_on_sports_pressure)   # WK-116 pressure nets (bed swell, ka-CHUNK, clap-chant)
+	EventBus.sports_tension.connect(_on_sports_tension)   # WK-110 MATCH POINT / GOLDEN GOAL kickoff cue
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -983,6 +984,22 @@ func _tick_pressure_loops(delta: float) -> void:
 	_pressure_chant.volume_db = _chant_db
 	if _chant_db <= PRESSURE_OFF_DB + 0.01 and _chant_goal <= PRESSURE_OFF_DB and _pressure_chant.playing:
 		_pressure_chant.stop()
+
+# --------------------------------------------------------------------- WK-110 sports tension
+
+var tension_cues: Array = []   # WK-110 QA: kinds received this session
+## WK-110 (SP-08): the kickoff MATCH POINT / GOLDEN GOAL plate's cue, existing assets only, on the Stingers bus (WK-163 payoff
+## routing). MATCH POINT = the combo_preBreak tension sting (two_left) + the WK-105 goal crowd slowed into a low swell. GOLDEN GOAL
+## = the referee double whistle (WK-131) + the sting a step lower + a louder crowd swell. It lands on the countdown "3" beep.
+func _on_sports_tension(kind) -> void:   # WK-110
+	tension_cues.append(str(kind))
+	if str(kind) == "golden_goal":
+		play_sfx("whistle_double", {"volume_db": Tuning.wk110_gg_whistle_db, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk110"})
+		play_sfx("two_left", {"volume_db": Tuning.wk110_gg_sting_db, "pitch": 0.84, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk110"})
+		play_sfx("goal_crowd", {"volume_db": Tuning.wk110_crowd_db + 4.0, "pitch": 0.8, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk110"})
+	else:
+		play_sfx("two_left", {"volume_db": Tuning.wk110_mp_sting_db, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk110"})
+		play_sfx("goal_crowd", {"volume_db": Tuning.wk110_crowd_db, "pitch": 0.74, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk110"})
 
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()

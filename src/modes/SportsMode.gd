@@ -276,12 +276,11 @@ func polls_goal() -> bool:
 ## pattern): high lives -> any rare out-of-bounds is an instant respawn; huge kill target -> a stray
 ## on_kill can never trip the kill-race end. The goal cap is Tuning.sports_goal_target — SPLIT from the
 ## shared config.kills_to_win knob so Sports pacing (~6 goals) is independent of the OWNER-SET BRAWL kill
-## target (10). SPORTS has no in-UI target stepper (its settings tray is hidden), so this is the only
-## source of the goal cap. Idempotent.
+## target (10). WK-110: the RULES "GOALS" / "POINTS" row overrides it (MatchConfig.sports_goal_cap). Idempotent.
 func configure(runner, config: MatchConfig) -> void:
 	runner.lives_per_player = 99
 	runner.match_target_kills = 999999
-	_goal_cap = maxi(1, Tuning.sports_goal_target)
+	_goal_cap = config.sports_goal_cap() if config != null else maxi(1, Tuning.sports_goal_target)   # WK-110: RULES GOALS / POINTS
 	if config != null and config.mode_id in MODE_KEYS:
 		_mode_key = config.mode_id
 	# Defensive arena resolution (CD robustness fix): SPORTS is an ENCLOSED-court mode; if it ever loads a
@@ -1740,6 +1739,25 @@ func team_scores() -> Array:
 
 func goal_cap() -> int:
 	return _goal_cap
+
+## WK-110 (SP-08): the kickoff tension call for the CURRENT score, read by SportsHUD when each countdown starts ({} = none).
+## MATCH POINT = exactly one team is one goal (point) from the cap. GOLDEN GOAL = both are: a cap-1 tie, so the next goal wins
+## the match. First-to-N has no clock, so there is no overtime phase; the name marks the next-goal-wins kickoff.  # WK-110
+func tension_banner() -> Dictionary:   # WK-110
+	if _goal_cap < 2 or _team_scores.size() < 2:   # WK-110: a 1-goal cap would call every 0-0 kickoff "golden"
+		return {}
+	var unit: String = "POINT" if _sport == "dropshot" else "GOAL"   # WK-110: Dropshot scores points (goal_word)
+	var near: Array = []   # WK-110
+	for t in range(2):   # WK-110
+		if int(_team_scores[t]) == _goal_cap - 1:
+			near.append(t)
+	if near.size() == 2:   # WK-110
+		return {"kind": "golden_goal", "team": -1, "title": "GOLDEN %s" % unit, "sub": "NEXT %s WINS" % unit}
+	if near.size() == 1:   # WK-110
+		var t: int = int(near[0])
+		return {"kind": "match_point", "team": t, "title": "MATCH POINT", "team_name": str(TEAM_NAMES[t]),
+			"color": TEAM_COLORS[t], "sub": "NEXT %s %s WINS" % [TEAM_NAMES[t], unit]}
+	return {}
 
 func last_scoring_team() -> int:
 	return _last_scoring_team

@@ -302,6 +302,7 @@ func _load_rules() -> void:
 	if _mode == "sports":
 		_sports_total = int(r.get("sports_total", 0))
 		cfg.pressure_nets = int(r.get("pressure_nets", 1))   # WK-116: PRESSURE NETS default ON (Dropshot never reads it)
+		cfg.goals_to_win = int(r.get("goals_to_win", Tuning.sports_goal_target))   # WK-110: GOALS / POINTS, per mode
 	else:
 		_cpu_pref = int(r.get("cpus", 3))
 		cfg.kills_to_win = int(r.get("kills_to_win", 10))
@@ -312,7 +313,8 @@ func _load_rules() -> void:
 func _current_rules() -> Dictionary:
 	var cfg: MatchConfig = GameConfig.match_config
 	if _mode == "sports":
-		var sr: Dictionary = {"sports_total": _sports_total, "bot_difficulty": cfg.bot_difficulty}
+		var sr: Dictionary = {"sports_total": _sports_total, "bot_difficulty": cfg.bot_difficulty,
+			"goals_to_win": cfg.sports_goal_cap()}   # WK-110
 		if _pressure_row_mode():
 			sr["pressure_nets"] = cfg.pressure_nets   # WK-116
 		return sr
@@ -1206,6 +1208,7 @@ func _open_rules(key: String, si: int) -> void:
 				"help": "How tough the CPUs are: 1 is gentle, 5 is fierce",
 				"help_vals": {0: "Each CPU gets a different skill level"}},
 		]
+		_rules_defs.append(_wk110_goals_def())   # WK-110: GOALS (Rocketball) / POINTS (Dropshot)
 		if _pressure_row_mode():
 			# WK-116 (spec §5, shipped 2026-11-16): long rallies widen both goal mouths. Rocketball only; default ON.
 			_rules_defs.append({"title": "PRESSURE NETS", "labels": ["ON", "OFF"], "vals": [1, 0], "field": "pressure_nets",
@@ -1271,6 +1274,7 @@ func _apply_rules(r: Dictionary) -> void:
 	if _mode == "sports":
 		_sports_total = int(r.get("sports_total", _sports_total))
 		cfg.pressure_nets = int(r.get("pressure_nets", cfg.pressure_nets))   # WK-116
+		cfg.goals_to_win = int(r.get("goals_to_win", cfg.goals_to_win))   # WK-110
 	else:
 		_cpu_pref = int(r.get("cpus", _cpu_pref))
 		cfg.kills_to_win = int(r.get("kills_to_win", cfg.kills_to_win))
@@ -1291,6 +1295,8 @@ func _rule_def_values(def: Dictionary) -> Array:
 		return [vals, labels, cpus()]
 	if f == "sports_total":
 		return [def["vals"], def["labels"], _sports_seats_total()]
+	if f == "goals_to_win":
+		return [def["vals"], def["labels"], GameConfig.match_config.sports_goal_cap()]   # WK-110: 0 (unset) reads as the Tuning cap
 	return [def["vals"], def["labels"], int(GameConfig.match_config.get(f))]
 
 func _rules_view_data() -> Dictionary:
@@ -1347,6 +1353,25 @@ func _deny_rules_taken(key: String) -> void:
 	if si >= 0:
 		(_slot_views[si] as Object).call("deny")
 		(_slot_views[si] as Object).call("flash_chip", "P%d HAS THE RULES" % (_rules_slot + 1), 1.2)
+
+## WK-110 (SP-08): the SPORTS goal-cap row. Rocketball says GOALS, Dropshot POINTS (goal_word). Values = Tuning.wk110_goal_choices
+## plus today's cap (Tuning.sports_goal_target, the default) if the list lacks it.
+func _wk110_goals_def() -> Dictionary:   # WK-110
+	var cfg: MatchConfig = GameConfig.match_config
+	var pts: bool = cfg != null and SportsMode.sport_for_mode(cfg.mode_id) == "dropshot"
+	var vals: Array = []
+	for v in Tuning.wk110_goal_choices:
+		if int(v) > 0 and not vals.has(int(v)):
+			vals.append(int(v))
+	if not vals.has(int(Tuning.sports_goal_target)):
+		vals.append(int(Tuning.sports_goal_target))
+	vals.sort()
+	var labels: Array = []
+	for v in vals:
+		labels.append(str(v))
+	var unit: String = "points" if pts else "goals"
+	return {"title": "POINTS" if pts else "GOALS", "labels": labels, "vals": vals, "field": "goals_to_win",
+		"help": "The first team to this many %s wins the match" % unit}
 
 ## WK-116: the PRESSURE NETS row exists for the soccer sport only (Rocketball + the legacy mixed "sports" card), and only
 ## while the studio master switch Tuning.sports_pressure_rule is on (rule 0 = no row: there would be nothing to toggle).
@@ -1485,7 +1510,7 @@ func _refresh_rules_bar() -> void:
 		var total: int = _sports_seats_total()
 		# WK-117 / CD3-09: Dropshot scores POINTS, not goals (SportsMode.goal_word "POINT!").
 		var unit: String = "POINTS" if SportsMode.sport_for_mode(cfg.mode_id) == "dropshot" else "GOALS"
-		_rules_text.text = "%s  ·  FIRST TO %d %s  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", Tuning.sports_goal_target, unit, skill]
+		_rules_text.text = "%s  ·  FIRST TO %d %s  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", cfg.sports_goal_cap(), unit, skill]   # WK-110
 		if _pressure_row_mode() and cfg.pressure_nets == 0:
 			_rules_text.text += "  ·  NO PRESSURE NETS"   # WK-116: only the non-default rule shows (like NO GHOSTS)
 

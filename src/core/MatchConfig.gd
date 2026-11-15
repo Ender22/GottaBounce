@@ -52,6 +52,13 @@ const MAX_FIGHTERS := 4
 ## Long rallies widen both goal mouths. Only soccer courts read it, and only while Tuning.sports_pressure_rule != 0 (the
 ## studio master switch / A/B knob). Remembered per mode like the other rules.
 @export var pressure_nets: int = 1   # WK-116
+## WK-110 (SP-08): SPORTS goal cap from the RULES row "GOALS" (Rocketball) / "POINTS" (Dropshot), remembered per mode. 0 = not set  # WK-110
+## (cold boot / QA harness / recorder): Tuning.sports_goal_target, exactly as before. Read through sports_goal_cap().  # WK-110
+@export var goals_to_win: int = 0   # WK-110
+
+## WK-110: the goal cap a sports match plays to (the RULES value, else Tuning.sports_goal_target).  # WK-110
+func sports_goal_cap() -> int:   # WK-110
+	return maxi(1, goals_to_win if goals_to_win > 0 else int(Tuning.sports_goal_target))   # WK-110
 
 ## Most bots allowed alongside `humans` humans (BOTS stepper max / lobby CPU tray max).
 static func max_bots_for(humans: int) -> int:

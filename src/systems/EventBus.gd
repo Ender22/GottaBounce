@@ -87,3 +87,7 @@ signal kickoff_gate_tick(n)
 # --- WK-116 Rocketball PRESSURE NETS (docs/specs/wk116_long_rally_2026-11-15.md §5). PressureNets emits; AudioManager subscribes.  # WK-116
 # step: 0 = anticipation (t1 - warn), 1 = STEP 1 "PRESSURE!", 2 = STEP 2 "MAX PRESSURE!", -1 = over (goal latched / stage torn down).  # WK-116
 signal sports_pressure(step)
+
+# --- WK-110 (SP-08) sports tension. SportsHUD emits when its kickoff MATCH POINT / GOLDEN GOAL banner pops; AudioManager plays the cue.  # WK-110
+# kind: "match_point" (one team is a goal from the cap) | "golden_goal" (a cap-1 tie: the next goal wins).  # WK-110
+signal sports_tension(kind)   # WK-110

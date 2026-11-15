@@ -1452,3 +1452,16 @@ var wk46_menu_repeat: bool = true              # false = the pre-WK-46 behaviour
 var wk46_repeat_delay: float = 0.40            # s a held direction waits before the first repeat (CC-5.3)  # WK-46
 var wk46_repeat_rate: float = 0.09             # s between repeats once repeating (CC-5.3; = lobby_repeat_rate)  # WK-46
 var wk46_repeat_wraps: bool = false            # true = auto-repeat may wrap like a fresh press (the WK-174 "lands back on the start row" bug)  # WK-46
+# --- WK-110 (SP-08) sports tension. (a) a MATCH POINT / GOLDEN GOAL plate in the top band at every kickoff whose score is one goal  # WK-110
+# (point) from the cap: MATCH POINT = one team at cap-1, GOLDEN GOAL = both (a cap-1 tie; first-to-N has no clock, so "golden goal"  # WK-110
+# just names the next-goal-wins kickoff). Shown on the countdown "3" (the goal banner has just left), gone ~0.4 s after KICK OFF!,  # WK-110
+# long before the gates open (3.5 s) or a PRESSURE! word (t1 30 s). Read by src/ui/SportsHUD.gd + src/systems/AudioManager.gd.  # WK-110
+# (b) the RULES "GOALS" (Rocketball) / "POINTS" (Dropshot) stepper. Read by src/ui/HerdLobby.gd + src/core/GameConfig.gd.  # WK-110
+var wk110_tension_banner: bool = true          # false = no kickoff MATCH POINT / GOLDEN GOAL plate (pre-WK-110)  # WK-110
+var wk110_banner_hold: float = 1.45            # s the plate holds after its 0.15 s pop-in (countdown is 3 x countdown_beat = 1.05 s)  # WK-110
+var wk110_golden_color: Color = Color("#FFC93C")   # GOLDEN GOAL title (team-neutral gold, the PRESSURE! gold)  # WK-110
+var wk110_mp_sting_db: float = -5.5            # dB MATCH POINT sting (the two_left combo_preBreak sample) on the Stingers bus  # WK-110
+var wk110_gg_whistle_db: float = -4.0          # dB GOLDEN GOAL referee double whistle (whistle_double) on the Stingers bus  # WK-110
+var wk110_gg_sting_db: float = -4.0            # dB GOLDEN GOAL sting (two_left, pitched down) on the Stingers bus  # WK-110
+var wk110_crowd_db: float = -13.0              # dB crowd swell under the sting (the WK-105 goal crowd, slowed); GOLDEN GOAL plays it +4 dB  # WK-110
+var wk110_goal_choices: Array[int] = [3, 5, 6, 7, 10]   # RULES GOALS / POINTS values; the default is sports_goal_target (6)  # WK-110
