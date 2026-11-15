@@ -137,3 +137,5 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   calls).** A "press A 0.3 s after the end screen appears" test actually lands ~1-1.5 s later, i.e. AFTER a 1.3 s arm, and
   correctly activates the default button (WK-142: looked like NEXT CIRCUIT firing on an early press; it wasn't). To test
   pre-arm behaviour, raise the arm knob at runtime via eval or read the gate's `_open_msec` / `_arm_msec` vs now.
+- Piping `run_game.ps1` into `| tail` (or any pipe) hangs the shell: Godot inherits the launcher's stdout and keeps it open.
+  Redirect to a file or don't pipe.
