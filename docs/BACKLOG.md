@@ -2184,7 +2184,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept (rendered): a Flight School course frame shows one instruction; a 3P off-screen frame shows no bubble over a pip.
 - Status: open
 
-### [ ] WK-148 [P3][S] First frame of a sports match: hold a wipe until the court camera settles (UX4-27)
+### [x] WK-148 [P3][S] First frame of a sports match: hold a wipe until the court camera settles (UX4-27) — b8be06d
 - Area: sports | camera · Owner: gameplay-programmer (+ ui-ux-designer) · Source: ui-ux-designer UX4-27 2026-11-15
 - Evidence: `tools/out/ux/UX4_65` frame 0: zoomed camera with no court frame before the court snaps in.
 - Do: cover the first frames with the existing transition wipe until the camera reports settled. **Camera is owner-pain territory**
@@ -2398,10 +2398,16 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 - Source: lobby ui-ux verdict (docs/audit/2026-11-15_ux_lobby_verdict.md). Corner chips (BACK chip, mode chip) sit at x ~50 / ~1870;
   clamp to x >= 96 and <= 1824 in `MenuScreen._fit_safe_area` (~8 lines; per-chip clamp, the vertical fit moves the whole band).
 
-### [ ] WK-150 [P3][S] Sports tags overlap when goats bunch (tags never avoid each other)
+### [x] WK-150 [P3][S] Sports tags overlap when goats bunch (tags never avoid each other) — b8be06d
 - Source: WK-119 recording (`tools/out/wk/WK-119_rec_frames.png`, frame 148 ZIGGY over POGO). Four persistent, wider sports tags make
   overlaps more frequent; add mutual avoidance like WK-37e ghost tags (PlayerPips.gd).
 
 ### [ ] WK-151 [P2][S] WASD doesn't move menu focus (ui_* bound to arrows / D-pad / stick only) — CC-2.1
 - Source: WK-60 builder. Every screen using Godot focus navigation ignores WASD for keyboard players. Add W/A/S/D to ui_up/left/down/
   right in the action map (check gameplay WASD doesn't double-fire in menus via InputRouter) or route through InputRouter.
+
+### [ ] WK-148b [P3][S] Replace the sports first-frame cover with a camera snap to the mode framing
+- Source: WK-148 builder. Root cause: PartyMatch snaps the camera to CAM_MAX_ZOOM at stage start (lines ~253 and ~691) then eases out
+  to the court; the WK-148 MatchCover hides it but also hides the goats popping in + legend build. Snap straight to the mode framing
+  (camera rules: check docs/feedback/owner_2026-07-10_camera_rules.md) after WK-135 releases PartyMatch; also check the per-goal
+  STAGE_INTRO and Pause->RESTART / REMATCH paths (no cover there).
