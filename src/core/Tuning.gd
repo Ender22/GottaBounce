@@ -964,6 +964,8 @@ var bot_pin_turn_mult: float = 3.0            # x bot_flight_turn_rate while tha
 # balls never refuel). Telemetry (Player.wk128): refunds_ball, ball_fuel, ball_fuel_blocked_cd, ball_fuel_blocked_stun.  # WK-135
 # INVARIANT #17: sports_touch_fuel / sports_touch_fuel_cd (20 / 1.0 = 20 fuel/s) < normal_boost_drain() (28.6): the ball  # WK-135
 #       source can't be farmed; the only "farm" is hitting the ball, which is the game. Invariant #2 holds: one touch re-arms a super.  # WK-135
+# WK-175: the master now means "the wk175_gate_set scope" (1 WR walls only / 2 WS / 3 FULL = this phase-3 block + deck fix);  # WK-175
+# Player reads the gates ONLY through Tuning.gate_rules() (WK-175 block at the end of the file); the gate_* helpers below are legacy.  # WK-175
 var refund_gates_on: bool = false             # OFF until the phase-3 A/B (director). MASTER: WK-128 (b) gates at the spec values. false = every contact pays (pre-phase-3)  # WK-135
 var sports_touch_refuel: bool = true          # ON (phase-3 A/B: human starved share 0.27 -> 0.14; gates stay OFF). S1 switch: ball touches refuel in Sports. false (or sports_touch_fuel 0) = OFF  # WK-135
 var sports_touch_fuel: float = 20.0           # S1 fuel per accepted live touch (= one trampoline bounce). 0 = OFF  # WK-135
@@ -989,6 +991,9 @@ func _ready() -> void:  # WK-135: QA arm overrides from the environment ("1" ON,
 	if w161b != "":  # WK-161b
 		wk161b_chase_route = w161b == "1"  # WK-161b
 	_wk169_env(OS.get_environment("GB_WK169"))  # WK-169: SHOWDOWN QA arms (see the WK-169 block at the end of the file)
+	if g == "1" and OS.get_environment("GB_WK175").strip_edges() == "":  # WK-175: the old phase-3 arm keeps meaning "gates on every face" (FULL)
+		wk175_gate_set = 3  # WK-175
+	_wk175_env(OS.get_environment("GB_WK175"))  # WK-175: wins over GB_WK135_GATES (see the WK-175 block at the end of the file)
 
 ## WK-169: apply a GB_WK169 arm string (comma list; see the WK-169 block). "" = leave every switch as authored.  # WK-169
 func _wk169_env(v: String) -> void:  # WK-169
@@ -1504,3 +1509,86 @@ var wk182_sq_min_aspect: float = 0.85          # bumper w/h below this draws the
 var wk182_sq_max_aspect: float = 1.05          # w/h in [sq_min, sq_max) draws the square block (bumper_block_sq.png whole; post if it can't fit)  # WK-182
 var wk182_sq_interim_squash: bool = false      # only if bumper_block_sq.png is missing: true = bumper_block squashed to w+pad x h+pad (interim, NOT ship); false = post. OFF: the sprite landed (8c08752)  # WK-182
 var wk182_void_lip_suppress: bool = false      # true = suppress end tufts/daisies within 50 px of a void-rect edge (turn back ON if paint_void ever draws pit art again)  # WK-182
+# --- WK-175 refund-gate scope (docs/specs/wk175_refund_gates_retune_2026-11-16.md §4). The master refund_gates_on (WK-135 block)  # WK-175
+# now turns on the SCOPE chosen by wk175_gate_set; false = every contact pays exactly as today and every knob below is ignored.  # WK-175
+# Every non-stunned, non-underside contact is classed by LOCAL gravity (up = -g): n.up > bumper_floor_dot = FLOOR, else WALL  # WK-175
+# (tier faces too, not only bumpers; round colliders are always FLOOR; decided PER CONTACT). Sets:  # WK-175
+#   1 WR (ship candidate): FLOOR faces always pay (never read/write arm state). WALL faces pay once, then only after the body  # WK-175
+#     centre moved wk175_wall_rearm_px along the face normal (tier walls: max(that, refund_rearm_frac x launch h)); a blocked  # WK-175
+#     wall contact re-bases the paying position. No speed gate (F2), no Alt B cap, valve only if wk175_wall_valve.  # WK-175
+#   2 WS: FLOOR faces always pay; WALL faces keep the WK-135 phase-3 rules (tier max(60, 0.9 h) + valve; bumper 200 + F2 900 + valve).  # WK-175
+#   3 FULL: WK-135 phase 3 on every face + the deck fix (wk175_deck_exempt).  # WK-175
+# F3 (supers always pay), F4 (stunned / underside never pay), F5, F7, the relight bill, the kick floor and the ball refuel are  # WK-175
+# unchanged in every set. QA arm without a Tuning edit: env GB_WK175=off|0, wr|1, ws|2, full|3 (wins over GB_WK135_GATES).  # WK-175
+# INVARIANTS: #18 (WR) wk175_wall_rearm_px >= fuel_per_bumper x normal_boost_max_speed x BOOST_MAX / (natural trampoline income  # WK-175
+#       + normal_boost_drain()) = 20 x 896 / (17.2 + 28.57) = 391: a cruise ping-pong between two walls never out-earns natural  # WK-175
+#       bouncing. Re-derive if refunds, cruise cap, profile boost, trampoline height or tank change.  # WK-175
+#   #18b (residual, accepted): with supercharged exits (cap 1280 for 0.2 s after a paying wall hit) the same bound is 559; a  # WK-175
+#       frame-perfect stick flip at every wall across an exposed lane is skill + constant motion (spec probe P4, ladder §10).  # WK-175
+#   #12, #13, #15, #16 are live only in WS / FULL. #16 per face: qa_valve_over_natural_face counts per face key.  # WK-175
+var wk175_gate_set: int = 1                    # which scope the master turns on: 1 WR (candidate), 2 WS, 3 FULL  # WK-175
+var wk175_wall_rearm_px: float = 400.0         # px a WALL face needs before it pays again under WR. Invariant #18 (>= 391; < 350 breaks it)  # WK-175
+var wk175_wall_valve: bool = false             # WR: C4 liveness valve on WALL faces (false: gravity frees you; on walls the valve was income). WS/FULL keep P3's valve  # WK-175
+var wk175_deck_exempt: bool = true             # FULL only: tier-less moving-deck FLOOR faces re-arm at refund_rearm_frac x h without refund_rearm_min_px  # WK-175
+const WK175_SET_NAMES: Array[String] = ["OFF", "WR", "WS", "FULL"]   # index = effective set (0 = master off)  # WK-175
+
+## WK-175: apply a GB_WK175 arm string. off/0 -> master false; wr/1, ws/2, full/3 -> master true + that set. Else untouched.  # WK-175
+func _wk175_env(v: String) -> void:  # WK-175
+	var s: String = v.strip_edges().to_lower()  # WK-175
+	if s == "":  # WK-175
+		return  # WK-175
+	if s == "off" or s == "0":  # WK-175
+		refund_gates_on = false  # WK-175
+		return  # WK-175
+	var sets := {"wr": 1, "1": 1, "ws": 2, "2": 2, "full": 3, "3": 3}  # WK-175
+	if sets.has(s):  # WK-175
+		refund_gates_on = true  # WK-175
+		wk175_gate_set = int(sets[s])  # WK-175
+	else:  # WK-175
+		push_warning("GB_WK175='%s' not recognised (off|wr|ws|full); gates left as authored" % v)  # WK-175
+
+## WK-175: the effective gate set (0 = OFF, 1 WR, 2 WS, 3 FULL) with the master folded in.  # WK-175
+func wk175_effective_set() -> int:  # WK-175
+	return clampi(wk175_gate_set, 1, 3) if refund_gates_on else 0  # WK-175
+
+## WK-175: class-aware refund-gate rules for ONE contact. cls: 0 FLOOR, 1 WALL, 2 CEILING (never reaches the gate; treated as  # WK-175
+## WALL). Returns {gate: false = this contact always pays and never reads/writes arm state; e_min / e_frac: re-arm distance  # WK-175
+## max(e_min, e_frac x launch h) (0 = no arm, pays every contact); min_speed: F2 hard-hit gate (0 = off); cooldown: Alt B cap  # WK-175
+## (0 = off); valve: C4 time re-arm applies; rebase: a blocked contact re-bases the paying position and E}. Master off = all 0.  # WK-175
+func gate_rules(cls: int, is_bumper: bool, is_deck: bool) -> Dictionary:  # WK-175
+	var r := {"gate": true, "e_min": 0.0, "e_frac": 0.0, "min_speed": 0.0, "cooldown": 0.0, "valve": false, "rebase": false}  # WK-175
+	var gs: int = wk175_effective_set()  # WK-175
+	if gs == 0:  # WK-175: OFF = today (every contact pays)
+		return r  # WK-175
+	var floor_cls: bool = cls == 0  # WK-175
+	if floor_cls and gs != 3:  # WK-175 G2: WR / WS floors always pay, exactly like OFF
+		r["gate"] = false  # WK-175
+		return r  # WK-175
+	if gs == 1:  # WK-175 G3/G4: WR wall (tier or bumper)
+		r["e_min"] = wk175_wall_rearm_px  # WK-175
+		r["e_frac"] = 0.0 if is_bumper else refund_rearm_frac  # WK-175: the frac term matters only for supercharged spring sides
+		r["valve"] = wk175_wall_valve  # WK-175
+		r["rebase"] = true  # WK-175: a blocked wall touch re-bases (creeping away never re-arms)
+		return r  # WK-175
+	# WS walls / FULL every face: WK-135 phase 3 exactly (+ the deck fix in FULL).  # WK-175
+	var tier_rules: bool = not is_bumper or (floor_cls and bumper_floor_pays_as_tier)  # WK-175 (= WK-135 C2)
+	r["valve"] = true  # WK-175: P3 valve (acts only while refund_rearm_timeout > 0)
+	if tier_rules:  # WK-175
+		r["e_min"] = 0.0 if (gs == 3 and floor_cls and is_deck and wk175_deck_exempt) else refund_rearm_min_px  # WK-175 deck fix
+		r["e_frac"] = refund_rearm_frac  # WK-175
+		r["rebase"] = true  # WK-175
+	else:  # WK-175: WK-128 bumper wall rules
+		r["e_min"] = refund_rearm_bumper_px  # WK-175
+		r["min_speed"] = bumper_refund_min_speed  # WK-175
+		r["cooldown"] = bumper_refund_cooldown  # WK-175
+	return r  # WK-175
+
+## WK-175 §4.5: what a run's meta.tuning should log (the set and the effective rules per class).  # WK-175
+func wk175_meta() -> Dictionary:  # WK-175
+	var gs: int = wk175_effective_set()  # WK-175
+	return {"refund_gates_on": refund_gates_on, "wk175_gate_set": wk175_gate_set, "effective_set": WK175_SET_NAMES[gs],  # WK-175
+		"wk175_wall_rearm_px": wk175_wall_rearm_px, "wk175_wall_valve": wk175_wall_valve, "wk175_deck_exempt": wk175_deck_exempt,  # WK-175
+		"refund_rearm_timeout": refund_rearm_timeout,  # WK-175
+		"rules": {"floor_tier": gate_rules(0, false, false), "floor_bumper": gate_rules(0, true, false),  # WK-175
+			"floor_deck": gate_rules(0, false, true), "wall_tier": gate_rules(1, false, false),  # WK-175
+			"wall_bumper": gate_rules(1, true, false)}}  # WK-175

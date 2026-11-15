@@ -152,6 +152,13 @@ var _valve_armed: Dictionary = {}   # key -> the _faces record it left by timeou
 var _wk135_valve_pay := false       # the contact being judged right now pays through the valve (read by _on_bounced)  # WK-135
 var _valve_log: Array = []          # [clock, fuel] of recent valve payouts (qa_valve_over_natural, invariant #16)  # WK-135
 var _valve_over := false            # WK-135
+# WK-175 (docs/specs/wk175_refund_gates_retune_2026-11-16.md §4.5) telemetry. FIXED thresholds, measured identically in every arm.  # WK-175
+const WK175_HUG_WINDOW := 1.0       # s: a WALL contact with another contact on the same face key this recently is a "hug"  # WK-175
+const WK175_ZERO_FUEL := 1.0        # fuel below this counts toward zero_fuel_alive_max_s  # WK-175
+var _wk175_wall_last: Dictionary = {}   # face key -> _wk135_clock of its last WALL-class contact (hug test)  # WK-175
+var _wk175_pay_key := ""                # face key of the contact being paid right now (per-face valve log)  # WK-175
+var _wk175_valve_face: Dictionary = {}  # face key -> {"log": [[clock, fuel]...], "over": bool} (invariant #16 per face)  # WK-175
+var _wk175_zero_t := 0.0                # current unbroken alive streak at fuel < WK175_ZERO_FUEL  # WK-175
 # WK-136 (CD3-04a) telemetry: a BILLED re-light's burn, so QA can count presses that ran dry under 0.1 s of thrust.  # WK-136
 const WK136_MIN_BURN := 0.1     # s: spec threshold (12 ticks at 120 tps). FIXED, not Tuning, so both A/B arms measure the same  # WK-136
 var _wk136_burn_t := -1.0       # s of thrust since the last billed re-light (-1 = not tracking)  # WK-136
@@ -967,6 +974,7 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 			_wk128_add("fuel_income", fuel - f0)
 			if _wk135_valve_pay:   # WK-135 C4: this payout came through the liveness valve
 				_wk135_log_valve(fuel - f0)   # WK-135
+				_wk175_log_valve_face(_wk175_pay_key, fuel - f0)   # WK-175 §4.5: per-face invariant #16
 			if boost_held:
 				_supercharge_timer = Tuning.supercharge_window
 			_wk128_paid()   # R3 waiver of a just-billed re-light, then R1 (next press free)
@@ -983,6 +991,12 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 ## within REST_TOUCH_GAP. Telemetry only.
 func _wk135_tick(delta: float) -> void:
 	_wk135_clock += delta
+	if not _dead and fuel < WK175_ZERO_FUEL:   # WK-175 §4.5: longest unbroken alive streak at ~0 fuel (wall-valve liveness watch)
+		_wk175_zero_t += delta   # WK-175
+		if _wk175_zero_t > float(wk128.get("zero_fuel_alive_max_s", 0.0)):   # WK-175
+			wk128["zero_fuel_alive_max_s"] = _wk175_zero_t   # WK-175
+	else:   # WK-175
+		_wk175_zero_t = 0.0   # WK-175
 	if _wk135_clock - _last_contact_t <= REST_TOUCH_GAP and velocity.length() < REST_SPEED:
 		_rest_t += delta
 		if _rest_t >= REST_TIME and not _in_rest:
@@ -1044,6 +1058,23 @@ func _wk135_log_valve(amount: float) -> void:  # WK-135
 	if over and not _valve_over:  # WK-135
 		_wk128_add("qa_valve_over_natural", 1.0)  # WK-135
 	_valve_over = over  # WK-135
+
+## WK-175 §4.5: the per-face version of the invariant #16 check above (qa_valve_over_natural_face). Telemetry only.  # WK-175
+func _wk175_log_valve_face(key: String, amount: float) -> void:  # WK-175
+	var win: float = 2.0 * maxf(Tuning.refund_rearm_timeout, 0.01)  # WK-175
+	var rec: Dictionary = _wk175_valve_face.get(key, {"log": [], "over": false})  # WK-175
+	var lg: Array = rec["log"]  # WK-175
+	lg.append([_wk135_clock, amount])  # WK-175
+	while not lg.is_empty() and _wk135_clock - float(lg[0][0]) >= win - 0.001:  # WK-175
+		lg.pop_front()  # WK-175
+	var s := 0.0  # WK-175
+	for e in lg:  # WK-175
+		s += float(e[1])  # WK-175
+	var over: bool = s / win > 13.4  # WK-175
+	if over and not bool(rec["over"]):  # WK-175
+		_wk128_add("qa_valve_over_natural_face", 1.0)  # WK-175
+	rec["over"] = over  # WK-175
+	_wk175_valve_face[key] = rec  # WK-175
 
 ## WK-135: public counter hook so InputBot (BR-135) can log into this goat's wk128 dict (reaches round_stats per stage).  # WK-135
 func wk135_count(k: String, v: float = 1.0) -> void:  # WK-135
@@ -1162,7 +1193,7 @@ func _wk128_track_faces() -> void:
 			var f: Dictionary = _faces[k]
 			if _wk128_excursion(f["p"], f["n"], f["r"], f["c"]) >= float(f["e"]):
 				done.append(k)
-			elif to > 0.0 and _wk135_clock - float(f.get("t", _wk135_clock)) >= to:   # WK-135 C4: liveness valve
+			elif to > 0.0 and bool(f.get("v", true)) and _wk135_clock - float(f.get("t", _wk135_clock)) >= to:   # WK-135 C4: liveness valve. WK-175: only where the face's rules allow it ("v")
 				timed.append(k)   # WK-135
 		for k in done:
 			_faces.erase(k)
@@ -1190,10 +1221,24 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 	var key := _wk128_face_key(collider, n, rnd)
 	var h: float = _wk128_launch_h(launch_speed)
 	_wk135_valve_pay = false   # WK-135 C4
-	# WK-135 C1/C2: a FLOOR-class bumper face (block top, round core) pays under the TIER rules; WALL faces keep WK-128 F2 +  # WK-135
-	# bumper_px (and the Alt B cap). bumper_floor_pays_as_tier = false -> tier_rules == not bumper (phase 1 exactly).  # WK-135
-	var cls: int = _wk135_face_class(n, up, rnd) if bumper else -1   # WK-135
-	var tier_rules: bool = not bumper or (Tuning.bumper_floor_pays_as_tier and cls == WK135_FLOOR)   # WK-135
+	_wk175_pay_key = key   # WK-175 §4.5 (per-face valve log)
+	# WK-175 G1: EVERY contact (tier faces too, was: bumpers only) is classed by local gravity: FLOOR (n.up > bumper_floor_dot,  # WK-175
+	# round colliders always) or WALL; per contact. The rules for this class + the active gate set come from Tuning.gate_rules  # WK-175
+	# (master off = all zero = every contact pays). WK-135 C2 (floor bumper faces under tier rules) lives in there for WS / FULL.  # WK-175
+	var cls: int = _wk135_face_class(n, up, rnd)   # WK-175 (was: if bumper else -1)
+	var deck: bool = collider != null and collider.has_meta("firm_hop")   # WK-175: tier-less moving deck (MovingPlatform WK-20e)
+	var rules: Dictionary = Tuning.gate_rules(cls, bumper, deck)   # WK-175
+	# WK-175 §4.5 hug telemetry (every arm): a WALL contact with another contact on the same face key within WK175_HUG_WINDOW.  # WK-175
+	var hug := false   # WK-175
+	if collider != null and cls != WK135_FLOOR:   # WK-175
+		hug = _wk175_wall_last.has(key) and _wk135_clock - float(_wk175_wall_last[key]) <= WK175_HUG_WINDOW   # WK-175
+		_wk175_wall_last[key] = _wk135_clock   # WK-175
+		if _wk175_wall_last.size() > 32:   # WK-175: forget faces untouched for longer than the window
+			for k in _wk175_wall_last.keys():   # WK-175
+				if _wk135_clock - float(_wk175_wall_last[k]) > WK175_HUG_WINDOW:   # WK-175
+					_wk175_wall_last.erase(k)   # WK-175
+		if hug:   # WK-175
+			_wk128_add("wall_hug_contacts", 1.0)   # WK-175
 	# dribble detector (telemetry): consecutive contacts on one face without a real bounce's height in between
 	if key == _drb_key and _drb_n > 0:
 		_drb_n += 1
@@ -1207,12 +1252,16 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 	_drb_e = DRIBBLE_BUMPER_PX if bumper else maxf(DRIBBLE_MIN_PX, DRIBBLE_FRAC * h)
 	_drb_r = rnd
 	_drb_c = c
-	if collider != null:
-		if not tier_rules and incoming >= 0.0 and incoming < Tuning.gate_bumper_min_speed():   # WK-135 C3: F2 scoped to wall rules (was: bumper). Phase 3: master switch
+	if collider != null and not bool(rules["gate"]):   # WK-175 G2: a WR / WS FLOOR face always pays and never reads, writes or
+		_last_pay_key = key                              # re-bases arm state (bot refuel-wait: a floor key is never pending)  # WK-175
+	elif collider != null:   # WK-175: the gated path (OFF / WR walls / WS walls / FULL)
+		var min_speed: float = float(rules["min_speed"])   # WK-175 (was: gate_bumper_min_speed() on wall-rule faces)
+		var cd: float = float(rules["cooldown"])   # WK-175 (was: gate_bumper_cooldown() on wall-rule faces)
+		if min_speed > 0.0 and incoming >= 0.0 and incoming < min_speed:   # WK-135 C3: F2 scoped to wall rules. WK-175: per rules (WR walls: off)
 			_wk128_add("refunds_blocked_speed", 1.0)   # F2: cruise-speed wall touch — a bounce, not a refuel
 			_wk128_add("nopay_contacts", 1.0)
 			return false
-		if not tier_rules and _bumper_pay_cd > 0.0 and _super_recent <= 0.0:   # WK-135 C3 (was: bumper). Alt B cap (one bumper refund per player per bumper_refund_cooldown); F3: supers skip it
+		if cd > 0.0 and _bumper_pay_cd > 0.0 and _super_recent <= 0.0:   # Alt B cap (one bumper refund per player per bumper_refund_cooldown); F3: supers skip it. WK-175: per rules
 			_wk128_add("refunds_blocked_cooldown", 1.0)
 			_wk128_add("nopay_contacts", 1.0)
 			return false
@@ -1222,28 +1271,31 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 			# every later natural bounce (no boost held, e.g. at 0 fuel) fell short of it forever: bots sat at 0 fuel
 			# for 280 s (WK-128 build finding; deviation from spec F1 "from the paying contact", flagged in the report).
 			# A dribble still never re-arms: by definition it never reaches its own bounce's height.
-			if tier_rules:   # WK-135 C2: floor-class bumper faces re-base like tier faces (was: not bumper)
+			# WK-175 G3: WR wall faces (tier AND bumper) re-base too, so a hugger must leave E from the LATEST touch.  # WK-175
+			if bool(rules["rebase"]):   # WK-175 (was: if tier_rules)
 				var fb: Dictionary = _faces[key]
 				fb["p"] = global_position
-				fb["e"] = maxf(Tuning.gate_rearm_min_px(), Tuning.gate_rearm_frac() * h)   # WK-135 phase 3: master switch
+				fb["e"] = maxf(float(rules["e_min"]), float(rules["e_frac"]) * h)   # WK-175 (was: gate_rearm_min_px / gate_rearm_frac)
 			_wk128_add("refunds_blocked_rearm", 1.0)
+			_wk128_add("refunds_blocked_rearm_floor" if cls == WK135_FLOOR else "refunds_blocked_rearm_wall", 1.0)   # WK-175 §4.5
 			_wk128_add("nopay_contacts", 1.0)
 			return false
-		var e: float = Tuning.gate_rearm_bumper_px() if not tier_rules \
-			else maxf(Tuning.gate_rearm_min_px(), Tuning.gate_rearm_frac() * h)   # WK-135 C2/C3 (was: if bumper); phase 3: master switch
+		var e: float = maxf(float(rules["e_min"]), float(rules["e_frac"]) * h)   # WK-175 (WK-135 C2/C3 tier vs bumper choice now in gate_rules)
 		if _valve_armed.has(key):   # WK-135 C4: this face was re-armed by the liveness valve, not by distance
 			_valve_armed.erase(key)   # WK-135
 			if _super_recent <= 0.0:   # WK-135 (F3: a super pays regardless; not a valve payout)
 				_wk135_valve_pay = true   # WK-135
 				_wk128_add("refunds_timeout_rearm", 1.0)   # WK-135 §8
 		if e > 0.0:
-			_faces[key] = {"p": global_position, "n": n, "e": e, "r": rnd, "c": c, "t": _wk135_clock}   # WK-135: + "t" (C4)
+			_faces[key] = {"p": global_position, "n": n, "e": e, "r": rnd, "c": c, "t": _wk135_clock, "v": bool(rules["valve"])}   # WK-135: + "t" (C4). WK-175: + "v" (valve allowed)
 		else:
 			_faces.erase(key)   # re-arm OFF (A/B): every contact pays, as pre-WK-128
 		_last_pay_key = key
-		if not tier_rules:   # WK-135 C3 (was: bumper): the Alt B cap is a wall-rule lever
-			_bumper_pay_cd = Tuning.gate_bumper_cooldown()   # WK-135 phase 3: master switch
+		if cd > 0.0:   # WK-175 (was: if not tier_rules): the Alt B cap is a wall-rule lever
+			_bumper_pay_cd = cd   # WK-175
 	# (collider == null: a legacy caller with no face, e.g. a ghost cloud via GhostPuff — pays as before)
+	if hug:   # WK-175 §4.5: the "wall-hug income" metric (D7 / E3)
+		_wk128_add("refunds_wall_hug", 1.0)   # WK-175
 	if bumper:
 		_wk128_add("refunds_bumper", 1.0)
 		_wk128_add("refunds_bumper_floor" if cls == WK135_FLOOR else "refunds_bumper_wall", 1.0)   # WK-135 §8
@@ -1925,6 +1977,9 @@ func respawn(pos: Vector2) -> void:
 	_valve_armed.clear()   # WK-135 E13: respawn clears arm memory and timeout clocks
 	_valve_log.clear()   # WK-135
 	_valve_over = false   # WK-135
+	_wk175_wall_last.clear()   # WK-175 E12: respawn clears face memory (hug test, per-face valve log, zero-fuel streak)
+	_wk175_valve_face.clear()   # WK-175
+	_wk175_zero_t = 0.0   # WK-175
 	_last_pay_key = ""
 	_bumper_pay_cd = 0.0
 	_drb_key = ""
