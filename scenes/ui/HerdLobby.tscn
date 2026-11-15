@@ -649,6 +649,21 @@ mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "A"
 
+[node name="Slash" type="Label" parent="Footer/HintRow/GJoin"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "/"
+vertical_alignment = 1
+
+[node name="Glyph2" type="Control" parent="Footer/HintRow/GJoin"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ENTER"
+
 [node name="Label" type="Label" parent="Footer/HintRow/GJoin"]
 layout_mode = 2
 theme_type_variation = &"Hint"
@@ -666,6 +681,21 @@ size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "B"
+
+[node name="Slash" type="Label" parent="Footer/HintRow/GBack"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "/"
+vertical_alignment = 1
+
+[node name="Glyph2" type="Control" parent="Footer/HintRow/GBack"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ENTER"
 
 [node name="Label" type="Label" parent="Footer/HintRow/GBack"]
 layout_mode = 2
@@ -685,6 +715,21 @@ mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "Y"
 
+[node name="Slash" type="Label" parent="Footer/HintRow/GRandom"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "/"
+vertical_alignment = 1
+
+[node name="Glyph2" type="Control" parent="Footer/HintRow/GRandom"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ENTER"
+
 [node name="Label" type="Label" parent="Footer/HintRow/GRandom"]
 layout_mode = 2
 theme_type_variation = &"Hint"
@@ -702,6 +747,21 @@ size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "stick"
+
+[node name="Slash" type="Label" parent="Footer/HintRow/GFlair"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Hint"
+text = "/"
+vertical_alignment = 1
+
+[node name="Glyph2" type="Control" parent="Footer/HintRow/GFlair"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ENTER"
 
 [node name="Label" type="Label" parent="Footer/HintRow/GFlair"]
 layout_mode = 2

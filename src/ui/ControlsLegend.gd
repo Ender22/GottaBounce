@@ -52,6 +52,8 @@ var _ball_hooked: Object = null     # WK-141: the sports ball whose first live t
 var _touch_dimmed := false
 var _gen := 0                       # WK-141: present() generation (a REMATCH re-present cancels a pending layout)
 var _goal_retired := false          # WK-147: a HUD panel carries the instruction, so the gold goal chip stepped aside
+var _popped := false                # WK-156: the staggered pop-in has finished (it owns each chip's alpha until then)
+var _goat_dim: Dictionary = {}      # WK-156: chip instance id -> 0..1 "a goat is under this chip" dim
 
 func _ready() -> void:
 	visible = false
@@ -72,6 +74,8 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 	_strip2.modulate.a = 1.0
 	_goal_row.modulate.a = 1.0
 	_goal_retired = false   # WK-147
+	_popped = false   # WK-156
+	_goat_dim.clear()   # WK-156
 	var sports: bool = _is_sports()   # WK-113
 	_sports = sports
 	_touch_dimmed = false
@@ -143,6 +147,10 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 		tw.tween_property(p, "modulate:a", 1.0, 0.10)
 		tw.parallel().tween_property(p, "scale", Vector2.ONE, 0.15) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		if i == pops.size() - 1:
+			tw.tween_callback(func() -> void:   # WK-156: from here the goat-overlap dim may drive chip alpha
+				if gen == _gen:
+					_popped = true)
 
 ## WK-113 (SP-11): sports play ON the floor (Dropshot's tiles crack there, Rocketball's ball rolls there), so the
 ## sports legend docks top-centre under the score bug instead of on the bottom edge: gold rule first, chips under it.
@@ -204,6 +212,8 @@ func _process(delta: float) -> void:
 		return
 	if _sports and not _touch_dimmed:
 		_hook_ball()   # WK-141
+	if _popped and Tuning.legend_goat_dim:
+		_dim_under_goats(delta)   # WK-156
 	# press-bounce: the strip answers the buttons it teaches
 	for c in _chip_nodes:
 		var act: String = c["action"]
@@ -219,6 +229,62 @@ func _process(delta: float) -> void:
 		_fade_t -= delta
 		if _fade_t <= 0.0:
 			_fade_out()
+
+## WK-156 (CD4-06): the legend is a CanvasLayer over the world, so a goat (or its tag) flying up into it was drawn UNDER
+## the chips (Rocketball's kickoff toss sends goats straight into the top-docked band). Every chip (and the gold rule
+## chip) that a living goat's body or its identity tag overlaps fades to Tuning.legend_goat_overlap_alpha and comes back
+## when the goat leaves (hysteresis: a dimmed chip tests a wider rect). Per chip, so the rest of the strip stays readable.
+## Multiplies on top of the row / layer alphas (fade-out, WK-141 touch dim), never fights them.
+func _dim_under_goats(delta: float) -> void:
+	var keep: Array = _goat_rects()
+	var chips: Array = []
+	for c in _chip_nodes:
+		chips.append(c["panel"])
+	if _goal_row.visible:
+		chips.append(_goal_chip)
+	var step: float = delta / maxf(Tuning.legend_goat_overlap_fade, 0.01)
+	for ch in chips:
+		var chip := ch as Control
+		if chip == null or not is_instance_valid(chip) or not chip.is_visible_in_tree():
+			continue
+		var id: int = chip.get_instance_id()
+		var d: float = float(_goat_dim.get(id, 0.0))
+		var pad: float = Tuning.legend_goat_pad_px + (Tuning.legend_goat_hysteresis_px if d > 0.5 else 0.0)
+		var r: Rect2 = chip.get_global_rect().grow(pad)
+		var hit := false
+		for k in keep:
+			if r.intersects(k as Rect2):
+				hit = true
+				break
+		d = move_toward(d, 1.0 if hit else 0.0, step)
+		_goat_dim[id] = d
+		chip.modulate.a = lerpf(1.0, Tuning.legend_goat_overlap_alpha, d)
+
+## WK-156: screen rects of every living goat (body x 1.15 for horns / jet flame) and every visible identity tag.
+func _goat_rects() -> Array:
+	var out: Array = []
+	var m: Node = get_parent()
+	if m == null:
+		return out
+	var players: Variant = m.get("players")
+	if players is Array:
+		for p in (players as Array):
+			if not (p is Node2D) or not is_instance_valid(p) or not (p as Node2D).is_visible_in_tree():
+				continue
+			if p.has_method("is_dead") and bool(p.call("is_dead")):
+				continue
+			var xf: Transform2D = (p as Node2D).get_global_transform_with_canvas()
+			var rv: Variant = p.get("_radius")
+			var rr: float = (float(rv) if rv != null else 44.0) * 1.15 * xf.get_scale().x
+			out.append(Rect2(xf.origin - Vector2(rr, rr), Vector2(rr, rr) * 2.0))
+	var pips: Variant = m.get("_pips")
+	if pips is Control and is_instance_valid(pips):
+		for pip in (pips as Control).get_children():
+			if pip is Control and (pip as Control).visible and (pip as Control).modulate.a > 0.05 \
+					and pip.has_method("local_rect"):
+				var lr: Rect2 = pip.call("local_rect")   # already x the pip's scale
+				out.append(Rect2((pip as Control).position + lr.position, lr.size))
+	return out
 
 func _bounce_chip(p: PanelContainer) -> void:
 	var tw := create_tween()

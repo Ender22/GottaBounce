@@ -228,14 +228,23 @@ func _slot_rects(sz: Vector2) -> Array:
 ## On-screen footprints of every camera-framed objective (TrialsMode.camera_focus_points - the same
 ## seam the camera uses), widened to the goal node's own w/h when one sits on the point.
 func goal_screen_rects(mode = null) -> Array:
+	var split: Array = _focus_rects_split(mode)
+	return (split[0] as Array) + (split[1] as Array)
+
+## WK-158 (CD4-07c): [goals, movers]. A focus point with a goal node sitting on it (goal_gate / goal_zone / trials_target)
+## is a GOAL; one without (the PHYSICS_PUZZLE ball) is a MOVER. The ball used to cost like a goal, so a ball flight
+## under the top-centre panel threw it to the top-left mid-course and back. Movers now cost Tuning.trials_panel_mover_cost
+## per px^2 (0 = ignored); goals keep COST_GOAL.
+func _focus_rects_split(mode = null) -> Array:
 	if mode == null and _runner != null:
 		mode = _runner._mode
 	var out: Array = []
+	var movers: Array = []
 	if mode == null or not mode.has_method("camera_focus_points"):
-		return out
+		return [out, movers]
 	var pts: Array = mode.camera_focus_points(_runner)
 	if pts.is_empty():
-		return out
+		return [out, movers]
 	var xf: Transform2D = get_viewport().get_canvas_transform()
 	var zoom: float = xf.get_scale().x
 	var sized: Array = []
@@ -246,13 +255,18 @@ func goal_screen_rects(mode = null) -> Array:
 	for fp in pts:
 		var wp: Vector2 = fp
 		var half := Vector2(GOAL_FOOT_MIN, GOAL_FOOT_MIN)
+		var on_goal := false   # WK-158
 		for g in sized:
 			if is_instance_valid(g) and (g as Node2D).global_position.distance_to(wp) < 1.0:
 				half = half.max(Vector2(float(g.w), float(g.h)) * 0.5)
+				on_goal = true
 		var c: Vector2 = xf * wp
 		var hs: Vector2 = half * zoom + Vector2(GOAL_CLEAR, GOAL_CLEAR)
-		out.append(Rect2(c - hs, hs * 2.0))
-	return out
+		if on_goal or not Tuning.trials_panel_split_movers:
+			out.append(Rect2(c - hs, hs * 2.0))
+		else:
+			movers.append(Rect2(c - hs, hs * 2.0))   # WK-158
+	return [out, movers]
 
 func _player_screen_rects() -> Array:
 	var out: Array = []
@@ -284,9 +298,10 @@ static func _overlap(r: Rect2, list: Array) -> float:
 		a += ix.get_area()
 	return a
 
-func _slot_cost(r: Rect2, rank: int, goals: Array, legend: Array, plrs: Array) -> float:
+func _slot_cost(r: Rect2, rank: int, goals: Array, legend: Array, plrs: Array, movers: Array = []) -> float:
 	return COST_GOAL * _overlap(r, goals) + COST_LEGEND * _overlap(r, legend) \
-		+ COST_PLAYER * _overlap(r, plrs) + COST_RANK * float(rank)
+		+ COST_PLAYER * _overlap(r, plrs) + COST_RANK * float(rank) \
+		+ Tuning.trials_panel_mover_cost * _overlap(r, movers)   # WK-158
 
 func _place_home_panel(mode, delta: float) -> void:
 	if not _home_panel.visible:
@@ -295,14 +310,16 @@ func _place_home_panel(mode, delta: float) -> void:
 	var sz: Vector2 = _home_panel.get_combined_minimum_size()
 	_home_panel.size = sz
 	var slots := _slot_rects(sz)
-	var goals := goal_screen_rects(mode)
+	var split: Array = _focus_rects_split(mode)   # WK-158: goals hard, the ball (a mover) at its own weight
+	var goals: Array = split[0]
+	var movers: Array = split[1]
 	var legend := _legend_rects()
 	var plrs := _player_screen_rects()
 	var best := 0
 	var best_cost := INF
 	var costs: Array = []
 	for i in range(slots.size()):
-		var c := _slot_cost(slots[i], i, goals, legend, plrs)
+		var c := _slot_cost(slots[i], i, goals, legend, plrs, movers)
 		costs.append(c)
 		if c < best_cost:
 			best_cost = c
@@ -495,6 +512,8 @@ func hide_center() -> void:
 	_match_hints.visible = false
 	if _victory != null and _victory.is_live():
 		_victory.dismiss()   # WK-142: PLAY AGAIN starts a new stage
+	if not _goats_hidden.is_empty():
+		_hide_world_goats(false)   # WK-158
 	if _end_hidden:
 		_set_end_hidden(false)   # WK-139: a new stage (PLAY AGAIN) brings the combat HUD back
 
@@ -651,7 +670,27 @@ func _present_victory() -> bool:
 			"skin": str(p.skin),
 		})
 	_victory.present({"circuit": circ, "next": TrialsMode.circuit_info(nid) if nid != "" else {}, "goats": goats})
+	_hide_world_goats(true)   # WK-158
 	return true
+
+## WK-158 (CD4-07e): the frozen in-world goat sat right behind the celebration goat (the punch-zoom frames it at screen
+## centre, where the Herd hops), reading as a double through the 0.8 scrim. The world goats hide while the celebration is
+## up and come back on PLAY AGAIN (hide_center); NEXT / SETUP / QUIT leave the scene anyway.
+var _goats_hidden: Array = []   # WK-158: the players this HUD hid
+
+func _hide_world_goats(on: bool) -> void:
+	if on:
+		if not Tuning.trials_victory_hide_goats or _runner == null:
+			return
+		for p in _runner.players:
+			if is_instance_valid(p) and (p as Node2D).visible:
+				(p as Node2D).visible = false
+				_goats_hidden.append(p)
+		return
+	for p in _goats_hidden:
+		if is_instance_valid(p):
+			(p as Node2D).visible = true
+	_goats_hidden.clear()
 
 ## The celebration's button: NEXT is handled here (scene reload with the next course set); the other three go to the
 ## runner through the same signal the old row used.

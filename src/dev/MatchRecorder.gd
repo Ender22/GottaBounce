@@ -31,6 +31,9 @@ var _pt_pending: Array = []    # {victim, hazard, smashes_before, deadline, f}
 var _out_dir := ""
 var _elim_stage := -1          # WK-37 QA fixture: stage index the `eliminate` seats were last knocked out in
 var _elim_t := 0.0
+var _shot_stage := -1          # WK-159 QA fixture: stage index the `ball_shot` last fired in
+var _shot_t := 0.0             # WK-159
+var _ball_track: Array = []    # WK-159: [{f, t, st, x, y, in, scored}] while the fixture is on
 
 @onready var _stamp: Label = $Stamp/Label
 
@@ -122,6 +125,7 @@ func _process(delta: float) -> void:
 	if _combat_frame >= 0:
 		_tick_pendulum_test(players)
 		_tick_eliminate(st)
+		_tick_ball_shot(st)   # WK-159
 		if _combat_acc >= float(cfg.get("seconds", 20.0)):
 			_finish()
 
@@ -290,6 +294,39 @@ func _tick_eliminate(st: String) -> void:
 			players[i].kill(&"ring_out", null)
 	_ev("eliminate_fixture", {"seats": seats})
 
+## WK-159 QA fixture (`ball_shot=x,y,vx,vy`): 1.0 s into every stage's COMBAT, freeze the goats and fire the ball from world
+## (x, y) at (vx, vy) (PhysicsServer2D state: a RigidBody2D position written from outside is overwritten next step). While the
+## fixture is on, every frame logs the ball + whether its centre is inside the goal zone rect + the zone latch.
+func _tick_ball_shot(st: String) -> void:
+	var shot: Array = cfg.get("ball_shot", [])
+	if shot.size() < 4:
+		return
+	var b: Node2D = get_tree().get_first_node_in_group("sports_ball") as Node2D
+	var z: Node2D = get_tree().get_first_node_in_group("goal_zone") as Node2D
+	if b != null and z != null:
+		var rel: Vector2 = b.global_position - z.global_position
+		var inside: bool = absf(rel.x) <= float(z.get("w")) * 0.5 and absf(rel.y) <= float(z.get("h")) * 0.5
+		_ball_track.append({"f": Engine.get_frames_drawn(), "t": snappedf(_game_t, 0.001), "st": st,
+			"x": snappedf(b.global_position.x, 0.1), "y": snappedf(b.global_position.y, 0.1), "in": inside,
+			"scored": bool(z.get("scored"))})
+	if st != "COMBAT":
+		_shot_t = 0.0
+		return
+	var si: int = int(_scene.get("stage_index"))
+	if si == _shot_stage or b == null or not (b is RigidBody2D):
+		return
+	for p in (_scene.get("players") as Array):
+		if is_instance_valid(p):
+			p.frozen = true
+	_shot_t += get_process_delta_time()
+	if _shot_t < 1.0:
+		return
+	_shot_stage = si
+	var rid: RID = (b as RigidBody2D).get_rid()
+	PhysicsServer2D.body_set_state(rid, PhysicsServer2D.BODY_STATE_TRANSFORM, Transform2D(0.0, Vector2(float(shot[0]), float(shot[1]))))
+	PhysicsServer2D.body_set_state(rid, PhysicsServer2D.BODY_STATE_LINEAR_VELOCITY, Vector2(float(shot[2]), float(shot[3])))
+	_ev("ball_shot_fixture", {"shot": shot, "stage": si})
+
 ## WK-20e: a super press dropped by the spawn truce (the padlock + dry click fire on this event).
 func _on_super_lock_pressed(player) -> void:
 	var prot: float = float(player.spawn_protect_left()) if is_instance_valid(player) else -1.0
@@ -376,6 +413,7 @@ func _finish() -> void:
 		"combat_frame": _combat_frame, "frames": _frames, "aim_windows": _aim_windows, "events": _events,
 		"hazards": hz,
 		"round_stats": _round_stats_json(),
+		"ball_track": _ball_track,   # WK-159 (empty unless ball_shot=)
 	}
 	var f := FileAccess.open(_out_dir.path_join("data.json"), FileAccess.WRITE)
 	if f != null:

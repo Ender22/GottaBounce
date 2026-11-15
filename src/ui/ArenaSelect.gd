@@ -374,6 +374,7 @@ func _load_trials_cards() -> Array:
 			"trials_set": true,
 			"difficulty": n,
 			"arena_count": have,
+			"card_focus_y": float(ed.get("card_focus_y", 0.5)),   # WK-158: crest focal height for the shelf-card crop
 		})
 	return out
 
@@ -484,6 +485,26 @@ func _circuit_name(cid: String) -> String:
 						_circuit_display[str(k)] = str((e as Dictionary).get("display_name", k))
 	return str(_circuit_display.get(cid, cid))
 
+## WK-158 (CD4-07b): COVERED always crops around the art's CENTRE, so a portrait crest whose subject sits high (FLIGHT
+## SCHOOL: the goat in the ring is at ~1/3 height) lost its goat to the plate's top edge. Swap in an AtlasTexture region with
+## the plate's aspect centred on `fy` (0 = top, 1 = bottom; clamped inside the art); refits whenever the plate resizes.
+func _focus_crop(art: TextureRect, tex: Texture2D, fy: float) -> void:
+	var fit := func() -> void:
+		var sz: Vector2 = art.size
+		if sz.x < 2.0 or sz.y < 2.0 or tex == null:
+			return
+		var tw: float = float(tex.get_width())
+		var th: float = float(tex.get_height())
+		var rw: float = minf(tw, th * sz.x / sz.y)
+		var rh: float = minf(th, tw * sz.y / sz.x)
+		var y0: float = clampf(fy * th - rh * 0.5, 0.0, th - rh)
+		var at := AtlasTexture.new()
+		at.atlas = tex
+		at.region = Rect2((tw - rw) * 0.5, y0, rw, rh)
+		art.texture = at
+	art.resized.connect(fit)
+	fit.call()
+
 ## Instance + dress one MenuCard for a shelf (sizes per §3.3; internals of MenuCard unchanged).
 func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 	var big := shelf_id == 0
@@ -507,6 +528,9 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 		var art := card.get_node_or_null("Content/VBox/Plate/Art")
 		if art is TextureRect:
 			(art as TextureRect).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			var fy: float = float(a.get("card_focus_y", 0.5))
+			if not is_equal_approx(fy, 0.5):
+				_focus_crop(art as TextureRect, thumb, fy)   # WK-158
 	# fixed name band so 1- and 2-line names align card-to-card (§3.3): Shelf A 100px / Shelf B 80px
 	# (inner Labels min height; the strip's own padding tops it up).
 	# WK-60b: every shelf card is name + ONE line (stars + count / the court in words / the unlock condition), so

@@ -132,6 +132,8 @@ func _process(delta: float) -> void:
 	var vic = _match.get("_victory")
 	if vic != null and is_instance_valid(vic) and vic.visible:
 		active = false   # the VictoryScreen ceremony owns the screen (no pip ghosts through its scrim)
+	elif _hud_end_screen_up():
+		active = false   # WK-157 (CD4-07d): same rule for the mode HUDs' end screens (SportsVictory / TrialsVictory)
 	var vp: Vector2 = get_viewport_rect().size
 	# ONE cue at a time: the same frame EdgeIndicators uses. Goat centre inside it -> pip; outside -> chevron.
 	var inset: float = PartyMatch.CAM_OFFSCREEN_INSET
@@ -275,6 +277,17 @@ func _process(delta: float) -> void:
 		pip.position = sp.round()
 		pip.modulate.a = a
 		pip.visible = true
+
+## WK-157 (CD4-07d): Sports and Trials own their end screen inside the mode HUD (SportsHUD / TrialsHUD `_victory`, a
+## higher CanvasLayer), not PartyMatch._victory, so a live "P1" tag kept drawing through the scrim above the stats panel.
+func _hud_end_screen_up() -> bool:
+	var hud = _match.get("_hud")
+	if hud == null or not is_instance_valid(hud) or not (hud is Node):
+		return false
+	var hv: Variant = (hud as Node).get("_victory")
+	if hv == null or not is_instance_valid(hv) or not (hv is CanvasLayer):
+		return false
+	return (hv as CanvasLayer).visible
 
 ## WK-35 / CD2-06: the HUD's live centre banner in screen space (every mode HUD has Root/CenterC/CenterBox), padded;
 ## an empty Rect2 when no banner is up.

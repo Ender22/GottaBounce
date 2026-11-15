@@ -6,6 +6,7 @@
       "display_name": "FLIGHT SCHOOL",
       "tagline": "Learn the wings.",
       "color": "#54c94a",
+      "card_focus_y": 0.33,
       "courses": [
         "res://levels/courses/tut_01_first_flight.json",
         "res://levels/courses/tut_02_super_shot.json",

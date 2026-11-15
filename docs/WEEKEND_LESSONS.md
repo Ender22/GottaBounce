@@ -226,3 +226,12 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   sports match -> MATCH_END, and a loop counting COMBAT seconds then never finishes; raise it at runtime and break on MATCH_END.
 - **WK-135 p3: the FIRST sports run of a probe session is an outlier** (touches/min 51-88 vs 65-163 for later runs, same build and arm).
   Whatever arm runs first looks worse; alternate arm order or discard run 1 before comparing 90 s sports samples.
+- **WK-159: a Trials course switches well under a second of game time after SOLVED!**, and gbplay round-trips are ~0.7 s, so stills
+  of the post-goal ball miss it. Set `Engine.time_scale = 0.2` around the shot (restore after) and log the ball per physics tick from a
+  `get_tree().physics_frame` lambda kept in `Engine.set_meta`. Disconnect it before the next course: a lambda that captured nodes from
+  a freed course spams "Lambda capture at index N was freed" into the run `.err` (probe noise, not a game bug).
+- WK-158: to park the Trials puzzle ball for a still, freeze it and set `global_position` (a FROZEN RigidBody2D ignores
+  `PhysicsServer2D.body_set_state(TRANSFORM)`), keep it inside `runner.bounds` (an out-of-bounds ball auto-resets to its spawn after
+  `reset_settle_s`), and aim through `get_viewport().get_canvas_transform().affine_inverse() * screen_px` (the camera re-frames focus points).
+- WK-156: a CanvasLayer HUD can't be drawn under world sprites, so "goat behind the legend" is solved by per-chip dimming from the goats'
+  screen rects (`Node2D.get_global_transform_with_canvas()`) + the PlayerPips tag rects, not by z-order.

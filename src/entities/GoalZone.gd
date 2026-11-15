@@ -59,6 +59,13 @@ var scored_ball_t: float = -1.0   # WK-131
 var _shape_rect: RectangleShape2D = null   # WK-116
 var _fresh_block: Array = []               # WK-116: balls that must leave the rect before they can latch
 var pressure_instant_goals: int = 0        # WK-116 (QA)
+# WK-159 (CD4-08): a TRIALS cage is display-only (no roof / floor colliders), so a fast ball latched SOLVED! and then
+# ricocheted off the back wall straight back out over the cage top. On the latch a `style: "trials"` zone CATCHES the
+# ball: speed cut to Tuning.trials_net_catch_keep, gravity off, then a damped spring toward the cage centre for
+# Tuning.trials_net_catch_s. Sports zones (any other style) never run this, so the sports latch is unchanged.  # WK-159
+var _catch_ball: RigidBody2D = null   # WK-159
+var _catch_t: float = 0.0             # WK-159: s of catch left
+var _catch_grav: float = 1.0          # WK-159: the ball's gravity_mult before the catch (restored after)
 
 func setup_from_json(o: Dictionary) -> void:
 	w = float(o.get("w", 200.0))
@@ -198,8 +205,55 @@ func _physics_process(delta: float) -> void:
 					scored_ball_t = float(b.call("ball_clock"))   # WK-131
 				_flash = 1.0
 				_score_burst((b as Node2D).global_position)
+				if style == "trials" and Tuning.trials_net_catch and b is RigidBody2D:   # WK-159
+					_start_catch(b as RigidBody2D)   # WK-159
 				break
+	if _catch_ball != null:   # WK-159
+		_tick_catch(delta)   # WK-159
 	queue_redraw()
+
+## WK-159: begin the net catch on ball `b` (trials cages only; called once, at the latch).
+func _start_catch(b: RigidBody2D) -> void:   # WK-159
+	_catch_ball = b
+	_catch_t = Tuning.trials_net_catch_s
+	var gm: Variant = b.get("gravity_mult")
+	_catch_grav = float(gm) if gm != null else 1.0
+	if gm != null:
+		b.set("gravity_mult", _catch_grav * Tuning.trials_net_catch_gravity)
+	b.linear_velocity = b.linear_velocity * Tuning.trials_net_catch_keep
+
+## WK-159: one physics tick of the catch. The net is a soft box = the zone rect shrunk by the ball radius: velocity decays
+## at trials_net_catch_damp /s; a component carrying the ball out through a side flips inward at trials_net_catch_wall_keep
+## (a dead net bounce), and a ball already past a side is eased back in at trials_net_catch_push /s. With the reduced gravity
+## it sinks to the net's bottom (or the floor) and stays, instead of escaping the display-only cage. Velocity only, never
+## a teleport (a RigidBody2D's position written from outside is overwritten by the next physics step).
+func _tick_catch(delta: float) -> void:   # WK-159
+	if not is_instance_valid(_catch_ball):
+		_catch_ball = null
+		return
+	_catch_t -= delta
+	if _catch_t <= 0.0:
+		if _catch_ball.get("gravity_mult") != null:
+			_catch_ball.set("gravity_mult", _catch_grav)
+		_catch_ball = null
+		return
+	var rv: Variant = _catch_ball.get("radius")
+	var r: float = minf(float(rv) if rv != null else 60.0, minf(w, h) * 0.5 - 1.0)
+	var lo: Vector2 = global_position - Vector2(w, h) * 0.5 + Vector2(r, r)
+	var hi: Vector2 = global_position + Vector2(w, h) * 0.5 - Vector2(r, r)
+	var p: Vector2 = _catch_ball.global_position
+	var v: Vector2 = _catch_ball.linear_velocity * exp(-Tuning.trials_net_catch_damp * delta)
+	var keep: float = Tuning.trials_net_catch_wall_keep
+	var push: float = Tuning.trials_net_catch_push
+	if p.x < lo.x and v.x < (lo.x - p.x) * push:
+		v.x = maxf(absf(v.x) * keep, (lo.x - p.x) * push)
+	elif p.x > hi.x and v.x > (hi.x - p.x) * push:
+		v.x = minf(-absf(v.x) * keep, (hi.x - p.x) * push)
+	if p.y < lo.y and v.y < (lo.y - p.y) * push:
+		v.y = maxf(absf(v.y) * keep, (lo.y - p.y) * push)
+	elif p.y > hi.y and v.y > (hi.y - p.y) * push:
+		v.y = minf(-absf(v.y) * keep, (hi.y - p.y) * push)
+	_catch_ball.linear_velocity = v
 
 func _team_color() -> Color:
 	return TEAM_COLORS[team % TEAM_COLORS.size()]

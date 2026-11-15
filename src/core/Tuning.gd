@@ -1219,3 +1219,22 @@ var sports_pressure_chant_db: float = -4.0    # dB crowd clap-chant loop from st
 var sports_pressure_clunk_db: float = -4.0    # dB step-1 ka-CHUNK (per mouth; step 2 is +3 dB and lower)  # WK-116
 var sports_pressure_ooh_db: float = -9.0      # dB step-1 crowd "OOOH" (rewardCheer slowed)  # WK-116
 var sports_pressure_fade_out_s: float = 0.25  # s bed + chant fade at the goal (the normal goal roar takes over)  # WK-116
+
+# --- WK-156 controls legend never hides a goat (CD4-06). Read by src/ui/ControlsLegend.gd (_dim_under_goats).  # WK-156
+var legend_goat_dim: bool = true              # a legend chip a living goat / its tag overlaps fades out of the way (false = pre-WK-156)  # WK-156
+var legend_goat_overlap_alpha: float = 0.15   # alpha of a chip with a goat or tag under it (the goat reads through)  # WK-156
+var legend_goat_overlap_fade: float = 0.12    # s the dim in / out takes  # WK-156
+var legend_goat_pad_px: float = 6.0           # px the chip rect is grown by for the overlap test  # WK-156
+var legend_goat_hysteresis_px: float = 14.0   # extra px a DIMMED chip tests with (no flicker on the edge)  # WK-156
+# --- WK-158 Trials nits (CD4-07 c / e). Read by src/ui/TrialsHUD.gd.  # WK-158
+var trials_panel_split_movers: bool = true    # the objective panel treats a focus point with no goal node on it (the puzzle ball) as a mover  # WK-158
+var trials_panel_mover_cost: float = 0.0      # per px^2 slot cost of covering a mover (0 = the panel never chases the ball; goals keep COST_GOAL 20)  # WK-158
+var trials_victory_hide_goats: bool = true    # the in-world goats hide while the TrialsVictory celebration is up (back on PLAY AGAIN)  # WK-158
+# --- WK-159 Trials net catches the ball on SOLVED! (CD4-08). Read by src/entities/GoalZone.gd (style "trials" zones only).  # WK-159
+var trials_net_catch: bool = true             # false = pre-WK-159 (the ball keeps its speed and can ricochet out of the cage)  # WK-159
+var trials_net_catch_keep: float = 0.4        # x the ball's velocity at the latch  # WK-159
+var trials_net_catch_damp: float = 3.5        # 1/s velocity decay while caught  # WK-159
+var trials_net_catch_gravity: float = 0.5     # x the ball's gravity while caught (it sinks into the net, not drops through)  # WK-159
+var trials_net_catch_wall_keep: float = 0.3   # x speed a ball heading out through a net side keeps when it turns back in  # WK-159
+var trials_net_catch_push: float = 6.0        # 1/s ease back inside for a ball already past a net side (velocity = gap x this)  # WK-159
+var trials_net_catch_s: float = 4.0           # s the catch lasts (the course change frees the ball first; gravity restored after)  # WK-159

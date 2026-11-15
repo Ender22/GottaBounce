@@ -23,6 +23,8 @@ extends Node
 ##   circuit=<id>          WK-20e: play a levels/circuits.json circuit in order (e.g. meadow_mile); ignored if arena= is set
 ##   lock_press=0,1        WK-20e QA fixture: these seats also press super while spawn-protected (hold 0.15-0.55 s, tap at
 ##                         0.80 s of the blink), so the Brawl spawn-truce padlock + dry click show in the recording
+##   ball_shot=x,y,vx,vy   WK-159 QA fixture: 1.0 s into each stage's COMBAT, freeze the goats and fire the ball (Trials puzzle
+##                         ball / sports ball) from world (x, y) at (vx, vy); data.json gets a per-frame "ball_track"
 
 const MATCH_SCENE := "res://scenes/Arena.tscn"
 const RECORDER_SCENE := "res://scenes/dev/MatchRecorder.tscn"
@@ -81,6 +83,7 @@ func _ready() -> void:
 		"eliminate": Array(str(args.get("eliminate", "")).split(",", false)).map(func(x): return int(x)),
 		"lock_press": Array(str(args.get("lock_press", "")).split(",", false)).map(func(x): return int(x)),   # WK-20e
 		"circuit": str(args.get("circuit", "")),   # WK-20e
+		"ball_shot": Array(str(args.get("ball_shot", "")).split(",", false)).map(func(x): return float(x)),   # WK-159
 	})
 	get_tree().root.add_child.call_deferred(rec)
 	get_tree().change_scene_to_file.call_deferred(MATCH_SCENE)

@@ -1502,6 +1502,18 @@ func _refresh_glyphs() -> void:
 	(_rb_glyph as Object).call("setup", "key:E" if kb else "RB")
 	(_view_glyph as Object).call("setup", "key:TAB" if kb else "VIEW")
 	(get_node("Footer/HintRow/GFlair/Glyph") as Object).call("setup", "arrows" if kb else "stick")   # WK-29: no stick on a keyboard
+	# WK-157 (CD4-07a, CC-1.6 / CC-1.7): with a pad AND the keyboard seated, the footer was pad-only (A / B / Y / stick),
+	# so the keyboard player had no footer prompt at all while ArenaSelect already said "A / ENTER". A mixed couch now
+	# sees both twins on every footer chip: [A] / [ENTER] JOIN / READY · [B] / [ESC] BACK OUT · [Y] / [R] RANDOM ·
+	# (+) / [< >] GOAT / FLAIR. Static (join / leave only), so nothing flickers while four people mash.
+	var twins := {"GJoin": "key:ENTER", "GBack": "key:ESC", "GRandom": "key:R", "GFlair": "arrows"}
+	for gn in twins:
+		var g2: Control = get_node("Footer/HintRow/%s/Glyph2" % gn) as Control
+		var sl: Control = get_node("Footer/HintRow/%s/Slash" % gn) as Control
+		g2.visible = mixed
+		sl.visible = mixed
+		if mixed:
+			(g2 as Object).call("setup", str(twins[gn]))
 	(_go_glyph as Object).call("setup", "key:ENTER" if kb else "START")
 	# dual GO prompt for a mixed couch (WK-138: GO lives only on the banner, never in the footer)
 	_go_slash.visible = mixed

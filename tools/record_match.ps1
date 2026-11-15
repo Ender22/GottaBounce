@@ -34,7 +34,8 @@ param(
     [int]$Lives = 1,
     [string]$Eliminate = "",
     [string]$Circuit = "",
-    [string]$LockPress = ""
+    [string]$LockPress = "",
+    [string]$BallShot = ""
 )
 $ErrorActionPreference = "Stop"
 $godot = "C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe"
@@ -95,6 +96,7 @@ $user += "lives=$Lives"
 if ($Eliminate -ne "") { $user += "eliminate=$Eliminate" }
 if ($Circuit -ne "") { $user += "circuit=$Circuit" }   # WK-20e
 if ($LockPress -ne "") { $user += "lock_press=$LockPress" }   # WK-20e
+if ($BallShot -ne "") { $user += "ball_shot=$BallShot" }   # WK-159 QA fixture: x,y,vx,vy fired 1 s into each stage
 $user += "--gb-port=0"   # WK-130: no automation server in recordings (never steals/binds a port)
 
 $argList = @("--path", "`"$proj`"", "--resolution", "1280x720", "--position", "50,50",
