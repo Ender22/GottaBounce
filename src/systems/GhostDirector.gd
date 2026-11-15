@@ -5,7 +5,7 @@ extends Node2D
 ## ghosts draw ABOVE platforms and BELOW every living goat (spec §5 draw order).
 ##
 ## Responsibilities:
-##   * elimination -> a GhostGoat ghost_spawn_delay (REAL s, > double_ko_window) later, at the death position clamped
+##   * elimination -> a GhostGoat ghost_spawn_delay (GAME s since WK-178; was REAL s, > double_ko_window) later, at the death position clamped
 ##     into the camera view; cancelled if the stage ended / the player was revived (double-KO SD) meanwhile (T7);
 ##   * per tick: drive each ghost (its provider = the human's own InputHuman, or a GhostBot), clamp it to the view
 ##     (ghosts follow the camera, NEVER the reverse — spec §4), alpha near living goats, puff-ready orbit;
@@ -31,7 +31,7 @@ var runner                        # PartyMatch
 var mode: int = 0                 # MatchConfig.Ghosts.ON / BAA_ONLY
 var ghosts := {}                  # player idx -> GhostGoat
 var clouds: Array = []            # live GhostPuff nodes
-var _pending: Array = []          # [{idx, left (real s), pos, t_elim}]
+var _pending: Array = []          # [{idx, left (game s, WK-178; real s when wk178_ghost_game_time is off), pos, t_elim}]
 var _cloud_layer: Node2D
 var _ghost_layer: Node2D
 var _ui: CanvasLayer              # word bursts + ghost legends (screen space, below the HUD)
@@ -498,7 +498,7 @@ func _physics_process(delta: float) -> void:
 	if fight:
 		_clock += delta
 		_update_hush()
-		_tick_pending(rdelta)
+		_tick_pending(delta if Tuning.wk178_ghost_game_time else rdelta)   # WK-178: game time (KO hit-stop slows the rise too)
 	var view := view_inset_rect()
 	var living := living_players()
 	for i in ghosts.keys():
@@ -559,13 +559,16 @@ func _process(_delta: float) -> void:
 		if is_instance_valid(g) and not g.frozen and r.size.x > 0.0 and not r.has_point(g.global_position):
 			g.stats["offscreen_frames"] = int(g.stats.get("offscreen_frames", 0)) + 1
 
-func _tick_pending(rdelta: float) -> void:
+func _tick_pending(rdelta: float) -> void:   # WK-178: rdelta is GAME s when Tuning.wk178_ghost_game_time (default)
 	for e in _pending.duplicate():
 		e["left"] = float(e["left"]) - rdelta
 		if float(e["left"]) > 0.0:
 			continue
-		_pending.erase(e)
 		var i: int = int(e["idx"])
+		if Tuning.wk178_hold_while_revivable and i >= 0 and i < runner.players.size() and _wk178_revivable(i):   # WK-178
+			e["wk178_held"] = true   # WK-178: stays pending; spawns once the double-KO chance is gone, or is cancelled by the revive
+			continue   # WK-178
+		_pending.erase(e)
 		if i < 0 or i >= runner.players.size():
 			continue
 		var p = runner.players[i]
@@ -573,6 +576,20 @@ func _tick_pending(rdelta: float) -> void:
 		if not is_instance_valid(p) or not p.is_dead() or int(runner.lives_left[i]) > 0 or ghosts.has(i):
 			continue
 		_spawn_ghost(i, p, e["pos"])
+
+## WK-178: could seat i still come back in a double-KO sudden-death revive? True while PartyMatch's stage decision is pending
+## (_end_check: the survivor may still be mid-double-KO) or while i sits in the open simultaneous-elimination group
+## (_recent_dead, last death within double_ko_window of round_clock) and this stage has not revived yet. Read-only peek.  # WK-178
+func _wk178_revivable(i: int) -> bool:  # WK-178
+	if bool(runner.get("_revived_this_stage")):  # WK-178: one revive per stage, already spent
+		return false  # WK-178
+	var p = runner.players[i]  # WK-178
+	var rd: Variant = runner.get("_recent_dead")  # WK-178
+	if not (rd is Array) or not (rd as Array).has(p):  # WK-178
+		return false  # WK-178
+	if float(runner.get("_end_check")) >= 0.0:  # WK-178: stage decision still deferred
+		return true  # WK-178
+	return float(runner.round_clock) - float(runner.get("_last_death_clock")) <= Tuning.double_ko_window  # WK-178
 
 func _spawn_ghost(i: int, p, death_pos: Vector2) -> void:
 	var g = GHOST_SCRIPT.new()

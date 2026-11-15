@@ -1408,3 +1408,35 @@ var showdown_rim_gap_px: float = 3.0          # SCREEN px past that radius befor
 var showdown_rim_halo_px: float = 7.0         # SCREEN px the soft gold halo extends past the ring  # WK-169
 var showdown_banner_time: float = 1.0         # s the "SHOWDOWN!" top band holds (= TWO LEFT!)  # WK-169
 var showdown_long_wait_s: float = 15.0        # telemetry: a human wait longer than this counts as a long wait (S3)  # WK-169
+# --- WK-99 fuel gauge super-ready notch + CD3-04b billed re-light chunk flash (brawl half). Read by src/ui/PlayerCard.gd  # WK-99
+# (corner card gauge) and src/ui/EdgeIndicators.gd (WK-36 off-screen bubble fuel ring). The notch sits at super_boost_min_fuel  # WK-99
+# / fuel_max (10 %): LIT (tall cream tick, chocolate outline) when the tank can fire a super, UNLIT (short dark tick) below it,  # WK-99
+# so the read is size + luminance, never hue. The chunk flash: when a mid-air re-light is billed (WK-128 R2) the slice of the  # WK-99
+# gauge the bill took pops white just past the fill end and drops away. Sports has no per-player cards: its widget is not built.  # WK-99
+var wk99_notch_on: bool = true                # card gauge notch. false = the pre-WK-99 gauge  # WK-99
+var wk99_notch_w: float = 8.0                 # px notch width (incl. its 2 px chocolate outline)  # WK-99
+var wk99_notch_overhang: float = 4.0          # px a LIT notch pokes above and below the gauge (unlit: flush with the gauge, inset by the fill pad)  # WK-99
+var wk99_notch_unlit: Color = Color(0.62, 0.56, 0.52, 1.0)   # modulate on the cream notch below the threshold (muted taupe tick, flush with the track)  # WK-99
+var wk99_notch_pop_s: float = 0.22            # s the notch's pop takes when the tank crosses UP through the threshold  # WK-99
+var wk99_notch_pop_scale: float = 1.6         # notch scale at the start of that pop  # WK-99
+var wk99_bill_flash_on: bool = true           # CD3-04b billed-chunk flash. false = no flash  # WK-99
+var wk99_bill_min_px: float = 12.0           # px min chunk width (a 1-3 fuel bill is ~2-5 px on the gauge: unreadable at 3 m)  # WK-99
+var wk99_bill_overhang: float = 3.0           # px the chunk pokes above / below the fill  # WK-99
+var wk99_bill_hold_s: float = 0.10            # s the chunk holds bright before dropping  # WK-99
+var wk99_bill_drop_s: float = 0.45            # s it falls and fades  # WK-99
+var wk99_bill_drop_px: float = 16.0           # px it falls  # WK-99
+var wk99_bubble_notch: bool = true            # WK-36 bubble fuel ring tick at the same threshold (lit cream / unlit chocolate)  # WK-99
+var wk99_bubble_notch_deg: float = 7.0        # deg the bubble tick spans across the ring  # WK-99
+# --- WK-173 (CD5-06) corner-card stickers and the KO "+1" chip stay out of the way. Read by src/ui/PlayerCard.gd /  # WK-173
+# src/ui/MatchHUD.gd (sticker + stock-tab dim, same rule as WK-156's legend chips) and src/ui/KOCreditPop.gd (+1 landing point).  # WK-173
+var wk173_tab_goat_dim: bool = true           # a HURT!/DANGER! sticker (and the stock tab) a living goat overlaps fades out of the way  # WK-173
+var wk173_tab_dim_alpha: float = 0.18         # alpha of a sticker / stock tab with a goat under it (the goat reads through)  # WK-173
+var wk173_tab_dim_fade: float = 0.12          # s the dim in / out takes  # WK-173
+var wk173_tab_pad_px: float = 6.0             # px the sticker rect is grown by for the overlap test  # WK-173
+var wk173_tab_hysteresis_px: float = 14.0     # extra px a DIMMED sticker tests with (no flicker on the edge)  # WK-173
+var wk173_chip_clear_name: bool = true        # the "+1" / OOPS chip lands beside the card NAME (its far end), never on it  # WK-173
+var wk173_chip_name_gap: float = 6.0          # px between the name's right edge and the landed chip's left edge  # WK-173
+# --- WK-178 ghost rise delay on GAME time (WK-37 ghost_spawn_delay was REAL s: under KO hit-stop a ghost rose ~0.15 game-s after  # WK-178
+# its death, before a double-KO sudden-death revive at +0.16 s). Read ONLY by src/systems/GhostDirector.gd.  # WK-178
+var wk178_ghost_game_time: bool = true        # ghost_spawn_delay counts scaled (game) seconds. false = real seconds (WK-37)  # WK-178
+var wk178_hold_while_revivable: bool = true   # a due ghost waits while its goat could still be revived (double-KO window open / stage decision pending)  # WK-178

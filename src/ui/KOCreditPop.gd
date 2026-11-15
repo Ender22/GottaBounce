@@ -56,6 +56,11 @@ func pop(kind: String, card: Control, text: String, color: Color, loc: Dictionar
 	var half: Vector2 = sz * 0.5 + Vector2(12.0, 12.0) * k
 	from = Vector2(clampf(from.x, half.x, vp.x - half.x), clampf(from.y, half.y, vp.y - half.y))
 	var to: Vector2 = card.get_global_rect().get_center()
+	if card.has_method("wk173_credit_target"):   # WK-173 (CD5-06): land beside the card NAME, never on it
+		var wk173_land: Vector2 = sz * Tuning.ko_pop_fly_scale   # WK-173: the chip's size on arrival
+		to = card.call("wk173_credit_target", wk173_land)   # WK-173
+		var wk173_half: Vector2 = wk173_land * 0.5 + Vector2(6.0, 6.0) * k   # WK-173: keep the landed chip on screen
+		to = Vector2(clampf(to.x, wk173_half.x, vp.x - wk173_half.x), clampf(to.y, wk173_half.y, vp.y - wk173_half.y))   # WK-173
 	# border-hugging control point: travel ALONG the KO edge first, then along the card's side
 	var ctrl: Vector2 = from.lerp(to, 0.5)
 	if edge == "left" or edge == "right":

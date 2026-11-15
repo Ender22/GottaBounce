@@ -545,6 +545,11 @@ func set_provider(p) -> void:
 func get_fuel_ratio() -> float:
 	return clampf(fuel / Tuning.fuel_max, 0.0, 1.0)
 
+## WK-99 (CD3-04b): read-only HUD view of the last billed re-light (WK-128 R2): x = fuel it took, y = s left on its refund  # WK-99
+## grace (jumps back to boost_relight_grace on every new bill, 0 once refunded / expired). No behaviour.  # WK-99
+func relight_bill_state() -> Vector2:  # WK-99
+	return Vector2(_rl_bill, _rl_bill_t)  # WK-99
+
 func is_dead() -> bool:
 	return _dead
 

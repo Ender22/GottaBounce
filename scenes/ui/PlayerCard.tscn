@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://src/ui/PlayerCard.gd" id="1_pcard"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
@@ -63,6 +63,30 @@ corner_radius_bottom_left = 3
 
 [sub_resource type="StyleBoxFlat" id="wk31_heal_fill"]
 bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="wk99_notch"]
+bg_color = Color(1, 0.968627, 0.921569, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="wk99_bill_chunk"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -252,6 +276,21 @@ offset_right = 120.0
 offset_bottom = 13.0
 mouse_filter = 2
 theme_type_variation = &"FuelFill"
+
+[node name="BillChunk" type="Panel" parent="Margin/VBox/FuelRow/FuelSlot"]
+visible = false
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 16.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("wk99_bill_chunk")
+
+[node name="SuperNotch" type="Panel" parent="Margin/VBox/FuelRow/FuelSlot"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 16.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("wk99_notch")
 
 [node name="DangerTag" type="PanelContainer" parent="."]
 visible = false

@@ -296,6 +296,17 @@ func _draw_bubble(b: Dictionary, k: float, t: float) -> void:
 			fcol = Tuning.bubble_fuel_low_color.lerp(Color.WHITE, 0.35 * pulse)
 		var n: int = maxi(3, int(ceil(float(ARC_PTS) * fuel)) + 1)
 		draw_arc(c, fuel_r, -PI * 0.5, -PI * 0.5 + TAU * fuel, n, fcol, fw, true)
+	if Tuning.wk99_bubble_notch:   # WK-99: super-ready tick at super_boost_min_fuel (lit cream / unlit chocolate: luminance, not hue)
+		var wk99_thr: float = clampf(Tuning.super_boost_min_fuel / maxf(Tuning.fuel_max, 0.001), 0.0, 1.0)   # WK-99
+		var wk99_lit: bool = bool(b["locked"]) or fuel >= wk99_thr - 0.0005   # WK-99
+		var wk99_a: float = -PI * 0.5 + TAU * wk99_thr   # WK-99
+		var wk99_h: float = deg_to_rad(Tuning.wk99_bubble_notch_deg) * 0.5   # WK-99
+		var wk99_w: float = fw + (gap * 2.0 if wk99_lit else 0.0)   # WK-99: a lit tick pokes past the ring into the gaps
+		draw_arc(c, fuel_r, wk99_a - wk99_h - 0.03, wk99_a + wk99_h + 0.03, 6, OUTLINE, wk99_w + 2.0 * k * rs, true)   # WK-99
+		if wk99_lit:   # WK-99
+			draw_arc(c, fuel_r, wk99_a - wk99_h, wk99_a + wk99_h, 6, CREAM, wk99_w, true)   # WK-99
+		else:   # WK-99: unlit = a thinner muted taupe core (the card's unlit tick), so the line still shows where it is
+			draw_arc(c, fuel_r, wk99_a - wk99_h * 0.7, wk99_a + wk99_h * 0.7, 6, CREAM * Tuning.wk99_notch_unlit, wk99_w * 0.6, true)   # WK-99
 
 	# 4) super-aim arrow (flashing, fuse-coloured), on top of everything — reads within the frame aim starts
 	if bool(b["aiming"]):

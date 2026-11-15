@@ -63,6 +63,17 @@ var _stock_total := 0
 var _stock_left := -1
 var _tag_tw: Tween
 
+# --- WK-99 super-ready notch + CD3-04b billed-chunk flash (fuel gauge) ---
+@onready var _notch: Panel = $Margin/VBox/FuelRow/FuelSlot/SuperNotch   # WK-99
+@onready var _bill_chunk: Panel = $Margin/VBox/FuelRow/FuelSlot/BillChunk   # WK-99
+var _notch_lit := -1                # WK-99: -1 unknown (first set_fuel never pops), 0 unlit, 1 lit
+var _notch_tw: Tween                # WK-99
+var _bill_grace_prev := 0.0         # WK-99: last polled refund-grace of the goat's last bill (a jump UP = a new bill)
+var _bill_tw: Tween                 # WK-99
+var _fuel_r := 0.0                  # WK-99: the ratio the gauge shows now (the chunk starts at the fill's end)
+# --- WK-173 sticker / stock tab dim when a goat is under them ---
+var _tab_dim := {}                  # WK-173: Control instance id -> 0..1 dim
+
 ## `label` (WK-10/WK-88): the fighter's NAME (PartyMatch.player_name: "P3" / "VEX"). "" = legacy slot number
 ## (idx + 1) for any caller that does not know the roster (set_label can update it later).
 func setup(idx: int, color: Color, skin: String, label: String = "") -> void:
@@ -113,6 +124,8 @@ func set_fuel(r: float, locked := false) -> void:
 	var w: float = maxf(0.0, _fuel_bg.size.x - FUEL_PAD * 2.0)
 	_fuel_fill.size = Vector2(w * r, maxf(0.0, _fuel_bg.size.y - FUEL_PAD * 2.0))
 	_fuel_fill.visible = r > 0.02
+	_fuel_r = r   # WK-99
+	_wk99_notch(r, locked)   # WK-99
 	if locked:
 		_fuel_fill.self_modulate = Color(1.2, 2.4, 2.8)   # solid cyan glow
 		_was_locked = true
@@ -128,6 +141,81 @@ func set_fuel(r: float, locked := false) -> void:
 		var tw := create_tween()
 		tw.tween_property(_fuel_fill, "self_modulate", _color, 0.35)
 	_fuel_was_full = full
+
+## WK-99: the super-ready notch at super_boost_min_fuel / fuel_max. LIT = a tall cream tick that pokes past the gauge (a super
+## can fire), UNLIT = a short muted tick flush inside the track (size + luminance, never hue alone). Crossing UP pops it.
+func _wk99_notch(r: float, locked: bool) -> void:  # WK-99
+	if _notch == null:  # WK-99
+		return  # WK-99
+	_notch.visible = Tuning.wk99_notch_on and _fuel_bg.size.x > 0.0  # WK-99
+	if not _notch.visible:  # WK-99
+		return  # WK-99
+	var thr: float = clampf(Tuning.super_boost_min_fuel / maxf(Tuning.fuel_max, 0.001), 0.0, 1.0)  # WK-99
+	# a hair under the line still counts (fuel is a float: 9.999 shows as 10 on the bar)  # WK-99
+	var lit: int = 1 if locked or r >= thr - 0.0005 else 0  # WK-99
+	var w: float = maxf(0.0, _fuel_bg.size.x - FUEL_PAD * 2.0)  # WK-99
+	var nw: float = Tuning.wk99_notch_w  # WK-99
+	var gh: float = _fuel_bg.size.y  # WK-99
+	var h: float = gh + Tuning.wk99_notch_overhang * 2.0 if lit == 1 else maxf(4.0, gh - FUEL_PAD * 2.0 + 2.0)  # WK-99
+	_notch.size = Vector2(nw, h)  # WK-99
+	_notch.position = Vector2(FUEL_PAD + w * thr - nw * 0.5, (gh - h) * 0.5)  # WK-99
+	_notch.pivot_offset = _notch.size * 0.5  # WK-99
+	if lit == _notch_lit:  # WK-99
+		return  # WK-99
+	var was: int = _notch_lit  # WK-99
+	_notch_lit = lit  # WK-99
+	_notch.self_modulate = Color.WHITE if lit == 1 else Tuning.wk99_notch_unlit  # WK-99
+	if _notch_tw != null and _notch_tw.is_valid():  # WK-99
+		_notch_tw.kill()  # WK-99
+	_notch.scale = Vector2.ONE  # WK-99
+	if lit == 1 and was == 0 and Tuning.wk99_notch_pop_s > 0.0:  # WK-99: the tank just crossed UP -> "super ready" pop
+		_notch.scale = Vector2.ONE * Tuning.wk99_notch_pop_scale  # WK-99
+		_notch_tw = create_tween()  # WK-99
+		_notch_tw.tween_property(_notch, "scale", Vector2.ONE, Tuning.wk99_notch_pop_s).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)  # WK-99
+
+## WK-99 (CD3-04b): polled by MatchHUD with Player.relight_bill_state() (x = fuel the last bill took, y = refund grace left).
+## A grace that jumps UP is a new billed re-light: the slice it took pops white just past the fill's end, holds, and drops
+## off the gauge while fading ("tapping costs fuel" taught by the HUD).
+func set_relight_bill(paid: float, grace_left: float) -> void:  # WK-99
+	var fresh: bool = grace_left > _bill_grace_prev + 0.001 and paid > 0.0  # WK-99
+	_bill_grace_prev = grace_left  # WK-99
+	if fresh and Tuning.wk99_bill_flash_on and not _is_dead:  # WK-99
+		flash_bill(paid / maxf(Tuning.fuel_max, 0.001))  # WK-99
+
+## WK-99: show the billed chunk (`frac` of the tank) at the fill's current end. Public so QA can fire it from eval.
+func flash_bill(frac: float) -> void:  # WK-99
+	if _bill_chunk == null or _fuel_bg.size.x <= 0.0:  # WK-99
+		return  # WK-99
+	var w: float = maxf(0.0, _fuel_bg.size.x - FUEL_PAD * 2.0)  # WK-99
+	var cw: float = maxf(Tuning.wk99_bill_min_px, w * clampf(frac, 0.0, 1.0))  # WK-99
+	var x0: float = minf(FUEL_PAD + w * _fuel_r, _fuel_bg.size.x - cw)  # WK-99: never past the gauge's end
+	var ov: float = Tuning.wk99_bill_overhang  # WK-99
+	var h: float = _fuel_bg.size.y - FUEL_PAD * 2.0 + ov * 2.0  # WK-99
+	var y0: float = FUEL_PAD - ov  # WK-99
+	_bill_chunk.size = Vector2(cw, h)  # WK-99
+	_bill_chunk.position = Vector2(x0, y0)  # WK-99
+	_bill_chunk.pivot_offset = _bill_chunk.size * 0.5  # WK-99
+	_bill_chunk.modulate = Color(1, 1, 1, 1)  # WK-99
+	_bill_chunk.self_modulate = Color.WHITE  # WK-99: white flash first, then it turns back into a piece of THIS goat's fuel
+	_bill_chunk.scale = Vector2(1.35, 1.35)  # WK-99
+	_bill_chunk.rotation = 0.0  # WK-99
+	_bill_chunk.visible = true  # WK-99
+	if _bill_tw != null and _bill_tw.is_valid():  # WK-99
+		_bill_tw.kill()  # WK-99
+	_bill_tw = create_tween()  # WK-99
+	_bill_tw.tween_property(_bill_chunk, "scale", Vector2.ONE, Tuning.wk99_bill_hold_s).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)  # WK-99
+	var ds: float = maxf(0.05, Tuning.wk99_bill_drop_s)  # WK-99
+	_bill_tw.tween_property(_bill_chunk, "position:y", y0 + Tuning.wk99_bill_drop_px, ds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)  # WK-99
+	_bill_tw.parallel().tween_property(_bill_chunk, "rotation", deg_to_rad(18.0), ds)  # WK-99
+	_bill_tw.parallel().tween_property(_bill_chunk, "self_modulate", _color, ds * 0.4)  # WK-99: not mistaken for the notch
+	_bill_tw.parallel().tween_property(_bill_chunk, "modulate:a", 0.0, ds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)  # WK-99
+	_bill_tw.tween_callback(_bill_chunk.hide)  # WK-99
+
+## QA (gbplay eval): notch + chunk state.
+func wk99_state() -> Dictionary:  # WK-99
+	return {"notch_lit": _notch_lit, "notch_visible": _notch.visible, "notch_rect": [_notch.position.x, _notch.position.y,  # WK-99
+		_notch.size.x, _notch.size.y], "fuel_r": snappedf(_fuel_r, 0.001), "bill_visible": _bill_chunk.visible,  # WK-99
+		"bill_rect": [_bill_chunk.position.x, _bill_chunk.position.y, _bill_chunk.size.x, _bill_chunk.size.y]}  # WK-99
 
 ## Held-powerup icon slot (spec §2: pickup shows on the corner HUD card).
 func set_powerup(id: String) -> void:
@@ -279,6 +367,50 @@ func hud_rect() -> Rect2:
 		if c != null and c.visible:
 			r = r.merge(c.get_global_rect())
 	return r
+
+## WK-173 (CD5-06): the HURT!/DANGER! sticker and the stock tab hang off the card into the playfield, and the HUD layer draws
+## over the world, so a goat flying under one was hidden. Each fades to wk173_tab_dim_alpha while any rect in `goat_rects`
+## (screen px; MatchHUD passes every living goat's body) overlaps it, with hysteresis, and comes back when it leaves (the
+## WK-156 legend-chip rule). The card itself never dims. The tabs' own alpha is only ever set here.
+func wk173_dim_tabs(goat_rects: Array, delta: float) -> void:  # WK-173
+	var step: float = delta / maxf(Tuning.wk173_tab_dim_fade, 0.01)  # WK-173
+	for n in [_tag, _stock_tab]:  # WK-173
+		var c: Control = n  # WK-173
+		if c == null:  # WK-173
+			continue  # WK-173
+		var id: int = c.get_instance_id()  # WK-173
+		var d: float = float(_tab_dim.get(id, 0.0))  # WK-173
+		var hit := false  # WK-173
+		if Tuning.wk173_tab_goat_dim and c.visible:  # WK-173
+			var pad: float = Tuning.wk173_tab_pad_px + (Tuning.wk173_tab_hysteresis_px if d > 0.5 else 0.0)  # WK-173
+			var r: Rect2 = c.get_global_rect().grow(pad)  # WK-173
+			for g in goat_rects:  # WK-173
+				if r.intersects(g as Rect2):  # WK-173
+					hit = true  # WK-173
+					break  # WK-173
+		d = move_toward(d, 1.0 if hit else 0.0, step) if c.visible else 0.0  # WK-173: a hidden tab re-shows undimmed
+		_tab_dim[id] = d  # WK-173
+		c.modulate.a = lerpf(1.0, Tuning.wk173_tab_dim_alpha, d)  # WK-173
+
+## WK-173: QA readout of the tab dims (0 = full, 1 = dimmed).
+func wk173_state() -> Dictionary:  # WK-173
+	return {"tag_dim": snappedf(float(_tab_dim.get(_tag.get_instance_id(), 0.0)), 0.01), "tag_alpha": snappedf(_tag.modulate.a, 0.01),  # WK-173
+		"tab_dim": snappedf(float(_tab_dim.get(_stock_tab.get_instance_id(), 0.0)), 0.01), "tag_visible": _tag.visible}  # WK-173
+
+## WK-173 (CD5-06): where a KO credit chip of size `chip_px` (already at its landing scale) should land on this card: centred on
+## the identity row, with its left edge clear of the NAME / sub-tag text (it used to land on the card centre = on the name). It
+## may overhang the card's far end; KOCreditPop keeps it on screen.
+func wk173_credit_target(chip_px: Vector2) -> Vector2:  # WK-173
+	var cr: Rect2 = get_global_rect()  # WK-173
+	if not Tuning.wk173_chip_clear_name:  # WK-173
+		return cr.get_center()  # WK-173
+	var text_w: float = _name_label.get_minimum_size().x  # WK-173: the text's width, not the label box
+	if _sub_label.visible:  # WK-173
+		text_w = maxf(text_w, _sub_label.get_minimum_size().x)  # WK-173
+	var name_r: float = _name_label.get_global_rect().position.x + text_w  # WK-173
+	var x: float = maxf(name_r + Tuning.wk173_chip_name_gap + chip_px.x * 0.5, cr.get_center().x)  # WK-173
+	var row: Control = $Margin/VBox/IdentityRow  # WK-173
+	return Vector2(x, row.get_global_rect().get_center().y)  # WK-173
 
 ## QA (gbplay eval): what the card is showing right now.
 func wk31_state() -> Dictionary:

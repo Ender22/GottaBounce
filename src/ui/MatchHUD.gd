@@ -54,11 +54,15 @@ func set_labels(labels: Array, subs: Array = []) -> void:
 func _process(_delta: float) -> void:
 	# fuel gauges + held-powerup icons track the players live (v0 spec §3 / v1_powerups §2)
 	var stock_total: int = _stock_total()   # WK-31
+	var wk173_goats: Array = _wk173_goat_rects() if Tuning.wk173_tab_goat_dim else []   # WK-173
 	var lives: Variant = _runner.get("lives_left") if _runner != null and is_instance_valid(_runner) else null   # WK-31
 	for i in range(mini(_players.size(), _cards.size())):
 		var p = _players[i]
 		if is_instance_valid(p):
 			_cards[i].set_fuel(p.get_fuel_ratio(), p.fuel_locked)
+			if p.has_method("relight_bill_state"):   # WK-99 (CD3-04b): flash the chunk a billed re-light took
+				var wk99_bill: Vector2 = p.relight_bill_state()   # WK-99
+				_cards[i].set_relight_bill(wk99_bill.x, wk99_bill.y)   # WK-99
 			_cards[i].set_powerup(p.held_powerup)
 			# WK-31 danger: the goat's transient damage_level (0/1/2) + how much of the heal countdown is left. A dead
 			# goat (between a stock loss and its respawn, or eliminated) shows no danger: respawn heals it to 0 anyway.
@@ -68,6 +72,21 @@ func _process(_delta: float) -> void:
 			_cards[i].set_danger(lv, heal)
 			var left: int = int((lives as Array)[i]) if lives is Array and i < (lives as Array).size() else 0
 			_cards[i].set_stocks(stock_total, left)
+		_cards[i].wk173_dim_tabs(wk173_goats, _delta)   # WK-173: sticker / stock tab fade while a goat is under them
+
+## WK-173 (CD5-06): screen rects of every living goat (body radius x 1.15 for horns / jet flame), same rule as WK-156's legend.
+func _wk173_goat_rects() -> Array:  # WK-173
+	var out: Array = []  # WK-173
+	for p in _players:  # WK-173
+		if not (p is Node2D) or not is_instance_valid(p) or not (p as Node2D).is_visible_in_tree():  # WK-173
+			continue  # WK-173
+		if p.has_method("is_dead") and bool(p.call("is_dead")):  # WK-173
+			continue  # WK-173
+		var xf: Transform2D = (p as Node2D).get_global_transform_with_canvas()  # WK-173
+		var rv: Variant = p.get("_radius")  # WK-173
+		var rr: float = (float(rv) if rv != null else 44.0) * 1.15 * xf.get_scale().x  # WK-173
+		out.append(Rect2(xf.origin - Vector2(rr, rr), Vector2(rr, rr) * 2.0))  # WK-173
+	return out  # WK-173
 
 ## WK-31: RULES LIVES when the stock row should show (>= hud_stocks_min_lives and <= hud_stocks_max_lives), else 0.
 func _stock_total() -> int:
