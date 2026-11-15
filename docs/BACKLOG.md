@@ -2805,6 +2805,9 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 ## Re-rank #10 filings (WK-CD5, `docs/audit/2026-11-16_cd5_playthrough.md`, + A/B follow-ups)
 
 ### [ ] WK-169 [P2][M] (CD5-01) Brawl spectator time: ~25 % of combat dead per human seat, 30-40 s 1v1 tails with two ghosts
+- **Prototype BUILT ab0c1a3 (all OFF).** WK-169b batch queued after the WK-161b acceptance batch (arms GB_WK169=a0/a1/a2/a3/a4).
+  Design calls for 169c: golden-seek runs after the refuel rule (low-fuel CPUs ignore a nearby bubble); a golden drop can land on an
+  occupied spawner; golden bubble art is small at play zoom; music hush/stings, gold HUD frame, ghost line not built.
 - Area: brawl (pacing) · Owner: game-designer (169a, 169b ruling) -> qa-playtester (HumanSim5) -> gameplay-programmer (169c)
 - Source: creative-director WK-CD5 CD5-01, the pass's "biggest remaining problem". **Merged:** WK-56 (stall breaker by escalation, owner-safe
   lever), WK-168 bullet 2 (70.8 s / 66 s grounded 1v1 duels).
@@ -2927,3 +2930,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 
 ### [ ] WK-177 [P3][S] Draw circuits (the_foundry, mayhem_mile) can repeat an arena back-to-back across a match boundary
 - Source: WK-172 sim: the_foundry played the same arena twice in a row 9 times in 3640 draws (separate code path from the CD4-01 decks).
+
+### [ ] WK-178 [P3][S] Ghost rise delay is real-time: under KO slow-mo a ghost appears before a double-KO sudden-death revive
+- Source: WK-169 build (Grassy Expanse: revived goat and its ghost both on screen through sudden death). Use game time for the 0.6 s
+  ghost delay (GhostDirector) or cancel the ghost when a revive is pending.
