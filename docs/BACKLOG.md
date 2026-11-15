@@ -1562,6 +1562,8 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 
 
 ### [ ] WK-135 [P1][M] Bumpers are standable (bodies come to rest on them — INV-11 violation, WK-128 spec finding E17)
+- **Phase 2 BUILT (see git log; BR-135 ON)**: pinball post buzz 1.7 -> 0.40 s; singularity logged 1 pin episode (0.25/bot-stage vs spec <= 0.1,
+  1 stage only) -> confirm in the A/B batch (wk135_no_pin true vs false). Phase 3 (gates ON + sports ball refuel) remains.
 - **Phase 1 DONE 8eec92e** (bumper kick floor 48 px; 0 rest episodes; bumper-arena self-KO +5.9 pp to watch). Phases 2-3 (face
   classes + liveness valve, refund gates ON, ball-touch refuel via grant_fuel, bot pin-breaker BR-135 — recording shows a bot buzzing a
   pillar bumper 1.7 s) remain: rebuild from the spec (old scratch copy deleted).
