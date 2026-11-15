@@ -2720,5 +2720,5 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - K1b gate-return lead: run a K1b-only A/B at 2.5-3.0 s (never measured without K1); QA-131-2 bar >= 50 % CPU home at gate open.
 - K5: 14 Dropshot crossings in 40 points remain (7 stunned/super, 5 recovery/refuel, 2 normal play at fuel 0 just over the net top).
 
-### [ ] WK-165 [P3][S] slam.mp3 starts with 0.13 s of silence (heavy smash + super layer ~4 frames late)
+### [x] WK-165 [P3][S] slam.mp3 starts with 0.13 s of silence (heavy smash + super layer ~4 frames late) — 719cf00
 - Source: WK-163. Trim into a new file (`ffmpeg -af atrim=start=0.12`), point AudioManager at it, note it in LICENSES.md.
