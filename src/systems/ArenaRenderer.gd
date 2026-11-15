@@ -58,6 +58,7 @@ const NET_ART := preload("res://src/systems/SportsNetArt.gd")   # WK-66a sports 
 # WK-180: horizontal bumpers. RAIL = bumper_post transposed (lighting stays top-left), BLOCK = the 2x2-stud cushion.
 const BUMPER_RAIL_TEX := "res://assets/world/bumper_rail.png"
 const BUMPER_BLOCK_TEX := "res://assets/world/bumper_block.png"
+const BUMPER_BLOCK_SQ_TEX := "res://assets/world/bumper_block_sq.png"   # WK-182: 1:1 block for near-square bumpers
 # WK-180 R1: the decals live in grass/decals/ (the old grass/decal_*.png paths never existed, so nothing drew since July).
 # *_fit = recoloured onto the fringe's lime ramp + downsized to ~2x display size (no mipmaps needed).
 # R5: the LEFT end takes tuft_b and the RIGHT end tuft_a so the tall blade leans OUTWARD (never flipped: lit top-left).
@@ -1014,13 +1015,16 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 	var plat_right: float = plat_left + w
 	var suppress_left := false
 	var suppress_right := false
-	for vr in void_rects:
-		var vrect: Rect2 = vr
-		for vedge in [vrect.position.x, vrect.end.x]:
-			if absf(plat_left - float(vedge)) <= 50.0:
-				suppress_left = true
-			if absf(plat_right - float(vedge)) <= 50.0:
-				suppress_right = true
+	# WK-182 (art grade §5): OFF — paint_void draws no pit/rim/chevron/canyon wall (floating-islands ruling), so this only
+	# hid tufts at INVISIBLE void-rect edges. Turn Tuning.wk182_void_lip_suppress back on if paint_void's pit block returns.
+	if Tuning.wk182_void_lip_suppress:  # WK-182
+		for vr in void_rects:
+			var vrect: Rect2 = vr
+			for vedge in [vrect.position.x, vrect.end.x]:
+				if absf(plat_left - float(vedge)) <= 50.0:
+					suppress_left = true
+				if absf(plat_right - float(vedge)) <= 50.0:
+					suppress_right = true
 	var root := Node2D.new()
 	root.name = "Art"
 	body.add_child(root)
@@ -1200,25 +1204,48 @@ func _mat_texture(tier: String) -> Dictionary:
 ## with w/h >= 1.6 draw the RAIL (the post transposed, so the studs stay lit top-left) with the same slicing;
 ## squarer ones draw the BLOCK whole (build_whole, ±20% aspect), else the rail. Post + rail tile in WHOLE
 ## pearls (ThreeSlice `units`), so no seam or crop ever cuts through a stud. No tint: chrome grey IS the tier.
+## WK-182 (art grade §4): route on aspect a = w/h — a < wk182_sq_min_aspect post; [min, wk182_sq_max_aspect) the
+## square block (bumper_block_sq whole; interim: bumper_block squashed to fit; else the post); [max, rail_min) the
+## block; >= rail_min the rail.
 func _paint_bumper(art: Node2D, w: float, h: float) -> void:
-	var vertical := h >= w
+	var a := w / h   # WK-182
+	var vertical := a < Tuning.wk182_sq_min_aspect   # WK-182 (was h >= w: squares fell into the post's cap-crop "macaron")
+	var square := not vertical and a < Tuning.wk182_sq_max_aspect   # WK-182
 	var cap: float = Tuning.wk180_post_cap_frac
 	var units: int = Tuning.wk180_bumper_pearl_units
+	var min_k: float = Tuning.wk182_units_min_cap_k   # WK-182
 	var has_post := ResourceLoader.exists(BUMPER_POST_TEX)
+	var pad: float = Tuning.wk180_block_pad
+	if square:  # WK-182
+		var sq: Node2D = null
+		if ResourceLoader.exists(BUMPER_BLOCK_SQ_TEX):
+			sq = ThreeSlice.build_whole(load(BUMPER_BLOCK_SQ_TEX), w + pad, h + pad)
+		elif Tuning.wk182_sq_interim_squash and ResourceLoader.exists(BUMPER_BLOCK_TEX):
+			# interim (NOT a ship state): bumper_block scaled non-uniformly to exactly w + pad, h + pad
+			var btex: Texture2D = load(BUMPER_BLOCK_TEX)
+			var bsz: Vector2 = btex.get_size()
+			sq = Node2D.new()
+			var bsp := Sprite2D.new()
+			bsp.texture = btex
+			bsp.scale = Vector2((w + pad) / bsz.x, (h + pad) / bsz.y)
+			sq.add_child(bsp)
+		if sq != null:
+			art.add_child(sq)
+			return
+		vertical = true   # no square art: fall back to the post
 	if has_post and vertical:
 		art.add_child(ThreeSlice.build(load(BUMPER_POST_TEX), w + WALL_FACE_BLEED * 2.0, h + 8.0, cap, true,
-			Color.WHITE, units))
+			Color.WHITE, units, min_k))
 		return
 	if not vertical:
-		if w / h < Tuning.wk180_rail_min_aspect and ResourceLoader.exists(BUMPER_BLOCK_TEX):
-			var pad: float = Tuning.wk180_block_pad
+		if a < Tuning.wk180_rail_min_aspect and ResourceLoader.exists(BUMPER_BLOCK_TEX):
 			var block := ThreeSlice.build_whole(load(BUMPER_BLOCK_TEX), w + pad, h + pad)
 			if block != null:
 				art.add_child(block)
 				return
 		if ResourceLoader.exists(BUMPER_RAIL_TEX):
 			art.add_child(ThreeSlice.build(load(BUMPER_RAIL_TEX), w + 8.0, h + WALL_FACE_BLEED * 2.0, cap, false,
-				Color.WHITE, units))
+				Color.WHITE, units, min_k))
 			return
 		_warn_once("bumper_rail", "ArenaRenderer: missing " + BUMPER_RAIL_TEX + " — grey mat strip stand-in")
 	# Stand-in: marshmallow mat strip tinted bumper-grey, only when the bumper art itself is missing.

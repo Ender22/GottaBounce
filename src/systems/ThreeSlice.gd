@@ -14,8 +14,12 @@ const CORR_MAX := 1.20
 ## 5 per centre at cap_frac 0.20). The run is then quantised to WHOLE units with one shared correction
 ## (k stays ~1.0 on any length) and a short remainder is a whole-unit crop starting at the centre's first
 ## gap, so no seam or crop ever cuts through a pearl. 0 = the classic tile/correction/crop rules above.
+## WK-182 (art grade B-F1): in units mode the caps and the pearl run share ONE along-scale k, chosen from P in
+## {floor(x), ceil(x)} whole units to minimise |log k| (worst case ~0.88 / ~1.14), so a short post never squashes a
+## pearl into a "lens slit". Units mode crops the caps only below `min_cap_k` x the two caps' length (callers pass
+## Tuning.wk182_units_min_cap_k).  # WK-182
 static func build(tex: Texture2D, target_w: float, target_h: float, cap_frac: float,
-		vertical: bool = false, tint: Color = Color.WHITE, units: int = 0) -> Node2D:
+		vertical: bool = false, tint: Color = Color.WHITE, units: int = 0, min_cap_k: float = 0.85) -> Node2D:  # WK-182
 	var root := Node2D.new()
 	if tex == null or target_w <= 0.0 or target_h <= 0.0:
 		return root
@@ -32,11 +36,49 @@ static func build(tex: Texture2D, target_w: float, target_h: float, cap_frac: fl
 	# Center tiles are listed FIRST and caps LAST so caps draw on top and hide the tile-run edges.
 	var tiles: Array = []
 	var caps: Array = []
-	if along_tgt <= 2.0 * cap_len + 0.5:
+	var crop_caps: bool = along_tgt <= 2.0 * cap_len + 0.5
+	if units > 0:
+		crop_caps = along_tgt < min_cap_k * 2.0 * cap_len   # WK-182 B-F1: units mode crops only when k would drop under min_cap_k
+	if crop_caps:  # WK-182
 		# Too narrow for two full caps: crop the caps' inner edges; outer organic edges stay intact.
 		var half_src := (along_tgt * 0.5) / s
 		caps.append({ "off": 0.0, "len": half_src, "k": 1.0, "pos": 0.0 })
 		caps.append({ "off": along_src - half_src, "len": half_src, "k": 1.0, "pos": along_tgt * 0.5 })
+	elif units > 0:
+		# WK-182 B-F1: P whole units + both caps, everything at one along-scale k (P may be 0: cap pearl, cap pearl).
+		var center_src_u := along_src - 2.0 * cap_src
+		var unit_u := center_src_u * s / float(units)          # U: one pearl unit, display px at k = 1
+		var c2 := 2.0 * cap_len
+		var x := maxf(0.0, (along_tgt - c2) / unit_u)
+		var p_units := floori(x)
+		var k_best := along_tgt / (c2 + float(p_units) * unit_u)
+		var k_ceil := along_tgt / (c2 + float(ceili(x)) * unit_u)
+		if absf(log(k_ceil)) < absf(log(k_best)):
+			p_units = ceili(x)
+			k_best = k_ceil
+		caps.append({ "off": 0.0, "len": cap_src, "k": k_best, "pos": 0.0 })
+		caps.append({ "off": along_src - cap_src, "len": cap_src, "k": k_best, "pos": along_tgt - cap_len * k_best })
+		if p_units > 0:
+			# the run reaches 1 display px under each cap (source pixels that continue seamlessly into the caps / the
+			# next pearl gap); caps are listed last so they draw on top
+			var ext_src := 1.0 / (s * k_best)
+			var upos := cap_len * k_best
+			var n_whole_u := floori(float(p_units) / float(units))
+			var rem_u := p_units - n_whole_u * units
+			var n_seg := n_whole_u + (1 if rem_u > 0 else 0)
+			for i in range(n_seg):
+				var seg_len: float = center_src_u if i < n_whole_u else center_src_u * float(rem_u) / float(units)
+				var off_u: float = cap_src
+				var len_u: float = seg_len
+				var pos_u: float = upos
+				if i == 0:
+					off_u -= ext_src
+					len_u += ext_src
+					pos_u -= 1.0
+				if i == n_seg - 1:
+					len_u += ext_src
+				tiles.append({ "off": off_u, "len": len_u, "k": k_best, "pos": pos_u })
+				upos += seg_len * s * k_best
 	else:
 		caps.append({ "off": 0.0, "len": cap_src, "k": 1.0, "pos": 0.0 })
 		caps.append({ "off": along_src - cap_src, "len": cap_src, "k": 1.0, "pos": along_tgt - cap_len })
@@ -48,24 +90,10 @@ static func build(tex: Texture2D, target_w: float, target_h: float, cap_frac: fl
 		var pos := cap_len - overlap
 		var n := maxi(1, roundi(span / tile))
 		var k := span / (float(n) * tile)
-		if units > 0:
-			# WK-180: whole repeat units only (every cut lands in a gap between pearls)
-			var unit := tile / float(units)
-			var total := maxi(1, roundi(span / unit))
-			var ku := span / (float(total) * unit)
-			var n_whole := floori(float(total) / float(units))
-			for i in range(n_whole):
-				tiles.append({ "off": cap_src, "len": center_src, "k": ku, "pos": pos })
-				pos += tile * ku
-			var rem_units := total - n_whole * units
-			if rem_units > 0:
-				tiles.append({ "off": cap_src, "len": center_src * float(rem_units) / float(units), "k": ku, "pos": pos })
-		elif k > CORR_MAX:
+		if k > CORR_MAX:   # WK-182: the WK-180 units branch moved to its own `elif units > 0` above
 			n += 1
 			k = span / (float(n) * tile)
-		if units > 0:
-			pass
-		elif k >= CORR_MIN and k <= CORR_MAX:
+		if k >= CORR_MIN and k <= CORR_MAX:
 			for i in range(n):
 				tiles.append({ "off": cap_src, "len": center_src, "k": k, "pos": pos })
 				pos += tile * k

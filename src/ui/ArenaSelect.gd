@@ -111,6 +111,7 @@ const ARENAS := [
 @onready var _back: Button = $Header/BackBtn
 # WK-60b preview region (scenes/ui/ArenaSelect.tscn "Preview")
 @onready var _preview: Control = $Preview
+var _preview_rest_top: float = NAN   # WK-182: preview panel top at rest (set in enter(), before its drop-in tween)
 @onready var _pv_grad: TextureRect = $Preview/Row/ArtFrame/Grad
 @onready var _pv_rays: TextureRect = $Preview/Row/ArtFrame/Rays
 @onready var _pv_art: TextureRect = $Preview/Row/ArtFrame/Art
@@ -961,6 +962,7 @@ func enter() -> void:
 	super.enter()
 	# WK-60b: the preview drops in with the header (it is content, so it stays under the header/footer bands)
 	var rest := _preview.position
+	_preview_rest_top = rest.y   # WK-182 U-F1: the unlock banner's rest guard measures against the LANDED preview top
 	_preview.position = rest + Vector2(0, -24)
 	_preview.modulate.a = 0.0
 	var tp := _preview.create_tween().set_parallel(true)
@@ -1001,6 +1003,9 @@ func _play_unlock_celebration(cid: String) -> void:
 			# the whole Header down into the TV-safe band (+25 px at 1080p), so follow that nudge to stay on the chips' line.
 			var hdr := get_node_or_null("Header") as Control
 			var rest := _banner_rest_y + (hdr.offset_top if hdr != null else 0.0)
+			# WK-182 (art grade §3 guard): never let a bigger safe-area nudge close the gap to the preview below 10 px
+			var preview_top: float = _preview_rest_top if not is_nan(_preview_rest_top) else _preview.position.y
+			rest = minf(rest, preview_top - 10.0 - banner.size.y)  # WK-182
 			var up := rest - 110.0
 			banner.visible = true
 			banner.position.y = up
@@ -1009,6 +1014,7 @@ func _play_unlock_celebration(cid: String) -> void:
 			banner.scale = Vector2(0.85, 0.85)
 			# sequential steps; parallel() joins a tweener to the step before it (WK-83 tween trap: no set_parallel)
 			var tb := banner.create_tween()
+			tb.tween_interval(0.12)   # WK-182 U-F1: let the 0.12 s title fade finish first (no double-exposed titles on slide-in)
 			tb.tween_property(banner, "position:y", rest, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 			tb.parallel().tween_property(banner, "modulate:a", 1.0, 0.15)
 			tb.parallel().tween_property(banner, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

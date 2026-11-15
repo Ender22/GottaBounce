@@ -1497,3 +1497,10 @@ var wk180_tuft_h_max: float = 40.0             # end tuft height, world px (max)
 var wk180_tuft_base_off: float = 6.0           # px the tuft stem base sits below fringe_bottom  # WK-180
 var wk180_tuft_inset: float = 8.0              # tuft x = side * (w/2 + BODY_BLEED_SIDE - this): straddles the body's side outline  # WK-180
 var wk180_decal_max_rise: float = 8.0          # R0: no decal pixel above mat_top + this (tufts are clamped / shrunk to fit)  # WK-180
+# --- WK-182 (docs/audit/2026-11-16_wk180_artgrade.md §1, §4, §5) bumper routing + pearl-run fix + corner tufts. Read ONLY by  # WK-182
+# src/systems/ArenaRenderer.gd (units_min_cap_k is passed on to ThreeSlice.build).  # WK-182
+var wk182_units_min_cap_k: float = 0.85        # B-F1: units-mode posts/rails crop their caps only below this x (2 x cap length); above it caps + whole pearls share one scale k  # WK-182
+var wk182_sq_min_aspect: float = 0.85          # bumper w/h below this draws the vertical post  # WK-182
+var wk182_sq_max_aspect: float = 1.05          # w/h in [sq_min, sq_max) draws the square block (bumper_block_sq.png whole; post if it can't fit)  # WK-182
+var wk182_sq_interim_squash: bool = false      # only if bumper_block_sq.png is missing: true = bumper_block squashed to w+pad x h+pad (interim, NOT ship); false = post. OFF: the sprite landed (8c08752)  # WK-182
+var wk182_void_lip_suppress: bool = false      # true = suppress end tufts/daisies within 50 px of a void-rect edge (turn back ON if paint_void ever draws pit art again)  # WK-182
