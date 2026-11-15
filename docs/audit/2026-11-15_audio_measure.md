@@ -417,3 +417,76 @@ Verdict: at -4 dB the chant is unmistakable, and if anything it is at risk of do
 rally, including over the goal-mouth ka-CHUNKs. Measured headroom says **-6 dB would still read clearly** (expected
 share about -7 to -9.5 dB, r about 0.45). Raising it from -9 to -4 was the right direction; whether -4 or -6 sits better
 is a taste call for a listener.
+
+---
+
+## 2026-11-15 (evening): WK-163. Stingers bus + KO sting + KO duck, verified
+
+Sound-designer. Uncommitted, tagged `# WK-163`. The parse gate is clean after every edit. Recordings were made one at a time with
+`tools/record_match.ps1` (40 s of combat, seed 7, 4 x L3 bots) and measured with `tools/out/wk/WK-79a_scripts/measure_run.py`.
+Raw JPEG frames were deleted; `audio.wav`, `data.json` and the sheets are kept.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `default_bus_layout.tres` | **New bus 3 "Stingers"** -> Master: 0 dB, 40 Hz HPF (24 dB/oct), `HardLimiter` ceiling **-3 dB** (release 0.08 s). No compressor. SFX bus: **-2.5 -> -3.5 dB**, plus effect slot 2 `AudioEffectAmplify` "KODuck" (0 dB at rest). Music bus **-8 -> -9 dB**. The bed drops 1 dB with the SFX/music balance unchanged, so the stingers stand 1 dB further out |
+| `src/systems/AudioManager.gd` | `play_sfx` takes `opts.bus` and sets `pl.bus` on every play (pooled voices are shared). `_stinger_bus` resolves to "Stingers" (or falls back to "SFX" if the layout lacks it). These moved to Stingers: KO `death` (+5 SFX -> **+1**), ring-out `death_whoosh` (+1 -> **-3**), new **`ko_sting` -2**, goal sax (+9 -> **+5**), `goal_crowd` (+2 -> **-2**), `match_win` (0 -> **-1**), `first_blood` (-1 -> **-3.5**), `two_left` (-2 -> **-5.5**). The last two land on the same tick as a KO, so leaving them on SFX would have put them under the duck; they keep their old absolute level. **KO duck:** the SFX bed goes -4 dB (15 ms attack, 0.3 s hold, 0.25 s release) through the KODuck effect, never through the bus volume (Settings owns that). The duck runs on real time (delta / time_scale), so hit-stop does not stretch it. QA counter `ko_ducks`. Sports and own goals are unchanged and stay on SFX |
+| `src/core/Settings.gd` | `LINKED_BUSES {"sfx": ["Stingers"]}`: the SFX slider also drives Stingers, using the same baseline + linear_to_db rule. Without this, the payoffs would ignore the SFX slider |
+| `assets/sfx/ko_sting.ogg` (new) | 0.55 s KO attack layer (details below) |
+| `tools/audio/render_ko_sting.py` (new) | deterministic render of `ko_sting.ogg` |
+| `assets/sfx/LICENSES.md` | provenance row for `ko_sting.ogg` (owner `crunch.mp3` + Kenney New Platformer Pack CC0 `sfx_disappear` / `sfx_throw`) |
+
+**`ko_sting.ogg`** is built only from files already in the repo. No download and no synthesis.
+- **Crack:** `crunch.mp3` at x1.12, 160 Hz HPF, peaks limited 8 dB so it is dense rather than one spike.
+- **Vanish:** Kenney `sfx_disappear` + `sfx_throw`, held up with a +4 dB ramp to 0.3 s, then tanh-driven.
+- **Finish:** cosine fade 0.38-0.55 s, peak -1.2 dBFS (file TP -0.9).
+- **File stats:** active RMS -12.8 dBFS, first 25 ms at -9 dBFS RMS, centroid 0.93 kHz, 1-5 kHz only 3 dB under 200 Hz-1 kHz, 5k+ at -18 dB.
+- **Spectrogram** `tools/out/wk/WK-163_ko_sting_vs_smash.png` (looked at): an 8 kHz-wide wall at t=0, then a wobbling falling tonal sweep. Clearly unlike `impact1` (three short 0.6 kHz bursts) and `slam` (a noise burst that starts **0.13 s late**, see below). It also gives the KO the attack `mm_quickdie` lacks: that file fades in over 0.4 s.
+
+### Runs
+
+| Run | Notes |
+|---|---|
+| `tools/out/rec/WK-163_brawl` | Brawl, MEADOW MILE (Long Meadow). Pass 1: pop at -1, first_blood/two_left still on SFX. 6 KOs, 14 supers, 13 smashes |
+| `tools/out/rec/WK-163_brawl2` | Brawl, MEADOW MILE (Hill and Dale). **Final state.** 9 KOs, 18 supers, 17 smashes: a hotter match than pass 1 (combat median -16.9 vs -18.4 LUFS) |
+| `tools/out/rec/WK-163_rocketball` | Rocketball, Sports Court. Pass 1: crowd at 0 dB. 1 goal |
+| `tools/out/rec/WK-163_rocketball2` | **Final state** (crowd -2). Same seed, an identical replay of pass 1 (same phases and events), so it is a clean A/B on the crowd trim. 1 goal |
+
+The working tree also carries other lanes' uncommitted gameplay edits (`Tuning.gd`, `Player.gd`, `SportsMode.gd`), so these
+matches are not replays of WK-79c2 (for example, Rocketball scored 1 goal, not 2).
+
+### Results
+
+| Metric | WK-79c2 Brawl | **WK-163 Brawl final** (pass 1) | WK-79c2 Rocketball | **WK-163 Rocketball final** (pass 1) | Target | Verdict |
+|---|---|---|---|---|---|---|
+| Integrated | -16.3 | **-16.2** (-17.2) | -16.9 | **-18.3** (-18.2) | -16 to -19 | PASS (Brawl at the hot edge, see risks) |
+| True peak | -2.0 | **-1.9** (-1.9) | -2.5 | **-2.5** (-1.9) | <= -1.5 dBTP | PASS |
+| Ceiling clusters >= -2 dBFS, COUNTDOWN | 0 | **0** (0) | 0 | **0** (1, -1.95 dBFS at 36.36 s) | 0 | PASS. The pass-1 Rocketball hit was the goal crowd's 3 s tail plus the next "3" beep, fixed by crowd 0 -> -2 |
+| Ceiling clusters, all phases | 0 | 4 (3 COMBAT, 1 STAGE_END) (1) | 0 | 0 (1) | — | all at -1.95..-1.99 dBFS, 10-20 ms long, at 4 of 9 KOs: the master limiter touches the KO stack. TP stays -1.9 |
+| **KO rise** median (n) | +3.3 (6) | **+7.7 (9)**, range +1.3..+11.1 (+7.6 (6)) | — | — | >= +6 | **PASS**. 7 of 9 are >= +6.1. The two lows (+2.6, +1.3) are KOs 2.0 / 2.3 s after another KO plus a super, so their 2 s bed is the previous KO's tail. Without them: median +8.0 |
+| KO absolute max momentary (median) / when | -12.1 LUFS at +0.8..+1.2 s | -11.2 at +0.3..+0.5 s | — | — | — | louder and **0.7 s earlier**: the peak now lands on the KO, not at the pop's late swell |
+| KO onset: 25 ms RMS vs 0.3 s before (median) | **-1 dB** (builds to +4..+7 by 0.3 s) | **+8 dB in the first 25 ms**, +7..+10 for 0.4 s | — | — | hard transient | PASS |
+| **Goal rise** (n) | — | — | +5.3 (2) | **+8.7 (1)** (+9.0) | >= +6 | **PASS** (n=1: this build scored one goal in 40 s). The sax drives the peak at +0.3..+0.6 s; the crowd region reads +2.5..+5 |
+| Brawl stage-win (STAGE_END) rise | +3.4 (2) | +7.3 (3) | — | — | — | coincides with the last KO |
+| GO rise | +5.7 | +6.0 | +2.7 | +4.0 | — | unchanged or better |
+| LRA | 4.9 | 7.0 | 2.8 | 4.1 | (info) | more dynamics |
+| Bounce band p90 margin | +7.4 | +6.8 | +5.3 | +6.1 | >= +6 | PASS (Rocketball now passes too) |
+| Thrust share, combat | -21.6 | -27.8 | -11.0 | -9.6 | <= -8 | PASS |
+| Music share, combat | -5.8 | -8.9 | -3.9 | -4.1 | — | Brawl final is a busier match. The music gain vs file is -10.4 dB (-9 before, including the 1 dB bus trim) |
+
+Match win (`match_won`) is routed but not exercised: the 40 s cap ends every recording mid-match. Level by file: rewardCheer
+-2.8 dBFS peak at -1 dB = -3.8 dBFS at the stinger bus.
+
+### Risks / follow-ups
+
+- **Brawl integrated sits at -16.2** in a 9-KO match (-17.2 with 6 KOs). An even busier brawl could cross -16. If one does, the
+  lever is the SFX bus (-3.5 -> -4); the stingers do not move. Do not lower the stingers.
+- KO-after-KO within about 2 s reads only +1..+3 LU, because the second KO's bed is the first KO's tail. That is inherent to the
+  metric, and the onset still jumps +8 dB. If a listener wants a double-KO to escalate, add a "multi-KO" pitch-up of `ko_sting`
+  (+2 semitones per KO within 2 s). That is AudioManager-only, S.
+- **Found while measuring: `slam.mp3` has 0.13 s of leading digital silence** (-90 dBFS until 0.125 s). `smash_heavy` and the
+  super slam layer sound 4 frames after the hit. Fix: trim the file, e.g. a derived `slam_tight.ogg` with
+  `ffmpeg -af atrim=start=0.12`. P2/S, sound-designer.
+- Own goals (`own_goal`, `own_goal_groan`, muted crowd) are still on SFX: they were not exercised, so they were not moved. They
+  now read about 1 dB lower than before (SFX bus -1).

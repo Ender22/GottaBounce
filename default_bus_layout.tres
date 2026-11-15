@@ -16,6 +16,19 @@ ratio = 2.0
 attack_us = 2000.0
 release_ms = 150.0
 
+[sub_resource type="AudioEffectAmplify" id="AudioEffectAmplify_sfx_duck"]
+resource_name = "KODuck"
+
+[sub_resource type="AudioEffectHighPassFilter" id="AudioEffectHighPassFilter_stingers"]
+resource_name = "HighPassFilter"
+cutoff_hz = 40.0
+db = 3
+
+[sub_resource type="AudioEffectHardLimiter" id="AudioEffectHardLimiter_stingers"]
+resource_name = "HardLimiter"
+ceiling_db = -3.0
+release = 0.08
+
 [resource]
 bus/0/effect/0/effect = SubResource("AudioEffectHardLimiter_master")
 bus/0/effect/0/enabled = true
@@ -23,15 +36,27 @@ bus/1/name = &"Music"
 bus/1/solo = false
 bus/1/mute = false
 bus/1/bypass_fx = false
-bus/1/volume_db = -8.0
+bus/1/volume_db = -9.0
 bus/1/send = &"Master"
 bus/2/name = &"SFX"
 bus/2/solo = false
 bus/2/mute = false
 bus/2/bypass_fx = false
-bus/2/volume_db = -2.5
+bus/2/volume_db = -3.5
 bus/2/send = &"Master"
 bus/2/effect/0/effect = SubResource("AudioEffectHighPassFilter_sfx")
 bus/2/effect/0/enabled = true
 bus/2/effect/1/effect = SubResource("AudioEffectCompressor_sfx")
 bus/2/effect/1/enabled = true
+bus/2/effect/2/effect = SubResource("AudioEffectAmplify_sfx_duck")
+bus/2/effect/2/enabled = true
+bus/3/name = &"Stingers"
+bus/3/solo = false
+bus/3/mute = false
+bus/3/bypass_fx = false
+bus/3/volume_db = 0.0
+bus/3/send = &"Master"
+bus/3/effect/0/effect = SubResource("AudioEffectHighPassFilter_stingers")
+bus/3/effect/0/enabled = true
+bus/3/effect/1/effect = SubResource("AudioEffectHardLimiter_stingers")
+bus/3/effect/1/enabled = true

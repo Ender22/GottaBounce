@@ -19,6 +19,9 @@ extends Node
 const PATH := "user://settings.cfg"
 const SILENCE_DB := -80.0
 const BUSES := {"master": "Master", "music": "Music", "sfx": "SFX"}
+# WK-163: extra buses that follow a slider (same baseline + linear_to_db(v) rule). The Stingers bus (KO / goal / match-win
+# payoffs, routed past the SFX compressor) is SFX to the player, so the SFX slider drives it too.
+const LINKED_BUSES := {"sfx": ["Stingers"]}
 
 # --- UNLOCK PROGRESSION (v6_party_gimmicks_circuits.md §4) ---
 # Retention layer: circuits unlock as you play. The unlock chain ORDER lives in circuits.json
@@ -81,6 +84,10 @@ func _capture_baselines() -> void:
 		var bus_name: String = BUSES[key]
 		var idx := AudioServer.get_bus_index(bus_name)
 		_baseline_db[bus_name] = AudioServer.get_bus_volume_db(idx) if idx >= 0 else 0.0
+	for key in LINKED_BUSES:   # WK-163
+		for bus_name in LINKED_BUSES[key]:
+			var li := AudioServer.get_bus_index(str(bus_name))
+			_baseline_db[str(bus_name)] = AudioServer.get_bus_volume_db(li) if li >= 0 else 0.0
 
 # ------------------------------------------------------------------- public API (Options screen)
 
@@ -143,6 +150,11 @@ func _apply_bus(key: String) -> void:
 	var baseline: float = _baseline_db.get(bus_name, 0.0)
 	var db: float = SILENCE_DB if v <= 0.01 else baseline + linear_to_db(v)
 	AudioServer.set_bus_volume_db(idx, db)
+	for linked in LINKED_BUSES.get(key, []):   # WK-163
+		var li := AudioServer.get_bus_index(str(linked))
+		if li >= 0:
+			var lb: float = _baseline_db.get(str(linked), 0.0)
+			AudioServer.set_bus_volume_db(li, SILENCE_DB if v <= 0.01 else lb + linear_to_db(v))
 
 func _apply_fullscreen() -> void:
 	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED

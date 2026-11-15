@@ -5,8 +5,10 @@ extends Node
 ## SUBSCRIBES to EventBus / KillPipeline signals and reads state read-only. Autoloaded as
 ## `AudioManager` (below EventBus/KillPipeline/PowerupSystem, which it depends on).
 ##
-## Buses (res://default_bus_layout.tres): Master -> Music, SFX. SFX players route to "SFX",
-## music/thrust as noted. No class_name (autoload rule); entity types are duck-typed, never
+## Buses (res://default_bus_layout.tres): Master -> Music, SFX, Stingers. SFX players route to "SFX",
+## music/thrust as noted. WK-163: the payoffs (KO pop + sting + ring-out whoosh, goal sax + crowd, match-win cheer) play
+## on "Stingers" (own light limiter, NO SFX compressor) via play_sfx opts.bus, so the shared compressor stops flattening
+## them against the bed. No class_name (autoload rule); entity types are duck-typed, never
 ## referenced by class_name at parse time.
 ##
 ## Event map lives in owner directive docs/feedback/owner_2026-07-04_arena_variety.md §2.
@@ -20,6 +22,9 @@ const SFX := {
 	"smash_heavy":       ["res://assets/sfx/slam.mp3"],
 	"super_fire":        ["res://assets/sfx/explosion_boss.mp3"],   # owner pick 2026-07-18 (was combo_bigRoar)
 	"death":             ["res://assets/sfx/mm_quickdie.mp3"],
+	# WK-163: 0.55 s hard broadband crack + falling "vanish" sweep layered OVER the KO pop (mm_quickdie fades in over 0.4 s and
+	# has no attack of its own). Built from crunch.mp3 + Kenney CC0 sfx_disappear/sfx_throw by tools/audio/render_ko_sting.py.
+	"ko_sting":          ["res://assets/sfx/ko_sting.ogg"],
 	"death_whoosh":      ["res://assets/sfx/woosh.mp3"],
 	"damage_1":          ["res://assets/sfx/enemyHurt_01.mp3"],
 	"damage_2":          ["res://assets/sfx/enemyHurt_02.mp3"],
@@ -131,6 +136,7 @@ const TIER_PRIORITY := 2
 const FILLER_MAX_VOICES := 5
 const PRIORITY_SFX := {
 	"smash": true, "smash_heavy": true, "super_fire": true, "death": true, "death_whoosh": true, "explode": true,
+	"ko_sting": true,   # WK-163
 	"go": true, "first_blood": true, "two_left": true, "match_win": true,
 	"goal_red": true, "goal_blue": true, "goal_crowd": true, "own_goal": true, "own_goal_groan": true,
 	"ball_power": true, "sports_fall": true, "tile_break": true,
@@ -147,6 +153,25 @@ const SFX_VOICE_CAP := {"countdown": 3, "super_aim": 3}   # WK-26: <= 3 wind-ups
 const THRUST_ON_DB := -12.0
 const THRUST_OFF_DB := -60.0
 const THRUST_FADE := 10.0        # db/sec toward target
+
+# --- WK-163 stinger bus + KO duck (audit docs/audit/2026-11-15_audio_measure.md, WK-79c + WK-163 sections). Payoff levels are set for the
+# Stingers bus (0 dB, 40 Hz HPF, HardLimiter -3 dB, no compressor): on the old SFX path the compressor took 3-7 dB off a KO.
+const STINGER_BUS := "Stingers"
+const KO_STING_DB := -2.0        # file peak -1.1 -> -3.1, at the stinger limiter ceiling; carries the KO's first 0.4 s
+const KO_POP_DB := 1.0           # mm_quickdie (file peak -5.6 -> -4.6): ~2 dB over its old in-mix level (-0.6..-1.7 vs file at +5
+                                 # on SFX) so the 0.4-1 s KO tail still clears a hot bed (WK-79c2 beds ran -14.5..-17.5 LUFS)
+const KO_WHOOSH_DB := -3.0       # ring-out woosh (file peak -1.0): old SFX +1 read ~-3.5 after bus + compressor
+const GOAL_SAX_DB := 5.0         # was +9 on SFX (~+3.5 effective after -2.5 bus and ~3 dB of compression)
+const GOAL_CROWD_DB := -2.0      # was +2 on SFX (~-1.5 effective). At 0 its 3 s tail + the next "3" beep hit -1.95 dBFS in COUNTDOWN
+const MATCH_WIN_DB := -1.0       # rewardCheer (file peak -2.8)
+const KO_DUCK_DB := -4.0         # SFX bus "KODuck" Amplify (bed: bounces, thrust, aim, smashes) under a brawl KO
+const KO_DUCK_ATTACK := 0.015    # s to reach KO_DUCK_DB
+const KO_DUCK_HOLD := 0.3        # s held
+const KO_DUCK_RELEASE := 0.25    # s back to 0 dB
+var ko_ducks := 0                # QA: KO ducks triggered
+var _stinger_bus := "SFX"        # resolved in _ready (falls back to SFX if the layout has no Stingers bus)
+var _duck_fx: AudioEffectAmplify = null
+var _duck_t := -1.0              # s since the duck began (-1 = idle)
 
 var _cache := {}                 # path -> AudioStream (lazy loaded once)
 var _pool: Array[AudioStreamPlayer] = []
@@ -228,6 +253,17 @@ func _ready() -> void:
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Music"
 	add_child(_music)
+	# WK-163: stinger bus + the SFX-bus duck effect (both from default_bus_layout.tres; absent -> harmless no-ops)
+	if AudioServer.get_bus_index(STINGER_BUS) >= 0:
+		_stinger_bus = STINGER_BUS
+	var sfx_idx := AudioServer.get_bus_index("SFX")
+	if sfx_idx >= 0:
+		for i in range(AudioServer.get_bus_effect_count(sfx_idx)):
+			var fx := AudioServer.get_bus_effect(sfx_idx, i)
+			if fx is AudioEffectAmplify:
+				_duck_fx = fx
+				_duck_fx.volume_db = 0.0
+				break
 
 	# --- subscribe (INV-12): sim emits, we react ---
 	EventBus.surface_bounced.connect(_on_surface_bounced)
@@ -261,7 +297,8 @@ func _ready() -> void:
 # --------------------------------------------------------------------- core play API
 
 ## Fire a one-shot SFX by event key. opts: {pitch: float, pitch_var: float, volume_db: float,
-## path: String (force a specific stream), protect: bool (WK-105: never voice-stolen while playing),
+## path: String (force a specific stream), protect: bool (WK-105: never voice-stolen while playing), bus: String (WK-163;
+## default "SFX" - payoffs pass the resolved stinger bus),
 ## tier: int (WK-132 override; default from PRIORITY_SFX / FILLER_SFX / "bleat_*", else NORMAL), tag: String (QA)}.
 func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	var path: String = str(opts.get("path", ""))
@@ -292,6 +329,7 @@ func play_sfx(name: String, opts: Dictionary = {}) -> void:
 	pl.set_meta("t0", Time.get_ticks_usec())
 	pl.set_meta("sfx", name)
 	pl.stream = stream
+	pl.bus = str(opts.get("bus", "SFX"))   # WK-163: pooled voices are shared, so every play sets its bus
 	var pitch: float = float(opts.get("pitch", 1.0))
 	var pvar: float = float(opts.get("pitch_var", 0.06))
 	pl.pitch_scale = clampf(pitch + randf_range(-pvar, pvar), 0.4, 2.5)
@@ -535,14 +573,16 @@ func _on_match_started() -> void:
 	play_music(MUSIC_GAMEPLAY[randi() % MUSIC_GAMEPLAY.size()], true, 0.0)
 
 func _on_match_won(_widx) -> void:
-	play_sfx("match_win", {"volume_db": 0.0})
+	play_sfx("match_win", {"volume_db": MATCH_WIN_DB, "bus": _stinger_bus})   # WK-163 (was 0 on SFX)
 	play_music(MUSIC_SCOREBOARD, true, 0.0)
 
+## WK-163: FIRST BLOOD / TWO LEFT land on the same tick as a KO, so on the SFX bus the KO duck ate 4 dB of them. Moved to the
+## Stingers bus at their old absolute level (was -1 / -2 on SFX: -2.5 bus, ~1 dB compression on the TWO LEFT peak).
 func _on_first_blood(_ai) -> void:
-	play_sfx("first_blood", {"volume_db": -1.0})
+	play_sfx("first_blood", {"volume_db": -3.5, "bus": _stinger_bus})   # WK-163
 
 func _on_two_left() -> void:
-	play_sfx("two_left", {"volume_db": -2.0})
+	play_sfx("two_left", {"volume_db": -5.5, "bus": _stinger_bus})   # WK-163
 
 func _on_killed(victim, cause, _attacker) -> void:
 	# SPORTS (WK-105): nobody "dies" in sports. A goat that drops out of the court (a Dropshot hole, a
@@ -557,9 +597,13 @@ func _on_killed(victim, cause, _attacker) -> void:
 	# off-screen / ring-out kills get the whoosh-out; other causes just the death pop
 	# WK-79b (both were -3): the KO measured only +2.9 dB over the thrust bed; +1 keeps its absolute level with the
 	# SFX makeup removed while the bed falls ~9 dB
+	# WK-163: all three on the Stingers bus (past the SFX compressor that took 3-7 dB off the pop); the sting supplies the
+	# hard attack, the pop the tail; the SFX bed ducks KO_DUCK_DB for ~0.3 s underneath.
 	if str(cause) == "ring_out":
-		play_sfx("death_whoosh", {"volume_db": 1.0})
-	play_sfx("death", {"volume_db": 5.0, "pitch_var": 0.1})   # WK-79c (was +1): the KO pop must lead the smash before it (file peak -5.6)
+		play_sfx("death_whoosh", {"volume_db": KO_WHOOSH_DB, "bus": _stinger_bus})   # WK-163 (was +1 on SFX)
+	play_sfx("ko_sting", {"volume_db": KO_STING_DB, "pitch_var": 0.04, "bus": _stinger_bus})   # WK-163
+	play_sfx("death", {"volume_db": KO_POP_DB, "pitch_var": 0.1, "bus": _stinger_bus})   # WK-163 (was +5 on SFX)
+	_start_ko_duck()   # WK-163
 
 # --------------------------------------------------------------------- sports (WK-105 / SP-01)
 
@@ -601,8 +645,10 @@ func _on_goal_scored(team, _scorer, own_goal) -> void:
 		play_sfx("goal_crowd", {"volume_db": -9.0, "pitch": 0.85, "pitch_var": 0.0, "protect": true})
 		return
 	# WK-79c (was +4): removing the SFX makeup cost the stinger 4 dB net (point rise +5.2 -> +3.7 LU); file peak -10 -> -3
-	play_sfx("goal_red" if int(team) == 0 else "goal_blue", {"volume_db": 9.0, "pitch_var": 0.0, "protect": true})   # WK-79c: +7 -> +9 (goal rise +5.3 -> ~+6.5 LU predicted)
-	play_sfx("goal_crowd", {"volume_db": 2.0, "pitch_var": 0.03, "protect": true})   # WK-79b (was -2)
+	# WK-163: sax + crowd on the Stingers bus (was +9 / +2 on SFX, flattened by its compressor: goal rise +5.3 LU)
+	play_sfx("goal_red" if int(team) == 0 else "goal_blue", {"volume_db": GOAL_SAX_DB, "pitch_var": 0.0, "protect": true,
+		"bus": _stinger_bus})
+	play_sfx("goal_crowd", {"volume_db": GOAL_CROWD_DB, "pitch_var": 0.03, "protect": true, "bus": _stinger_bus})
 	play_sfx("ball_body", {"volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.0})   # net-bulge thump
 
 var last_goal_own := false       # QA: was the most recent voiced goal an own goal
@@ -918,7 +964,35 @@ func _out_of_court(victim) -> bool:
 
 # --------------------------------------------------------------------- thrust loop (read-only poll)
 
+## WK-163: duck the SFX bed (bounces, thrust, aim, smashes) under a KO via the SFX bus "KODuck" Amplify effect. Not the bus
+## volume: Settings owns that (slider). A KO during a duck restarts the hold from the current level (no snap to 0 dB).
+func _start_ko_duck() -> void:
+	if _duck_fx == null:
+		return
+	ko_ducks += 1
+	var cur: float = _duck_fx.volume_db
+	# re-enter the attack ramp at the point matching the current level so a re-trigger never jumps up
+	_duck_t = KO_DUCK_ATTACK * clampf(cur / KO_DUCK_DB, 0.0, 1.0)
+
+func _tick_ko_duck(delta: float) -> void:
+	if _duck_fx == null or _duck_t < 0.0:
+		return
+	# real time: hit-stop / KO slow-mo scale delta (Juice sets Engine.time_scale), the duck must not stretch with it
+	_duck_t += delta / maxf(Engine.time_scale, 0.05)
+	var d: float
+	if _duck_t < KO_DUCK_ATTACK:
+		d = KO_DUCK_DB * _duck_t / KO_DUCK_ATTACK
+	elif _duck_t < KO_DUCK_ATTACK + KO_DUCK_HOLD:
+		d = KO_DUCK_DB
+	elif _duck_t < KO_DUCK_ATTACK + KO_DUCK_HOLD + KO_DUCK_RELEASE:
+		d = KO_DUCK_DB * (1.0 - (_duck_t - KO_DUCK_ATTACK - KO_DUCK_HOLD) / KO_DUCK_RELEASE)
+	else:
+		d = 0.0
+		_duck_t = -1.0
+	_duck_fx.volume_db = d
+
 func _process(delta: float) -> void:
+	_tick_ko_duck(delta)   # WK-163
 	_tick_aim_voices(delta)   # WK-26
 	_tick_pressure_loops(delta)   # WK-116
 	var want := _any_boosting()

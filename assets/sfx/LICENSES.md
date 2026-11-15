@@ -59,3 +59,10 @@ Rendered by `python tools/audio/render_wk116_crowd.py` (numpy + ffmpeg, fixed RN
 
 WK-116 one-shots reuse listed files at playback: `pressure_ka` = `kenney_impactWood_medium_*` pitched x1.25-1.5, `pressure_chunk` =
 `kenney_impactPunch_heavy_*` pitched x0.62-0.78, `pressure_slam` = `slam.mp3` x0.7, `pressure_ooh` = `rewardCheer.mp3` x0.74.
+
+## WK-163 KO sting — derived from files already in the repo (no download, no synthesis). Licences follow the sources.
+Rendered by `python tools/audio/render_ko_sting.py` (numpy/scipy + ffmpeg, deterministic).
+
+| File | Derived from | How | Use (AudioManager key) |
+|---|---|---|---|
+| `ko_sting.ogg` | `crunch.mp3` (owner library, see above) + `assets/placeholder/newplatformer/Sounds/sfx_disappear.ogg` and `sfx_throw.ogg` (Kenney **New Platformer Pack 1.1**, CC0 1.0, https://kenney.nl/assets/new-platformer-pack; pack `License.txt` in `assets/placeholder/newplatformer/`) | crack = crunch x1.12, 160 Hz HPF, 0-0.10 s then faded, peaks limited 8 dB; vanish = sfx_disappear + sfx_throw (-9 dB), +4 dB gain ramp to 0.3 s, tanh drive 2.0, -2.5 dB under the crack; 120 Hz HPF, cosine fade 0.38-0.55 s, limited, peak -1.2 dBFS; 0.55 s mono 44.1 kHz Vorbis q6 | `ko_sting` — WK-163 brawl KO attack layer over the `death` pop (Stingers bus) |
