@@ -2,6 +2,12 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-169c rulings (docs/specs/wk169c_showdown_polish_2026-11-16.md): showdown_drop_dur stays 6 s (a shorter tank
+  barely moves holder-wins; 29/38 tails end ~2.6 s after the grab). Test GOLD SURGE instead (golden super arms 1.0 s after the grab,
+  boost immediate; built at 0.0 = today, TG lane re-check decides). Low-fuel CPUs may go for a reachable golden bubble; a golden drop
+  claims an occupied spawner (regular bubble upgrade-pops); held Unlimited Boost can't clear the golden flag during a tank.
+  No camera change; G9 band stays 50-85 % as a flag judged by CD6.
+
 - **2026-11-16** WK-169 SHOWDOWN SHIPPED (A1 golden drop; docs/audit/2026-11-16_wk169b2.md, decision row 1): after 6 s of a 2-alive
   tail with a ghost watching, SHOWDOWN (dim + rim) and a golden tank every 8 s (6 s Unlimited Boost). Pre-registered primary: P(tail
   that reaches 6 s goes past 20 s) 14.2 % -> 3.4 % (p 0.019); tail metric 0.45x; projected waits > 15 s -42 %, spectator s -11 %.
