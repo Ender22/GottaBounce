@@ -1523,11 +1523,16 @@ func _refresh_glyphs() -> void:
 ## reads it. Nobody joined: a tap backs out ("BACK"). Anyone joined: only a device that is NOT seated arms the
 ## hold-to-exit (WK-82 — a seated B un-readies / backs out instead), so the chip says exactly that.
 func _refresh_back_chip() -> void:
-	var anyone: bool = _joined_count() > 0
-	_back_label.text = "NOT IN? HOLD: EXIT" if anyone else "BACK"
+	var anyone: bool = _joined_count() > 0   # DISCONNECTED seats count as joined (their grace window holds the lobby)
+	_back_label.text = "NOT JOINED? HOLD TO EXIT" if anyone else "BACK"
 	_back_label.add_theme_font_size_override("font_size", 30 if anyone else 36)
 	var w: float = maxf(220.0, _back_row.get_combined_minimum_size().x + 44.0)
 	_back_btn.size.x = w
+	# ux lobby verdict Fix 2: an empty lobby has ONE exit prompt (the chip's "B BACK") and only the verb that works
+	# there (JOIN). BACK OUT / RANDOM / GOAT-FLAIR come back with the first seat.
+	(get_node("Footer/HintRow/GJoin/Label") as Label).text = "JOIN / READY" if anyone else "JOIN"
+	for n in ["GBack", "GRandom", "GFlair"]:
+		(get_node("Footer/HintRow/" + n) as Control).visible = anyone
 
 # ================================================================== misc
 func _on_device_lost(key: String) -> void:
