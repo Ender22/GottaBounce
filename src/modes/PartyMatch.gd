@@ -250,7 +250,7 @@ func _ready() -> void:
 	_camera.zoom_in_speed = 3.0    # tighten the view slow (no snap-in-then-back "pump")
 	_camera.zoom_deadzone = 0.012  # ignore sub-threshold zoom-target wiggle
 	add_child(_camera)
-	_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
+	_snap_camera_stage_start()   # WK-148b: sports snap straight to the court framing; others unchanged
 	_juice = Juice.new()
 	add_child(_juice)
 	_juice.setup(_camera)
@@ -688,7 +688,7 @@ func _begin_stage() -> void:
 				break                             # WK-02 roster cap holds for wave rosters too
 			_spawn_player(players.size(), desc)   # REUSE the exact runner spawn path (humans-first invariant holds)
 	if _camera != null:
-		_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)
+		_snap_camera_stage_start()   # WK-148b
 	_hud.hide_center()
 	for i in range(players.size()):
 		var p = players[i]
@@ -1883,9 +1883,7 @@ func _update_camera() -> void:
 	var framing: Variant = _mode.camera_framing(self)
 	if framing is Rect2:
 		var fr: Rect2 = framing
-		var fz := minf(1920.0 / maxf(fr.size.x, 1.0), 1080.0 / maxf(fr.size.y, 1.0))
-		fz = clampf(fz, CAM_MIN_ZOOM, CAM_MAX_ZOOM)
-		_camera.set_frame(fr.get_center(), fz)
+		_camera.set_frame(fr.get_center(), _fixed_framing_zoom(fr))   # WK-148b: same fit, now shared with the stage-start snap
 		return
 	# --- OWNER RULES framing (docs/feedback/owner_2026-07-10_camera_rules.md) ---
 	# The action-cluster/weights/velocity-lead machinery is GONE: the frame targets the midpoint of
@@ -1946,6 +1944,24 @@ func _update_camera() -> void:
 	else:
 		cy = bounds.get_center().y
 	_camera.set_frame(Vector2(cx, cy), z)
+
+## WK-148b: the stage-start camera snap (_ready + every _begin_stage: match start, each sports goal's STAGE_INTRO,
+## Pause->RESTART's reload, REMATCH). A mode with FIXED framing (SPORTS -> the court) snaps straight to the zoom/centre
+## _update_camera eases to, so the first drawn frame is already the court (it used to snap to CAM_MAX_ZOOM and ease out
+## for ~15 frames, which WK-148's MatchCover hid). Modes without fixed framing (BRAWL/TRIALS/GAUNTLET: camera_framing
+## returns null) keep the exact old snap. Framing rules are untouched: this only changes where the smoothing starts.
+func _snap_camera_stage_start() -> void:   # WK-148b
+	var framing: Variant = _mode.camera_framing(self) if (_mode != null and Tuning.cam_sports_start_snap) else null   # WK-148b
+	if framing is Rect2:   # WK-148b
+		var fr: Rect2 = framing   # WK-148b
+		_camera.snap_to(fr.get_center(), _fixed_framing_zoom(fr))   # WK-148b
+	else:   # WK-148b
+		_camera.snap_to(_stage_rect.get_center(), CAM_MAX_ZOOM)   # WK-148b: unchanged pre-WK-148b behaviour
+
+## The zoom that fits a mode's fixed-framing rect to the 1920x1080 view (shared by _update_camera and the WK-148b snap).
+func _fixed_framing_zoom(fr: Rect2) -> float:   # WK-148b
+	var fz := minf(1920.0 / maxf(fr.size.x, 1.0), 1080.0 / maxf(fr.size.y, 1.0))   # WK-148b
+	return clampf(fz, CAM_MIN_ZOOM, CAM_MAX_ZOOM)   # WK-148b
 
 func stage_center() -> Vector2:
 	return _stage_rect.get_center()

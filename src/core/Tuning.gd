@@ -894,7 +894,8 @@ var arena_preview_rays_spin: float = 5.0        # deg/s the rays turn (0 = still
 var arena_preview_locked_tint: Color = Color(0.55, 0.53, 0.58, 1.0)  # preview art modulate while a LOCKED card is focused  # WK-60
 var arena_select_card_size: Vector2 = Vector2(400, 300)  # px shelf card size under the preview (was 460x340 with no preview)  # WK-60
 # --- WK-148 sports match start: hold the iris white until the court camera settles (UX4-27). Read by src/ui/MatchCover.gd + src/ui/ShellRoot.gd.  # WK-148
-var match_cover_on: bool = true                # court confirm -> the iris white holds over the new match until the camera has eased out  # WK-148
+var match_cover_on: bool = false               # court confirm -> the iris white holds over the new match until the camera has eased out  # WK-148
+                                              # OFF since WK-148b: the camera now snaps to the court framing, nothing to hide (code kept)  # WK-148b
 var match_cover_sports_only: bool = true       # only sports modes (their camera snaps to CAM_MAX_ZOOM, then eases out to the court)  # WK-148
 var match_cover_zoom_tol: float = 0.015        # camera zoom within this share of the court-framing zoom counts as settled (1.5 % = ~14 px at a 1080p edge)  # WK-148
 var match_cover_pos_tol: float = 6.0           # world px the camera centre may be off the framing centre and still count as settled  # WK-148
@@ -930,31 +931,6 @@ var device_toast_hold: float = 2.6            # s a connect / disconnect toast s
 var device_toast_fade: float = 0.22           # s a toast takes to drop in / fade out  # WK-28b
 var device_toast_max: int = 3                 # toasts stacked at once (the oldest leaves early)  # WK-28b
 
-# --- WK-136 near-empty re-light (CD3-04a, docs/audit/2026-11-15_cd3_playthrough.md §5 G2). A billed mid-air re-light (WK-128 R2)  # WK-136
-# always leaves at least this much THRUST TIME in the tank: fuel = max(fuel - bill, min(fuel, max(boost_relight_min_left,  # WK-136
-# normal_boost_drain() x this))). 0.105 s = 3.0 fuel = 12.6 ticks at 120 tps (Accept: 0 billed re-lights under 12 ticks). A press  # WK-136
-# with less than 3.0 fuel in the tank is not billed at all (it burns what is there, as before). Feather check: the cap only bites  # WK-136
-# below 8.7 fuel (bill 5.71 + 3.0), so the whole saving is ~1 bill per episode inside the last 9 % of a tank; tut_02/03 feather  # WK-136
-# still fails (verified rendered 2026-11-15). Invariant #14 untouched (bill_max x drain still 5.71 above the floor). Read by  # WK-136
-# Player._wk128_fresh_press only.  # WK-136
-var boost_relight_min_thrust: float = 0.105   # s of thrust a billed re-light always leaves. 0.0 = OFF (WK-128's 1.0 fuel floor alone)  # WK-136
-# --- WK-20d Brawl pacing rungs R2-R4 (docs/specs/wk20d_brawl_pacing_2026-11-15.md §4.2-4.4). BRAWL ONLY (Player checks the  # WK-20d
-# runner's GameMode id; Sports / Trials / Flight School never see them). Each is an independent A/B switch, OFF by default:  # WK-20d
-# OFF = exactly the pre-WK-20d game. Counters (Player.wk128 dict, wk20d_*): supers, supers_fired_protected, truce_locked_presses,  # WK-20d
-# truce_unlock_buffered_arms (must be 0), whiffs, fumbles, whiff_brakes, whiff_brake_reached750, whiff_brake_aborted, reserves,  # WK-20d
-# reserve_fuel, reserve_over_fire (must be 0), reserve_locked_presses, reserve_gate_violations (must be 0).  # WK-20d
-# NOT BUILT (spec: required before ADOPTION, not before measurement): the padlock / dry click (R2, R4), the sputter puff + "pfft"  # WK-20d
-# (R3), the HUD reserve sliver (R4).  # WK-20d
-# INVARIANT (§4.4): super_whiff_reserve < fuel_per_bounce (15 < 20). Because it is >= super_boost_min_fuel (10) the re-arm gate is  # WK-20d
-# REQUIRED; Player turns it on whenever super_whiff_reserve > 0, so the two can never be split.  # WK-20d
-var brawl_spawn_super_lock: bool = false      # R2 SPAWN TRUCE: no super arms while you blink (spawn-protected); a press is dropped,  # WK-20d
-                                              # never buffered. Test value true  # WK-20d
-var super_whiff_brake_speed: float = 0.0      # R3 WHIFF BRAKE: px/s a super that touched nothing (no smash branch, no surface)  # WK-20d
-                                              # bleeds to when its super_active_time window ends. 0 = OFF; test 700 (< boost cap 800)  # WK-20d
-var super_whiff_brake_time: float = 0.15      # R3: s the bleed takes (linear |v| cap v0 -> brake speed; scales only, never reverses)  # WK-20d
-var super_whiff_reserve: float = 0.0          # R4 FUMBLE RESERVE: a super that landed no smash returns min(this, fuel at fire) when its  # WK-20d
-                                              # window ends; that fuel can't arm a super until the next paying contact. 0 = OFF; test 15  # WK-20d
-
 # --- WK-131 Rocketball KICKOFF GATES (spec docs/specs/wk131_kickoff_rule_2026-11-15.md §7, brief docs/briefs/kickoff_gate_2026-11-15.md §9).  # WK-131
 # Each soccer goal mouth gets a ball-only candy-stripe gate from the stage load until sports_gate_open_s of live-ball time  # WK-131
 # after GO. Read ONLY by src/modes/SportsMode.gd and src/entities/KickoffGate.gd (+ AudioManager cue levels). Brawl never reads it.  # WK-131
@@ -978,7 +954,7 @@ var sports_gate_ring_band: float = 12.0       # wpx drain ring gold band (plus a
 var sports_gate_flex_amp: float = 12.0        # wpx peak bow of the pole on a full-speed (>= 2000 px/s) hit  # WK-131
 var sports_gate_flex_sigma: float = 70.0      # wpx Gaussian width of the bow around the contact point  # WK-131
 var sports_gate_flex_time: float = 0.25       # s the bow's damped spring takes to settle (first half-wobble 0.12 s)  # WK-131
-var sports_gate_flash_time: float = 0.06      # s the pole + badge hold white on a hit  # WK-131
+var sports_gate_flash_time: float = 0.06      # s the pole holds white on a hit (badge: x sports_gate_badge_flash)  # WK-131
 var sports_gate_flash_fade: float = 0.12      # s the hit flash fades back  # WK-131
 var sports_gate_fx_min_speed: float = 150.0   # px/s contact speed below which a gate touch makes no FX / sound  # WK-131
 var sports_gate_warn_hz_from: float = 3.0     # Hz warning brightness swing (and wind-up ticks) at the start of the warning  # WK-131
@@ -990,9 +966,43 @@ var sports_gate_drop_in: bool = true          # the pole drops out of the top so
 var sports_gate_drop_time: float = 0.15       # s the drop-in takes  # WK-131
 var sports_gate_pop_wpx: float = 34.0         # wpx cap height of the "NOT YET!" pop  # WK-131
 
+# --- WK-136 near-empty re-light (CD3-04a, docs/audit/2026-11-15_cd3_playthrough.md §5 G2). A billed mid-air re-light (WK-128 R2)  # WK-136
+# always leaves at least this much THRUST TIME in the tank: fuel = max(fuel - bill, min(fuel, max(boost_relight_min_left,  # WK-136
+# normal_boost_drain() x this))). 0.105 s = 3.0 fuel = 12.6 ticks at 120 tps (Accept: 0 billed re-lights under 12 ticks). A press  # WK-136
+# with less than 3.0 fuel in the tank is not billed at all (it burns what is there, as before). Feather check: the cap only bites  # WK-136
+# below 8.7 fuel (bill 5.71 + 3.0), so the whole saving is ~1 bill per episode inside the last 9 % of a tank; tut_02/03 feather  # WK-136
+# still fails (verified rendered 2026-11-15). Invariant #14 untouched (bill_max x drain still 5.71 above the floor). Read by  # WK-136
+# Player._wk128_fresh_press only.  # WK-136
+var boost_relight_min_thrust: float = 0.105   # s of thrust a billed re-light always leaves. 0.0 = OFF (WK-128's 1.0 fuel floor alone)  # WK-136
+
+# --- WK-20d Brawl pacing rungs R2-R4 (docs/specs/wk20d_brawl_pacing_2026-11-15.md §4.2-4.4). BRAWL ONLY (Player checks the  # WK-20d
+# runner's GameMode id; Sports / Trials / Flight School never see them). Each is an independent A/B switch, OFF by default:  # WK-20d
+# OFF = exactly the pre-WK-20d game. Counters (Player.wk128 dict, wk20d_*): supers, supers_fired_protected, truce_locked_presses,  # WK-20d
+# truce_unlock_buffered_arms (must be 0), whiffs, fumbles, whiff_brakes, whiff_brake_reached750, whiff_brake_aborted, reserves,  # WK-20d
+# reserve_fuel, reserve_over_fire (must be 0), reserve_locked_presses, reserve_gate_violations (must be 0).  # WK-20d
+# NOT BUILT (spec: required before ADOPTION, not before measurement): the padlock / dry click (R2, R4), the sputter puff + "pfft"  # WK-20d
+# (R3), the HUD reserve sliver (R4).  # WK-20d
+# INVARIANT (§4.4): super_whiff_reserve < fuel_per_bounce (15 < 20). Because it is >= super_boost_min_fuel (10) the re-arm gate is  # WK-20d
+# REQUIRED; Player turns it on whenever super_whiff_reserve > 0, so the two can never be split.  # WK-20d
+var brawl_spawn_super_lock: bool = false      # R2 SPAWN TRUCE: no super arms while you blink (spawn-protected); a press is dropped,  # WK-20d
+                                              # never buffered. Test value true  # WK-20d
+var super_whiff_brake_speed: float = 0.0      # R3 WHIFF BRAKE: px/s a super that touched nothing (no smash branch, no surface)  # WK-20d
+                                              # bleeds to when its super_active_time window ends. 0 = OFF; test 700 (< boost cap 800)  # WK-20d
+var super_whiff_brake_time: float = 0.15      # R3: s the bleed takes (linear |v| cap v0 -> brake speed; scales only, never reverses)  # WK-20d
+var super_whiff_reserve: float = 0.0          # R4 FUMBLE RESERVE: a super that landed no smash returns min(this, fuel at fire) when its  # WK-20d
+                                              # window ends; that fuel can't arm a super until the next paying contact. 0 = OFF; test 15  # WK-20d
+
 # --- WK-65 painted court cards (docs/briefs/court_cards_2026-11-15.md §7). The 1280x800 badges' frame opening came out  # WK-65
 # ~2.13:1 (the brief planned ~1.90), so the card's plain cover crop shows a cut-off top rim and the bottom rim around a small  # WK-65
 # interior. ArenaSelect._court_card_tex crops toward the badge centre by this factor before the card's COVERED stretch, so  # WK-65
 # the ~352x160 art slot lands on the painted interior plus thin red / blue side rims. The preview always shows the whole badge.  # WK-65
 var court_card_zoom: float = 1.16             # x crop toward the badge centre on court shelf cards (1.0 = plain cover crop)  # WK-65
 var court_card_dy: float = 0.0                # fraction of badge height the card crop shifts down (+) / up (-) after the zoom  # WK-65
+
+# --- WK-148b sports stage-start camera snap (replaces the WK-148 white MatchCover). Read by PartyMatch._snap_camera_stage_start.  # WK-148b
+# true: a mode with fixed framing (SPORTS court) snaps straight to its settled court zoom/centre at every stage start (match  # WK-148b
+# start, each goal's STAGE_INTRO, Pause->RESTART, REMATCH). false: the old CAM_MAX_ZOOM snap + ease-out. Brawl/Trials never read it.  # WK-148b
+var cam_sports_start_snap: bool = true        # WK-148b
+
+# --- WK-131 kickoff gate hit flash vs the padlock badge (blind read: the badge ghosted out for 2-3 frames under the 0.06 s white).  # WK-131
+var sports_gate_badge_flash: float = 0.0      # share of the pole's hit flash the badge takes (0 = pole only, badge stays readable; 1 = old)  # WK-131

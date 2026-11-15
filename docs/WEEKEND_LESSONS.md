@@ -177,3 +177,6 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **A visual timeline that must end exactly on T at 30 fps (WK-131 0.2 s retract = 6 frames) loses a frame to float rounding**:
   the ball clock is a sum of 1/120 steps, so a frame on T - 0.2 lands either side. Start the visual half a tick early.
 - Setting `Ball._clock` via eval before GO carries into the next live phase (go_live never resets it) - dev overrides leak.
+- WK-148b: redirecting `run_game.ps1 > file` hangs the PowerShell tool call exactly like a pipe (Godot inherits the handle); launch it with
+  the tool's run-in-background option instead. Per-frame camera probes: hook `RenderingServer.frame_pre_draw` from a root node (records the
+  zoom each DRAWN frame uses; `_process` order flips when change_scene re-adds the match after your probe).

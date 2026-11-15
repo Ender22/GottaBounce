@@ -463,7 +463,10 @@ func _apply_visuals(t: float) -> void:
 	_badge.scale = Vector2.ONE * badge_s * bscale
 	_badge.position = bpos
 	_badge.modulate.a = balpha
-	_badge_mat.set_shader_parameter("white", maxf(bright, flash))
+	# WK-131 blind-read follow-up: the full 0.06 s white turned the padlock white-on-white for 2-3 frames (it ghosted out).
+	# The hit flash is the POLE's; the badge takes only Tuning.sports_gate_badge_flash of it (0 = none). The warning swing
+	# (`bright`) is unchanged.  # WK-131
+	_badge_mat.set_shader_parameter("white", maxf(bright, flash * Tuning.sports_gate_badge_flash))   # WK-131
 
 	# --- ring (full + static pre-GO, drains clockwise from 12 o'clock over [0, T], gone at the retract) ---
 	_ring.visible = not dropping and not (_started and t >= rs)
