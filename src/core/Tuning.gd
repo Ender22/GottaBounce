@@ -915,11 +915,34 @@ var pip_tag_claim_alpha: float = 0.25          # a living tag fainter than this 
 # --- WK-135 phase 1: bumpers kick, never cradle (docs/specs/wk135_bumper_min_bounce_2026-11-15.md §4.1/§4.4). INV-11 on  # WK-135
 # EVERY surface: a bumper contact leaves at >= max(sqrt(2|g| x bumper_min_rebound_height), bumper_min_rebound_floor) along  # WK-135
 # the face normal (392 px/s flat, 310 in Singularity's well); above that the x0.86 ricochet is untouched. Read by  # WK-135
-# BounceResolver.resolve_bumper(). Phases 2-3 (face classes, liveness valve, refund gates ON, ball refuel, BR-135) NOT built.  # WK-135
+# BounceResolver.resolve_bumper(). Phase 3 (WK-128 (b) refund gates ON + sports ball refuel) NOT built: gates stay OFF.  # WK-135
 # INVARIANT #9 still holds: bumper_restitution < 1; the kick adds energy only below 456 px/s incoming (bounded at 392), never  # WK-135
-# a speed pump. Future #15 (phase 2): bumper_min_rebound_height (48) < refund_rearm_min_px (spec 60).  # WK-135
+# a speed pump.  # WK-135
 var bumper_min_rebound_height: float = 48.0   # px kick floor on every bumper face (= min_bounce_height, own constant). 0 = OFF  # WK-135
 var bumper_min_rebound_floor: float = 250.0   # px/s absolute kick floor for weak / zero fields (= soft_bump_min)  # WK-135
+# --- WK-135 phase 2 (spec §4.2 C1-C6, §5 BR-135). Read by Player._wk128_contact_pays / _wk128_track_faces and InputBot.  # WK-135
+# Bumper faces are classed by LOCAL gravity at the contact (up = -g): n.up > bumper_floor_dot = FLOOR (block tops, every  # WK-135
+# round core), n.up < -0.5 = CEILING (no refund, unchanged), else WALL. FLOOR bumper faces pay under the TIER rules (re-arm  # WK-135
+# max(refund_rearm_min_px, refund_rearm_frac x launch h), no hard-hit gate); WALL faces keep WK-128 F2 + bumper_px. A face  # WK-135
+# that paid >= refund_rearm_timeout ago re-arms however little you moved (liveness valve: no goat stranded at 0 fuel).  # WK-135
+# NOTE: with the WK-128 (b) gates OFF (refund_rearm_* = 0, bumper_refund_min_speed = 0) every contact pays, so C1-C4 are inert  # WK-135
+# until phase 3; only the refunds_bumper_floor/_wall telemetry split shows. OFF values (= phase 1 exactly):  # WK-135
+# bumper_floor_pays_as_tier = false, refund_rearm_timeout = 0.0, InputBot.wk135_no_pin = false.  # WK-135
+# INVARIANTS: #15 bumper_min_rebound_height (48) < refund_rearm_min_px (spec 60): kick hops never pay twice by distance.  # WK-135
+#   #16 fuel_per_bumper / refund_rearm_timeout = fuel_per_bounce / refund_rearm_timeout = 13.3 < natural trampoline income  # WK-135
+#       (20 / 1.16 = 17.2) < normal_boost_drain() (28.6). Re-check if the timeout, refund amounts, gravity or trampoline move.  # WK-135
+var bumper_floor_dot: float = 0.5             # n.up above this = FLOOR-class bumper face (= the underside test's 0.5)  # WK-135
+var bumper_floor_pays_as_tier: bool = true    # C2: FLOOR bumper faces pay under tier rules. false = all bumper faces use the wall rules  # WK-135
+var refund_rearm_timeout: float = 1.5         # C4 s: a face that paid this long ago re-arms (liveness valve). 0.0 = OFF. Invariant #16  # WK-135
+# BR-135b bot pin breaker (spec §5): >= bot_pin_contacts contacts with ONE bumper face within bot_pin_window while thrusting  # WK-135
+# into it (aim.n < bot_pin_into_dot) -> release boost for one reaction tick and re-plan with that face excluded for  # WK-135
+# bot_pin_exclude_s (no refuel target, no thrust into it: the boost aim slides along it). Switch: InputBot.wk135_no_pin.  # WK-135
+var bot_pin_contacts: int = 4                 # contacts with one bumper face (spec 4; fallback ladder 3)  # WK-135
+var bot_pin_window: float = 0.5               # s window for those contacts  # WK-135
+var bot_pin_into_dot: float = -0.5            # aim . face normal below this = thrusting into the face  # WK-135
+var bot_pin_exclude_s: float = 1.0            # s the pinned face stays excluded (no target, no thrust into it)  # WK-135
+var bot_pin_avoid_px: float = 260.0           # px off the excluded face inside which a boost aim into it is slid along it  # WK-135
+var bot_pin_turn_mult: float = 3.0            # x bot_flight_turn_rate while that slide redirects the stick (= bot_brake_turn_mult)  # WK-135
 
 # --- WK-28b in-match controller disconnect (CC-3.4) + connect / disconnect toasts. Read by src/ui/DeviceWatch.gd,  # WK-28b
 # src/ui/DisconnectOverlay.gd and src/ui/DeviceToast.gd.  # WK-28b

@@ -89,6 +89,14 @@ static var wk127_enabled := true
 # OFF = the WK-127 dive. NO EFFECT while the Tuning refund gate is OFF (pending WK-135): no face ever stays unarmed, so
 # Player.refund_rearm_pending() is always false. Flip via gbplay eval: InputBot.wk128_refuel_wait = false
 static var wk128_refuel_wait := true
+# WK-135 BR-135 (docs/specs/wk135_bumper_min_bounce_2026-11-15.md §5; default ON). Bots never thrust-pin a bumper:
+# (a) the radial refuel dive never targets a WALL/CEILING-class bumper face (flat dives already only hit tops: the probe
+# is a downward ray); (b) PIN BREAKER: >= Tuning.bot_pin_contacts contacts with ONE bumper face within bot_pin_window
+# while thrusting into it -> boost released for one reaction tick, then a re-plan with that face excluded for
+# bot_pin_exclude_s (not a refuel target; a boost aim into it within bot_pin_avoid_px slides along it instead);
+# (c) the radial landing/recovery reuses (b) (steer only: a recovery never drops its boost).
+# OFF = the phase-1 brain exactly. Flip via gbplay eval: InputBot.wk135_no_pin = false
+static var wk135_no_pin := true
 
 # --- Motion-health telemetry geometry (process-gate 2026-07-04: make "looks dumb" a NUMBER). ---
 const MH_STUCK_WINDOW := 1.0           # s window for the no-progress (stuck) test
@@ -126,6 +134,23 @@ var _refuel_dive := false        # WK-128: the cached decision is a refuel dive 
 var _refuel_dir := Vector2.ZERO  # WK-128: that dive's direction into the surface
 var _refuel_cross := false       # WK-128: ...and it is a must_cross translation (BR-128 does not apply)
 var _mh_below_floor_s := 0.0     # WK-128 §8: s with fuel below the effective refuel floor (motion-health feed)
+var _pin_clock := 0.0            # WK-135 BR-135b: s (this brain's own clock; never reset mid-life)
+var _pin_key := ""               # WK-135 BR-135b: bumper face of the current contact run
+var _pin_hits: Array = []        # WK-135: clocks (_mh_clock) of thrust-into contacts with that face in the window
+var _pin_release_t := 0.0        # WK-135: s left of the forced boost release (one reaction tick)
+var _pin_ex_t := 0.0             # WK-135: s left of the face exclusion
+var _pin_ex_key := ""            # WK-135: the excluded face
+var _pin_ex_n := Vector2.ZERO    # WK-135: its outward normal (rect faces)
+var _pin_ex_p := Vector2.ZERO    # WK-135: a contact point on it
+var _pin_ex_round := false       # WK-135: round collider (normal = radial from _pin_ex_c)
+var _pin_ex_c := Vector2.ZERO    # WK-135: round centre
+var _pin_ex_r := 0.0             # WK-135: round surface radius (centre to contact)
+var _pin_ex_wall := false        # WK-135: WALL-class face (slides go round it against gravity: over a post, not under it)
+var _pin_ex_body: WeakRef = null # WK-135: the face's body (rect extent read live: moving bumpers)
+var _pin_ex_off := Vector2.ZERO  # WK-135: its RectangleShape2D offset in the body
+var _pin_ex_half_t := -1.0       # WK-135: face half-length along its tangent (-1 = unknown shape: plane test)
+var _pin_ex_half_n := 0.0        # WK-135: rect half-extent along the face normal
+var _pin_avoiding := false       # WK-135: _pin_avoid redirected the aim this frame (snap the stick: bot_pin_turn_mult)
 # WK-95 BR-7: purpose of the super this bot last pressed (attack / finisher_attack / dodge / recovery_hot /
 # recovery_unreachable / attack_dump (WK-127); the pre-WK-95 brain also emits recovery_lowfuel). PartyMatch copies it into
 # round_stats.supers_fired[].purpose_bot at fire time. Telemetry only — never read by the decision code.
@@ -224,6 +249,9 @@ func poll() -> InputIntent:
 	it.flap = false
 	it.super_hold = false
 	_react -= dt
+	_pin_clock += dt   # WK-135 BR-135b
+	_pin_release_t = maxf(0.0, _pin_release_t - dt)   # WK-135
+	_pin_ex_t = maxf(0.0, _pin_ex_t - dt)   # WK-135
 	_commit_t = maxf(0.0, _commit_t - dt)
 	if _retreat:
 		_retreat_t += dt   # anti-permanent-evasion cap counts on the wall clock (§2c)
@@ -263,9 +291,13 @@ func poll() -> InputIntent:
 	# reflexive, and waiting up to reaction_time to react is what sends bots off the map.
 	_bang_t = maxf(0.0, _bang_t - dt)
 	_braking = false
+	_pin_avoiding = false   # WK-135
 	if _danger_recover(it):
 		it.aim = _bang_escape(it.aim, it.boost)
-		it.aim = _smooth_fly(it.aim, dt, Tuning.bot_brake_turn_mult if _braking else 1.0)
+		if it.boost:
+			it.aim = _pin_avoid(it.aim)   # WK-135 BR-135c: a recovery steers off an excluded face (never drops its boost)
+		var rm: float = Tuning.bot_brake_turn_mult if _braking else 1.0   # WK-135: + snap off an excluded face
+		it.aim = _smooth_fly(it.aim, dt, maxf(rm, Tuning.bot_pin_turn_mult) if _pin_avoiding else rm)   # WK-135
 		return it
 	if _react <= 0.0:
 		_react = profile.reaction_time
@@ -279,6 +311,8 @@ func poll() -> InputIntent:
 	it.boost = _cached_boost
 	# WK-128 BR-128 (reflex, every frame — a cached dive boost can outlive the bounce it was decided before)
 	if it.boost and _refuel_dive and not _refuel_cross and wk128_refuel_wait and me.refund_rearm_pending(_refuel_dir):
+		it.boost = false
+	if _pin_release_t > 0.0 and wk135_no_pin:   # WK-135 BR-135b: the pin breaker's one-reaction-tick boost release
 		it.boost = false
 	if _cached_super and me.super_arm_locked():   # WK-20d: truce / fumble-reserve gate would drop the press -> keep flying
 		_cached_super = false
@@ -302,9 +336,10 @@ func poll() -> InputIntent:
 	if it.boost:
 		it.aim = _ascent_detour(it.aim)
 		it.aim = _steer(it.aim)
+		it.aim = _pin_avoid(it.aim)   # WK-135 BR-135b: no thrust into an excluded (just-pinned) bumper face
 	if not it.super_hold:
 		it.aim = _ceiling_guard(_bang_escape(it.aim, it.boost), it.boost)
-		it.aim = _smooth_fly(it.aim, dt)
+		it.aim = _smooth_fly(it.aim, dt, Tuning.bot_pin_turn_mult if _pin_avoiding else 1.0)   # WK-135: snap off an excluded face
 	else:
 		_fly_out = Vector2.ZERO   # the super aim takes over (WK-94 sweep); re-seed flight from the arrow after
 	return it
@@ -838,6 +873,15 @@ func _decide() -> void:
 		var rdown := _gdown(pos)
 		if _radial(rdown):
 			var rhit := _surface_along(pos - rdown * 40.0, rdown, VOID_PROBE_DROP)
+			var no_target := false   # WK-135 BR-135a: surfaces along the pull, but none that can pay
+			if wk135_no_pin and not rhit.is_empty() and not _wk135_refuel_ok(rhit):   # WK-135 BR-135a
+				rhit = {}   # WK-135
+				for ang in [0.45, -0.45]:   # WK-135: look a little either side of the pull for a paying face
+					var alt := _surface_along(pos - rdown * 40.0, rdown.rotated(ang), VOID_PROBE_DROP)   # WK-135
+					if not alt.is_empty() and _wk135_refuel_ok(alt):   # WK-135
+						rhit = alt   # WK-135
+						break   # WK-135
+				no_target = rhit.is_empty()   # WK-135
 			var rtarget: Vector2 = (rhit["position"] as Vector2) if not rhit.is_empty() \
 				else pos + rdown * Tuning.bot_radial_dive_fallback
 			var rdir := (rtarget - pos).normalized()
@@ -849,6 +893,8 @@ func _decide() -> void:
 			_cached_boost = me.fuel > 2.0 and me.velocity.dot(rdir) < -60.0
 			if _cached_boost and wk128_refuel_wait and me.refund_rearm_pending(rdir):
 				_cached_boost = false   # WK-128 BR-128: ride this paying bounce to its apex (a chop-hop would not pay)
+			if _cached_boost and (no_target or _wk135_into_excluded(rdir)):   # WK-135 BR-135a/b: never thrust at a
+				_cached_boost = false   # non-paying or just-pinned face; the pull carries us onto whatever is below  # WK-135
 			_hunt = false
 			return
 		var sr := _stage()
@@ -875,6 +921,8 @@ func _decide() -> void:
 		_cached_boost = me.fuel > 2.0 and (me.velocity.dot(dir) < -60.0 or must_cross)
 		if _cached_boost and not must_cross and wk128_refuel_wait and me.refund_rearm_pending(dir):
 			_cached_boost = false   # WK-128 BR-128: ride this paying bounce to its apex (a chop-hop would not pay)
+		if _cached_boost and not must_cross and _wk135_into_excluded(dir):   # WK-135 BR-135b: no thrust-dribble into a
+			_cached_boost = false   # just-pinned bumper top (flat dives only ever target tops: the probe is a downward ray)  # WK-135
 		if _cached_boost and must_cross:
 			_cached_aim = _fly_aim(dir)   # WK-95 BR-2: a crossing dive flies a held line
 		_hunt = false
@@ -1697,11 +1745,137 @@ func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
 		_mh_asc_active = false
 		_mh_blocked_now = false
 
+# ---------------------------------------------------------------- WK-135 BR-135 (bots never thrust-pin a bumper)
+
+## WK-135: face key of a bumper contact, the same scheme as Player._wk128_face_key (rect: collider + snapped normal; round:
+## collider). `n` arrives already axis-snapped (rect) / radial (round) from Player._resolve_bounces.
+func _wk135_face_key(surface: Object, n: Vector2) -> String:  # WK-135
+	if surface == null:  # WK-135
+		return "~"  # WK-135
+	if surface.has_meta("round"):  # WK-135
+		return str(surface.get_instance_id())  # WK-135
+	return "%d:%d:%d" % [surface.get_instance_id(), roundi(n.x), roundi(n.y)]  # WK-135
+
+## WK-135 BR-135b: count contacts with ONE bumper face made while thrusting into it; at Tuning.bot_pin_contacts within
+## bot_pin_window, release boost for one reaction tick and exclude the face for bot_pin_exclude_s (re-plan right after).
+func _wk135_pin_contact(surface: Node2D, n: Vector2, contact: Vector2) -> void:  # WK-135
+	var key := _wk135_face_key(surface, n)  # WK-135
+	if key != _pin_key:  # WK-135
+		_pin_key = key  # WK-135
+		_pin_hits.clear()  # WK-135
+	var a: Vector2 = _intent.aim  # this frame's emitted stick (the thrust direction)  # WK-135
+	if not me.is_boosting() or a.length() < 0.1 or a.normalized().dot(n) >= Tuning.bot_pin_into_dot:  # WK-135
+		return  # WK-135
+	_pin_hits.append(_pin_clock)  # WK-135
+	while not _pin_hits.is_empty() and _pin_clock - float(_pin_hits[0]) > Tuning.bot_pin_window:  # WK-135
+		_pin_hits.pop_front()  # WK-135
+	if _pin_hits.size() < Tuning.bot_pin_contacts:  # WK-135
+		return  # WK-135
+	_pin_hits.clear()  # WK-135
+	_pin_release_t = profile.reaction_time  # WK-135
+	_react = _pin_release_t   # re-plan the moment the release ends, with the face excluded  # WK-135
+	_pin_ex_t = Tuning.bot_pin_exclude_s  # WK-135
+	_pin_ex_key = key  # WK-135
+	_pin_ex_round = surface.has_meta("round")  # WK-135
+	_pin_ex_n = n.normalized()  # WK-135
+	_pin_ex_p = contact  # WK-135
+	_pin_ex_c = surface.global_position  # WK-135
+	_pin_ex_r = contact.distance_to(_pin_ex_c)  # WK-135
+	var gup: Vector2 = -_gdown(contact)  # WK-135
+	_pin_ex_wall = not _pin_ex_round and absf(_pin_ex_n.dot(gup)) <= Tuning.bumper_floor_dot  # WK-135
+	_pin_ex_body = weakref(surface)  # WK-135
+	_pin_ex_half_t = -1.0  # WK-135
+	for ch in surface.get_children():  # WK-135: rect extent of the face (LevelLoader / prop bumpers: one RectangleShape2D)
+		if ch is CollisionShape2D and (ch as CollisionShape2D).shape is RectangleShape2D:  # WK-135
+			var sz: Vector2 = ((ch as CollisionShape2D).shape as RectangleShape2D).size  # WK-135
+			var tt := Vector2(-_pin_ex_n.y, _pin_ex_n.x)  # WK-135
+			_pin_ex_off = (ch as CollisionShape2D).position  # WK-135
+			_pin_ex_half_t = 0.5 * (absf(tt.x) * sz.x + absf(tt.y) * sz.y)  # WK-135
+			_pin_ex_half_n = 0.5 * (absf(_pin_ex_n.x) * sz.x + absf(_pin_ex_n.y) * sz.y)  # WK-135
+			break  # WK-135
+	me.wk135_count("wk135_pin_breaks")   # telemetry -> round_stats.motion_health.wk128  # WK-135
+
+## WK-135: outward normal of the excluded face at my position + my distance off it; Vector3(nx, ny, dist), dist = INF when
+## no face is excluded or I am beside / behind it (its plane, but past the post's length).
+func _wk135_ex_frame() -> Vector3:  # WK-135
+	if _pin_ex_t <= 0.0 or not wk135_no_pin or me == null or not is_instance_valid(me):  # WK-135
+		return Vector3(0.0, 0.0, INF)  # WK-135
+	var pos: Vector2 = me.global_position  # WK-135
+	if _pin_ex_round:  # WK-135
+		var rel := pos - _pin_ex_c  # WK-135
+		var rn := rel.normalized() if rel.length() > 0.01 else _pin_ex_n  # WK-135
+		return Vector3(rn.x, rn.y, rel.length() - _pin_ex_r)  # WK-135
+	var tt := Vector2(-_pin_ex_n.y, _pin_ex_n.x)  # WK-135
+	var body: Node2D = (_pin_ex_body.get_ref() as Node2D) if _pin_ex_body != null else null  # WK-135
+	if _pin_ex_half_t >= 0.0 and body != null:  # WK-135: the real face segment (past its end = round the corner = free)
+		var d := pos - (body.global_position + _pin_ex_off)  # WK-135
+		if absf(d.dot(tt)) > _pin_ex_half_t + me._radius + 16.0:  # WK-135
+			return Vector3(0.0, 0.0, INF)  # WK-135
+		var fd: float = d.dot(_pin_ex_n) - _pin_ex_half_n - me._radius  # WK-135
+		if fd < -20.0:  # WK-135
+			return Vector3(0.0, 0.0, INF)  # WK-135
+		return Vector3(_pin_ex_n.x, _pin_ex_n.y, fd)  # WK-135
+	var off := pos - _pin_ex_p  # WK-135: unknown shape -> the contact plane, near the contact only
+	var dist: float = off.dot(_pin_ex_n)  # WK-135
+	if dist < -60.0 or absf(off.dot(tt)) > 200.0:  # WK-135
+		return Vector3(0.0, 0.0, INF)  # WK-135
+	return Vector3(_pin_ex_n.x, _pin_ex_n.y, dist)  # WK-135
+
+## WK-135: does thrusting along `dir` push into the excluded face (close enough to matter)?
+func _wk135_into_excluded(dir: Vector2) -> bool:  # WK-135
+	var f := _wk135_ex_frame()  # WK-135
+	if f.z > Tuning.bot_pin_avoid_px or dir == Vector2.ZERO:  # WK-135
+		return false  # WK-135
+	return dir.normalized().dot(Vector2(f.x, f.y)) < Tuning.bot_pin_into_dot  # WK-135
+
+## WK-135 BR-135b/c: while a face is excluded, a boost aim with any component into it (within bot_pin_avoid_px of the face
+## segment) slides along it with a little outward lean instead. WALL faces always slide against gravity (over a post, not
+## under it into the void); floor/ceiling faces keep the aim's own along-face side (round core: the orbit sense when the
+## aim is straight in). Past the face's end the frame reads free, so the bot rounds the corner and resumes its line.
+func _pin_avoid(aim: Vector2) -> Vector2:  # WK-135
+	if aim == Vector2.ZERO:  # WK-135
+		return aim  # WK-135
+	var f := _wk135_ex_frame()  # WK-135
+	if f.z > Tuning.bot_pin_avoid_px:  # WK-135
+		return aim  # WK-135
+	var n := Vector2(f.x, f.y)  # WK-135
+	var a := aim.normalized()  # WK-135
+	if a.dot(n) >= 0.0:  # WK-135
+		return aim  # WK-135
+	var t := Vector2(-n.y, n.x)  # WK-135
+	var s: float = signf(a.dot(t))  # WK-135
+	if _pin_ex_wall:  # WK-135
+		s = signf(t.dot(-_gdown()))  # WK-135
+	elif absf(a.dot(t)) < 0.2:  # WK-135
+		s = signf(me.velocity.dot(t)) if _pin_ex_round else signf(t.dot(-_gdown()))  # WK-135
+	if s == 0.0:  # WK-135
+		s = 1.0  # WK-135
+	_pin_avoiding = true  # WK-135
+	me.wk135_count("wk135_pin_avoid_frames")  # WK-135
+	return (t * s + n * 0.35).normalized() * minf(aim.length(), 1.0)  # WK-135
+
+## WK-135 BR-135a: a radial refuel-dive hit can pay under the C rules: any non-bumper surface, a round core, or a FLOOR-class
+## bumper face (n . up > Tuning.bumper_floor_dot at the hit) — and never the face the pin breaker excluded.
+func _wk135_refuel_ok(hit: Dictionary) -> bool:  # WK-135
+	var col: Object = hit.get("collider")  # WK-135
+	if col == null or not col.has_meta("bumper"):  # WK-135
+		return true  # WK-135
+	var rnd: bool = col.has_meta("round")  # WK-135
+	var hn: Vector2 = hit.get("normal", Vector2.UP)  # WK-135
+	var n := hn if rnd else (Vector2(signf(hn.x), 0.0) if absf(hn.x) >= absf(hn.y) else Vector2(0.0, signf(hn.y)))  # WK-135
+	if _pin_ex_t > 0.0 and _wk135_face_key(col, n) == _pin_ex_key:  # WK-135
+		return false  # WK-135
+	if rnd:  # WK-135
+		return true  # WK-135
+	return n.dot(-_gdown(hit.get("position", me.global_position))) > Tuning.bumper_floor_dot  # WK-135
+
 ## INV-12 subscriber: a bounce whose (axis-snapped) contact normal points DOWN (n.y > 0) is a hit on a
 ## platform UNDERSIDE — a head-bang. Read-only telemetry; never touches sim state.
 func _on_surface_bounced(_surface, player, normal: Vector2, _contact) -> void:
 	if player != me:
 		return
+	if wk135_no_pin and is_instance_valid(_surface) and _surface is Node2D and _surface.has_meta("bumper"):   # WK-135 BR-135b
+		_wk135_pin_contact(_surface as Node2D, normal, _contact as Vector2)   # WK-135
 	# gravity-frame "underside": the normal points ALONG the local pull (flat: normal.y > 0.5, identical)
 	var down := _gdown()
 	if normal.dot(down) > 0.5:
@@ -1760,5 +1934,9 @@ func reset_motion_health() -> void:
 	_mh_blocked_ascent_secs = 0.0
 	_mh_detours = 0
 	_mh_below_floor_s = 0.0
+	_pin_key = ""   # WK-135: a new stage carries no pin run, release or exclusion
+	_pin_hits.clear()   # WK-135
+	_pin_release_t = 0.0   # WK-135
+	_pin_ex_t = 0.0   # WK-135
 	if me != null and is_instance_valid(me):
 		me.reset_wk128_stats()   # WK-128: per-stage fuel-integrity telemetry

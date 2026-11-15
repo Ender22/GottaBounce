@@ -141,6 +141,16 @@ var _contact_times: Array = []  # clocks of contacts in the last 1 s (surface_co
 var _pin_key := ""
 var _pin_times: Array = []
 var _in_pin := false
+# WK-135 phase 2 (spec §4.2 C1-C6). Face classes for bumper contacts + the C4 liveness valve. _faces entries also carry  # WK-135
+# "t" (the _wk135_clock of the payout); a face whose payout is >= Tuning.refund_rearm_timeout old moves to _valve_armed  # WK-135
+# (re-armed by TIME) and stays there until it pays again (counted as refunds_timeout_rearm) or re-arms by distance anyway.  # WK-135
+const WK135_FLOOR := 0          # C1 face classes  # WK-135
+const WK135_WALL := 1           # WK-135
+const WK135_CEILING := 2        # WK-135
+var _valve_armed: Dictionary = {}   # key -> the _faces record it left by timeout  # WK-135
+var _wk135_valve_pay := false       # the contact being judged right now pays through the valve (read by _on_bounced)  # WK-135
+var _valve_log: Array = []          # [clock, fuel] of recent valve payouts (qa_valve_over_natural, invariant #16)  # WK-135
+var _valve_over := false            # WK-135
 # WK-136 (CD3-04a) telemetry: a BILLED re-light's burn, so QA can count presses that ran dry under 0.1 s of thrust.  # WK-136
 const WK136_MIN_BURN := 0.1     # s: spec threshold (12 ticks at 120 tps). FIXED, not Tuning, so both A/B arms measure the same  # WK-136
 var _wk136_burn_t := -1.0       # s of thrust since the last billed re-light (-1 = not tracking)  # WK-136
@@ -941,6 +951,8 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 			var f0 := fuel
 			fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
 			_wk128_add("fuel_income", fuel - f0)
+			if _wk135_valve_pay:   # WK-135 C4: this payout came through the liveness valve
+				_wk135_log_valve(fuel - f0)   # WK-135
 			if boost_held:
 				_supercharge_timer = Tuning.supercharge_window
 			_wk128_paid()   # R3 waiver of a just-billed re-light, then R1 (next press free)
@@ -991,6 +1003,37 @@ func _wk135_contact(collider: Object, n: Vector2, bumper: bool) -> void:
 			_wk128_add("bumper_pin_episodes", 1.0)
 	else:
 		_in_pin = false
+
+## WK-135 C1: class of a bumper face from LOCAL gravity at the contact (`up` = -g_dir): FLOOR (n.up > bumper_floor_dot),  # WK-135
+## CEILING (n.up < -0.5, the existing underside rule), else WALL. Round colliders (cores in their own well) are FLOOR.  # WK-135
+func _wk135_face_class(n: Vector2, up: Vector2, rnd: bool) -> int:  # WK-135
+	if rnd:  # WK-135
+		return WK135_FLOOR  # WK-135
+	var d: float = n.dot(up)  # WK-135
+	if d > Tuning.bumper_floor_dot:  # WK-135
+		return WK135_FLOOR  # WK-135
+	if d < -0.5:  # WK-135
+		return WK135_CEILING  # WK-135
+	return WK135_WALL  # WK-135
+
+## WK-135 §8 debug (invariant #16): valve income over a window of 2 x refund_rearm_timeout must stay <= 13.4 fuel/s.  # WK-135
+## Counts each entry into an over-budget interval as qa_valve_over_natural (must stay 0).  # WK-135
+func _wk135_log_valve(amount: float) -> void:  # WK-135
+	var win: float = 2.0 * maxf(Tuning.refund_rearm_timeout, 0.01)  # WK-135
+	_valve_log.append([_wk135_clock, amount])  # WK-135
+	while not _valve_log.is_empty() and _wk135_clock - float(_valve_log[0][0]) >= win - 0.001:  # WK-135
+		_valve_log.pop_front()  # WK-135
+	var s := 0.0  # WK-135
+	for e in _valve_log:  # WK-135
+		s += float(e[1])  # WK-135
+	var over: bool = s / win > 13.4  # WK-135
+	if over and not _valve_over:  # WK-135
+		_wk128_add("qa_valve_over_natural", 1.0)  # WK-135
+	_valve_over = over  # WK-135
+
+## WK-135: public counter hook so InputBot (BR-135) can log into this goat's wk128 dict (reaches round_stats per stage).  # WK-135
+func wk135_count(k: String, v: float = 1.0) -> void:  # WK-135
+	_wk128_add(k, v)  # WK-135
 
 func _wk128_add(k: String, v: float) -> void:
 	wk128[k] = float(wk128.get(k, 0.0)) + v
@@ -1099,12 +1142,27 @@ func _wk128_launch_h(launch_speed: float) -> float:
 func _wk128_track_faces() -> void:
 	if not _faces.is_empty():
 		var done: Array = []
+		var timed: Array = []   # WK-135 C4
+		var to: float = Tuning.refund_rearm_timeout   # WK-135 C4 (0 = OFF)
 		for k in _faces:
 			var f: Dictionary = _faces[k]
 			if _wk128_excursion(f["p"], f["n"], f["r"], f["c"]) >= float(f["e"]):
 				done.append(k)
+			elif to > 0.0 and _wk135_clock - float(f.get("t", _wk135_clock)) >= to:   # WK-135 C4: liveness valve
+				timed.append(k)   # WK-135
 		for k in done:
 			_faces.erase(k)
+		for k in timed:   # WK-135 C4: re-armed by TIME (still watched for a distance re-arm, see below)
+			_valve_armed[k] = _faces[k]   # WK-135
+			_faces.erase(k)   # WK-135
+	if not _valve_armed.is_empty():   # WK-135 C4: a valve-armed face that ALSO reaches its distance is a natural re-arm
+		var nat: Array = []   # WK-135
+		for k in _valve_armed:   # WK-135
+			var v: Dictionary = _valve_armed[k]   # WK-135
+			if _wk128_excursion(v["p"], v["n"], v["r"], v["c"]) >= float(v["e"]):   # WK-135
+				nat.append(k)   # WK-135
+		for k in nat:   # WK-135
+			_valve_armed.erase(k)   # WK-135
 	if _drb_n > 0 and _wk128_excursion(_drb_p, _drb_nrm, _drb_r, _drb_c) >= _drb_e:
 		_drb_n = 0
 
@@ -1117,6 +1175,11 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 	var c: Vector2 = (collider as Node2D).global_position if (rnd and collider is Node2D) else Vector2.ZERO
 	var key := _wk128_face_key(collider, n, rnd)
 	var h: float = _wk128_launch_h(launch_speed)
+	_wk135_valve_pay = false   # WK-135 C4
+	# WK-135 C1/C2: a FLOOR-class bumper face (block top, round core) pays under the TIER rules; WALL faces keep WK-128 F2 +  # WK-135
+	# bumper_px (and the Alt B cap). bumper_floor_pays_as_tier = false -> tier_rules == not bumper (phase 1 exactly).  # WK-135
+	var cls: int = _wk135_face_class(n, up, rnd) if bumper else -1   # WK-135
+	var tier_rules: bool = not bumper or (Tuning.bumper_floor_pays_as_tier and cls == WK135_FLOOR)   # WK-135
 	# dribble detector (telemetry): consecutive contacts on one face without a real bounce's height in between
 	if key == _drb_key and _drb_n > 0:
 		_drb_n += 1
@@ -1131,11 +1194,11 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 	_drb_r = rnd
 	_drb_c = c
 	if collider != null:
-		if bumper and incoming >= 0.0 and incoming < Tuning.bumper_refund_min_speed:
+		if not tier_rules and incoming >= 0.0 and incoming < Tuning.bumper_refund_min_speed:   # WK-135 C3: F2 scoped to wall rules (was: bumper)
 			_wk128_add("refunds_blocked_speed", 1.0)   # F2: cruise-speed wall touch — a bounce, not a refuel
 			_wk128_add("nopay_contacts", 1.0)
 			return false
-		if bumper and _bumper_pay_cd > 0.0 and _super_recent <= 0.0:   # Alt B cap (one bumper refund per player per bumper_refund_cooldown); F3: supers skip it
+		if not tier_rules and _bumper_pay_cd > 0.0 and _super_recent <= 0.0:   # WK-135 C3 (was: bumper). Alt B cap (one bumper refund per player per bumper_refund_cooldown); F3: supers skip it
 			_wk128_add("refunds_blocked_cooldown", 1.0)
 			_wk128_add("nopay_contacts", 1.0)
 			return false
@@ -1145,25 +1208,31 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 			# every later natural bounce (no boost held, e.g. at 0 fuel) fell short of it forever: bots sat at 0 fuel
 			# for 280 s (WK-128 build finding; deviation from spec F1 "from the paying contact", flagged in the report).
 			# A dribble still never re-arms: by definition it never reaches its own bounce's height.
-			if not bumper:
+			if tier_rules:   # WK-135 C2: floor-class bumper faces re-base like tier faces (was: not bumper)
 				var fb: Dictionary = _faces[key]
 				fb["p"] = global_position
 				fb["e"] = maxf(Tuning.refund_rearm_min_px, Tuning.refund_rearm_frac * h)
 			_wk128_add("refunds_blocked_rearm", 1.0)
 			_wk128_add("nopay_contacts", 1.0)
 			return false
-		var e: float = Tuning.refund_rearm_bumper_px if bumper \
-			else maxf(Tuning.refund_rearm_min_px, Tuning.refund_rearm_frac * h)
+		var e: float = Tuning.refund_rearm_bumper_px if not tier_rules \
+			else maxf(Tuning.refund_rearm_min_px, Tuning.refund_rearm_frac * h)   # WK-135 C2/C3 (was: if bumper)
+		if _valve_armed.has(key):   # WK-135 C4: this face was re-armed by the liveness valve, not by distance
+			_valve_armed.erase(key)   # WK-135
+			if _super_recent <= 0.0:   # WK-135 (F3: a super pays regardless; not a valve payout)
+				_wk135_valve_pay = true   # WK-135
+				_wk128_add("refunds_timeout_rearm", 1.0)   # WK-135 §8
 		if e > 0.0:
-			_faces[key] = {"p": global_position, "n": n, "e": e, "r": rnd, "c": c}
+			_faces[key] = {"p": global_position, "n": n, "e": e, "r": rnd, "c": c, "t": _wk135_clock}   # WK-135: + "t" (C4)
 		else:
 			_faces.erase(key)   # re-arm OFF (A/B): every contact pays, as pre-WK-128
 		_last_pay_key = key
-		if bumper:
+		if not tier_rules:   # WK-135 C3 (was: bumper): the Alt B cap is a wall-rule lever
 			_bumper_pay_cd = Tuning.bumper_refund_cooldown
 	# (collider == null: a legacy caller with no face, e.g. a ghost cloud via GhostPuff — pays as before)
 	if bumper:
 		_wk128_add("refunds_bumper", 1.0)
+		_wk128_add("refunds_bumper_floor" if cls == WK135_FLOOR else "refunds_bumper_wall", 1.0)   # WK-135 §8
 	elif n.dot(up) > 0.5:
 		_wk128_add("refunds_tier_floor", 1.0)
 	else:
@@ -1822,6 +1891,9 @@ func respawn(pos: Vector2) -> void:
 	_wk128_reset_relight()          # WK-128 E2: respawn clears relight state and face memory
 	_wk20d_reset()                  # WK-20d: a fresh life has no open whiff record, brake or re-arm gate
 	_faces.clear()
+	_valve_armed.clear()   # WK-135 E13: respawn clears arm memory and timeout clocks
+	_valve_log.clear()   # WK-135
+	_valve_over = false   # WK-135
 	_last_pay_key = ""
 	_bumper_pay_cd = 0.0
 	_drb_key = ""
