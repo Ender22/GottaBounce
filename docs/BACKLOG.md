@@ -148,8 +148,8 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 2. WK-60 select-screen prompt/copy: LOCKED card says "A FIGHT!" (P2/S), then WK-60b preview-region layout (P2/M) [M `ArenaSelect.gd/.tscn`]
 3. WK-28b in-match disconnect overlay (S/M) [U after WK-33: `PauseMenu.gd`; `PartyMatch.gd` hook only after WK-135]
 4. ~~WK-143~~ done a1904ba — RULES value pills neutral (P2/S) [L or `Stepper.gd`]
-5. WK-142 Trials end celebration + NEXT CIRCUIT default (P2/M, art brief first) [U after WK-139]
-6. WK-44 Options rebuild: grid, SCREEN SHAKE, footer "A Toggle"; RUMBLE after WK-19 (M) [U after WK-33]
+5. ~~WK-142~~ done 2e406dc — Trials end celebration + NEXT CIRCUIT default (P2/M, art brief first) [U after WK-139]
+6. ~~WK-44~~ done 2e406dc — Options rebuild: grid, SCREEN SHAKE, footer "A Toggle"; RUMBLE after WK-19 (M) [U after WK-33]
 7. WK-99 fuel super-ready notch + CD3-04b, then WK-31 HUD danger + stocks, with WK-146 (M+M+S) [H after WK-135 + WK-136]
 8. WK-110 MATCH POINT / GOLDEN GOAL (M) [S after WK-108b]
 9. WK-127b the_ascent hopping (S) [S after WK-108b]
@@ -1728,7 +1728,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   edits the same Flight School JSON.
 - Status: open
 
-### [ ] WK-44 [P2][M] Options rebuild: aligned grid, RUMBLE toggle, SCREEN SHAKE (OFF/LOW/FULL), CONTROLS entry
+### [x] WK-44 [P2][M] Options rebuild: aligned grid, RUMBLE toggle, SCREEN SHAKE (OFF/LOW/FULL), CONTROLS entry — 2e406dc
 - Sources: C-30, R-22, C-10 (toggle), R-32 (rumble option)
 - Area: menus · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-19, WK-33
 - Accept (rendered): rows aligned at the same x; toggles persist across relaunch (eval Settings); SCREEN SHAKE OFF -> zero trauma on a smash (eval).
@@ -2042,7 +2042,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   the legend faded or docked out of the court; the SUPER line fits one row.
 - Status: open. UI lane (HUD files); pairs with WK-119 for the sports-readability pass.
 
-### [ ] WK-142 [P2][M] Trials end is a celebration, and its default focus is the next circuit (UX4-08)
+### [x] WK-142 [P2][M] Trials end is a celebration, and its default focus is the next circuit (UX4-08) — 2e406dc
 - Area: trials | menus | art · Owner: ui-ux-designer + art-director (panel art) · Source: ui-ux-designer UX4-08 2026-11-15
 - Evidence: `tools/out/ux/UX4_84`: one cream card, TRIALS COMPLETE! / "All courses cleared." / PLAY AGAIN · CHANGE SETUP · QUIT TO MENU. No
   goats, no circuit name, no crest, no "NEXT CIRCUIT UNLOCKED". PLAY AGAIN (default) replays the same 9 courses.
@@ -2146,7 +2146,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept: a 15-stage run prints each missing-decal warning at most once; skill §2 corrected; golden updated to the measured value.
 - Status: open
 
-### [ ] WK-144 [P3][S] "QUIT TO MENU" lands on mode select (lobby cleared), not the title (UX4-13; R-26 label/destination)
+### [x] WK-144 [P3][S] "QUIT TO MENU" lands on mode select (lobby cleared), not the title (UX4-13; R-26 label/destination) — 2e406dc
 - Area: menus · Owner: ui-ux-designer (+ gameplay-programmer) · Source: ui-ux-designer UX4-13 2026-11-15; open since WK-CD1's R-26 note on WK-42
 - Evidence: Pause (`tools/out/ux/UX4_59`), Victory and Trials end (`UX4_86`) all land on the title; a returning group pays PLAY + mode + re-join.
 - Do: land on mode select with the lobby cleared (CC-4.7 for a quit). Fallback: rename to QUIT TO TITLE. Prefer the first.
