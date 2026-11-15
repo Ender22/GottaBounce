@@ -37,22 +37,21 @@ var fuel_per_bumper: float = 20.0    # bumper walls refund fuel too — enables 
                                      # -> return-shot chain (lethality spec player fantasy). VALUE RULED
                                      # 2026-07-03 (DECISIONS: keep 20, DO-NOT-TOUCH — "the number was never the
                                      # bug; the state condition was"). WK-128 adds a refund GATE (once per real
-                                     # bounce / hard hits only) that is OFF pending WK-135 — see the WK-128 block.
+                                     # bounce / hard hits only), switched by refund_gates_on (WK-135 phase 3).  # WK-135
 
 # --- Fuel integrity (WK-128, docs/specs/wk128_fuel_exploits_2026-11-14.md §4.3) — state conditions on the existing
 # fuel sources/sinks; NO physics or protected constant changes. Every lever has an OFF value for A/B (§4.4).
 # (a) RELIGHT BILL: re-lighting the jetpack mid-air bills the coast since release, capped. The first light after a
 #     paying bounce, respawn, hitstun end or super fire is free; a billed re-light followed by a paying contact
 #     within boost_relight_grace is refunded (supercharge "tap into the bounce" stays free).
-# (b) REFUND GATE — BUILT, SHIPPED OFF (director ruling 2026-11-15): "one refund per real bounce" (a face re-arms only
-#     after the body moves E off it: tier max(min_px, frac x launch height) re-based on each blocked contact; bumper
-#     bumper_px; round colliders by altitude) + the bumper hard-hit gate + the Alt B 1 s cap. ALL OFF pending WK-135
-#     (standable bumpers / resting contact: a 0-fuel goat resting on a bumper, e.g. the Singularity core, was locked
-#     forever -> brawl stages never ended) + a sports economy ruling (sports bots lived on bumper refunds: rocketball
-#     goals/min 5.35 -> 2.88 with the gate, 3.68 with Alt B). Refunds behave exactly as pre-WK-128 at these values.
-#     Re-test values: spec frac 0.9 / min_px 60 / bumper_px 200 / min_speed 900 / cooldown 0; Alt B bumper_px 400 /
-#     min_speed 0 / cooldown 1.0. Evidence: tools/out/wk/WK-128_*.
-# INVARIANTS (re-check if ANY side moves; #12/#13 are dormant while the refund gate is OFF, #14 is live):
+# (b) REFUND GATE: "one refund per real bounce" (a face re-arms only after the body moves E off it: tier max(min_px,
+#     frac x launch height) re-based on each blocked contact; bumper bumper_px; round colliders by altitude) + the bumper
+#     hard-hit gate + the Alt B 1 s cap. Shipped OFF 2026-11-15 (a 0-fuel goat resting on a bumper, e.g. the Singularity
+#     core, was locked forever; sports bots lived on bumper refunds). WK-135 phase 3 (spec wk135 §4.4) holds the SPEC  # WK-135
+#     values below behind ONE master switch, Tuning.refund_gates_on (WK-135 block): false = every contact pays exactly as  # WK-135
+#     pre-WK-128 (the values below are then ignored). Player reads them ONLY through gate_rearm_frac() etc. Alt B (not  # WK-135
+#     adopted): bumper_px 400 / min_speed 0 / cooldown 1.0. Evidence: tools/out/wk/WK-128_*, WK-135_*.  # WK-135
+# INVARIANTS (re-check if ANY side moves; #12/#13 are live while refund_gates_on, #14 is always live):  # WK-135
 #   #12 bumper_refund_min_speed (900) > normal_boost_max_speed x CharacterProfile.BOOST_MAX (800 x 1.12 = 896) —
 #       plain flight never pays off a bumper. If either side moves, the bumper fuel pump reopens.
 #   #13 min_bounce_height (48) < refund_rearm_min_px (60) < bounce_height_marshmallow x APEX_MIN (0.95) x
@@ -66,13 +65,13 @@ var boost_relight_grace: float = 0.20         # s: a paying contact this soon af
                                               # Keep == supercharge_window (the FEEL §3.4 "pop" beat)
 var boost_relight_min_left: float = 1.0       # fuel a near-empty re-light always leaves (~4 ticks of thrust: a sputter,
                                               # never a dead button)
-var refund_rearm_frac: float = 0.0            # OFF (WK-135). x the paying bounce's launch height to travel off a TIER
-                                              # face before it pays again (spec 0.9). 0 with min_px 0 = OFF. Invariant #13
-var refund_rearm_min_px: float = 0.0          # OFF (WK-135). px floor of the tier re-arm distance (spec 60). Invariant #13
-var refund_rearm_bumper_px: float = 0.0       # OFF (WK-135). px off a BUMPER face before it pays again (spec 200, Alt B 400)
-var bumper_refund_min_speed: float = 0.0      # OFF (WK-135). px/s incoming normal speed for a bumper contact to pay (spec
+var refund_rearm_frac: float = 0.9            # x the paying bounce's launch height to travel off a TIER (or FLOOR-class  # WK-135
+                                              # bumper) face before it pays again (spec 0.9). 0 with min_px 0 = OFF. Invariant #13
+var refund_rearm_min_px: float = 60.0         # px floor of the tier re-arm distance (spec 60). Invariants #13, #15  # WK-135
+var refund_rearm_bumper_px: float = 200.0     # px off a WALL-class bumper face before it pays again (spec 200, Alt B 400)  # WK-135
+var bumper_refund_min_speed: float = 900.0    # px/s incoming normal speed for a WALL-class bumper contact to pay (spec  # WK-135
                                               # 900 = smash_impact_min; invariant #12: > 800 x BOOST_MAX 1.12 = 896)
-var bumper_refund_cooldown: float = 0.0       # OFF (WK-135). s between bumper refunds per player (Alt B 1.0)
+var bumper_refund_cooldown: float = 0.0       # s between wall-rule bumper refunds per player (Alt B 1.0; NOT adopted: 0)  # WK-135
 
 # --- Normal boost (FEEL §3.2) ---
 var normal_boost_accel: float = 5400.0       # WK-95 (owner ruling 2026-11-14): 4600 -> 5400, snappier start/
@@ -925,7 +924,7 @@ var pip_tag_claim_alpha: float = 0.25          # a living tag fainter than this 
 # --- WK-135 phase 1: bumpers kick, never cradle (docs/specs/wk135_bumper_min_bounce_2026-11-15.md §4.1/§4.4). INV-11 on  # WK-135
 # EVERY surface: a bumper contact leaves at >= max(sqrt(2|g| x bumper_min_rebound_height), bumper_min_rebound_floor) along  # WK-135
 # the face normal (392 px/s flat, 310 in Singularity's well); above that the x0.86 ricochet is untouched. Read by  # WK-135
-# BounceResolver.resolve_bumper(). Phase 3 (WK-128 (b) refund gates ON + sports ball refuel) NOT built: gates stay OFF.  # WK-135
+# BounceResolver.resolve_bumper(). Phase 3 (WK-128 (b) refund gates ON + sports ball refuel) is the block below.  # WK-135
 # INVARIANT #9 still holds: bumper_restitution < 1; the kick adds energy only below 456 px/s incoming (bounded at 392), never  # WK-135
 # a speed pump.  # WK-135
 var bumper_min_rebound_height: float = 48.0   # px kick floor on every bumper face (= min_bounce_height, own constant). 0 = OFF  # WK-135
@@ -935,10 +934,11 @@ var bumper_min_rebound_floor: float = 250.0   # px/s absolute kick floor for wea
 # round core), n.up < -0.5 = CEILING (no refund, unchanged), else WALL. FLOOR bumper faces pay under the TIER rules (re-arm  # WK-135
 # max(refund_rearm_min_px, refund_rearm_frac x launch h), no hard-hit gate); WALL faces keep WK-128 F2 + bumper_px. A face  # WK-135
 # that paid >= refund_rearm_timeout ago re-arms however little you moved (liveness valve: no goat stranded at 0 fuel).  # WK-135
-# NOTE: with the WK-128 (b) gates OFF (refund_rearm_* = 0, bumper_refund_min_speed = 0) every contact pays, so C1-C4 are inert  # WK-135
-# until phase 3; only the refunds_bumper_floor/_wall telemetry split shows. OFF values (= phase 1 exactly):  # WK-135
+# NOTE: with the WK-128 (b) gates OFF (refund_gates_on = false) every contact pays, so C1-C4 are inert; only the  # WK-135
+# refunds_bumper_floor/_wall telemetry split shows. OFF values (= phase 1 exactly):  # WK-135
 # bumper_floor_pays_as_tier = false, refund_rearm_timeout = 0.0, InputBot.wk135_no_pin = false.  # WK-135
-# INVARIANTS: #15 bumper_min_rebound_height (48) < refund_rearm_min_px (spec 60): kick hops never pay twice by distance.  # WK-135
+# INVARIANTS: #15 bumper_min_rebound_height (48) < refund_rearm_min_px (60): kick hops never pay twice by distance (only  # WK-135
+#       through the valve).  # WK-135
 #   #16 fuel_per_bumper / refund_rearm_timeout = fuel_per_bounce / refund_rearm_timeout = 13.3 < natural trampoline income  # WK-135
 #       (20 / 1.16 = 17.2) < normal_boost_drain() (28.6). Re-check if the timeout, refund amounts, gravity or trampoline move.  # WK-135
 var bumper_floor_dot: float = 0.5             # n.up above this = FLOOR-class bumper face (= the underside test's 0.5)  # WK-135
@@ -953,6 +953,44 @@ var bot_pin_into_dot: float = -0.5            # aim . face normal below this = t
 var bot_pin_exclude_s: float = 1.0            # s the pinned face stays excluded (no target, no thrust into it)  # WK-135
 var bot_pin_avoid_px: float = 260.0           # px off the excluded face inside which a boost aim into it is slid along it  # WK-135
 var bot_pin_turn_mult: float = 3.0            # x bot_flight_turn_rate while that slide redirects the stick (= bot_brake_turn_mult)  # WK-135
+# --- WK-135 phase 3 (spec §4.3 S1-S4, §4.4, §9 phase 3): the WK-128 (b) refund gates ON with the spec values (WK-128 block:  # WK-135
+# refund_rearm_frac 0.9, refund_rearm_min_px 60, refund_rearm_bumper_px 200, bumper_refund_min_speed 900 on WALL-class faces,  # WK-135
+# bumper_refund_cooldown 0) behind ONE master switch, plus the sports BALL refuel. Read by Player (gate_* helpers below,  # WK-135
+# grant_fuel) and SportsMode (_on_ball_touched). QA arm without a Tuning edit: env GB_WK135_GATES=1/0 and GB_WK135_BALL=1/0  # WK-135
+# (read once at startup in _ready below; headless runs and record_match.ps1 inherit the env).  # WK-135
+# S1-S3 BALL REFUEL: each ACCEPTED live touch (Ball.touched: 0.12 s ball cooldown, live only) grants the toucher  # WK-135
+# sports_touch_fuel through Player.grant_fuel(amount, &"ball"), at most once per player per sports_touch_fuel_cd. A touch made  # WK-135
+# in hitstun pays nothing (dry-reflect doctrine). No supercharge, relight or arm-state effect. SportsMode only (Trials puzzle  # WK-135
+# balls never refuel). Telemetry (Player.wk128): refunds_ball, ball_fuel, ball_fuel_blocked_cd, ball_fuel_blocked_stun.  # WK-135
+# INVARIANT #17: sports_touch_fuel / sports_touch_fuel_cd (20 / 1.0 = 20 fuel/s) < normal_boost_drain() (28.6): the ball  # WK-135
+#       source can't be farmed; the only "farm" is hitting the ball, which is the game. Invariant #2 holds: one touch re-arms a super.  # WK-135
+var refund_gates_on: bool = false             # OFF until the phase-3 A/B (director). MASTER: WK-128 (b) gates at the spec values. false = every contact pays (pre-phase-3)  # WK-135
+var sports_touch_refuel: bool = false         # OFF until the phase-3 A/B (director). S1 switch: ball touches refuel in Sports. false (or sports_touch_fuel 0) = OFF  # WK-135
+var sports_touch_fuel: float = 20.0           # S1 fuel per accepted live touch (= one trampoline bounce). 0 = OFF  # WK-135
+var sports_touch_fuel_cd: float = 1.0         # S1 s per player between paying touches (caps the source at 20/s < drain 28.6). Inv. #17  # WK-135
+
+func _ready() -> void:  # WK-135: QA arm overrides from the environment ("1" ON, "0" OFF, unset = the values above)
+	var g: String = OS.get_environment("GB_WK135_GATES")  # WK-135
+	if g != "":  # WK-135
+		refund_gates_on = g == "1"  # WK-135
+	var b: String = OS.get_environment("GB_WK135_BALL")  # WK-135
+	if b != "":  # WK-135
+		sports_touch_refuel = b == "1"  # WK-135
+
+## WK-135 phase 3: the EFFECTIVE WK-128 (b) gate values (0 = that gate OFF), with the master switch folded in.  # WK-135
+func gate_rearm_frac() -> float:  # WK-135
+	return refund_rearm_frac if refund_gates_on else 0.0  # WK-135
+func gate_rearm_min_px() -> float:  # WK-135
+	return refund_rearm_min_px if refund_gates_on else 0.0  # WK-135
+func gate_rearm_bumper_px() -> float:  # WK-135
+	return refund_rearm_bumper_px if refund_gates_on else 0.0  # WK-135
+func gate_bumper_min_speed() -> float:  # WK-135
+	return bumper_refund_min_speed if refund_gates_on else 0.0  # WK-135
+func gate_bumper_cooldown() -> float:  # WK-135
+	return bumper_refund_cooldown if refund_gates_on else 0.0  # WK-135
+## WK-135 S1: fuel a sports ball touch grants (0 = the source is OFF).  # WK-135
+func ball_touch_fuel() -> float:  # WK-135
+	return sports_touch_fuel if sports_touch_refuel else 0.0  # WK-135
 
 # --- WK-28b in-match controller disconnect (CC-3.4) + connect / disconnect toasts. Read by src/ui/DeviceWatch.gd,  # WK-28b
 # src/ui/DisconnectOverlay.gd and src/ui/DeviceToast.gd.  # WK-28b

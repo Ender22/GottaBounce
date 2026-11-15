@@ -92,6 +92,7 @@ var _ko_open_t: float = -1.0           # WK-131: ball clock of the open (-1 whil
 var _ko_armed_t: float = -1.0          # WK-131: rule 2: ball clock when both teams had touched
 var _ko_spit: bool = false             # WK-131
 var _ko_runner = null                  # WK-131: the runner (stage-1 rule-row swap at the open)
+var _wk135_fuel_t: Dictionary = {}     # WK-135 S1: player instance id -> ball clock of its last PAYING touch (per stage)
 
 # --- WK-116 PRESSURE NETS (docs/specs/wk116_long_rally_2026-11-15.md). Tuning.sports_pressure_rule: 0 = OFF (no node is ever made:
 # byte-identical), 1 = long rallies widen both goal mouths at t1 / t2 of live ball. Soccer courts only (Dropshot / Trials / Brawl
@@ -566,6 +567,7 @@ func on_stage_ready(runner) -> void:
 	# WK-111: per-stage rally counters + the touch feed for the end-screen stats
 	_stage_touches = 0
 	_last_save = {}
+	_wk135_fuel_t = {}   # WK-135 S1: new ball, new clock
 	if is_instance_valid(_ball):
 		_ball.touched.connect(_on_ball_touched.bind(runner))
 	_spawn_kickoff_gates(runner)   # WK-131 H1
@@ -944,6 +946,7 @@ func _on_ball_touched(p, is_power, runner) -> void:
 	if bool(is_power):
 		s["power"] = int(s["power"]) + 1
 	_stage_touches += 1
+	_wk135_touch_refuel(p)   # WK-135 S1
 	_kickoff_touch(int(_teams[idx]))   # WK-131 H3
 	if _sport != "soccer" or not is_instance_valid(_ball):
 		return
@@ -954,6 +957,23 @@ func _on_ball_touched(p, is_power, runner) -> void:
 	if _is_save(runner, e, int(_teams[idx])):
 		s["saves"] = int(s["saves"]) + 1
 		_last_save = {"idx": idx, "t": float(e.get("t", 0.0))}
+
+## WK-135 S1/S3 (spec wk135 §4.3): an accepted live touch refuels the toucher by Tuning.ball_touch_fuel() through
+## Player.grant_fuel (stun gate + telemetry live there), at most once per player per Tuning.sports_touch_fuel_cd of ball
+## clock. A stunned touch pays nothing and does not start the cooldown. The ball clock restarts each stage, so is the map.  # WK-135
+func _wk135_touch_refuel(p) -> void:  # WK-135
+	var amt: float = Tuning.ball_touch_fuel()  # WK-135
+	if amt <= 0.0 or not is_instance_valid(_ball) or not (p is Player):  # WK-135
+		return  # WK-135
+	var now: float = _ball.ball_clock()  # WK-135
+	var pid: int = p.get_instance_id()  # WK-135
+	if _wk135_fuel_t.has(pid) and now - float(_wk135_fuel_t[pid]) < Tuning.sports_touch_fuel_cd - 0.0001:  # WK-135
+		p.wk135_count("ball_fuel_blocked_cd")  # WK-135
+		return  # WK-135
+	var stunned: bool = p.in_hitstun()  # WK-135 S2: a dry touch (grant_fuel pays 0 and counts it) consumes no cooldown
+	p.grant_fuel(amt, &"ball")  # WK-135
+	if not stunned:  # WK-135
+		_wk135_fuel_t[pid] = now  # WK-135
 
 ## WK-111 save rule (see STAT_SAVE_*): the ball was a shot at `team`'s own goal and this touch turned it away.
 func _is_save(runner, e: Dictionary, team: int) -> bool:

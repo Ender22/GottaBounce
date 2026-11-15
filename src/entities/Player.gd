@@ -1198,7 +1198,7 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 	_drb_r = rnd
 	_drb_c = c
 	if collider != null:
-		if not tier_rules and incoming >= 0.0 and incoming < Tuning.bumper_refund_min_speed:   # WK-135 C3: F2 scoped to wall rules (was: bumper)
+		if not tier_rules and incoming >= 0.0 and incoming < Tuning.gate_bumper_min_speed():   # WK-135 C3: F2 scoped to wall rules (was: bumper). Phase 3: master switch
 			_wk128_add("refunds_blocked_speed", 1.0)   # F2: cruise-speed wall touch — a bounce, not a refuel
 			_wk128_add("nopay_contacts", 1.0)
 			return false
@@ -1215,12 +1215,12 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 			if tier_rules:   # WK-135 C2: floor-class bumper faces re-base like tier faces (was: not bumper)
 				var fb: Dictionary = _faces[key]
 				fb["p"] = global_position
-				fb["e"] = maxf(Tuning.refund_rearm_min_px, Tuning.refund_rearm_frac * h)
+				fb["e"] = maxf(Tuning.gate_rearm_min_px(), Tuning.gate_rearm_frac() * h)   # WK-135 phase 3: master switch
 			_wk128_add("refunds_blocked_rearm", 1.0)
 			_wk128_add("nopay_contacts", 1.0)
 			return false
-		var e: float = Tuning.refund_rearm_bumper_px if not tier_rules \
-			else maxf(Tuning.refund_rearm_min_px, Tuning.refund_rearm_frac * h)   # WK-135 C2/C3 (was: if bumper)
+		var e: float = Tuning.gate_rearm_bumper_px() if not tier_rules \
+			else maxf(Tuning.gate_rearm_min_px(), Tuning.gate_rearm_frac() * h)   # WK-135 C2/C3 (was: if bumper); phase 3: master switch
 		if _valve_armed.has(key):   # WK-135 C4: this face was re-armed by the liveness valve, not by distance
 			_valve_armed.erase(key)   # WK-135
 			if _super_recent <= 0.0:   # WK-135 (F3: a super pays regardless; not a valve payout)
@@ -1232,7 +1232,7 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 			_faces.erase(key)   # re-arm OFF (A/B): every contact pays, as pre-WK-128
 		_last_pay_key = key
 		if not tier_rules:   # WK-135 C3 (was: bumper): the Alt B cap is a wall-rule lever
-			_bumper_pay_cd = Tuning.bumper_refund_cooldown
+			_bumper_pay_cd = Tuning.gate_bumper_cooldown()   # WK-135 phase 3: master switch
 	# (collider == null: a legacy caller with no face, e.g. a ghost cloud via GhostPuff — pays as before)
 	if bumper:
 		_wk128_add("refunds_bumper", 1.0)
@@ -1242,6 +1242,21 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 	else:
 		_wk128_add("refunds_tier_wall", 1.0)
 	return true
+
+## WK-135 S2: the ONE entry point for fuel granted by a mode OBJECT (sports ball touch), not a surface. Tagged by `source` for  # WK-135
+## telemetry (refunds_<source>, <source>_fuel). Dry-reflect doctrine: nothing while in hitstun. Touches NO supercharge,  # WK-135
+## relight (WK-128 R1) or face arm state. Returns the fuel actually added.  # WK-135
+func grant_fuel(amount: float, source: StringName = &"object") -> float:  # WK-135
+	if amount <= 0.0 or _dead:  # WK-135
+		return 0.0  # WK-135
+	if in_hitstun():  # WK-135 S2: a stunned toucher is a dry contact
+		_wk128_add("%s_fuel_blocked_stun" % source, 1.0)  # WK-135
+		return 0.0  # WK-135
+	var f0 := fuel  # WK-135
+	fuel = minf(Tuning.fuel_max, fuel + amount)  # WK-135
+	_wk128_add("refunds_%s" % source, 1.0)  # WK-135 §8 (refunds_ball)
+	_wk128_add("%s_fuel" % source, fuel - f0)  # WK-135
+	return fuel - f0  # WK-135
 
 ## BR-128 hook for the bot refuel dive: true while I am still moving away from the face that last paid me and it has not
 ## re-armed (thrusting back into it now would only dribble — the contact would not pay). `into` (optional) = the

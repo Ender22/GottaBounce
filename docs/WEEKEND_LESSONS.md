@@ -217,3 +217,12 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   returns `null` with no message.
 - WK-116: teleport the sports ball with `PhysicsServer2D.body_set_state(b.get_rid(), BODY_STATE_TRANSFORM / BODY_STATE_LINEAR_VELOCITY, ...)`;
   setting `global_position` on the live RigidBody2D from eval is overwritten by the next physics step.
+- **WK-135 p3: multi-scenario in-game probes without touching the repo:** write the probe .gd in your scratchpad and load it from gbplay
+  `eval` with `var s = GDScript.new(); s.source_code = FileAccess.get_file_as_string('<abs path>'); s.reload()` -> `Node.new()`,
+  `set_script(s)`, add to root (survives change_scene). Async `await get_tree().physics_frame` makes scenarios sequential. Copy kept at
+  `tools/out/wk/wk135_p3/Probe135.gd.txt`. GDScript lambdas capture locals BY VALUE (a `func(): n += 1` counter never moves); use a member.
+- WK-135 p3: a wall-impact speed test must start next to the face: air drift brakes vx at 1300 px/s^2, so a goat launched at 1000 px/s
+  from 116 px away hits at ~780 (below the 900 gate) and "fails" the hard-hit test. Also `Tuning.sports_goal_target` (6) ends a probe's
+  sports match -> MATCH_END, and a loop counting COMBAT seconds then never finishes; raise it at runtime and break on MATCH_END.
+- **WK-135 p3: the FIRST sports run of a probe session is an outlier** (touches/min 51-88 vs 65-163 for later runs, same build and arm).
+  Whatever arm runs first looks worse; alternate arm order or discard run 1 before comparing 90 s sports samples.
