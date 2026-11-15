@@ -144,7 +144,7 @@ func _physics_process(delta: float) -> void:
 	if _flash > 0.0:
 		_flash = maxf(0.0, _flash - delta * 1.5)
 	# TRUE-ENTRY poll (owner item 4): latch only when a ball's CENTRE is inside the net interior.
-	if not scored and _live:
+	if not scored and _live and not _gated:   # WK-131: backup latch check (spec) - a closed gate's collider is the primary stop
 		for b in get_tree().get_nodes_in_group("sports_ball"):
 			if not is_instance_valid(b):
 				continue

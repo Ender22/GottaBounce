@@ -958,7 +958,7 @@ var device_toast_max: int = 3                 # toasts stacked at once (the olde
 # Each soccer goal mouth gets a ball-only candy-stripe gate from the stage load until sports_gate_open_s of live-ball time  # WK-131
 # after GO. Read ONLY by src/modes/SportsMode.gd and src/entities/KickoffGate.gd (+ AudioManager cue levels). Brawl never reads it.  # WK-131
 var sports_kickoff_rule: int = 1              # 0 = legacy (no gates: exactly the pre-WK-131 kickoff), 1 = KICKOFF GATES, 2 = LIVE BALL (open when both teams touched)  # WK-131
-var sports_gate_open_s: float = 3.0           # s of live ball after GO when both gates open (rule 1). 3.5 is the spec's single pre-registered step  # WK-131
+var sports_gate_open_s: float = 3.5           # s of live ball after GO when both gates open (rule 1). 3.5 = the spec's pre-registered step, adopted after the A/B (docs/audit/2026-11-15_wk131_ab.md)  # WK-131
 var sports_gate_warn_s: float = 0.6           # s of warning before the open (badge/ring swing, pole lift, wind-up ticks)  # WK-131
 var sports_gate_retract_s: float = 0.2        # s the pole slides up into the top socket, ENDING at the open (visual; collision drops at the open)  # WK-131
 var sports_gate_bounce: float = 0.6           # ball-vs-gate restitution (a dead thud keeps a blocked shot in the attacking third)  # WK-131
