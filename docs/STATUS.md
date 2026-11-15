@@ -4,18 +4,18 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-15 ~15:30) <<<**
-Since 12:30 (all committed): WK-33/139/140, WK-28a/138/83, WK-143/145/149/141, WK-142/44/144, WK-119/146/147, WK-60/60b, WK-150/148,
-WK-151, WK-131 gate art (29aedde), WK-135 PHASE 1 bumper kick floor (8eec92e). Audits: UX4 (c305199) + lobby verdict (e5f47e7).
-Briefs: kickoff gate (3a1f82a), court cards (3cd6387). Backlog re-rank #8 (3a0b1a8). In flight (SendMessage to resume):
-- Lane U (port 9104): WK-28b in-match disconnect overlay — agent ad455dbc6708eac7f.
-- WK-20d baseline repro + R1 spawn A/B (HOLDS the headless batch slot) -> docs/audit/2026-11-15_wk20d_r1.md — agent aeb3cf52a86d4fa14.
-- WK-131a kickoff gates build (port 9110; A/B after the batch slot frees) — agent aa5c13203e2a274c2.
-- WK-65 court card art (ChatGPT via Chrome) — agent aa150fc053ebeca67.
-NEXT when a slot frees: WK-136 near-empty relight + WK-20d rungs 2-4 switches (Player.gd fuel code, one builder), then the rung batch;
-WK-131 A/B batch; WK-135 phases 2-3 (rebuild from spec); WK-148b camera snap (PartyMatch); WK-CD4 cold playthrough after pacing lands.
+**>>> RESUME HERE (2026-11-15 ~18:30) <<<**
+Since 15:30 (committed): WK-28b disconnect overlay, WK-136 relight min thrust, WK-20d rung switches + bot lock fix, WK-65 court cards
+(art cc9036f + wiring e6d7483), WK-131a kickoff gates ON (10c5c6a, A/B pending), WK-148b sports camera start snap, WK-135 phase 2
+(742c37d, BR-135 ON). WK-20d ruling (e09d727): R1/R3 dropped, R4 not adopted, R2 SPAWN TRUCE adopted pending feedback build.
+In flight (SendMessage to resume):
+- WK-20e: ship R2 truce (padlock + dry click, lock ON) + Meadow Carousel soft-lock fix (port 9114) — agent ab47523aca24678b6.
+- WK-131 kickoff A/B batch (HOLDS the headless slot) -> docs/audit/2026-11-15_wk131_ab.md — agent a6eddc5d7d3ea2b59.
+NEXT: WK-135 phase-2 A/B (wk135_no_pin true vs false) when the batch slot frees; WK-135 phase 3 (gates ON + sports ball refuel);
+WK-20d R5 margins / R6 shelves if pacing still short; WK-108b sports bots (+ Dropshot net crossing); WK-65b MINEFIELD re-roll;
+WK-152 brawl start zoom (owner camera area); then WK-CD4 cold playthrough + producer re-rank #9.
 GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
-WK-38: automation server is OFF unless --gb-port is passed (run_game.ps1 passes it). Don't pipe run_game.ps1.
+WK-38: automation server is OFF unless --gb-port is passed (run_game.ps1 passes it). Don't pipe/redirect run_game.ps1.
 Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Keep-awake runs as a background task (scratchpad/keepawake.ps1).
 Stall check: if a long builder writes nothing for > 45 min and no Godot runs, TaskStop it and start a recovery agent.
 CONCURRENCY CAP: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
