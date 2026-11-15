@@ -1537,7 +1537,7 @@ first. Its re-judge list is in the WK-CD5 entry.
   `n2_slalom`). No blocking seen -> Won't do with the frames.
 
 
-### [ ] WK-108b [P1][M] Sports bots round 2: keeper stickiness, fast-ball re-plan, goal-mouth crowding, BOWL own goals
+### [x] WK-108b [P1][M] Sports bots round 2: keeper stickiness, fast-ball re-plan, goal-mouth crowding, BOWL own goals — HEAD
 - Also check (lane L, WK-120 run): CPUs seen flying across the net into the other half in a 2V2 Dropshot match
   (`tools/out/wk/WK-120_10*.png`) — confirm whether Dropshot bots respect their side.
 - Source: WK-108 report (ee80867, tools/out/wk/WK-108_sports_bots.json). 70-80% of remaining own goals = chaser on the
@@ -2712,3 +2712,10 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   spread over 2 s; more gain just hits the shared compressor/limiter. Do: (1) a Stingers bus (own light limiter, no SFX compressor) for
   KO / goal / match win; (2) source a 0.3-0.6 s broadband KO sting layer (CC0); (3) optional 0.3 s duck of background SFX on KO.
   Also a listener call: WK-116 crowd chant may dominate the end of long rallies (-4 vs -6 dB).
+
+### [ ] WK-164 [P2][S] Sports bots round 3 (from the WK-108b A/B, docs/audit/2026-11-15_wk108b_ab.md)
+- K3 strike guard shipped ON (2026-11-15) but still misses <= 15 % (all-bot 17.9 %) and 0-in-final-2 (4); add a short hold on the
+  swerve direction (41 sharp 30-46 deg turns + 20 flips per 20 s in mouth scrums) and re-check BOX stacking (2 -> 7).
+- K1 sticky keeper: rework — 6 of 9 human-style CPU own goals came from `keeper_route` pushing the ball toward its own goal.
+- K1b gate-return lead: run a K1b-only A/B at 2.5-3.0 s (never measured without K1); QA-131-2 bar >= 50 % CPU home at gate open.
+- K5: 14 Dropshot crossings in 40 points remain (7 stunned/super, 5 recovery/refuel, 2 normal play at fuel 0 just over the net top).
