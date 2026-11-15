@@ -1065,7 +1065,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
 - Status: done 2eef67e. A +1 flies from the edge blast to the killer's card. A self-fall shows OOPS!, or -1 under the SELF-KO -1 rule.
   ScoreScreen gets a kill list. The couch read ("can you see every score change?") is WK-CD3 re-judge (1).
 
-### [ ] WK-26 [P1][S] Super-aim wind-up sound + "!" over the targeted goat
+### [x] WK-26 [P1][S] Super-aim wind-up sound + "!" over the targeted goat — 4ca9472
 - Sources: D-07
 - Area: brawl/audio · Owner: gameplay-programmer + sound-designer · Deps: none (bleat layer waits for WK-53 asset)
 - Accept: `EventBus.super_aim_started` fires; `AudioManager.last_sfx == "super_aim"` on aim entry; 10 scripted aims -> "!" on
@@ -1568,7 +1568,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
 - Accept: all-bot match -> counter unchanged (eval); lobby shows no KO chip; unlock toast renders as a card with icon.
 - Status: open
 
-### [~] WK-53 [P1][S] Taunt / bleat sample — (a) ghost bleats done 2fa94cd; (b) living taunt pending: (ghost bleat now, living-goat taunt after WK-128) — raised P2 -> P1 at re-rank #6
+### [x] WK-53 [P1][S] Taunt / bleat sample — (a) ghost bleats done 2fa94cd; (b) living taunt pending: (ghost bleat now, living-goat taunt after WK-128) — raised P2 -> P1 at re-rank #6 — 4ca9472
 - Sources: D-15 · Binding: pad Y [3] / keyboard per CC-2.2 (Y is unused in gameplay per CC-1.1)
 - Area: brawl/audio · Owner: sound-designer + gameplay-programmer · Deps: none · Note: no bleat in assets/sfx; source a CC0 one (ruling b2). The bleat is shared with WK-45 (lobby lock) and WK-37 (ghost quack)
 - Accept: taunt -> `last_sfx` starts "bleat_" within 1 frame in COMBAT and on ScoreScreen; 10 presses/s -> <= 3 sounds; "BAAA!" puff in colour (screenshot).
@@ -1929,3 +1929,8 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 - Source: WK-66a F5 blind read: best guess "volleyball net" but "reads more like a lattice pole at 480 px; I got net from the setting".
   Only do it if WK-CD3 or a later cold read calls it a pole/tower: re-art D1 frame with a ~26 wpx tape (brief §3), or raise
   `net_tape_scale` to 1.6 first. Also capture one WK-27 colourway frame for test 7.
+
+### [ ] WK-53c [P3][S] Taunts on ScoreScreen/stage-end + bleat layered on super fire (sound-designer call)
+- Source: WK-53b/WK-26 build report. PartyMatch must poll humans' taunt during stage-end/scoreboard; D-07's bleat-on-fire was
+  skipped (supers are frequent; may drown the taunt). Also: wind-up keeps normal pitch through hit-stop slow-mo; "!" banner-hide
+  never triggered in the recording (unproven); BAAA! stays where shouted and can overlap a fast-moving shouter.
