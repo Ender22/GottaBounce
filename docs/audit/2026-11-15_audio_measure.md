@@ -490,3 +490,108 @@ Match win (`match_won`) is routed but not exercised: the 40 s cap ends every rec
   `ffmpeg -af atrim=start=0.12`. P2/S, sound-designer.
 - Own goals (`own_goal`, `own_goal_groan`, muted crowd) are still on SFX: they were not exercised, so they were not moved. They
   now read about 1 dB lower than before (SFX bus -1).
+
+---
+
+## 2026-11-16: CD5-02. Cues under payoffs, a super that reads, a brighter mix (verified)
+
+Sound-designer. Uncommitted, tagged `# CD5-02` (the `.tres` takes no comments; its change is described in the AudioManager CD5-02
+block). The parse gate is clean after each edit. Brief: `docs/audit/2026-11-16_cd5_playthrough.md` CD5-02 (countdown +13.2 LU vs KO
++6.5; super rise min -3.6; combat centroid 893 Hz).
+
+### What the CD5 numbers actually meant (measured before editing)
+
+- **The countdown rise was mostly a metric artefact, but the order was still wrong.** `measure_run`'s countdown window is
+  `[COUNTDOWN, +1.5 s]`, but the countdown lasts 1.05 s, so the window contains the **GO**. For stage 1 its 2 s bed also reaches
+  into the recording head (digital silence before the music starts). Split up:
+  - the beeps alone peaked at -15.8 LUFS M;
+  - the GO peaked at -14.3;
+  - the KO peaked at -10.8;
+  - the stage-1 intro bed is the music alone, at about -31 LUFS M.
+
+  So the KO was already the loudest event in absolute terms. The real problem was a beep/GO jump of +11 to +15 LU out of a quiet
+  intro, which was bigger than any payoff's jump.
+- **Supers:** the stack was `explosion_boss` (centroid 66 Hz) + `slam_tight` x0.8 (about 230 Hz). Both are dark, so K-weighting (and a
+  TV speaker) barely counts them. The low rises were supers whose 2 s bed was a KO tail (8 of 18 in WK-163_brawl2), or supers
+  fired inside the -4 dB KO duck.
+- New companion script `tools/out/wk/WK-79a_scripts/measure_cd502.py <run dir> [-v]`:
+  - countdown **beeps** only (window ends at GO; bed clipped to t >= 0.5 s);
+  - GO only (0.6 s window);
+  - absolute peak per class;
+  - super pass rate (>= +3 LU), with and without KO-tail beds.
+
+  `measure_run.py` is unchanged, so its numbers stay comparable.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `src/systems/AudioManager.gd` | Constants `COUNTDOWN_DB` **-11** (was -4), `COUNTDOWN_FINAL_DB` **-9** (was -2), `GO_DB` **-3** (was +3). New key `super_launch` (PRIORITY tier) played by `_on_super_boosted` on the **Stingers** bus at `SUPER_LAUNCH_DB` **-5**, on top of the unchanged rumble (-10) and slam (-5) on SFX. Stingers means no SFX compressor and no KO duck |
+| `default_bus_layout.tres` | SFX bus **-3.5 -> -4.5 dB**. New `AudioEffectHighShelfFilter` "HighShelf" at 3 kHz, `gain` 1.33 (+2.5 dB, 6 dB/oct). It sits on SFX **after** the compressor, so compression is unchanged; the KODuck Amplify moves to slot 3, and AudioManager finds it by type. A second shelf, `gain` 1.41 (+3 dB), sits on Stingers before its -3 dB limiter. Music bus untouched (music direction) |
+| `assets/sfx/super_launch.ogg` (new) | The owner library's `fire_missile.mp3` (a rocket-launch "FSHOOOM": hard onset, 0.3 s body, 2-5 kHz only 13 dB under the mids) with its 0.17 s leading silence trimmed, a 40 ms tail fade, -3.5 dB and mono. No other processing. 0.79 s, peak -0.8 dBFS. Provenance row in `assets/sfx/LICENSES.md` |
+
+Pass 1 (countdown -9 / -7, GO -2, SFX bus -3.5) measured **-15.9 LUFS** integrated (hot), and the beeps fell only about 3 dB
+in-band: the new 3 kHz shelf gives about 2 dB back at the beeps' 2 kHz. Pass 2 is the shipped state above.
+
+### Runs (one at a time, `tools/record_match.ps1`, seed 7)
+
+| Run | Notes |
+|---|---|
+| `tools/out/wk/CD5_rec_meadow` (before; copy at `tools/out/wk/CD5-02_before/CD5_rec_meadow_audio.wav`) | Brawl, MEADOW MILE (Meadow Spine), bots 2,2,3,3, 30 s, random seed. 11 supers, 3 KOs |
+| `tools/out/rec/CD5-02_brawl` (pass 1) | Brawl, MEADOW MILE (Long Meadow), 2,2,3,3, 40 s. 15 supers, 8 KOs |
+| `tools/out/rec/CD5-02_brawl2` (**final**) | Same command; NOT a replay (Islands Void, 5 stages). 12 supers, **12 KOs**: the busiest brawl measured |
+| `tools/out/rec/CD5-02_rocketball` (**final**) | Rocketball, Sports Court, 3,3,3,3, 60 s. 7 supers, 2 goals + 1 own goal |
+
+Raw JPEG frames were deleted. `audio.wav`, `data.json` and the sheets are kept.
+
+### Before / after
+
+| Metric | CD5 before (Brawl) | WK-163 Rocketball (ref) | Pass 1 Brawl | **Final Brawl** | **Final Rocketball** | Target | Verdict |
+|---|---|---|---|---|---|---|---|
+| Integrated | -16.9 LUFS | -18.3 | -15.9 | **-16.0** | **-17.8** | -16..-19 | PASS (Brawl at the hot edge in a 12-KO match, see risks) |
+| True peak | -1.9 dBTP | -2.5 | -1.6 | **-1.8** | **-1.8** | <= -1.5 | PASS |
+| 10 ms blocks >= -2 dBFS (clusters) | 2 | 0 | 7 | 10 (9 COMBAT) | 1 | — | single-block touches at super onsets / KO stacks; the master limiter, not clipping |
+| LRA | 5.8 LU | 4.1 | 7.6 | 9.0 | 4.9 | (info) | more dynamics |
+| Countdown, legacy `measure_run` (includes GO; stage-1 bed = head) | **+13.2** (max +17.3) | — | +8.0 | **+7.1** (max +16.6) | +0.1 | < KO rise | median now under the KO (+7.2) |
+| **Countdown beeps** rise (`measure_cd502`) | +11.3 (n=2) | +1.7 | +6.7 | **+4.9** (n=5; stage 1 +10.6 over a -31 LUFS music-only intro) | +0.1 (beds = goal celebration) | < KO rise | PASS |
+| Beeps absolute peak M | -15.8 | — | -17.1 | **-18.4** | — | under payoffs | 8 LU under the KO |
+| Beeps in-band margin (1.5-3 kHz, p95-p20 in COUNTDOWN) | +12.1 dB | — | +11.2 | **+7.8** (min +6.5) | — | >= +6 = still reads | PASS: clearly audible. **Do not go lower** |
+| GO rise / absolute | +5.9 / -14.3 | +3.7 / -14.3 | +7.7 / -14.8 | **+5.9 / -15.7** | **-0.6 / -16.9** | < KO rise | PASS. The stage-1 GO window also holds the first combat burst and a music hit |
+| **Super** rise median / min | +3.2 / **-3.6** | +2.2 (n=1) | +5.8 / -0.7 | **+6.7 / +4.2** | **+5.6 / +2.3** | — | |
+| **Super >= +3 LU** | 6/11 (55 %) | 0/1 | 12/15 (80 %) | **12/12 (100 %)** | **6/7 (86 %)** | >= 80 % | PASS |
+| Super absolute peak M (median) | -15.5 | -17.2 | -11.1 | **-12.0** | -13.4 | under KO | KO > super kept (2 LU) |
+| 0.5-2 kHz, 0-0.6 s after a super | +0.3 dB (min -4.9) | — | +5.7 | **+5.0** (min -3.5) | **+4.0** (min +0.7) | rises | PASS |
+| **KO** rise median (n) | +6.5 (3) | — | +6.9 (8) | **+7.2 (12)**, min +0.2 (KO 0.2 s before another stage-end KO) | — | >= +6 | PASS |
+| KO absolute peak M | -10.8 | — | -9.9 | **-10.1** | — | loudest | PASS: still the top of the ladder |
+| **Goal** rise | — | +8.7 (1) | — | — | **+9.1, +8.6** (n=2). Own goal +1.4: SFX "wah-wah", muted by design | >= +6 | PASS |
+| Brawl stage end | +4.3 (1) | — | +9.9 | +6.3 (4) | — | — | |
+| **Combat centroid** | **893 Hz** | 1035 | 1164 | **1114** | **1262** | up | PASS (+25 % Brawl, +22 % Rocketball vs WK-163) |
+| Combat 2-5k / 5-10k / air | -13.2 / -18.1 / -25.1 dB | -9.5 / -17.5 / -23.8 | -11.4 / -14.4 / -21.1 | -12.2 / -14.9 / -21.9 | -8.7 / -14.0 / -20.4 | no harshness | 2-5k still >= 8.7 dB under the mids (-2.3 / -4.7) |
+| Bounce band p90 margin | +7.3 dB | +6.1 | +8.0 | +7.2 | **+5.5** | >= +6 | Brawl PASS; Rocketball 0.5 short (sports bounce sits 4 dB under brawl by design, now also -1 dB bus) |
+| Thrust share, combat | -17.9 dB | -9.6 | -18.7 | -18.4 | -12.1 | <= -8 | PASS |
+| Music share, combat | -9.2 dB | -4.1 | -8.5 | -9.7 | -4.7 | — | unchanged balance |
+
+The cue ladder now has payoffs on top and cues under them (final Brawl absolute peak M medians):
+KO -10.1 > stage end -11.1 > super -12.0 > GO -15.7 > countdown beeps -18.4. The Rocketball goal is -9.9.
+
+Caveat: none of these runs are replays. The working tree carries other lanes' uncommitted gameplay edits, and the same command gave
+different matches. So the before/after is ordering and distribution (rise medians, pass rates, absolute peaks per class), not a
+sample-for-sample A/B.
+
+### Visual check (looked at)
+
+`tools/out/wk/CD5-02_super_spectrum.png` (3 CD5 supers vs 3 final-Brawl supers, 0-10 kHz, 2.4 s):
+- Before, the fire tick is barely visible: faint broadband plus the low rumble.
+- After, every super opens with a bright broadband wall up to 10 kHz for about 0.4 s, then a decay. It is clearly separated from the
+  bed, and it looks different from the KO sting (an 8 kHz wall plus a falling tonal sweep, `WK-163_ko_sting_vs_smash.png`).
+
+### Risks / follow-ups
+
+| # | Pri/Size | Item | Owner |
+|---|---|---|---|
+| CD5-02-a | P2/S | **Brawl integrated -16.0 in a 12-KO / 40 s match** (CD5's 3-KO match was -16.9). The KO stinger stack drives it. If a busier brawl crosses -16, trim the SFX bus -4.5 -> -5. Do not lower the stingers or `SUPER_LAUNCH_DB` (Rocketball's super pass rate is 86 % with one super at +3.2) | sound-designer |
+| CD5-02-b | P3/S | Countdown beeps are at the in-band floor (+6.5 dB min over the intro bed). If a listener finds them faint, raise only `COUNTDOWN_DB`, by 1-2 dB. GO and payoffs stay | sound-designer (needs ears) |
+| CD5-02-c | P3/S | Own goal reads +1.4 LU (n=1): `own_goal` / groan / muted crowd are still on the SFX bus (-1 dB again here). If it should land as a comic payoff, move it to Stingers at about -3.5 dB (its old absolute level), the WK-163 pattern | sound-designer |
+| CD5-02-d | P3/S | Rocketball bounce band p90 +5.5 dB (WK-163 +6.1). `BOUNCE_DB_SPORTS` -4 -> -3 would restore it; the ball must stay the hero, so A/B it | sound-designer |
+| CD5-02-e | P3/S | `measure_run`'s countdown window contains the GO and a head-silence bed. Use `measure_cd502.py` for cue ordering, or fold its countdown/GO split into `measure_run` when the scripts are promoted (T-3) | sound-designer / tooling |
+| CD5-02-f | P3/S | Needs a human listen: the launch layer's 5-10 kHz content (combat 5-10k -14.9 dB vs -18.1 before) is "bright", not "harsh", by the numbers. If it is fizzy on TV speakers, add a 7 kHz low-pass inside the file (re-render) rather than pulling the shelf | anyone with ears |

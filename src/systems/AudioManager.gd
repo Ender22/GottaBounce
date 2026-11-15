@@ -21,6 +21,9 @@ const SFX := {
 	"smash":             ["res://assets/sfx/impact1.mp3", "res://assets/sfx/impact2.mp3", "res://assets/sfx/impact3.mp3"],
 	"smash_heavy":       ["res://assets/sfx/slam_tight.ogg"],
 	"super_fire":        ["res://assets/sfx/explosion_boss.mp3"],   # owner pick 2026-07-18 (was combo_bigRoar)
+	# CD5-02: bright rocket-launch "FSHOOOM" front layer for the super (owner library fire_missile.mp3, leading silence trimmed;
+	# 2-5 kHz only 13 dB under the mids vs -28 dB for explosion_boss). Plays on the Stingers bus over the rumble + slam.
+	"super_launch":      ["res://assets/sfx/super_launch.ogg"],
 	"death":             ["res://assets/sfx/mm_quickdie.mp3"],
 	# WK-163: 0.55 s hard broadband crack + falling "vanish" sweep layered OVER the KO pop (mm_quickdie fades in over 0.4 s and
 	# has no attack of its own). Built from crunch.mp3 + Kenney CC0 sfx_disappear/sfx_throw by tools/audio/render_ko_sting.py.
@@ -135,6 +138,7 @@ const TIER_NORMAL := 1
 const TIER_PRIORITY := 2
 const FILLER_MAX_VOICES := 5
 const PRIORITY_SFX := {
+	"super_launch": true,   # CD5-02
 	"smash": true, "smash_heavy": true, "super_fire": true, "death": true, "death_whoosh": true, "explode": true,
 	"ko_sting": true,   # WK-163
 	"go": true, "first_blood": true, "two_left": true, "match_win": true,
@@ -168,6 +172,16 @@ const KO_DUCK_DB := -4.0         # SFX bus "KODuck" Amplify (bed: bounces, thrus
 const KO_DUCK_ATTACK := 0.015    # s to reach KO_DUCK_DB
 const KO_DUCK_HOLD := 0.3        # s held
 const KO_DUCK_RELEASE := 0.25    # s back to 0 dB
+# --- CD5-02 (audit docs/audit/2026-11-16_cd5_playthrough.md CD5-02 + audio audit CD5-02 section): cue < payoff ordering ---
+# The countdown is a cue, not a payoff: in CD5 the GO peaked -14 LUFS M (+13..+17 LU over the quiet intro) vs KO +6.5. Beeps and GO
+# sit ~5 dB lower now, still a tonal 2 kHz beep clearly over the intro music bed. The super gets a bright launch layer on Stingers
+# (no SFX compressor, no KO duck) so the core move reads over the combat bed.
+# default_bus_layout.tres (CD5-02): SFX bus -3.5 -> -4.5 dB (bed down under the Stingers payoffs; pass 1 measured -15.9 LUFS integrated)
+# and a gentle high shelf (3 kHz, +2.5 dB SFX after the compressor / +3 dB Stingers before its limiter): CD5 combat centroid 893 Hz.
+const COUNTDOWN_DB := -11.0      # CD5-02 (was -4)  countdown_beep, file peak -1.0 (pass 1 -9: beeps fell only ~3 dB in-band after the shelf)
+const COUNTDOWN_FINAL_DB := -9.0 # CD5-02 (was -2)  countdown_beep_final, file peak -0.3
+const GO_DB := -3.0              # CD5-02 (was +3)  game_start, file peak -4.9
+const SUPER_LAUNCH_DB := -5.0    # CD5-02 super_launch on Stingers (file peak -0.8, rms 0-0.3 s -14 dBFS)
 var ko_ducks := 0                # QA: KO ducks triggered
 var _stinger_bus := "SFX"        # resolved in _ready (falls back to SFX if the layout has no Stingers bus)
 var _duck_fx: AudioEffectAmplify = null
@@ -544,6 +558,9 @@ func _on_super_boosted(_player) -> void:
 	# from the owner's slam.mp3 pitched down (distinct from smash_heavy at 1.0) until a real crack is sourced (audit S-1).
 	play_sfx("super_fire", {"volume_db": -10.0, "pitch_var": 0.08})
 	play_sfx("super_fire", {"path": "res://assets/sfx/slam_tight.ogg", "volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.05})   # WK-79c (was -3): 17/20 supers hit the limiter
+	# CD5-02: rumble + slam are both dark (centroid 66 / ~230 Hz), so K-weighted loudness barely moved (rise min -3.6 LU in CD5) and a super
+	# fired inside a KO duck lost 4 dB more. The bright launch layer rides Stingers, past the SFX compressor and the duck.
+	play_sfx("super_launch", {"volume_db": SUPER_LAUNCH_DB, "pitch_var": 0.05, "bus": _stinger_bus})   # CD5-02
 
 func _on_exploded(_center, _radius) -> void:
 	play_sfx("explode", {"volume_db": 0.0})
@@ -565,12 +582,13 @@ func _on_player_healed(_player) -> void:
 
 func _on_countdown_tick(n) -> void:
 	if int(n) <= 1:
-		play_sfx("countdown_final", {"volume_db": -2.0})
+		play_sfx("countdown_final", {"volume_db": COUNTDOWN_FINAL_DB})   # CD5-02 (was -2)
 	else:
-		play_sfx("countdown", {"volume_db": -4.0})
+		play_sfx("countdown", {"volume_db": COUNTDOWN_DB})   # CD5-02 (was -4)
 
 func _on_combat_started() -> void:
-	play_sfx("go", {"volume_db": 3.0})   # WK-79c (was 0; file peak -4.9 -> -1.9): GO read like a countdown beep (+1.0 LU rise)
+	# WK-79c had lifted GO 0 -> +3; CD5-02: that made GO the loudest jump of a stage (above the KO). Now under KO/goal/super.
+	play_sfx("go", {"volume_db": GO_DB})   # CD5-02 (was +3)
 
 func _on_match_started() -> void:
 	_contact_last_t.clear()
