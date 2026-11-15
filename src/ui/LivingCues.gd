@@ -17,6 +17,9 @@ extends CanvasLayer
 ##  * WK-20e TRUCE PADLOCK. EventBus.super_lock_pressed(player) (Player: a fresh super press dropped by the Brawl spawn truce /
 ##    R4 re-arm gate) -> a SuperLockBadge (gate padlock) beside that goat's head, re-popped on every dropped press. It stays
 ##    while the button is held (+ Tuning.super_lock_badge_hold after a tap) and disappears the frame the lock ends.
+##    WK-154: a SPAWN-TRUCE lock (timed: the blink) wears the kickoff gate's draining ring over the goat's remaining spawn
+##    protection and, with Tuning.super_lock_ring_hold, stays from the first dropped press until the ring empties, then plays
+##    the open-padlock beat (badge "opens" instead of vanishing). The untimed R4 re-arm gate keeps the WK-20e behaviour.
 
 const WORD_SCENE := preload("res://scenes/ui/WordBurst.tscn")
 const BANG_SCENE := preload("res://scenes/ui/TargetBang.tscn")
@@ -28,6 +31,7 @@ var _taunt_hist := {}         # player idx -> [ms of recent SHOWN taunts]
 var _bangs := {}              # aimer player idx -> TargetBang node
 var _locks := {}              # WK-20e: player idx -> SuperLockBadge node
 var _lock_hold := {}          # WK-20e: player idx -> s the badge may still stay after its last dropped press (tap hold; real-delta clock)
+var _lock_timed := {}         # WK-154: player idx -> true while its badge shows a timed (spawn-truce) lock until the unlock
 
 # QA (gbplay eval)
 var taunts_seen := 0          # every living_taunt received
@@ -115,6 +119,7 @@ func _on_super_lock_pressed(player) -> void:
 	if idx < 0:
 		return
 	_lock_hold[idx] = Tuning.super_lock_badge_hold
+	_lock_timed[idx] = _truce_left(player) > 0.0   # WK-154
 	var b = _locks.get(idx)
 	if b == null or not is_instance_valid(b):
 		b = LOCK_SCENE.instantiate()
@@ -145,13 +150,26 @@ func _update_locks(live: bool, cam, players: Array, vp: Vector2, rdelta: float) 
 		var p = players[i] if int(i) < players.size() else null
 		var hold: float = float(_lock_hold.get(i, 0.0))
 		_lock_hold[i] = maxf(0.0, hold - rdelta)
-		var on: bool = (live and p != null and is_instance_valid(p) and not p.is_dead() and p.is_visible_in_tree()
-				and p.super_arm_locked() and (p.is_super_held() or hold > 0.0))
-		if not on:
+		var alive: bool = live and p != null and is_instance_valid(p) and not p.is_dead() and p.is_visible_in_tree()
+		var timed: bool = bool(_lock_timed.get(i, false))   # WK-154
+		var tleft: float = _truce_left(p) if alive else 0.0   # WK-154
+		var locked: bool = alive and p.super_arm_locked()
+		var on: bool = locked and (p.is_super_held() or hold > 0.0 or (timed and Tuning.super_lock_ring_hold and tleft > 0.0))
+		# WK-154: a timed badge on screen whose lock just lifted plays the open beat instead of vanishing
+		var opening: bool = alive and b.visible and (b.opening or (timed and not locked and Tuning.super_lock_open_time > 0.0))
+		if opening and not b.opening:
+			b.start_open()
+			_log_lock(int(i), "open")
+		if opening and b.open_done():
+			opening = false
+		if not on and not opening:
 			if b.visible:
 				b.visible = false
 				_log_lock(int(i), "hide")
+			_lock_timed[i] = false
 			continue
+		if not opening:
+			b.set_ring(tleft / Player.SPAWN_PROTECT_TIME if timed and tleft > 0.0 else -1.0)   # WK-154
 		var z: float = maxf(cam.zoom.x, 0.01)
 		var centre: Vector2 = _to_screen(p.global_position, cam)
 		var r: float = _radius_of(p) * z
@@ -164,6 +182,12 @@ func _update_locks(live: bool, cam, players: Array, vp: Vector2, rdelta: float) 
 		pos.y = maxf(pos.y, half.y + 8.0)
 		b.place(pos, rdelta)
 		b.visible = true
+
+## WK-154: s of spawn truce left on `p` (0 = its super is not truce-locked; the R4 re-arm gate is untimed).
+func _truce_left(p) -> float:
+	if p == null or not is_instance_valid(p) or not Tuning.brawl_spawn_super_lock:
+		return 0.0
+	return maxf(0.0, float(p.spawn_protect_left()))
 
 func _log_lock(idx: int, ev: String) -> void:
 	lock_log.append({"ms": Time.get_ticks_msec(), "frame": Engine.get_process_frames(), "idx": idx, "ev": ev})

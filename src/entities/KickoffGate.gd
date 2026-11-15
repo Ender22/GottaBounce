@@ -29,9 +29,11 @@ const BLAST_RING_TEX: Texture2D = preload("res://assets/fx/ko_blast_ring.png")
 const PUFF_TEX: Texture2D = preload("res://assets/fx/puff_soft.png")
 const FX_TINT: Shader = preload("res://assets/shaders/fx_tint.gdshader")
 const POP_SCENE: PackedScene = preload("res://scenes/entities/KickoffGatePop.tscn")
+const DRAIN_RING := preload("res://src/ui/DrainRing.gd")   # WK-154: the ring look, shared with the Brawl spawn padlock
 
 const LAYER_GATE := 1 << 7          # the gate's OWN physics bit (Ball masks it; players never do)
 const POP_TEXT_VALUE := "NOT YET!"  # the ONE constant for the hit pop copy (brief §6.3: "NOT YET!" says temporary; the spec had "LOCKED!")
+const OPEN_TEXT_VALUE := "OPEN!"    # WK-155 (a): the open call each gate pops at the open, every kickoff (NOT YET! -> OPEN! pair)
 const Z_GATE := -1                  # in front of the cage frame (-1, added after it), behind walls (0) / goats / ball (40)
 const Z_FX := 39                    # hit star / pop / bursts: over goats, under the ball
 # palette (brief §5)
@@ -85,6 +87,9 @@ var _socket_bot: Node2D = null
 var _fx_mat: ShaderMaterial
 var _veil_mat: ShaderMaterial = null   # the cage's cords-only FRONT veil (z 42): kept off the pole while it is closed
 var _veil_interior: Vector4 = Vector4.ZERO
+var _badge_y: float = 0.0           # WK-155 (b): local y of the badge + ring centre (Tuning.sports_gate_badge_anchor along the mouth)
+var _open_popped: bool = false      # WK-155 (a): this gate's OPEN! call has fired this kickoff
+var open_pops: int = 0              # QA: OPEN! calls this gate has shown
 
 var _ball: Node = null
 var _started: bool = false
@@ -121,6 +126,10 @@ func _ready() -> void:
 	z_as_relative = false
 	z_index = Z_GATE
 	_ring.draw.connect(_draw_ring)
+	# WK-155 (b): badge + ring draw ABOVE goats (a keeper parked in the mouth hid them) but under the ball (z 40) and FX.
+	for n in [_ring, _badge]:
+		(n as Node2D).z_as_relative = false
+		(n as Node2D).z_index = Tuning.sports_gate_badge_z
 	_fx_mat = ShaderMaterial.new()
 	_fx_mat.shader = FX_TINT
 
@@ -152,6 +161,11 @@ func setup(zone: Node, is_lead: bool) -> void:
 	_build_body(Vector2(Tuning.sports_gate_thickness, _h))
 	_build_pole()
 	_badge.scale = Vector2.ONE * (Tuning.sports_gate_badge_wpx / float(BADGE_LOCKED.get_width()))
+	# WK-155 (b): the badge slides along the mouth (+1 = bottom, the padlock on the bottom socket), clear of a keeper's
+	# body (it holds the mouth centre) and of its name tag (above its head).
+	var ring_outer: float = Tuning.sports_gate_ring_r + Tuning.sports_gate_ring_band * 0.5 + RING_OUTLINE
+	_badge_y = clampf(Tuning.sports_gate_badge_anchor, -1.0, 1.0) * maxf(0.0, _h * 0.5 - ring_outer - Tuning.sports_gate_badge_margin)
+	_ring.position = Vector2(0.0, _badge_y)
 	_build_sockets()
 	_mask_front_veil()
 	_apply_visuals(0.0)
@@ -188,6 +202,9 @@ func _build_pole() -> void:
 	_pole_mat.set_shader_parameter("stripe_period", Tuning.sports_gate_stripe_period)
 	_pole_mat.set_shader_parameter("clip_top_wy", global_position.y - _h * 0.5)
 	_pole_mat.set_shader_parameter("flex", Vector4(0.0, 0.0, Tuning.sports_gate_flex_sigma, 0.0))
+	# WK-155 (c): barrier stripes that contrast with the cage trim and the gold ring (were cream / honey gold).
+	_pole_mat.set_shader_parameter("stripe_a", Tuning.sports_gate_stripe_a)
+	_pole_mat.set_shader_parameter("stripe_b", Tuning.sports_gate_stripe_b)
 
 ## Pixel-identical duplicates of the cage's top / bottom post-cap pieces, cropped to the knob end and re-added AFTER the
 ## pole (brief §2 "Sockets = reuse"): same region, transform, material and team modulate. Each sits under a pivot at its
@@ -304,7 +321,33 @@ func _open() -> void:
 	_try_spit()
 	if lead:
 		EventBus.kickoff_gates_open.emit()
+	_open_call()   # WK-155 (a)
 	opened.emit(_spit)
+
+## WK-155 (a): the open call. Each gate pops OPEN! (with the OPEN padlock glyph) court-side of its mouth at full alpha on
+## EVERY kickoff, on the whistle's tick. The stage-1 legend sticker had faded to ~25 % by then and later kickoffs had no
+## word at all. Same pop family as the hit's NOT YET! (KickoffGatePop), bigger and held longer.
+func _open_call() -> void:
+	if _open_popped or _horizontal_mouth or not Tuning.sports_gate_open_call:
+		return
+	_open_popped = true
+	var host: Node = get_parent()
+	if host == null:
+		return
+	# A world-space CanvasLayer (follow_viewport: same camera transform as the court) ABOVE the identity-tag layer, so a
+	# keeper's name tag in the mouth can't cover the call (the tags are screen space and drew over the world pop).
+	var layer := CanvasLayer.new()
+	layer.name = "OpenCallLayer"
+	layer.layer = Tuning.sports_gate_open_call_layer
+	layer.follow_viewport_enabled = true
+	host.add_child(layer)
+	var pop: Node2D = POP_SCENE.instantiate() as Node2D
+	layer.add_child(pop)
+	pop.tree_exited.connect(layer.queue_free)
+	var at := Vector2(global_position.x + _md * (Tuning.sports_gate_bar_w * 0.5 + 24.0),
+		global_position.y + _h * Tuning.sports_gate_open_call_y)
+	pop.call("present", at, _md, OPEN_TEXT_VALUE, BADGE_OPEN, Tuning.sports_gate_open_call_wpx, Tuning.sports_gate_open_call_life)
+	open_pops += 1
 
 ## Spec §4.3: a ball whose surface is within sports_gate_spit_reach of the gate face (court side, inside the mouth
 ## span) gets sports_gate_spit_speed outward along the mouth normal. Not a touch: no touch log, no credit.
@@ -461,7 +504,7 @@ func _apply_visuals(t: float) -> void:
 			bpos = Vector2(0.0, -BADGE_FLY * (1.0 - (1.0 - v) * (1.0 - v)))
 			balpha = 1.0 - v
 	_badge.scale = Vector2.ONE * badge_s * bscale
-	_badge.position = bpos
+	_badge.position = Vector2(0.0, _badge_y) + bpos   # WK-155 (b)
 	_badge.modulate.a = balpha
 	# WK-131 blind-read follow-up: the full 0.06 s white turned the padlock white-on-white for 2-3 frames (it ghosted out).
 	# The hit flash is the POLE's; the badge takes only Tuning.sports_gate_badge_flash of it (0 = none). The warning swing
@@ -495,33 +538,15 @@ func _drop_cue() -> void:
 	if lead:
 		EventBus.kickoff_gate_dropped.emit()
 
+## WK-154: the ring drawing moved to DrainRing.gd (one look for the gate and the Brawl spawn padlock); same numbers.
 func _draw_ring() -> void:
 	var frac: float = float(_ring.get_meta("frac", 1.0))
 	var bright: float = float(_ring.get_meta("bright", 0.0))
-	var c: Vector2 = Vector2.ZERO
-	var r: float = Tuning.sports_gate_ring_r
-	var band: float = Tuning.sports_gate_ring_band
-	var outer: float = band + 2.0 * RING_OUTLINE
-	var choc: Color = CHOC.lerp(Color.WHITE, bright * 0.5)
-	var gold: Color = RING_GOLD.lerp(Color.WHITE, bright)
-	_ring.draw_arc(c, r, 0.0, TAU, 64, Color(choc, RING_DRAINED_A), outer, true)
-	if frac <= 0.001:
-		return
-	var a1: float = -PI * 0.5 + TAU
-	var a0: float = a1 - TAU * frac
-	var segs: int = maxi(4, int(64.0 * frac))
-	var p0: Vector2 = c + Vector2.from_angle(a0) * r
-	var p1: Vector2 = c + Vector2.from_angle(a1) * r
-	_ring.draw_arc(c, r, a0, a1, segs, choc, outer, true)
-	_ring.draw_circle(p0, outer * 0.5, choc, true, -1.0, true)
-	_ring.draw_circle(p1, outer * 0.5, choc, true, -1.0, true)
-	_ring.draw_arc(c, r, a0, a1, segs, gold, band, true)
-	_ring.draw_circle(p0, band * 0.5, gold, true, -1.0, true)
-	_ring.draw_circle(p1, band * 0.5, gold, true, -1.0, true)
+	DRAIN_RING.draw(_ring, Vector2.ZERO, Tuning.sports_gate_ring_r, Tuning.sports_gate_ring_band, RING_OUTLINE, frac, bright)
 
 ## Badge burst at the retract start (brief §6.5): one ko_blast_star (70 wpx) + 5 star_sparkles thrown outward, cream.
 func _open_burst() -> void:
-	var at: Vector2 = global_position
+	var at: Vector2 = global_position + Vector2(0.0, _badge_y)   # WK-155 (b): from where the badge is
 	_fx_sprite(BLAST_STAR_TEX, at, 70.0, 0.3, Vector2.ZERO, 0.5, 1.3, 1.0)
 	for i in range(5):
 		var dir: Vector2 = Vector2.from_angle(-PI * 0.5 + (float(i) - 2.0) * 0.75 + randf_range(-0.2, 0.2))

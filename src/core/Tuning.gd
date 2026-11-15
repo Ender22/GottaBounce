@@ -1102,3 +1102,23 @@ var wk108b_net_recover_clear: float = 400.0   # K5: during a danger recovery the
 var circuit_session_deck: bool = true         # CD4-01 master switch (false = legacy, see above)  # CD4-01
 var circuit_deck_interleave: bool = true      # CD4-01 ordered circuits: alternate authored MILD half / WILD half  # CD4-01
 var circuit_deck_opener: bool = true          # CD4-01 the session's FIRST deck of a circuit opens on authored arena 1  # CD4-01
+
+# --- WK-154 Brawl spawn padlock wears the kickoff gate's draining ring (CD4-04: it said "locked", not for how long) ---  # WK-154
+var super_lock_ring_hold: bool = true         # a dropped truce press keeps the badge up until the ring empties (false = WK-20e held / tap-hold only)  # WK-154
+var super_lock_ring_r: float = 27.0           # canvas px ring centreline radius at 1080p (gate ring 44 wpx around a 64 wpx badge, scaled)  # WK-154
+var super_lock_ring_band: float = 7.0         # canvas px gold band  # WK-154
+var super_lock_ring_outline: float = 2.0      # canvas px chocolate outline each side of the band  # WK-154
+var super_lock_ring_badge_px: float = 40.0    # padlock disc size inside the ring (0 = keep super_lock_badge_px); whole badge ~65 px  # WK-154
+var super_lock_open_time: float = 0.22        # s the unlock beat (open padlock pops 1.3x, flies up, fades) takes; 0 = just vanish  # WK-154
+var super_lock_open_fly: float = 22.0         # canvas px the open padlock rises over the beat  # WK-154
+# --- WK-155 kickoff-gate cues stay visible when they matter (CD4-05) ---  # WK-155
+var sports_gate_open_call: bool = true        # (a) each gate pops "OPEN!" (open padlock glyph) at full alpha at the open, every kickoff  # WK-155
+var sports_gate_open_call_wpx: float = 46.0   # (a) wpx cap height of the OPEN! call (the hit's NOT YET! is sports_gate_pop_wpx 34)  # WK-155
+var sports_gate_open_call_life: float = 1.0   # (a) s the OPEN! call stays (rise, hold, 0.16 s fade)  # WK-155
+var sports_gate_open_call_y: float = -0.2     # (a) call height as a share of the mouth span from its centre (- = up)  # WK-155
+var sports_gate_open_call_layer: int = 2      # (a) CanvasLayer of the OPEN! call (world-following): over the name tags (1), under KO blast (5) / HUD (10)  # WK-155
+var sports_gate_badge_anchor: float = 1.0     # (b) badge + ring along the mouth: -1 top, 0 centre (WK-131), +1 bottom (on the bottom socket)  # WK-155
+var sports_gate_badge_margin: float = 6.0     # (b) wpx kept between the ring's outer edge and the mouth end  # WK-155
+var sports_gate_badge_z: int = 39             # (b) badge + ring z: above goats, under the ball (40); WK-131 drew them at the gate's -1  # WK-155
+var sports_gate_stripe_a: Color = Color("#FFF6EA")   # (c) pole stripe A: warm white (was cream #FFF3D6)  # WK-155
+var sports_gate_stripe_b: Color = Color("#D9262E")   # (c) pole stripe B: barrier red (was honey gold #F2B33D, read as the gold goal trim)  # WK-155
