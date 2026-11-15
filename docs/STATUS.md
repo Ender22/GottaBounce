@@ -4,18 +4,18 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-15 ~18:30) <<<**
-Since 15:30 (committed): WK-28b disconnect overlay, WK-136 relight min thrust, WK-20d rung switches + bot lock fix, WK-65 court cards
-(art cc9036f + wiring e6d7483), WK-131a kickoff gates ON (10c5c6a, A/B pending), WK-148b sports camera start snap, WK-135 phase 2
-(742c37d, BR-135 ON). WK-20d ruling (e09d727): R1/R3 dropped, R4 not adopted, R2 SPAWN TRUCE adopted pending feedback build.
-In flight (SendMessage to resume):
-- WK-20e: ship R2 truce (padlock + dry click, lock ON) + Meadow Carousel soft-lock fix (port 9114) — agent ab47523aca24678b6.
-- WK-131 kickoff A/B batch (HOLDS the headless slot) -> docs/audit/2026-11-15_wk131_ab.md — agent a6eddc5d7d3ea2b59.
-NEXT: WK-135 phase-2 A/B (wk135_no_pin true vs false) when the batch slot frees; WK-135 phase 3 (gates ON + sports ball refuel);
-WK-20d R5 margins / R6 shelves if pacing still short; WK-108b sports bots (+ Dropshot net crossing); WK-65b MINEFIELD re-roll;
-WK-152 brawl start zoom (owner camera area); then WK-CD4 cold playthrough + producer re-rank #9.
+**>>> RESUME HERE (2026-11-16 ~01:30) <<<**
+Since 18:30 (committed): WK-20e R2 spawn truce + carousel fix, WK-131 gates at 3.5 s (A/B), CD4 audit (469b93e) + re-rank #9,
+CD4-01 session arena decks + Islands Void sky drop, WK-135 p2 A/B (keep BR-135), WK-154/155 padlock ring + gate cues, WK-161 switch
+(OFF) + dump, WK-162 cloud bank, WK-116 pressure nets (OFF pending A/B), audio WK-79a measure / WK-79b+c mix (-16.3..-16.9 LUFS),
+WK-108b A/B -> K3 + K5 ON (rest -> WK-164). In flight (SendMessage to resume):
+- WK-163 stinger bus + KO sting (sound-designer) — agent ab932776a48075097.
+- WK-135 phase 3 build (refund gates ON + sports ball refuel; port 9121) — agent afffb7846ad18debd.
+- WK-116 A/B batch (HOLDS the headless slot) -> docs/audit/2026-11-15_wk116_ab.md — agent a30be42e2bcb03aa0.
+Headless queue next: WK-135 phase-3 A/B -> WK-20d phase A measurement (spec §11; set Tuning.circuit_session_deck=false for fixed
+sequences) -> WK-161 Singularity batch -> WK-164 K1b-only.
 GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
-WK-38: automation server is OFF unless --gb-port is passed (run_game.ps1 passes it). Don't pipe/redirect run_game.ps1.
+WK-38: automation server is OFF unless --gb-port is passed. Don't pipe/redirect run_game.ps1. Recordings now keep audio.wav.
 Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Keep-awake runs as a background task (scratchpad/keepawake.ps1).
 Stall check: if a long builder writes nothing for > 45 min and no Godot runs, TaskStop it and start a recovery agent.
 CONCURRENCY CAP: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
