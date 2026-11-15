@@ -145,7 +145,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 **On deck (11+, in order; lane in brackets):**
 1. ~~WK-119~~ done 225c9a5 — + WK-141 sports readability: team-outlined tags + CPU pip that stays; legend first frame + sports legend out of the ball's band
    (P2/S+S) [H `PlayerPip.gd`/`PlayerPips.gd` + U `ControlsLegend.gd`; free now, takes the first spare slot]
-2. WK-60 select-screen prompt/copy: LOCKED card says "A FIGHT!" (P2/S), then WK-60b preview-region layout (P2/M) [M `ArenaSelect.gd/.tscn`]
+2. ~~WK-60~~ done 614f456 — select-screen prompt/copy: LOCKED card says "A FIGHT!" (P2/S), then WK-60b preview-region layout (P2/M) [M `ArenaSelect.gd/.tscn`]
 3. WK-28b in-match disconnect overlay (S/M) [U after WK-33: `PauseMenu.gd`; `PartyMatch.gd` hook only after WK-135]
 4. ~~WK-143~~ done a1904ba — RULES value pills neutral (P2/S) [L or `Stepper.gd`]
 5. ~~WK-142~~ done 2e406dc — Trials end celebration + NEXT CIRCUIT default (P2/M, art brief first) [U after WK-139]
@@ -1849,7 +1849,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept: 100 % of arena JSONs have a non-empty `hook`; stage intro screenshot shows name + hook.
 - Status: open
 
-### [ ] WK-60 [P2][S] ArenaSelect copy and layout fixes ("WAYS TO PLAY", "1 / 6", RANDOM card copy, empty lower half)
+### [x] WK-60 [P2][S] ArenaSelect copy and layout fixes ("WAYS TO PLAY", "1 / 6", RANDOM card copy, empty lower half) — 614f456
 - Sources: R-20 (copy/layout half)
 - Area: menus · Owner: ui-ux-designer · Deps: none
 - Evidence: tools/out/cd_audit/14_arena_select.png, 15_arena_select_right.png
@@ -1864,7 +1864,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Files: `ArenaSelect.gd` + `scenes/ui/ArenaSelect.tscn` (+ `HintStrip.gd` for the locked prompt).
 - Status: open (UI lane, on deck; pairs with WK-60b in the same files).
 
-### [ ] WK-60b [P2][M] Arena / court / circuit select: focused-card preview region in the top half (split from WK-60, UX4-12)
+### [x] WK-60b [P2][M] Arena / court / circuit select: focused-card preview region in the top half (split from WK-60, UX4-12) — 614f456
 - Area: menus · Owner: ui-ux-designer (+ art-director for key-art crops) · Source: ui-ux-designer UX4-12 (layout half) + UX4-25 (crest
   half), re-confirming WK-60 / R-20
 - Evidence: `tools/out/ux/UX4_31` (Brawl: shelf floats in ~60 % empty sky/grass), `UX4_64` (court cards' lower half blank),
@@ -2401,3 +2401,7 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 ### [ ] WK-150 [P3][S] Sports tags overlap when goats bunch (tags never avoid each other)
 - Source: WK-119 recording (`tools/out/wk/WK-119_rec_frames.png`, frame 148 ZIGGY over POGO). Four persistent, wider sports tags make
   overlaps more frequent; add mutual avoidance like WK-37e ghost tags (PlayerPips.gd).
+
+### [ ] WK-151 [P2][S] WASD doesn't move menu focus (ui_* bound to arrows / D-pad / stick only) — CC-2.1
+- Source: WK-60 builder. Every screen using Godot focus navigation ignores WASD for keyboard players. Add W/A/S/D to ui_up/left/down/
+  right in the action map (check gameplay WASD doesn't double-fire in menus via InputRouter) or route through InputRouter.
