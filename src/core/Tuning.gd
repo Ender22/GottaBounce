@@ -809,3 +809,14 @@ var trials_drop_deep_clouds: int = 7               # small faint clouds deeper i
 var trials_drop_deep_cloud_y_min: float = 500.0    # WK-85a
 var trials_drop_deep_cloud_y_max: float = 1100.0   # WK-85a
 var trials_drop_deep_cloud_alpha: float = 0.55     # WK-85a
+
+# --- WK-52 flair-unlock banner card (CD3-07). Read by src/ui/HerdLobby.gd (_play_flair_celebration).  # WK-52
+var unlock_card_delay: float = 0.5            # s after lobby entry before the card drops in  # WK-52
+var unlock_card_in: float = 0.35              # s drop-in from above the screen (TRANS_BACK)  # WK-52
+var unlock_card_hold: float = 3.2             # s fully shown (was a ~1.4 s outline-text toast)  # WK-52
+var unlock_card_out: float = 0.3              # s slide back up  # WK-52
+# --- WK-113 sports controls legend docked top-centre (SP-11). Read by src/ui/ControlsLegend.gd (_dock_top).  # WK-113
+var sports_legend_top: float = 128.0          # px from the screen top to the gold rule chip (just under the score bug)  # WK-113
+var sports_legend_goal_h: float = 62.0        # px gold rule row height  # WK-113
+var sports_legend_gap: float = 12.0           # px between the rule row and the chip strip  # WK-113
+var sports_legend_strip_h: float = 64.0       # px chip strip height  # WK-113

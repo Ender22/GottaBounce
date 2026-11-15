@@ -34,6 +34,7 @@ const HEROES := [
 	{"id": "billy", "skin": "orange", "blurb": "Back in MY day the mountain was TALLER."},
 ]
 const MAX_SLOTS := 4
+const ToyKit := preload("res://src/ui/ToyKit.gd")   # WK-52: unlock card palette
 const S_EMPTY := "EMPTY"
 const S_PICKING := "PICKING"
 const S_READY := "READY"
@@ -69,7 +70,12 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _go_glyph2: Control = $ReadyBanner/Band/Row/GoWrap2/GoGlyph2
 @onready var _f_go_slash: Label = $Footer/HintRow/GGo/Slash
 @onready var _f_go2: Control = $Footer/HintRow/GGo/Glyph2
-@onready var _unlock_banner: Label = $UnlockBanner
+# WK-52 / CD3-07: the flair unlock is a cream banner card that drops into the header band (never over a slot).
+@onready var _unlock_card: Control = $UnlockCard
+@onready var _unlock_panel: PanelContainer = $UnlockCard/Center/Card
+@onready var _unlock_icon: Panel = $UnlockCard/Center/Card/Row/Icon
+@onready var _unlock_name: Label = $UnlockCard/Center/Card/Row/Text/Name
+@onready var _unlock_owner: Label = $UnlockCard/Center/Card/Row/Text/Owner
 @onready var _f_join: Control = $Footer/HintRow/GJoin/Glyph
 @onready var _f_back: Control = $Footer/HintRow/GBack/Glyph
 @onready var _f_random: Control = $Footer/HintRow/GRandom/Glyph
@@ -147,7 +153,10 @@ func _ready() -> void:
 		(_slot_views[i] as Object).call("set_sports_layout", _mode == "sports")
 	_hint_default = _hint_text.text
 	_build_flair_vals()
-	_pending_flair = Settings.take_pending_flair_unlock()
+	# WK-52: flair is never worn in SPORTS (no FLAIR row), so a sports lobby leaves the one-shot celebration
+	# pending for the next lobby that can actually equip it.
+	if _mode != "sports":
+		_pending_flair = Settings.take_pending_flair_unlock()
 	_back_btn.pressed.connect(_exit)
 	# CC-1.6 (amended): shared glyphs follow the JOINED devices; the last device only matters while nobody
 	# has joined — so this signal never re-skins the chrome mid-lobby (no flicker when 4 people mash).
@@ -1257,7 +1266,9 @@ func _refresh_rules_bar() -> void:
 			_rules_text.text += "  ·  NO GHOSTS"
 	elif _mode == "sports":
 		var total: int = _sports_seats_total()
-		_rules_text.text = "%s  ·  FIRST TO %d GOALS  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", Tuning.sports_goal_target, skill]
+		# WK-117 / CD3-09: Dropshot scores POINTS, not goals (SportsMode.goal_word "POINT!").
+		var unit: String = "POINTS" if SportsMode.sport_for_mode(cfg.mode_id) == "dropshot" else "GOALS"
+		_rules_text.text = "%s  ·  FIRST TO %d %s  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", Tuning.sports_goal_target, unit, skill]
 
 ## Banner (E.5): valid roster -> "READY TO FIGHT!" slides in from the left (TRANS_BACK) and breathes;
 ## BRAWL 1 human + 0 CPUs -> the amber hint instead. Never both, never a silent dead end.
@@ -1442,22 +1453,51 @@ func _idle_tex(skin: String) -> Texture2D:
 	return _tex_cache[p]
 
 ## One-shot flair-unlock celebration on entry (v11 §5.5 grammar, carried over from CharacterSelect).
+## WK-52 / CD3-07: a cream ToyPanel banner card (gold NEW FLAIR! chip, the item in a disc of its own colour, and
+## who owns it) drops from the top into the header band. It covers the title for ~3 s, never a slot's name.
+## The flair ladder is banked from every human's KOs and every slot's FLAIR row can wear it, so the owner
+## line names the whole herd.
 func _play_flair_celebration(fid: String) -> void:
-	var display := str(Settings.flair_item(fid).get("name", fid)).to_upper()
-	get_tree().create_timer(0.5).timeout.connect(func() -> void:
-		if not is_instance_valid(_unlock_banner):
+	var item: Dictionary = Settings.flair_item(fid)
+	var display := str(item.get("name", fid)).to_upper()
+	get_tree().create_timer(Tuning.unlock_card_delay).timeout.connect(func() -> void:
+		if not is_instance_valid(_unlock_card):
 			return
 		AudioManager.play_sfx("ui_click", {"pitch": 1.5, "pitch_var": 0.0, "volume_db": 0.0})
 		EventBus.match_won.emit(0)   # reuse the win fanfare sting (presentation only)
-		_unlock_banner.text = "FLAIR UNLOCKED\n%s" % display
-		_unlock_banner.visible = true
-		_unlock_banner.modulate.a = 0.0
-		_unlock_banner.pivot_offset = _unlock_banner.size * 0.5
-		_unlock_banner.scale = Vector2(0.7, 0.7)
-		var tb := _unlock_banner.create_tween()
-		tb.set_parallel(true)
-		tb.tween_property(_unlock_banner, "modulate:a", 1.0, 0.25)
-		tb.tween_property(_unlock_banner, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tb.chain().tween_interval(1.4)
-		tb.chain().tween_property(_unlock_banner, "modulate:a", 0.0, 0.4)
-		tb.chain().tween_callback(func() -> void: _unlock_banner.visible = false))
+		_unlock_name.text = display
+		_unlock_owner.text = "THE HERD'S %d KOs EARNED IT  ·  EVERY PLAYER CAN WEAR IT" % int(item.get("threshold", 0))
+		var base: StyleBox = _unlock_icon.get_theme_stylebox("panel")
+		if base is StyleBoxFlat:
+			var sb: StyleBoxFlat = (base as StyleBoxFlat).duplicate()
+			sb.bg_color = _flair_swatch(item)
+			_unlock_icon.add_theme_stylebox_override("panel", sb)
+		ToyKit.fill_panel(_unlock_panel, ToyKit.CREAM)   # opaque: the plate's 0.97 alpha let the title ghost through
+		_unlock_card.visible = true
+		_unlock_card.modulate.a = 1.0
+		_unlock_card.move_to_front()   # MenuScreen.enter raised the Header; the card is the one thing allowed over it
+		var rest_y: float = 10.0   # the scene's offset_top
+		_unlock_card.position.y = -_unlock_card.size.y
+		var tb := _unlock_card.create_tween()
+		tb.tween_property(_unlock_card, "position:y", rest_y, Tuning.unlock_card_in).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tb.tween_interval(Tuning.unlock_card_hold)
+		tb.tween_property(_unlock_card, "position:y", -_unlock_card.size.y, Tuning.unlock_card_out).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		tb.tween_callback(func() -> void:
+			_unlock_card.visible = false
+			_unlock_card.position.y = rest_y))
+
+## WK-52: the icon disc's fill = the flair's own colour (streak head / flame + KO-pop mid stop); titles and the
+## rainbow streak read gold.
+func _flair_swatch(item: Dictionary) -> Color:
+	var params: Dictionary = item.get("params", {}) as Dictionary
+	var rgb: Array = []
+	match str(item.get("channel", "")):
+		"streak":
+			rgb = params.get("head", []) as Array
+		"flame", "kopop":
+			var stops: Array = params.get("stops", []) as Array
+			if stops.size() > 1:
+				rgb = stops[1] as Array
+	if rgb.size() >= 3:
+		return Color(float(rgb[0]), float(rgb[1]), float(rgb[2]))
+	return ToyKit.GOLD

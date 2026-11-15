@@ -25,6 +25,8 @@ const VERBS := {
 	"pause": {"label": "PAUSE", "action": "", "pad": "START"},
 }
 const DEFAULT_VERBS := ["move", "fly", "super", "powerup", "pause"]
+## WK-113 (SP-22): in sports the super does two jobs; the chip says both (a smash on a rival clears the keeper).
+const SPORTS_SUPER_LABEL := "SUPER-SMASH THE BALL (POWER SHOT) OR A RIVAL (CLEAR THEM)"
 
 @onready var _strip: HBoxContainer = $Root/Strip
 @onready var _goal_row: HBoxContainer = $Root/GoalRow
@@ -48,6 +50,7 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 	_fade_t = -1.0
 	_strip.modulate.a = 1.0
 	_goal_row.modulate.a = 1.0
+	var sports: bool = _is_sports()   # WK-113
 	for c in _strip.get_children():
 		c.queue_free()
 	_chip_nodes.clear()
@@ -60,13 +63,18 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 		var chip: PanelContainer = CHIP_SCENE.instantiate()
 		var glyph: PadGlyph = chip.get_node("Box/Glyph")
 		glyph.setup(str(spec["pad"]))
-		(chip.get_node("Box/Label") as Label).text = str(spec["label"])
+		var label: String = str(spec["label"])
+		if sports and key == "super":
+			label = SPORTS_SUPER_LABEL   # WK-113
+		(chip.get_node("Box/Label") as Label).text = label
 		_strip.add_child(chip)
 		_chip_nodes.append({"panel": chip, "action": str(spec["action"])})
 		if key == "move":
 			_move_chip = chip
 	_goal_label.text = goal
 	_goal_row.visible = goal != ""
+	if sports:
+		_dock_top()   # WK-113
 	# staggered left->right pop-in (house stagger 0.12); the goal chip lands first — the WHY before the HOW
 	await get_tree().process_frame
 	if not visible:
@@ -86,6 +94,26 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 		tw.tween_property(p, "modulate:a", 1.0, 0.10)
 		tw.parallel().tween_property(p, "scale", Vector2.ONE, 0.15) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## WK-113 (SP-11): sports play ON the floor (Dropshot's tiles crack there, Rocketball's ball rolls there), so the
+## sports legend docks top-centre under the score bug instead of on the bottom edge: gold rule first, chips under it.
+func _is_sports() -> bool:
+	var cfg: MatchConfig = GameConfig.match_config
+	return cfg != null and SportsMode.is_sports_mode(cfg.mode_id)
+
+func _dock_top() -> void:
+	var y: float = Tuning.sports_legend_top
+	if _goal_row.visible:
+		_place_top(_goal_row, y, Tuning.sports_legend_goal_h)
+		y += Tuning.sports_legend_goal_h + Tuning.sports_legend_gap
+	_place_top(_strip, y, Tuning.sports_legend_strip_h)
+
+func _place_top(c: Control, y: float, h: float) -> void:
+	c.anchor_top = 0.0
+	c.anchor_bottom = 0.0
+	c.grow_vertical = Control.GROW_DIRECTION_END
+	c.offset_top = y
+	c.offset_bottom = y + h
 
 ## Called from PartyMatch._bounce_go(): start the 4s combat linger, then fade.
 func on_combat_started() -> void:

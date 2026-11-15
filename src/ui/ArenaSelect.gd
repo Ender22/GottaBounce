@@ -52,6 +52,8 @@ var _sports := false   # SPORTS flow: one COURTS shelf instead of circuits/arena
 var _trials := false   # TRIALS flow (owner 2026-07-16): one CIRCUITS shelf of course sets
 
 const COURSE_SETS_PATH := "res://levels/course_sets.json"
+const GO_WORD_SPORTS := "PLAY!"   # WK-117: court-select confirm word (brawl keeps FIGHT!)
+const GO_WORD_TRIALS := "GO!"     # WK-117 / WK-43: trials circuit-select confirm word
 
 const RANDOM := {"path": "", "name": "RANDOM ROTATION", "tag": "A new peak every round.",
 	"color": Color("#ff5fa8"), "glyph": "?", "random": true}
@@ -168,6 +170,12 @@ func _ready() -> void:
 		AudioManager.play_sfx("ui_click", {"pitch": 0.72, "pitch_var": 0.0, "volume_db": -4.0})
 		on_back())
 	_rewire_cross()
+	# WK-117 (SP-16) + WK-43 copy half: the confirm prompt speaks the mode's language (sports PLAY!, trials GO!);
+	# BRAWL keeps the scene's "A FIGHT!".
+	if _sports or _trials:
+		var hb := get_node_or_null("Footer/HintBox")
+		if hb != null and hb.has_method("set_hints"):
+			hb.call("set_hints", PackedStringArray(["A|%s" % (GO_WORD_SPORTS if _sports else GO_WORD_TRIALS), "B|Back", "< >|Choose"]))
 	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger).
 	# BRAWL only: the celebration is a circuit moment and consuming the flag here would eat it.
 	if not _sports and not _trials:

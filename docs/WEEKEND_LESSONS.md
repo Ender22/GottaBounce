@@ -109,3 +109,9 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   16 px margins = ~90 px tall). WK-14 rows use 380x90 and the title stack 420x92 so focus moves never jiggle the layout.
 - **WK-38 (ab11c61): the automation server is OFF by default.** Plain launches bind no port; run_game.ps1 passes
   `-- --gb-port=N`. Harnesses that start Godot directly and want gbplay must pass `-- --gb-port=N` themselves.
+- **`MenuScreen.enter()` moves `Header` and `Footer` to the front of the draw order**, so an overlay that is MEANT to cover the
+  title (WK-52 unlock card) has to `move_to_front()` when it shows. Also, ToyPanel's 0.97 alpha lets text underneath ghost
+  through, so fill it opaque (`ToyKit.fill_panel(p, ToyKit.CREAM)`) when it sits over a label.
+- **Another lane's half-saved script breaks YOUR rendered run.** WK-113 QA hit a grey void court: lane V's mid-edit
+  `ArenaRenderer.gd` failed to parse at launch, so `PartyMatch` failed to compile. Before you blame your change, grep the run
+  `.err` for parse errors in files you didn't touch, then relaunch once theirs parses.

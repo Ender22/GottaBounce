@@ -164,8 +164,19 @@ func _score_pop(team: int) -> void:
 	_pop_tw.tween_property(lbl, "modulate", Color.WHITE, 0.5)
 	_pop_tw.tween_property(half, "modulate", Color.WHITE, 0.5)
 
+## WK-117 (SP-16): the kickoff call per sport, keyed by the mode's display_name (unknown sport -> "PLAY!").
+const KICKOFF_WORDS := {"ROCKETBALL": "KICK OFF!", "DROPSHOT": "SERVE!"}
+
+func kickoff_word() -> String:
+	var mode = _runner._mode if _runner != null else null
+	var dn: String = str(mode.display_name()) if mode != null and mode.has_method("display_name") else ""
+	return str(KICKOFF_WORDS.get(dn, "PLAY!"))
+
 # ------------------------------------------------------------------ CENTER banner (countdown / GOAL freeze)
 func show_center(text: String, color: Color, hold: float, sub := "") -> void:
+	# WK-117 (SP-16): the runner's shared starting gun "BOUNCE!" is a brawl word; sports call their own kickoff.
+	if text == "BOUNCE!":
+		text = kickoff_word()
 	# WK-124: the goal banner (the show_center right after goal_scored) stays up across the goal freeze AND the
 	# kickoff pop-in, popping out as the countdown's "3" replaces it. The runner's hold only covers the (now
 	# shorter) freeze; the readable time grows from 1.4 s to 1.6 s while the restart shrinks.
