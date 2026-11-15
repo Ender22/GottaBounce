@@ -55,16 +55,18 @@ func grant(player, id: String) -> void:
 ## (fuel pinned, refire lockout pu_unlimited_super_lockout via fuel_locked). Grabbing it again while an Unlimited Boost
 ## runs refreshes the timer to `dur`; any other running effect ends first (the normal one-active-effect rule).
 ## Only ShowdownDirector's golden bubble calls this (switch showdown_drop, default OFF).
-func grant_golden_tank(player, dur: float) -> void:  # WK-169
+func grant_golden_tank(player, dur: float, arm_s: float = 0.0) -> void:  # WK-169 (WK-169c: arm_s = GOLD SURGE)
 	if player == null or not is_instance_valid(player) or player.is_dead():  # WK-169
 		return  # WK-169
-	EventBus.powerup_picked.emit(player, "unlimited_boost")   # WK-169: audio pickup cue (the gold sting is 169c)
-	EventBus.powerup_used.emit(player, "unlimited_boost")     # WK-169
+	EventBus.golden_collected.emit(player)   # WK-169c: the gold collect sting replaces the normal pickup + activate cues
 	if _active.has(player) and _active[player]["id"] == "unlimited_boost":  # WK-169: refresh
+		var was_golden: bool = bool(_active[player].get("golden", false))  # WK-169c
 		_active[player]["t"] = dur  # WK-169
 		_active[player]["golden"] = true  # WK-169
 		player.powerup_time_left = dur  # WK-169
 		player.fuel = Tuning.fuel_max  # WK-169
+		if not was_golden:  # WK-169c: a normal UB upgraded to gold arms like a fresh grab (a gold re-grab never re-arms)
+			_wk169c_arm(player, dur, arm_s)  # WK-169c
 		return  # WK-169
 	if _active.has(player):  # WK-169
 		_end_effect(player, false)  # WK-169
@@ -74,6 +76,21 @@ func grant_golden_tank(player, dur: float) -> void:  # WK-169
 	_active[player]["t"] = dur  # WK-169
 	_active[player]["golden"] = true  # WK-169
 	player.powerup_time_left = dur  # WK-169
+	_wk169c_arm(player, dur, arm_s)  # WK-169c GOLD SURGE (arm_s 0 = no-op)
+
+## WK-169c GOLD SURGE (spec §1.4): the holder's SUPER is locked for arm_s (clamped to dur - 1 s) after the grab; boost and the fuel
+## pin work from frame 1. Rides the Player's own refire lockout (the press re-buffers while held, so the first super can fire on the
+## arm frame), and an aim already open at the grab is cancelled (fuel kept). arm_s <= 0: nothing changes (the 169b-2 tank).
+func _wk169c_arm(player, dur: float, arm_s: float) -> void:  # WK-169c
+	if arm_s <= 0.0 or not _active.has(player):  # WK-169c
+		return  # WK-169c
+	var arm: float = minf(arm_s, maxf(0.0, dur - 1.0))  # WK-169c: a tank that can never fire is a bug
+	if arm <= 0.0:  # WK-169c
+		return  # WK-169c
+	if player.is_super_aiming():  # WK-169c
+		player.cancel_super_aim()  # WK-169c
+	player.set("_sb_lockout", maxf(float(player.get("_sb_lockout")), arm))  # WK-169c: duck-typed (autoload rule)
+	_active[player]["arm_t"] = arm  # WK-169c: counts down in _physics_process -> EventBus.golden_armed
 
 ## WK-169: is `player` running a golden tank right now (telemetry + the drop's tank lock)?
 func golden_tank_active(player) -> bool:  # WK-169
@@ -85,9 +102,31 @@ func try_use(player) -> void:
 	var id: String = player.held_powerup
 	if id == "":
 		return
+	if id == "unlimited_boost" and golden_tank_active(player):  # WK-169c §2.8 (c): a held UB can't clear the golden flag mid-tank
+		_wk169c_deny(player, id)  # WK-169c: dry click + held-icon shake; the item stays in the slot
+		return  # WK-169c
 	player.held_powerup = ""
 	_refresh_held_icon(player)
 	_activate(id, player)
+
+## WK-169c §2.8 (c): refuse a held-powerup press. Feedback: EventBus.powerup_denied (AudioManager: the super_locked dry click;
+## MatchHUD: the card's held slot shakes) + a 0.3 s shake of the over-head held icon. Nothing activates, the slot keeps the item.
+func _wk169c_deny(player, id: String) -> void:  # WK-169c
+	wk169c_denies += 1  # WK-169c
+	EventBus.powerup_denied.emit(player, id)  # WK-169c
+	var icon = _held_icons.get(player)  # WK-169c: untyped (WK-80d)
+	if not is_instance_valid(icon):  # WK-169c
+		return  # WK-169c
+	var spr: Node2D = (icon as Node2D).get_child(0) as Node2D if (icon as Node).get_child_count() > 0 else null  # WK-169c
+	if spr == null:  # WK-169c
+		return  # WK-169c
+	var tw := spr.create_tween()  # WK-169c: 0.3 s horizontal shake (3 swings)
+	for k in range(6):  # WK-169c
+		tw.tween_property(spr, "position:x", (7.0 if k % 2 == 0 else -7.0) * (1.0 - float(k) / 6.0), 0.05)  # WK-169c
+	tw.tween_property(spr, "position:x", 0.0, 0.0)  # WK-169c
+
+var wk169c_denies := 0   # WK-169c QA: held-UB presses refused during a golden tank
+var _wk169c_sweeping := false   # WK-169c: round_sweep in progress
 
 # ------------------------------------------------------------------ activation
 
@@ -163,6 +202,11 @@ func _physics_process(delta: float) -> void:
 		var id: String = st["id"]
 		if id == "unlimited_boost":
 			player.fuel = Tuning.fuel_max   # pinned at max (super dumps refill instantly)
+			if st.has("arm_t"):  # WK-169c GOLD SURGE arm clock (only when showdown_drop_arm_s > 0)
+				st["arm_t"] = float(st["arm_t"]) - delta  # WK-169c
+				if float(st["arm_t"]) <= 0.0:  # WK-169c
+					st.erase("arm_t")  # WK-169c
+					EventBus.golden_armed.emit(player)  # WK-169c
 		if id == "black_hole" and player.channel_broken:
 			_end_effect(player, false)      # smashed mid-channel: cancelled, NO fuel refill
 			continue
@@ -176,6 +220,8 @@ func _end_effect(player, expired: bool) -> void:
 	var st: Dictionary = _active[player]
 	_active.erase(player)
 	var id: String = st["id"]
+	if bool(st.get("golden", false)) and is_instance_valid(player) and not _wk169c_sweeping:  # WK-169c: pfff (not on the stage sweep)
+		EventBus.golden_tank_ended.emit(player)  # WK-169c
 	if is_instance_valid(player):
 		match id:
 			"mega_bounce":
@@ -216,8 +262,10 @@ func _on_killed(victim, _cause, _attacker) -> void:
 
 ## ROUND_END sweep (spec §2): all active effects end, held slots empty, field objects gone.
 func round_sweep() -> void:
+	_wk169c_sweeping = true   # WK-169c: STAGE_END's own cues play; a swept golden tank does not "pfff"
 	for player in _active.keys().duplicate():
 		_end_effect(player, false)
+	_wk169c_sweeping = false   # WK-169c
 	for player in _held_icons.keys().duplicate():
 		if is_instance_valid(player):
 			player.held_powerup = ""

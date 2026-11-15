@@ -273,3 +273,13 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - WK-180: gbplay `screenshot`/`burst` frames FREEZE the game ~1.25 s each, so a slow-mo (Engine.time_scale 0.1-0.25) burst advances only
   interval x time_scale of game time per frame: to catch a late tween phase, `wait` N frames at time_scale 1 first, THEN slow down and burst.
 - **WK-175 probes: a straight FLY hold into a short wall slides off it** (gravity beats horizontal thrust: the pinball_pit pillar / island-side hug fell into the void in ~2 s), and a probe goat that dies cascades: every later scenario starts dead and logs zeros. Hug probes need an altitude-hold pilot, and `_prep` must wait for the respawn. Kept at `tools/out/wk/wk175_build/Probe175.gd.txt`. Also: the spec's `refunds_wall_hug` (same face within 1.0 s) counts a legal 431 px Bumper Gauntlet ping-pong as a hug (21 of 23 contacts, a face every 0.69 s), so read D7 next to the P1/P2 probes, not on its own.
+- **WK-169c: bot GHOST PUFFS make "same input, same output" replays nondeterministic.** A cloud contact calls the goat's bounce handler
+  directly (`GhostPuff` -> `Player._on_bounced` -> `bounced_juicy` -> Juice camera shake), and bot ghosts puff on random / wall-clock
+  timing, so two kinematic replays of the same path diverged by ~30 px of shake offset. Any camera / determinism A/B: ghosts OFF
+  (`cfg.ghosts = OFF`), and count the shake-trigger signals per run to prove nothing else fired.
+- **WK-169c: `Camera2D.get_screen_center_position()` depends on frame timing.** The engine refreshes it in the camera's internal update,
+  not when you set `position`, so reading it right after stepping the controller depends on how render frames interleave with physics
+  ticks (a frame hitch shifted it). For per-tick camera comparisons read the controller's own `global_position + offset` and `zoom`.
+- **WK-169c: a function connected to another node's `draw` signal must call THAT node's draw_* methods** (`_glint.draw_line(...)`, not
+  a bare `draw_line(...)` on the script's own node). The bare call silently draws nothing and floods the run `.err` with "Drawing is only
+  allowed inside this node's _draw()" (47k lines in one session) - the parse gate can't see it; grep the rendered run's `.err`.

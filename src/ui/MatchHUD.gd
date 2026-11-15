@@ -18,6 +18,7 @@ var _top_tw: Tween
 var _top_queue: Array = []
 var _top_busy := false
 var _runner = null   # WK-31: the PartyMatch that owns this HUD (lives_left / lives_per_player are polled, never written)
+var _sd_framed: Array = []   # WK-169c: card indices wearing the SHOWDOWN gold frame right now
 
 @onready var _center_box: VBoxContainer = $Root/CenterC/CenterBox
 @onready var _center_text: Label = $Root/CenterC/CenterBox/CenterText
@@ -44,6 +45,12 @@ func setup(players: Array, colors: Array, skins: Array) -> void:
 			var skin: String = str(skins[i]) if i < skins.size() else "pink"
 			_cards[i].setup(i, col, skin)
 			_cards[i].set_corner(i < 2, i % 2 == 0)   # WK-31: tabs hang off the centre-facing edge
+	# WK-169c §2.3: the gold card frame listens to the showdown (presentation only; the signals never fire with the showdown OFF)
+	if not EventBus.showdown_entered.is_connected(_on_showdown_entered):  # WK-169c
+		EventBus.showdown_entered.connect(_on_showdown_entered)  # WK-169c
+		EventBus.showdown_step.connect(_on_showdown_step)  # WK-169c
+		EventBus.showdown_exited.connect(_on_showdown_exited)  # WK-169c
+		EventBus.powerup_denied.connect(_on_powerup_denied)  # WK-169c
 
 ## WK-10/WK-88 (CC-8.5): per-card NAME from PartyMatch.player_names() ("P3" / "VEX") + optional sub-tags
 ## from player_subtags() (goat name / "CPU").
@@ -73,6 +80,53 @@ func _process(_delta: float) -> void:
 			var left: int = int((lives as Array)[i]) if lives is Array and i < (lives as Array).size() else 0
 			_cards[i].set_stocks(stock_total, left)
 		_cards[i].wk173_dim_tabs(wk173_goats, _delta)   # WK-173: sticker / stock tab fade while a goat is under them
+	for fi in _sd_framed:   # WK-169c: the holder glint tracks the golden tank frame by frame (read-only poll)
+		var fp = _players[fi] if fi < _players.size() else null  # WK-169c
+		_cards[fi].set_showdown_holder(is_instance_valid(fp) and PowerupSystem.golden_tank_active(fp))  # WK-169c
+
+func _exit_tree() -> void:  # WK-169c
+	for pair in [[EventBus.showdown_entered, _on_showdown_entered], [EventBus.showdown_step, _on_showdown_step],  # WK-169c
+			[EventBus.showdown_exited, _on_showdown_exited], [EventBus.powerup_denied, _on_powerup_denied]]:  # WK-169c
+		if (pair[0] as Signal).is_connected(pair[1]):  # WK-169c
+			(pair[0] as Signal).disconnect(pair[1])  # WK-169c
+
+## WK-169c §2.3: exactly the two fighters' cards get the gold frame (ghost cards never).
+func _on_showdown_entered(fighters) -> void:  # WK-169c
+	_sd_framed.clear()  # WK-169c
+	for f in fighters:  # WK-169c
+		var i: int = int(f)  # WK-169c
+		if i >= 0 and i < _cards.size() and _cards[i].visible:  # WK-169c
+			_cards[i].set_showdown_frame(true)  # WK-169c
+			_sd_framed.append(i)  # WK-169c
+
+func _on_showdown_step(step) -> void:  # WK-169c
+	if int(step) <= 1:  # WK-169c: step 1 is the entry pop
+		return  # WK-169c
+	for i in _sd_framed:  # WK-169c
+		_cards[i].showdown_frame_pulse()  # WK-169c
+
+func _on_showdown_exited(_reason) -> void:  # WK-169c
+	for i in _sd_framed:  # WK-169c
+		_cards[i].set_showdown_frame(false)  # WK-169c
+	_sd_framed.clear()  # WK-169c
+
+## WK-169c §2.8 (c): the held slot on the card shakes for 0.3 s when a held Unlimited Boost is refused mid golden tank.
+func _on_powerup_denied(player, _id) -> void:  # WK-169c
+	var i: int = _players.find(player)  # WK-169c
+	if i < 0 or i >= _cards.size():  # WK-169c
+		return  # WK-169c
+	var slot: Control = _cards[i].get_node_or_null("Margin/VBox/IdentityRow/PowerupSlot")  # WK-169c
+	if slot == null or not slot.visible:  # WK-169c
+		return  # WK-169c
+	slot.pivot_offset = slot.size * 0.5  # WK-169c
+	var tw := slot.create_tween()  # WK-169c: rotation wobble (the slot sits in an HBox, so no position shake)
+	for k in range(6):  # WK-169c
+		tw.tween_property(slot, "rotation", deg_to_rad(14.0 if k % 2 == 0 else -14.0) * (1.0 - float(k) / 6.0), 0.05)  # WK-169c
+	tw.tween_property(slot, "rotation", 0.0, 0.0)  # WK-169c
+
+## WK-169c QA: card indices wearing the gold frame.
+func wk169c_framed() -> Array:  # WK-169c
+	return _sd_framed.duplicate()  # WK-169c
 
 ## WK-173 (CD5-06): screen rects of every living goat (body radius x 1.15 for horns / jet flame), same rule as WK-156's legend.
 func _wk173_goat_rects() -> Array:  # WK-173

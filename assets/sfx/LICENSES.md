@@ -69,3 +69,15 @@ Rendered by `python tools/audio/render_ko_sting.py` (numpy/scipy + ffmpeg, deter
 
 - `slam_tight.ogg` (WK-165, 2026-11-15): `slam.mp3` with its 0.12 s leading silence trimmed (`ffmpeg -af atrim=start=0.12,asetpts=PTS-STARTPTS -c:a libvorbis -q:a 6`). Same source/licence as slam.mp3.
 - `super_launch.ogg` (CD5-02, 2026-11-16): the owner library's `fire_missile.mp3` (`D:\Dropbox\MyGames\SamuraiRobot2.0\assets\sounds\fx`, owner-approved source, see the top of this file) with its 0.17 s leading silence trimmed, a 40 ms tail fade, -3.5 dB so the Vorbis encode stays under 0 dBTP (peak -0.8 dBFS), mono (`ffmpeg -af "atrim=start=0.170,asetpts=PTS-STARTPTS,afade=t=out:st=0.66:d=0.04,volume=-3.5dB" -ac 1 -c:a libvorbis -q:a 6`). No other processing. Use: `super_launch`, the bright rocket-launch front layer of the super (Stingers bus) over the `explosion_boss` rumble + `slam_tight` crack.
+
+## WK-169c SHOWDOWN stings (2026-11-16) — derived from files already listed above (no download, no synthesis). Licences follow the sources.
+Rendered by `python tools/audio/render_wk169c_showdown.py` (numpy/scipy + ffmpeg, deterministic). Pitch = plain resampling.
+
+| File | Derived from | How | Use (AudioManager key) |
+|---|---|---|---|
+| `golden_bell.ogg` | `pickup_bubble.mp3` (owner library) | two strikes 110 ms apart: x2.0 (+12 st) then x2.67 (+17 st) at -1 dB, each tail cosine-faded 0.10-0.22 s after its onset; 150 Hz HPF; peak -1 dBFS; 0.36 s mono 44.1 kHz Vorbis q6 | `golden_bell` — WK-169c golden telegraph "ding-ding" (Stingers) |
+| `golden_collect.ogg` | `pullOutItem.mp3` + `pickup_bubble.mp3` (owner library) | pullOutItem as is + pickup_bubble x1.335 (+5 st) at -2 dB, together; 80 Hz HPF; cosine fade 0.45-0.60 s; peak -1 dBFS; mono | `golden_collect` — WK-169c gold collect sting (Stingers) |
+| `golden_pfff.ogg` | `woosh.mp3` (owner library) | x0.667 (-7 st), cut to 0.30 s with a 60 ms cosine fade; peak -1 dBFS; mono | `golden_pfff` — WK-169c golden-tank-end deflate (SFX) |
+
+WK-169c entry / step cues reuse listed files at playback: the WK-116 `pressure_ka` (`kenney_impactWood_medium_*` x1.5) then `pressure_chunk`
+(`kenney_impactPunch_heavy_*` x0.78) 70 ms later; steps 2 / 3 = a single `pressure_chunk` x0.73 / x0.68. The held-UB deny is the WK-20e `super_locked` click.

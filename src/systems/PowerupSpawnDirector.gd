@@ -21,6 +21,13 @@ var _last_id := ""
 var _telegraph: CPUParticles2D = null
 var _telegraph_t := 0.0
 var _pending_point := -1
+# WK-169c §2.8 (b): a golden drop CLAIMS its fair point. While claimed, no regular telegraph / pick lands within the claim radius.
+var _claim_pos := Vector2.INF      # WK-169c: the golden telegraph / bubble point (INF = no claim)
+var _claim_r := 0.0                # WK-169c
+var wk169c_claim_pops := 0         # WK-169c QA: regular bubbles upgrade-popped by a claim
+var wk169c_claim_cancels := 0      # WK-169c QA: regular telegraphs cancelled by a claim
+var wk169c_claimed_picks := 0      # WK-169c QA: regular telegraphs that landed on a claimed point (must stay 0)
+var wk169c_claim_waits := 0        # WK-169c QA: beats skipped because every spawner was claimed
 
 func setup(arena_ref, spawn_points: Array) -> void:
 	arena = arena_ref
@@ -35,6 +42,7 @@ func setup(arena_ref, spawn_points: Array) -> void:
 func set_points(spawn_points: Array) -> void:
 	points = spawn_points.duplicate()
 	_last_point = -1
+	release_claim()   # WK-169c
 	_cancel_telegraph()
 	if points.is_empty():
 		_stopped = true
@@ -85,9 +93,16 @@ func _bubble_count() -> int:
 ## 1.0s of converging sparkles at the spawn point — the starting gun for the scramble (spec §2).
 func _start_telegraph() -> void:
 	_pending_point = _pick_point()
+	if _pending_point == -2:   # WK-169c: every spawner is claimed by the golden drop -> wait (no refund / catch-up)
+		_pending_point = -1   # WK-169c
+		_timer = CAP_RETRY   # WK-169c
+		wk169c_claim_waits += 1   # WK-169c
+		return   # WK-169c
 	if _pending_point < 0:
 		_stopped = true
 		return
+	if _claimed(points[_pending_point]):   # WK-169c QA tripwire (never expected)
+		wk169c_claimed_picks += 1   # WK-169c
 	var pos: Vector2 = points[_pending_point]
 	var p := CPUParticles2D.new()
 	p.global_position = pos
@@ -144,12 +159,49 @@ func _cancel_telegraph() -> void:
 	_pending_point = -1
 
 ## Random spawner point, excluding the most recently used one (unless there's only one).
+## WK-169c: with a golden claim live, claimed points are excluded; -2 = every point is claimed (the caller waits).
 func _pick_point() -> int:
 	if points.is_empty():
 		return -1
+	if _claim_pos != Vector2.INF:   # WK-169c: only when a claim is live (no claim = the exact pre-169c pick below)
+		var free: Array = []   # WK-169c
+		for i in range(points.size()):   # WK-169c
+			if not _claimed(points[i]):   # WK-169c
+				free.append(i)   # WK-169c
+		if free.is_empty():   # WK-169c
+			return -2   # WK-169c
+		if free.size() > 1:   # WK-169c: never the same point back-to-back (as below)
+			free.erase(_last_point)   # WK-169c
+		return int(free[randi() % free.size()])   # WK-169c
 	if points.size() == 1:
 		return 0
 	var idx := randi() % points.size()
 	while idx == _last_point:
 		idx = randi() % points.size()
 	return idx
+
+## WK-169c §2.8 (b): the golden drop claims `pos` at its telegraph start. Regular bubbles within `r` upgrade-pop (gold burst, no
+## grant), a regular telegraph pending within `r` is cancelled and the director re-arms after CAP_RETRY. Returns the pops.
+func claim_point(pos: Vector2, r: float) -> int:   # WK-169c
+	_claim_pos = pos   # WK-169c
+	_claim_r = r   # WK-169c
+	var n := 0   # WK-169c
+	for b in get_tree().get_nodes_in_group("pu_bubble"):   # WK-169c
+		if is_instance_valid(b) and not b.is_queued_for_deletion() and (b as Node2D).global_position.distance_to(pos) <= r:   # WK-169c
+			if b.has_method("upgrade_pop"):   # WK-169c
+				b.upgrade_pop()   # WK-169c
+				n += 1   # WK-169c
+	wk169c_claim_pops += n   # WK-169c
+	if _telegraph != null and _pending_point >= 0 and _pending_point < points.size() and _claimed(points[_pending_point]):   # WK-169c
+		_cancel_telegraph()   # WK-169c
+		_timer = CAP_RETRY   # WK-169c: re-arm shortly and pick again (the claimed point is excluded)
+		wk169c_claim_cancels += 1   # WK-169c
+	return n   # WK-169c
+
+## WK-169c: the golden telegraph / bubble left its point (collected, popped, cancelled, showdown over).
+func release_claim() -> void:   # WK-169c
+	_claim_pos = Vector2.INF   # WK-169c
+	_claim_r = 0.0   # WK-169c
+
+func _claimed(p: Vector2) -> bool:   # WK-169c
+	return _claim_pos != Vector2.INF and p.distance_to(_claim_pos) <= _claim_r   # WK-169c

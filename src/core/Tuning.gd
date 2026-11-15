@@ -1592,3 +1592,35 @@ func wk175_meta() -> Dictionary:  # WK-175
 		"rules": {"floor_tier": gate_rules(0, false, false), "floor_bumper": gate_rules(0, true, false),  # WK-175
 			"floor_deck": gate_rules(0, false, true), "wall_tier": gate_rules(1, false, false),  # WK-175
 			"wall_bumper": gate_rules(1, true, false)}}  # WK-175
+# --- WK-169c SHOWDOWN polish (spec docs/specs/wk169c_showdown_polish_2026-11-16.md §1.4, §2.2-§2.9). Every default keeps  # WK-169c
+# today's gameplay except bot_golden_lowfuel_seek (ON, §2.8 a). GOLD SURGE is OFF (0.0 = the 169b-2 tank byte for byte) until  # WK-169c
+# the lane-TG re-check rules. Read by ShowdownDirector.gd, PowerupSystem.gd, PowerupBubble.gd, PowerupSpawnDirector.gd,  # WK-169c
+# AudioManager.gd (hush + stings), PlayerCard.gd / MatchHUD.gd (gold card frame), InputBot.gd (low-fuel seek).  # WK-169c
+var showdown_drop_arm_s: float = 0.0          # GOLD SURGE: s after a golden grab before the holder's SUPER arms (boost works at once). 0 = today; re-check 1.0. Clamped to dur - 1  # WK-169c
+var showdown_music_duck_db: float = -4.5      # Music-bus duck in the showdown (director ruling: -5 measured -6.55 dB at step 1 with the LPF; the spec band is -4..-6)  # WK-169c
+var showdown_music_lpf_hz: Array = [1600.0, 1100.0, 800.0]   # Music low-pass cutoff per showdown step (never below 600 Hz)  # WK-169c
+var showdown_music_ease_in: float = 1.0       # s the duck + LPF ease in at entry (= the dim ease)  # WK-169c
+var showdown_music_step_glide: float = 0.4    # s the LPF glides to the next step's cutoff  # WK-169c
+var showdown_music_ease_out: float = 0.4      # s the duck + LPF release at stage / match end (SD releases at once)  # WK-169c
+var showdown_sting_db: float = -9.0           # ka-CHUNK entry: the "CHUNK" level on Stingers (the "ka" sits 3 dB under). Rise <= KO - 2 LU  # WK-169c
+var showdown_step_sting_db: float = -12.0     # steps 2 / 3: a single CHUNK, -3 dB vs the entry pair  # WK-169c
+var showdown_bell_db: float = -12.0           # golden telegraph "ding-ding" (golden_bell.ogg) on Stingers. Rise <= KO - 3 LU  # WK-169c
+var showdown_collect_db: float = -8.0         # gold collect sting (golden_collect.ogg) on Stingers. Rise <= KO - 2 LU  # WK-169c
+var showdown_pfff_db: float = -10.0           # tank-end deflate (golden_pfff.ogg) on SFX  # WK-169c
+var showdown_drop_body_mult: float = 1.25     # golden bubble VISUAL body / collider radius (goat-art convention). Visual only  # WK-169c
+var showdown_drop_halo_px: float = 120.0      # SCREEN px halo diameter floor at 1080p (world = px / zoom)  # WK-169c
+var showdown_drop_halo_body_mult: float = 1.8 # halo diameter >= this x the visual body diameter (close zooms)  # WK-169c
+var showdown_drop_icon_px: float = 64.0       # WORLD px of the golden icon (the normal icon is 48)  # WK-169c
+var showdown_drop_glint_s: float = 1.2        # s between white glint sweeps across the golden body (= PowerupBubble.BOB_PERIOD)  # WK-169c
+var showdown_drop_sparkle_rev_s: float = 2.4  # s per revolution of the six halo-edge star sparkles  # WK-169c
+var showdown_drop_claim_r: float = 100.0      # WORLD px: regular bubbles / telegraphs within this of the golden point upgrade-pop at its telegraph start  # WK-169c
+var bot_golden_lowfuel_seek: bool = true      # CPU under its refuel floor may race a REACHABLE golden bubble before diving. false = the 169b-2 bot exactly  # WK-169c
+var bot_golden_lowfuel_reach: float = 480.0   # px cap on a low-fuel golden seek  # WK-169c
+var bot_golden_lowfuel_seek_p: float = 0.8   # p per low-fuel decision to race a reachable golden bubble (spec rule p 0.5 measured 6/10 collects: a lost roll leads into a refuel dive that burns the fuel the race needed)  # WK-169c
+var bot_golden_lowfuel_latch_s: float = 1.5   # s a picked low-fuel golden seek stays committed (until collect / bubble gone / void guard). 0 = re-roll every decision  # WK-169c
+var bot_golden_seek_reach_guard: bool = true   # the normal (above-floor) golden seek also needs the reach / void fuel rule (a fuel-20 CPU flew at a bubble 450 px over the void and self-KO'd). false = the WK-169 seek  # WK-169c
+var showdown_drop_stroke_px: float = 2.0      # SCREEN px umber stroke outside the golden bubble's rim (separates it from pale skies, T-G3)  # WK-169c
+var showdown_holder_rim_mult: float = 1.5     # holder's rim width while a golden tank runs (+ shimmer + star trail)  # WK-169c
+var showdown_holder_trail_rate: float = 8.0   # star sparkles / s from the holder while a golden tank runs  # WK-169c
+var showdown_frame_glint_s: float = 0.8       # s between glint sweeps on the HOLDER's gold card frame  # WK-169c
+var showdown_frame_fade_s: float = 0.2        # s the gold card frame fades out on exit (real time)  # WK-169c

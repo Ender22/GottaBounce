@@ -91,3 +91,16 @@ signal sports_pressure(step)
 # --- WK-110 (SP-08) sports tension. SportsHUD emits when its kickoff MATCH POINT / GOLDEN GOAL banner pops; AudioManager plays the cue.  # WK-110
 # kind: "match_point" (one team is a goal from the cap) | "golden_goal" (a cap-1 tie: the next goal wins).  # WK-110
 signal sports_tension(kind)   # WK-110
+
+# --- WK-169c SHOWDOWN presentation (docs/specs/wk169c_showdown_polish_2026-11-16.md §2.1). ShowdownDirector / PowerupSystem emit;  # WK-169c
+# AudioManager (hush + stings) and MatchHUD (gold card frame) listen and never call back into gameplay.  # WK-169c
+signal showdown_entered(fighters)      # fighters = the two showdown fighters' player indices  # WK-169c
+signal showdown_step(step)             # 1..showdown_max_steps (1 = entry)  # WK-169c
+signal showdown_exited(reason)         # "stage_end" (stage / match end, eased release) | "sd" (sudden death, instant)  # WK-169c
+signal golden_telegraph(pos)           # a golden drop starts telegraphing at the fair point  # WK-169c
+signal golden_live(pos)                # the golden bubble materialised  # WK-169c
+signal golden_collected(player)        # a fighter grabbed the golden tank (replaces the normal pickup / activate cues)  # WK-169c
+signal golden_armed(player)            # GOLD SURGE: the holder's super armed (only when showdown_drop_arm_s > 0)  # WK-169c
+signal golden_tank_ended(player)       # the golden tank ended (expiry, death, another effect)  # WK-169c
+signal golden_popped(pos)              # the golden bubble popped uncollected  # WK-169c
+signal powerup_denied(player, id)      # a held powerup press was refused (held Unlimited Boost during a golden tank)  # WK-169c

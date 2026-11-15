@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=48 format=3]
+[gd_resource type="Theme" load_steps=50 format=3]
 
 [ext_resource type="FontFile" uid="uid://chv67g8s80h1u" path="res://assets/fonts/lilitaone/LilitaOne-Regular.ttf" id="1_font_display"]
 [ext_resource type="FontFile" uid="uid://ddt1gwlfsoby1" path="res://assets/fonts/fredoka/Fredoka-Variable.ttf" id="2_font_body"]
@@ -678,6 +678,40 @@ shadow_color = Color(0.12, 0.07, 0.05, 0.35)
 shadow_size = 8
 shadow_offset = Vector2(0, 5)
 
+[sub_resource type="StyleBoxFlat" id="showdown_frame"]
+draw_center = false
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(1, 0.823529, 0.247059, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+expand_margin_left = 6.0
+expand_margin_top = 6.0
+expand_margin_right = 6.0
+expand_margin_bottom = 6.0
+shadow_color = Color(1, 0.823529, 0.247059, 0.55)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="showdown_frame_keyline"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+expand_margin_left = 8.0
+expand_margin_top = 8.0
+expand_margin_right = 8.0
+expand_margin_bottom = 8.0
+
 [resource]
 default_font = ExtResource("1_font_display")
 default_font_size = 28
@@ -915,3 +949,7 @@ ToyStatLead/font_sizes/font_size = 34
 ToyStatLead/styles/normal = SubResource("toy_stat_lead")
 ToyHudPlate/base_type = &"PanelContainer"
 ToyHudPlate/styles/panel = SubResource("toy_hud_plate")
+ShowdownFrame/base_type = &"Panel"
+ShowdownFrame/styles/panel = SubResource("showdown_frame")
+ShowdownFrameKeyline/base_type = &"Panel"
+ShowdownFrameKeyline/styles/panel = SubResource("showdown_frame_keyline")

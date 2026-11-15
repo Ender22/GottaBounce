@@ -73,6 +73,9 @@ var _bill_tw: Tween                 # WK-99
 var _fuel_r := 0.0                  # WK-99: the ratio the gauge shows now (the chunk starts at the fill's end)
 # --- WK-173 sticker / stock tab dim when a goat is under them ---
 var _tab_dim := {}                  # WK-173: Control instance id -> 0..1 dim
+# --- WK-169c SHOWDOWN gold frame: its own scene, instanced on the FIRST set_showdown_frame(true) (showdown OFF = never exists) ---
+const SHOWDOWN_FRAME := preload("res://scenes/ui/ShowdownCardFrame.tscn")   # WK-169c
+var _sd_frame: Control = null       # WK-169c
 
 ## `label` (WK-10/WK-88): the fighter's NAME (PartyMatch.player_name: "P3" / "VEX"). "" = legacy slot number
 ## (idx + 1) for any caller that does not know the roster (set_label can update it later).
@@ -542,3 +545,38 @@ func _process(delta: float) -> void:
 		_flush.modulate.a = clampf(fl.x + fl.y * sin(_danger_t * TAU * hz), 0.0, 1.0)
 	else:
 		_flush.modulate.a = 0.0
+
+# ------------------------------------------------------------------ WK-169c SHOWDOWN gold frame
+
+## WK-169c §2.3: frame this card gold (one of the two showdown fighters) or fade it out. Lazily instanced; it goes in as the FIRST
+## child and draws behind the card, so the danger border / sticker / stock tab / held slot / +1 chip always draw over it.
+func set_showdown_frame(on: bool) -> void:  # WK-169c
+	if _sd_frame == null:  # WK-169c
+		if not on:  # WK-169c
+			return  # WK-169c
+		_sd_frame = SHOWDOWN_FRAME.instantiate()  # WK-169c
+		add_child(_sd_frame)  # WK-169c
+		move_child(_sd_frame, 0)  # WK-169c: before the (also behind-parent) stock tab -> the tab draws over the frame
+	if on:  # WK-169c
+		_sd_frame.call("pop_in")  # WK-169c
+	else:  # WK-169c
+		_sd_frame.call("fade_out")  # WK-169c
+
+## WK-169c: one border pulse per showdown step.
+func showdown_frame_pulse() -> void:  # WK-169c
+	if _sd_frame != null:  # WK-169c
+		_sd_frame.call("pulse")  # WK-169c
+
+## WK-169c: the golden-tank holder's glint (MatchHUD polls PowerupSystem.golden_tank_active every frame).
+func set_showdown_holder(on: bool) -> void:  # WK-169c
+	if _sd_frame != null:  # WK-169c
+		_sd_frame.call("set_holder", on)  # WK-169c
+
+## WK-169c QA (gbplay eval): {exists, shown, holder, rect}.
+func wk169c_frame_state() -> Dictionary:  # WK-169c
+	if _sd_frame == null:  # WK-169c
+		return {"exists": false}  # WK-169c
+	return {"exists": true, "shown": bool(_sd_frame.get("shown")), "visible": _sd_frame.visible,  # WK-169c
+		"alpha": snappedf(_sd_frame.modulate.a, 0.01), "holder": bool(_sd_frame.get("holder")),  # WK-169c
+		"rect": [get_global_rect().grow(8.0).position.x, get_global_rect().grow(8.0).position.y,  # WK-169c: outer keyline edge
+			get_global_rect().grow(8.0).size.x, get_global_rect().grow(8.0).size.y]}  # WK-169c

@@ -20,6 +20,7 @@ extends Node2D
 const BUBBLE_PATH := "res://src/entities/PowerupBubble.gd"
 const SPARKLE_TEX := "res://assets/fx/star_sparkle.png"
 const GOLD := Color("#ffd23f")
+const WORD_SCENE := preload("res://scenes/ui/WordBurst.tscn")   # WK-169c: the "GOLDEN TANK!" word pop (WK-53 shout-burst)
 
 var runner                       # PartyMatch
 var active := false              # in SHOWDOWN right now
@@ -48,6 +49,12 @@ var _ne_after := {}              # player idx -> not-eliminated count right afte
 var _last_smash := {}            # victim idx -> {attacker idx: round_clock} of received smashes
 var _tail := {}                  # tail counters (2-alive phase)
 var _wk169 := {}                 # credit-integrity counters
+# WK-169c
+var _claimed := false            # WK-169c: this director holds a claim on the regular spawn director's point
+var _tel_glow: Node2D = null     # WK-169c: the telegraph's ground-glow ring
+var _last_collect_t := -1.0      # WK-169c: round_clock of this stage's latest golden collect (kill t_since_grab)
+var _trails := {}                # WK-169c: player idx -> the holder's star trail (CPUParticles2D)
+var wk169c_words := 0            # WK-169c QA: "GOLDEN TANK!" pops shown
 
 func setup(runner_ref) -> void:
 	runner = runner_ref
@@ -58,6 +65,9 @@ func setup(runner_ref) -> void:
 	EventBus.bounced.connect(_on_bounced)
 
 func _exit_tree() -> void:
+	if active:   # WK-169c: the match was freed mid-showdown (quit / restart): release the hush + frames at once
+		active = false   # WK-169c
+		EventBus.showdown_exited.emit("abort")   # WK-169c
 	for pair in [[EventBus.smashed, _on_smashed], [EventBus.super_fired, _on_super_fired],
 			[EventBus.smash_landed, _on_smash_landed], [EventBus.bounced, _on_bounced]]:
 		if (pair[0] as Signal).is_connected(pair[1]):
@@ -80,6 +90,7 @@ func on_combat_start(_cur_stats: Dictionary) -> void:
 	_last_tank_end_t = -INF
 	_holder.clear()
 	_sd = false
+	_last_collect_t = -1.0   # WK-169c
 	_t_elim.clear()
 	_ne_after.clear()
 	_last_smash.clear()
@@ -87,7 +98,7 @@ func on_combat_start(_cur_stats: Dictionary) -> void:
 	_wk169 = {"ghost_credited": 0, "beyond_grave_credited": 0, "ghost_assisted_credited": 0, "km4_match_deciding_ghost": 0,
 		"haunted": 0}
 	_stats = {"t_enter": -1.0, "steps_t": [], "drops": [], "tank": [], "ended_by": "", "golden_pickups": 0,
-		"max_step": 0} if lever_on() else {}
+		"max_step": 0, "first_collector": -1, "arm_s": Tuning.showdown_drop_arm_s} if lever_on() else {}   # WK-169c: + first_collector, arm_s
 	for p in runner.players:
 		if is_instance_valid(p):
 			p.wk169_launch_mult = 1.0
@@ -101,6 +112,7 @@ func annotate_kill(rec: Dictionary, victim_idx: int, killer_idx: int) -> void:
 	rec["showdown_step"] = step if active else 0
 	rec["golden_killer"] = killer_idx >= 0 and _holder.has(killer_idx)
 	rec["golden_victim"] = _holder.has(victim_idx)
+	rec["t_since_grab"] = snappedf(float(runner.round_clock) - _last_collect_t, 0.0001) if _last_collect_t >= 0.0 else -1.0   # WK-169c
 	var credited: bool = bool(rec.get("credited", false))
 	if bool(rec.get("haunted", false)):
 		_wk169["haunted"] = int(_wk169["haunted"]) + 1
@@ -149,7 +161,7 @@ func on_sudden_death(revived: Array) -> void:
 		_ne_after.erase(int(i))
 	if active:
 		_sd = true
-	_exit_showdown()
+	_exit_showdown("sd")   # WK-169c: the hush releases at once (SD has its own identity)
 
 ## Per physics tick from PartyMatch._tick_combat (COMBAT only, outside the SD revive lock).
 func tick(delta: float) -> void:
@@ -239,7 +251,7 @@ func finalize_stats(cur_stats: Dictionary) -> void:
 
 ## Visual + lever teardown (stage end, match end, SD, new stage). Field objects also go with PowerupSystem.round_sweep.
 func clear() -> void:
-	_exit_showdown()
+	_exit_showdown("stage_end")   # WK-169c: eased hush release (only announced when a showdown was running)
 
 ## Bot query (InputBot golden-seek layer): the telegraphing / live golden bubble position, or Vector2.INF.
 func golden_target() -> Vector2:
@@ -308,6 +320,8 @@ func _enter_showdown(now: float) -> void:
 	_build_dim()
 	for i in fighters:
 		_add_rim(int(i))
+	EventBus.showdown_entered.emit(fighters.duplicate())   # WK-169c: hush + ka-CHUNK (audio), gold card frames (HUD)
+	_wk169c_entry_rumble()   # WK-169c
 	_set_step(1, now)
 
 func _set_step(s: int, now: float) -> void:
@@ -326,12 +340,14 @@ func _set_step(s: int, now: float) -> void:
 			p.wk169_launch_mult = m
 	# presentation: the dim deepens (static per step), the rims pulse once
 	_set_dim(minf(Tuning.showdown_dim + Tuning.showdown_dim_step * float(s - 1), Tuning.showdown_dim_max), s == 1)
+	EventBus.showdown_step.emit(s)   # WK-169c: LPF step + CHUNK (audio), frame pulse (HUD)
 	if s > 1:
 		for r in _rims.values():
 			if is_instance_valid(r):
 				r.pulse()
 
-func _exit_showdown() -> void:
+func _exit_showdown(reason: String = "stage_end") -> void:   # WK-169c: reason for the hush release
+	var was_active: bool = active   # WK-169c
 	active = false
 	step = 0
 	_next_step_t = INF
@@ -347,6 +363,11 @@ func _exit_showdown() -> void:
 	if _bubble != null and is_instance_valid(_bubble):
 		_bubble.pop()
 	_bubble = null
+	_release_claim()   # WK-169c
+	for i in _trails.keys():   # WK-169c
+		_set_holder_fx(int(i), false)   # WK-169c
+	if was_active:   # WK-169c
+		EventBus.showdown_exited.emit(reason)   # WK-169c
 	if _dim != null and is_instance_valid(_dim):
 		_dim.queue_free()
 	_dim = null
@@ -426,6 +447,8 @@ func _start_telegraph(now: float) -> void:
 		"d_a": snappedf(float(fp["d_a"]), 0.1), "d_b": snappedf(float(fp["d_b"]), 0.1), "picked_from_n": int(fp["in_view_n"]),
 		"points_n": int(fp["n"]), "collected_by": -1, "t_collect": -1.0, "popped": false, "step": step}
 	(_stats["drops"] as Array).append(_tel_rec)
+	_claim(_tel_pos)   # WK-169c §2.8 (b): regular bubbles on this point upgrade-pop; the regular director avoids it
+	EventBus.golden_telegraph.emit(_tel_pos)   # WK-169c: the "ding-ding"
 	var p := CPUParticles2D.new()
 	p.global_position = _tel_pos
 	p.emitting = true
@@ -454,6 +477,12 @@ func _start_telegraph(now: float) -> void:
 	runner.add_child(p)
 	_tel_node = p
 	_tel_end_t = now + Tuning.showdown_drop_telegraph
+	var glow := GroundGlow.new()   # WK-169c §2.4.6: the spot reads before the bubble exists
+	glow.global_position = _tel_pos   # WK-169c
+	glow.fade_s = Tuning.showdown_drop_telegraph   # WK-169c
+	glow.add_to_group("pu_field")   # WK-169c
+	runner.add_child(glow)   # WK-169c
+	_tel_glow = glow   # WK-169c
 
 func _spawn_golden(now: float) -> void:
 	var pos: Vector2 = _tel_pos   # read before _cancel_telegraph() resets it
@@ -470,27 +499,40 @@ func _spawn_golden(now: float) -> void:
 		rec["collected_by"] = idx
 		rec["t_collect"] = snappedf(float(runner.round_clock), 0.0001)
 		_stats["golden_pickups"] = int(_stats.get("golden_pickups", 0)) + 1
+		if int(_stats.get("first_collector", -1)) < 0:   # WK-169c telemetry
+			_stats["first_collector"] = idx   # WK-169c
+		_last_collect_t = float(runner.round_clock)   # WK-169c
+		_release_claim()   # WK-169c
 		_open_tank(idx)
+		_wk169c_collect_fx(pl, idx)   # WK-169c: "GOLDEN TANK!" + holder rumble
 	b.on_expire = func() -> void:
 		rec["popped"] = true
+		_release_claim()   # WK-169c
+		EventBus.golden_popped.emit(pos)   # WK-169c
 	b.position = pos
 	runner.add_child(b)
 	_bubble = b
+	EventBus.golden_live.emit(pos)   # WK-169c
 
 func _cancel_telegraph() -> void:
 	if _tel_node != null and is_instance_valid(_tel_node):
 		_tel_node.queue_free()
 	_tel_node = null
 	_tel_pos = Vector2.INF
+	if _tel_glow != null and is_instance_valid(_tel_glow):   # WK-169c
+		_tel_glow.queue_free()   # WK-169c
+	_tel_glow = null   # WK-169c
 
 func _open_tank(idx: int) -> void:
 	if idx < 0:
 		return
 	if _holder.has(idx):
 		return   # a refresh: the same tank record keeps running
-	var t := {"idx": idx, "t_on": snappedf(float(runner.round_clock), 0.0001), "t_off": -1.0, "supers": 0, "smashes": 0}
+	var t := {"idx": idx, "t_on": snappedf(float(runner.round_clock), 0.0001), "t_off": -1.0, "supers": 0, "smashes": 0,
+		"arm_s": Tuning.showdown_drop_arm_s, "t_first_super": -1.0, "t_first_smash": -1.0}   # WK-169c: GOLD SURGE telemetry (s after t_on)
 	(_stats["tank"] as Array).append(t)
 	_holder[idx] = t
+	_set_holder_fx(idx, true)   # WK-169c: holder rim x1.5 + shimmer + star trail
 
 ## Close tank records whose golden effect ended (expiry, death, sweep); feeds the drop's tank lock.
 func _track_tanks(now: float) -> void:
@@ -500,6 +542,7 @@ func _track_tanks(now: float) -> void:
 			(_holder[idx] as Dictionary)["t_off"] = snappedf(now, 0.0001)
 			_holder.erase(idx)
 			_last_tank_end_t = now
+			_set_holder_fx(int(idx), false)   # WK-169c
 
 # ------------------------------------------------------------------ telemetry feeds
 
@@ -524,6 +567,7 @@ func _on_smash_landed(attacker, _victim, _info) -> void:
 	var ai: int = runner.players.find(attacker) if attacker != null else -1
 	if _holder.has(ai):
 		(_holder[ai] as Dictionary)["smashes"] = int((_holder[ai] as Dictionary)["smashes"]) + 1
+		_first_t(_holder[ai], "t_first_smash")   # WK-169c
 
 func _on_super_fired(player, _f, _a, _af) -> void:
 	if runner == null or two_alive_t < 0.0:
@@ -535,6 +579,12 @@ func _on_super_fired(player, _f, _a, _af) -> void:
 	var i: int = runner.players.find(player)
 	if _holder.has(i):
 		(_holder[i] as Dictionary)["supers"] = int((_holder[i] as Dictionary)["supers"]) + 1
+		_first_t(_holder[i], "t_first_super")   # WK-169c
+
+## WK-169c: stamp a tank record's first-event time (s after its t_on) once.
+func _first_t(rec: Dictionary, key: String) -> void:   # WK-169c
+	if float(rec.get(key, -1.0)) < 0.0:   # WK-169c
+		rec[key] = snappedf(float(runner.round_clock) - float(rec.get("t_on", 0.0)), 0.0001)   # WK-169c
 
 func _on_bounced(body) -> void:
 	if runner == null or two_alive_t < 0.0:
@@ -597,12 +647,139 @@ func _add_rim(i: int) -> void:
 	p.move_child(r, 0)   # first child: drawn behind the body (same z)
 	_rims[i] = r
 
+# ------------------------------------------------------------------ WK-169c presentation + claim
+
+## WK-169c §2.8 (b): claim the golden point on the regular powerup director (it upgrade-pops a bubble there and avoids the point).
+func _claim(pos: Vector2) -> void:   # WK-169c
+	var d = runner.get("_pu_director") if runner != null else null   # WK-169c
+	if d != null and is_instance_valid(d) and d.has_method("claim_point"):   # WK-169c
+		d.claim_point(pos, Tuning.showdown_drop_claim_r)   # WK-169c
+		_claimed = true   # WK-169c
+
+func _release_claim() -> void:   # WK-169c
+	if not _claimed:   # WK-169c
+		return   # WK-169c
+	_claimed = false   # WK-169c
+	var d = runner.get("_pu_director") if runner != null else null   # WK-169c
+	if d != null and is_instance_valid(d) and d.has_method("release_claim"):   # WK-169c
+		d.release_claim()   # WK-169c
+
+## WK-169c §2.2 kinesthetic: entry = fighters 0.2 / 0.3 for 0.15 s, eliminated (ghost) seats 0.1 / 0 for 0.1 s. Human pads only
+## (InputRouter.rumble_player ignores bots and honours the Options RUMBLE switch).
+func _wk169c_entry_rumble() -> void:   # WK-169c
+	for i in range(runner.players.size()):   # WK-169c
+		var p = runner.players[i]   # WK-169c
+		if not is_instance_valid(p):   # WK-169c
+			continue   # WK-169c
+		if fighters.has(i):   # WK-169c
+			InputRouter.rumble_player(p, 0.2, 0.3, 0.15)   # WK-169c
+		elif int(runner.lives_left[i]) <= 0:   # WK-169c
+			InputRouter.rumble_player(p, 0.1, 0.0, 0.1)   # WK-169c
+
+## WK-169c §2.4.7 + §2.2: the collect beat - a "GOLDEN TANK!" word pop in the goat's colour at the goat, holder pad 0.5 / 0.6.
+func _wk169c_collect_fx(pl, idx: int) -> void:   # WK-169c
+	if pl == null or not is_instance_valid(pl):   # WK-169c
+		return   # WK-169c
+	InputRouter.rumble_player(pl, 0.5, 0.6, 0.15)   # WK-169c
+	var layer = runner.get_node_or_null("LivingCues")   # WK-169c: the word layer (CanvasLayer 2, with the BAAA! words)
+	var cam = runner.get("_camera")   # WK-169c
+	if layer == null or cam == null or not is_instance_valid(cam):   # WK-169c
+		return   # WK-169c
+	var w = WORD_SCENE.instantiate()   # WK-169c
+	layer.add_child(w)   # WK-169c
+	var col: Color = runner.player_color(idx) if runner.has_method("player_color") else GOLD   # WK-169c
+	w.present(pl, cam, col, 1.0)   # WK-169c
+	var txt: Label = w.get_node_or_null("Pivot/Text")   # WK-169c
+	if txt != null:   # WK-169c
+		txt.text = "GOLDEN TANK!"   # WK-169c
+		txt.add_theme_font_size_override("font_size", 30)   # WK-169c: fits the shout-burst (40 px fits only BAAA!)
+		txt.add_theme_color_override("font_color", Color("#fff6d8"))   # WK-169c
+	var burst: Sprite2D = w.get_node_or_null("Pivot/Burst")   # WK-169c
+	if burst != null:   # WK-169c
+		burst.scale = Vector2(0.3, 0.23)   # WK-169c: a wider burst for the longer word
+	wk169c_words += 1   # WK-169c
+
+## WK-169c §2.4 in-world holder read: while a golden tank runs the holder's rim is x showdown_holder_rim_mult with a slow shimmer
+## and blinks 3x in the tank's last 1.0 s; a thin star_sparkle trail streams from the jetpack. The non-holder keeps the plain rim.
+func _set_holder_fx(idx: int, on: bool) -> void:   # WK-169c
+	var r = _rims.get(idx)   # WK-169c
+	if r != null and is_instance_valid(r):   # WK-169c
+		r.holder = on   # WK-169c
+	var tr = _trails.get(idx)   # WK-169c
+	if not on:   # WK-169c
+		if tr != null and is_instance_valid(tr):   # WK-169c
+			(tr as CPUParticles2D).emitting = false   # WK-169c: the live sparkles finish their life, then it goes
+			get_tree().create_timer(0.6).timeout.connect((tr as Node).queue_free)   # WK-169c
+		_trails.erase(idx)   # WK-169c
+		return   # WK-169c
+	if tr != null and is_instance_valid(tr):   # WK-169c
+		return   # WK-169c
+	if idx < 0 or idx >= runner.players.size() or not is_instance_valid(runner.players[idx]):   # WK-169c
+		return   # WK-169c
+	var p = runner.players[idx]   # WK-169c
+	var t := CPUParticles2D.new()   # WK-169c
+	t.name = "GoldenTrail"   # WK-169c
+	t.local_coords = false   # WK-169c: world-space, sheds along the flight path
+	t.amount = 4   # WK-169c: 4 / 0.5 s = showdown_holder_trail_rate 8 per s
+	t.lifetime = maxf(0.1, 4.0 / maxf(Tuning.showdown_holder_trail_rate, 1.0))   # WK-169c
+	t.position = Vector2(0, 30)   # WK-169c: from the jetpack, under the body
+	t.direction = Vector2.DOWN   # WK-169c
+	t.spread = 35.0   # WK-169c
+	t.gravity = Vector2.ZERO   # WK-169c
+	t.initial_velocity_min = 30.0   # WK-169c
+	t.initial_velocity_max = 70.0   # WK-169c
+	if ResourceLoader.exists(SPARKLE_TEX):   # WK-169c
+		t.texture = load(SPARKLE_TEX)   # WK-169c
+		t.scale_amount_min = 0.16   # WK-169c
+		t.scale_amount_max = 0.26   # WK-169c
+	var g := Gradient.new()   # WK-169c
+	g.set_color(0, Color(1.0, 0.86, 0.3, 1.0))   # WK-169c
+	g.set_color(1, Color(1.0, 0.95, 0.6, 0.0))   # WK-169c
+	t.color_ramp = g   # WK-169c: normal blend (additive gold washes out on bright skies)
+	t.emitting = true   # WK-169c
+	p.add_child(t)   # WK-169c
+	_trails[idx] = t   # WK-169c
+
+## WK-169c QA (gbplay eval): what the polish layer is showing right now.
+func wk169c_state() -> Dictionary:   # WK-169c
+	var holders: Array = []   # WK-169c
+	for i in _rims.keys():   # WK-169c
+		if is_instance_valid(_rims[i]) and bool(_rims[i].holder):   # WK-169c
+			holders.append(int(i))   # WK-169c
+	return {"active": active, "step": step, "claimed": _claimed, "tel_glow": _tel_glow != null and is_instance_valid(_tel_glow),   # WK-169c
+		"holder_rims": holders, "trails": _trails.keys(), "words": wk169c_words, "last_collect_t": _last_collect_t}   # WK-169c
+
+## WK-169c §2.4.6: the golden telegraph's ground-glow ring at the fair point - the halo's sizing rule (screen floor / body multiple),
+## fading in over the telegraph, drawn below decks and goats. Freed with the telegraph.
+class GroundGlow:   # WK-169c
+	extends Node2D
+	var fade_s := 1.0
+	var _t := 0.0
+	func _ready() -> void:
+		z_as_relative = false
+		z_index = -2
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+	func _draw() -> void:
+		var cam := get_viewport().get_camera_2d()
+		var z: float = maxf(cam.zoom.x, 0.05) if cam != null else 1.0
+		var r: float = PowerupBubble.GoldenHalo.diameter_world(z) * 0.5
+		var a: float = clampf(_t / maxf(fade_s, 0.05), 0.0, 1.0)
+		for k in range(6):   # soft filled glow (stacked discs, densest at the centre)
+			var f: float = 1.0 - float(k) / 6.0
+			draw_circle(Vector2.ZERO, r * f, Color(1.0, 0.74, 0.14, 0.11 * a))
+		draw_arc(Vector2.ZERO, r * 0.9, 0.0, TAU, 72, Color(1.0, 0.8, 0.2, 0.95 * a), 6.0 / z, true)
+		draw_arc(Vector2.ZERO, r * 0.9 + 4.0 / z, 0.0, TAU, 72, Color(0.231, 0.141, 0.106, 0.45 * a), 2.0 / z, true)
+
 ## Gold rim light behind a fighter: a soft gold halo plus a crisp gold ring with a thin chocolate keyline (Toybox read on
 ## pale and dark backdrops alike). Sized in SCREEN px (divided by the camera zoom), so it reads at every play zoom.
 class RimLight:
 	extends Node2D
 	var radius := 44.0
+	var holder := false   # WK-169c: golden-tank holder read (x showdown_holder_rim_mult, shimmer, last-second blink)
 	var _pulse := 0.0
+	var _t := 0.0   # WK-169c
 	var _z := -1.0
 	func _ready() -> void:
 		modulate.a = 0.0
@@ -612,9 +789,12 @@ class RimLight:
 	func _process(delta: float) -> void:
 		var cam := get_viewport().get_camera_2d()
 		var z: float = maxf(cam.zoom.x, 0.05) if cam != null else 1.0
+		_t += delta   # WK-169c
 		if _pulse > 0.0:
 			_pulse = maxf(0.0, _pulse - delta * 2.5)
 			queue_redraw()
+		elif holder:   # WK-169c: the shimmer animates every frame
+			queue_redraw()   # WK-169c
 		elif absf(z - _z) > 0.002:
 			queue_redraw()
 		_z = z
@@ -623,6 +803,13 @@ class RimLight:
 		var c: Color = Tuning.showdown_rim_color
 		var a: float = minf(1.0, Tuning.showdown_rim_alpha * (1.0 + 0.6 * _pulse))
 		var w: float = Tuning.showdown_rim_px * (1.0 + 0.5 * _pulse) / z
+		if holder:   # WK-169c: wider ring, alpha shimmer 0.75 <-> 1.0 over 0.8 s, 3 blinks in the tank's last 1.0 s
+			w *= Tuning.showdown_holder_rim_mult   # WK-169c
+			a = 0.875 + 0.125 * sin(_t * TAU / 0.8)   # WK-169c
+			var p = get_parent()   # WK-169c
+			var left: float = float(p.get("powerup_time_left")) if p != null and p.get("powerup_time_left") != null else 9.0   # WK-169c
+			if left > 0.0 and left < 1.0 and fmod(left, 1.0 / 3.0) < 1.0 / 6.0:   # WK-169c: off-phase of each blink
+				a = 0.2   # WK-169c
 		var gap: float = Tuning.showdown_rim_gap_px / z
 		var halo: float = Tuning.showdown_rim_halo_px / z
 		var rr: float = radius * Tuning.showdown_rim_radius_mult + gap + w * 0.5

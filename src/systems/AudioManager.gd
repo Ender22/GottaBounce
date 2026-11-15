@@ -99,6 +99,12 @@ const SFX := {
 	                      "res://assets/sfx/kenney_impactPunch_heavy_004.ogg"],
 	"pressure_slam":     ["res://assets/sfx/slam_tight.ogg"],
 	"pressure_ooh":      ["res://assets/sfx/rewardCheer.mp3"],
+	# --- WK-169c SHOWDOWN stings (spec docs/specs/wk169c_showdown_polish_2026-11-16.md §2.2). Entry / steps reuse the WK-116 ka-CHUNK
+	# pair ("the arena escalates, nothing ends"). The bell / collect / pfff are derived renders of files above
+	# (tools/audio/render_wk169c_showdown.py; provenance in assets/sfx/LICENSES.md). ---
+	"golden_bell":       ["res://assets/sfx/golden_bell.ogg"],      # WK-169c telegraph "ding-ding" (2 strikes, never a beep)
+	"golden_collect":    ["res://assets/sfx/golden_collect.ogg"],   # WK-169c gold collect sting
+	"golden_pfff":       ["res://assets/sfx/golden_pfff.ogg"],      # WK-169c tank-end deflate
 }
 
 # --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
@@ -146,6 +152,7 @@ const PRIORITY_SFX := {
 	"ball_power": true, "sports_fall": true, "tile_break": true,
 	"whistle_double": true,   # WK-131: the gates-open whistle is a payoff beat
 	"pressure_ka": true, "pressure_chunk": true, "pressure_slam": true, "pressure_ooh": true,   # WK-116: escalation beats
+	"golden_bell": true, "golden_collect": true,   # WK-169c: showdown payoff cues (Stingers)
 }
 const FILLER_SFX := {"bounce": true}
 # Per-sound voice caps: past the cap the sound recycles its OWN oldest voice. "countdown" doubles as the Bomb.gd
@@ -312,6 +319,13 @@ func _ready() -> void:
 	EventBus.super_lock_pressed.connect(_on_super_lock_pressed)   # WK-20e spawn-truce dry click
 	EventBus.sports_pressure.connect(_on_sports_pressure)   # WK-116 pressure nets (bed swell, ka-CHUNK, clap-chant)
 	EventBus.sports_tension.connect(_on_sports_tension)   # WK-110 MATCH POINT / GOLDEN GOAL kickoff cue
+	EventBus.showdown_entered.connect(_on_showdown_entered)   # WK-169c hush + ka-CHUNK
+	EventBus.showdown_step.connect(_on_showdown_step)         # WK-169c LPF step + CHUNK
+	EventBus.showdown_exited.connect(_on_showdown_exited)     # WK-169c hush release
+	EventBus.golden_telegraph.connect(_on_golden_telegraph)   # WK-169c ding-ding
+	EventBus.golden_collected.connect(_on_golden_collected)   # WK-169c gold collect sting
+	EventBus.golden_tank_ended.connect(_on_golden_tank_ended) # WK-169c pfff
+	EventBus.powerup_denied.connect(_on_powerup_denied)       # WK-169c held-UB deny click
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -594,6 +608,9 @@ func _on_combat_started() -> void:
 
 func _on_match_started() -> void:
 	_contact_last_t.clear()
+	if _hush_on:   # WK-169c: a fresh match never inherits a showdown hush
+		_hush_releasing = true   # WK-169c
+		_hush_to(0.0, HUSH_OPEN_HZ, 0.0)   # WK-169c
 	play_music(MUSIC_GAMEPLAY[randi() % MUSIC_GAMEPLAY.size()], true, 0.0)
 
 func _on_match_won(_widx) -> void:
@@ -1060,6 +1077,7 @@ func _tick_ko_duck(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_tick_ko_duck(delta)   # WK-163
+	_tick_hush(delta)   # WK-169c
 	_tick_aim_voices(delta)   # WK-26
 	_tick_pressure_loops(delta)   # WK-116
 	var want := _any_boosting()
@@ -1080,3 +1098,155 @@ func _any_boosting() -> bool:
 				and not p.is_dead() and not bool(p.get("frozen")) and p.is_boosting():
 			return true
 	return false
+
+# --------------------------------------------------------------------- WK-169c SHOWDOWN hush + stings
+
+## The hush is a FILTER, not a new layer (spec §2.2: no drum stem exists and a pulse would read as a clock): a Music-bus duck
+## (Tuning.showdown_music_duck_db) plus a low-pass stepping 20 kHz -> showdown_music_lpf_hz[step-1] ("behind glass"), so the SFX bed
+## sits on top. Both effects are ADDED to the Music bus on the first showdown_entered and BYPASSED again once released, so with the
+## showdown OFF (or before the first showdown) the Music bus is exactly the default_bus_layout.tres one. Real time (KO slow-mo
+## must not stretch the release).
+const HUSH_OPEN_HZ := 20000.0
+var wk169c_cues: Array = []        # QA: [ms, cue] for every showdown cue played (last 64)
+var _hush_lpf: AudioEffectLowPassFilter = null
+var _hush_amp: AudioEffectAmplify = null
+var _hush_on := false              # effects enabled (a showdown is running or releasing)
+var _hush_db0 := 0.0               # segment start / goal / duration / elapsed (dB linear, cutoff in log2)
+var _hush_db1 := 0.0
+var _hush_hz0 := HUSH_OPEN_HZ
+var _hush_hz1 := HUSH_OPEN_HZ
+var _hush_dur := 0.0
+var _hush_t := 0.0
+var _hush_releasing := false
+
+func _wk169c_log(cue: String) -> void:
+	wk169c_cues.append([Time.get_ticks_msec(), cue])
+	if wk169c_cues.size() > 64:
+		wk169c_cues.pop_front()
+
+## Find or add (once) the two Music-bus effects; returns false when there is no Music bus.
+func _hush_fx() -> bool:
+	if _hush_lpf != null and _hush_amp != null:
+		return true
+	var mi := AudioServer.get_bus_index("Music")
+	if mi < 0:
+		return false
+	_hush_lpf = AudioEffectLowPassFilter.new()
+	_hush_lpf.resource_name = "ShowdownLPF"
+	_hush_lpf.cutoff_hz = HUSH_OPEN_HZ
+	_hush_amp = AudioEffectAmplify.new()
+	_hush_amp.resource_name = "ShowdownDuck"
+	_hush_amp.volume_db = 0.0
+	AudioServer.add_bus_effect(mi, _hush_lpf)
+	AudioServer.add_bus_effect(mi, _hush_amp)
+	_hush_enable(false)
+	return true
+
+func _hush_enable(on: bool) -> void:
+	_hush_on = on
+	var mi := AudioServer.get_bus_index("Music")
+	if mi < 0:
+		return
+	for i in range(AudioServer.get_bus_effect_count(mi)):
+		var fx := AudioServer.get_bus_effect(mi, i)
+		if fx == _hush_lpf or fx == _hush_amp:
+			AudioServer.set_bus_effect_enabled(mi, i, on)
+
+func _hush_to(db: float, hz: float, dur: float) -> void:
+	if not _hush_fx():
+		return
+	if not _hush_on:
+		_hush_lpf.cutoff_hz = HUSH_OPEN_HZ
+		_hush_amp.volume_db = 0.0
+		_hush_enable(true)
+	_hush_db0 = _hush_amp.volume_db
+	_hush_hz0 = _hush_lpf.cutoff_hz
+	_hush_db1 = db
+	_hush_hz1 = clampf(hz, 600.0, HUSH_OPEN_HZ)   # never below 600 Hz (bass-only mud reads as a bug)
+	_hush_dur = maxf(dur, 0.0)
+	_hush_t = 0.0
+	if _hush_dur <= 0.0:
+		_hush_apply(1.0)
+
+func _hush_apply(u: float) -> void:
+	var k: float = clampf(u, 0.0, 1.0)
+	k = k * k * (3.0 - 2.0 * k)   # smoothstep
+	_hush_amp.volume_db = lerpf(_hush_db0, _hush_db1, k)
+	_hush_lpf.cutoff_hz = pow(2.0, lerpf(log(_hush_hz0) / log(2.0), log(_hush_hz1) / log(2.0), k))
+	if u >= 1.0 and _hush_releasing:
+		_hush_releasing = false
+		_hush_enable(false)   # released: bypassed (OFF parity)
+
+func _tick_hush(delta: float) -> void:
+	if not _hush_on or _hush_lpf == null:
+		return
+	if _hush_t >= _hush_dur and not _hush_releasing:
+		return
+	_hush_t += delta / maxf(Engine.time_scale, 0.05)
+	_hush_apply(_hush_t / maxf(_hush_dur, 0.0001))
+
+func _hush_hz_for(step: int) -> float:
+	var arr: Array = Tuning.showdown_music_lpf_hz
+	if arr.is_empty():
+		return HUSH_OPEN_HZ
+	return float(arr[clampi(step - 1, 0, arr.size() - 1)])
+
+func _on_showdown_entered(_fighters) -> void:
+	_hush_releasing = false
+	_hush_to(Tuning.showdown_music_duck_db, _hush_hz_for(1), Tuning.showdown_music_ease_in)
+	# ka-CHUNK (the WK-116 pressure-nets pair, one mouth): "the arena escalates, nothing ends"
+	var db: float = Tuning.showdown_sting_db
+	play_sfx("pressure_ka", {"volume_db": db - 3.0, "pitch": 1.5, "pitch_var": 0.03, "bus": _stinger_bus, "tag": "wk169c"})
+	get_tree().create_timer(PRESSURE_CHUNK_DELAY).timeout.connect(func() -> void:
+		play_sfx("pressure_chunk", {"volume_db": db, "pitch": 0.78, "pitch_var": 0.02, "bus": _stinger_bus, "tag": "wk169c"}))
+	_wk169c_log("entry")
+
+func _on_showdown_step(step) -> void:
+	var st: int = int(step)
+	if st <= 1:
+		return   # step 1 = the entry (handled above)
+	_hush_releasing = false
+	_hush_to(Tuning.showdown_music_duck_db, _hush_hz_for(st), Tuning.showdown_music_step_glide)
+	# a single CHUNK, 3 dB under the entry pair; a touch lower each step so no two steps repeat (nothing to count)
+	play_sfx("pressure_chunk", {"volume_db": Tuning.showdown_step_sting_db, "pitch": 0.78 - 0.05 * float(st - 1),
+		"pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk169c"})
+	_wk169c_log("step%d" % st)
+
+func _on_showdown_exited(reason) -> void:
+	var eased: bool = str(reason) == "stage_end"   # "sd" (sudden death) / "abort" (match freed mid-showdown): at once
+	_hush_releasing = true
+	_hush_to(0.0, HUSH_OPEN_HZ, Tuning.showdown_music_ease_out if eased else 0.0)
+	_wk169c_log("exit_" + str(reason))
+
+func _on_golden_telegraph(_pos) -> void:
+	play_sfx("golden_bell", {"volume_db": Tuning.showdown_bell_db, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk169c"})
+	_wk169c_log("bell")
+
+func _on_golden_collected(_player) -> void:
+	play_sfx("golden_collect", {"volume_db": Tuning.showdown_collect_db, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk169c"})
+	_wk169c_log("collect")
+
+func _on_golden_tank_ended(player) -> void:
+	if player == null or not is_instance_valid(player) or not player.has_method("is_dead") or player.is_dead():
+		return   # a death has its own KO cues; the deflate is for a tank that ran out
+	play_sfx("golden_pfff", {"volume_db": Tuning.showdown_pfff_db, "pitch_var": 0.03, "tag": "wk169c"})
+	_wk169c_log("pfff")
+
+## WK-169c §2.8 (c): the held Unlimited Boost refused during a golden tank -> the WK-20e dry click (same per-goat gap).
+func _on_powerup_denied(player, _id) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var id: int = player.get_instance_id()
+	var now: int = Time.get_ticks_msec()
+	if now - int(_lock_click_last.get(id, -100000)) < int(Tuning.super_lock_click_gap * 1000.0):
+		return
+	_lock_click_last[id] = now
+	play_sfx("super_locked", {"volume_db": Tuning.super_lock_click_db, "pitch": Tuning.super_lock_click_pitch,
+		"pitch_var": 0.04, "tag": "super_locked:%d" % id})
+	_wk169c_log("deny")
+
+## QA (gbplay eval): the Music-bus hush right now.
+func wk169c_hush_state() -> Dictionary:
+	return {"on": _hush_on, "db": snappedf(_hush_amp.volume_db, 0.01) if _hush_amp != null else 0.0,
+		"hz": snappedf(_hush_lpf.cutoff_hz, 1.0) if _hush_lpf != null else HUSH_OPEN_HZ, "releasing": _hush_releasing,
+		"music_effects": AudioServer.get_bus_effect_count(AudioServer.get_bus_index("Music"))}

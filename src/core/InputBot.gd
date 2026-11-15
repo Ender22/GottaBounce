@@ -168,6 +168,15 @@ var _wk161_last_face := ""       # WK-161: its class (core / floor / wall / ceil
 # WK-161b: chase routing round the obstacle blocking the line to the chase target inside a radial well (Tuning "# WK-161b").
 var _wk161b_live := false        # WK-161b: the cached decision is a routed aim (set per _decide)
 var wk169_golden_seeks := 0      # WK-169: decision ticks that chose the golden-seek layer (QA counter, never reset)
+var wk169c_lowfuel_evals := 0    # WK-169c: low-fuel decision ticks with a reachable golden bubble (the seek was rolled)
+var wk169c_lowfuel_seeks := 0    # WK-169c: ...of which chose the golden seek (the rest dove to refuel)
+var wk169c_lowfuel_blocked := 0  # WK-169c: low-fuel ticks with a golden bubble that failed the reach test (refuel dive)
+var _wk169c_latch := false       # WK-169c: a low-fuel golden seek is committed (kept until collect / gone / hard abort)
+var _wk169c_latch_t0 := 0.0      # WK-169c: _pin_clock when it latched
+var _wk169c_latch_gp := Vector2.INF   # WK-169c: the bubble point it latched onto
+var wk169c_latches := 0          # WK-169c QA: low-fuel seeks committed
+var wk169c_latch_ends := {}      # WK-169c QA: reason -> count ("gone" / "timeout" / "void")
+var wk169c_reach_blocks := 0     # WK-169c QA: normal (above-floor) golden seeks refused by the reach / void guard
 var _wk161b_tgt := Vector2.INF   # WK-161b: chase/plan target point of the last decision (dump telemetry, any path)
 var _wk161b_obj := 0             # WK-161b: instance id of the blocker the side is latched for (0 = none)
 var _wk161b_kind := ""           # WK-161b: "core" (round) / "rect"
@@ -363,6 +372,8 @@ func poll() -> InputIntent:
 			_decide()
 	if _obj_live and not _cached_super:   # WK-108b K2: fast objective re-plan between reaction ticks (sports only)
 		_wk108b_replan(dt)   # WK-108b
+	if _wk169c_latch and _wk169c_latch_gp != Vector2.INF:   # WK-169c: a committed golden seek re-aims its velocity every frame
+		_wk169c_steer(me.global_position, _wk169c_latch_gp, true)   # WK-169c
 	it.aim = _cached_aim
 	it.boost = _cached_boost
 	_wk161_path = "refuel" if _refuel_dive else ("hunt" if _hunt else "plan")   # WK-161
@@ -943,7 +954,18 @@ func _decide() -> void:
 	_wk161b_live = false   # WK-161b: only a routed branch below sets it
 	_wk161b_tgt = Vector2.INF   # WK-161b
 	# --- refuel rhythm (rule 2): below the floor, dive to a bounce surface — one bounce re-arms
+	if _wk169c_latch_step(pos):   # WK-169c: a committed low-fuel golden seek keeps flying (safety: _danger_recover runs first in poll)
+		return   # WK-169c
 	if me.fuel < _eff_refuel_floor():
+		if Tuning.bot_golden_lowfuel_seek and _wk169c_lowfuel_reachable(pos) and _wk169_golden_seek(pos, Tuning.bot_golden_lowfuel_seek_p):   # WK-169c §2.8 (a)
+			wk169c_lowfuel_seeks += 1   # WK-169c: the golden tank IS fuel -> race it before diving (same §6.1 rule)
+			if Tuning.bot_golden_lowfuel_latch_s > 0.0:   # WK-169c director ruling: commit once picked (no per-tick re-roll)
+				_wk169c_latch = true   # WK-169c
+				_wk169c_latch_t0 = _pin_clock   # WK-169c
+				_wk169c_latch_gp = arena.wk169_golden_target()   # WK-169c
+				wk169c_latches += 1   # WK-169c
+				_wk169c_steer(pos, _wk169c_latch_gp, true)   # WK-169c: committed from this decision on
+			return   # WK-169c
 		# Radial frame: the refuel dive is ALONG the local pull — the well's round body / shell
 		# platform below is the bounce surface (one bounce re-arms). The stage-rect-bottom dive and
 		# _refuel_x column scan below are screen-down constructs. (§2a finisher transit bias skipped:
@@ -1131,18 +1153,94 @@ func _decide() -> void:
 ## fly to it (boost beyond bot_golden_boost_dist with fuel > bot_golden_boost_fuel); otherwise keep chasing. Runs after the
 ## refuel rhythm and only on decision ticks (never in RECOVER or mid-super: poll handles those first). No golden bubble
 ## (every OFF arm) = an early return before any RNG draw, so OFF is byte-identical.
-func _wk169_golden_seek(pos: Vector2) -> bool:  # WK-169
+## WK-169c §2.8 (a): may a CPU under its refuel floor race the golden bubble? Only if it exists, is within bot_golden_lowfuel_reach,
+## and is reachable on current fuel: over ground (every sample of the line has a bounce surface below) fuel >= d x CROSS_FUEL_PER_PX
+## + 3 (no landing reserve: a lost race falls onto a surface and refuels), over void the normal crossing rule (+ CROSS_FUEL_RESERVE).
+## WK-169c: fuel the flight pos -> gp needs. Over ground (a bounce surface under every sample of the line) d x CROSS_FUEL_PER_PX
+## + 3 (a lost race falls onto a surface and refuels); any void sample: the normal crossing rule (+ CROSS_FUEL_RESERVE).
+func _wk169c_need(pos: Vector2, gp: Vector2) -> float:  # WK-169c
+	var void_path := false  # WK-169c
+	for k in range(6):  # WK-169c: 0, 0.2 .. 1.0 along the line
+		if _over_void(pos.lerp(gp, float(k) / 5.0)):  # WK-169c
+			void_path = true  # WK-169c
+			break  # WK-169c
+	return pos.distance_to(gp) * CROSS_FUEL_PER_PX + (CROSS_FUEL_RESERVE if void_path else 3.0)  # WK-169c
+
+func _wk169c_end_latch(reason: String) -> void:  # WK-169c
+	_wk169c_latch = false  # WK-169c
+	_wk169c_latch_gp = Vector2.INF  # WK-169c
+	wk169c_latch_ends[reason] = int(wk169c_latch_ends.get(reason, 0)) + 1  # WK-169c
+
+## WK-169c director ruling (T-B1): a committed low-fuel golden seek flies on, decision after decision, until the bubble is gone
+## (collected by anyone, popped, moved), bot_golden_lowfuel_latch_s pass, or the void guard says it can no longer make it
+## (any void under the remaining line and fuel < the crossing rule). Returns true while it steers this decision.
+func _wk169c_latch_step(pos: Vector2) -> bool:  # WK-169c
+	if not _wk169c_latch:  # WK-169c
+		return false  # WK-169c
+	var gp: Vector2 = arena.wk169_golden_target() if arena != null and arena.has_method("wk169_golden_target") else Vector2.INF  # WK-169c
+	if gp == Vector2.INF or gp.distance_to(_wk169c_latch_gp) > 60.0:  # WK-169c
+		_wk169c_end_latch("gone")  # WK-169c
+		return false  # WK-169c
+	if _pin_clock - _wk169c_latch_t0 > Tuning.bot_golden_lowfuel_latch_s:  # WK-169c
+		_wk169c_end_latch("timeout")  # WK-169c
+		return false  # WK-169c
+	var need: float = _wk169c_need(pos, gp)  # WK-169c
+	if need > pos.distance_to(gp) * CROSS_FUEL_PER_PX + 3.5 and me.fuel < need:  # WK-169c: void on the line and not enough to cross
+		_wk169c_end_latch("void")  # WK-169c
+		return false  # WK-169c
+	_wk169c_steer(pos, gp, true)  # WK-169c
+	return true  # WK-169c
+
+## WK-169c: the golden-seek steering (= _wk169_golden_seek's, without the race roll). `committed` (a latched low-fuel seek) thrusts
+## all the way to the touch: the WK-169 seek coasts inside bot_golden_boost_dist, which at the same height falls under the bubble,
+## and a committed goat spends its last fuel on purpose (the gold refills it).
+func _wk169c_steer(pos: Vector2, gp: Vector2, committed: bool = false) -> void:  # WK-169c
+	var d_me: float = pos.distance_to(gp)  # WK-169c
+	_cached_aim = _jitter(_fly_aim((gp - pos).normalized())) if d_me > 1.0 else Vector2.ZERO  # WK-169c
+	_cached_boost = d_me > Tuning.bot_golden_boost_dist and me.fuel > Tuning.bot_golden_boost_fuel  # WK-169c
+	if committed:  # WK-169c: steer the VELOCITY onto the bubble (aim = desired - current), so a goat still rising off a bounce brakes
+		var want: Vector2 = (gp - pos).normalized() * minf(650.0, d_me * 4.0)  # WK-169c: slow into the touch, cap = boost speed
+		var corr: Vector2 = want - (me.velocity as Vector2)  # WK-169c
+		_cached_aim = corr.normalized() if corr.length() > 1.0 else (gp - pos).normalized()  # WK-169c
+		_cached_boost = d_me > 30.0 and me.fuel > 1.0  # WK-169c
+		var cur: Vector2 = _intent.aim  # WK-169c: the stick the goat is really holding (turn-rate smoothed, last frame)
+		if _cached_boost and cur.length() > 0.1 and cur.normalized().dot(_cached_aim) < 0.5:  # WK-169c
+			_cached_boost = false  # WK-169c: never burn the last fuel thrusting the wrong way while the aim swings round
+	_wk161b_tgt = gp  # WK-169c (WK-161b telemetry target)
+	var rd: Vector2 = _wk161b_route(pos, gp)  # WK-169c
+	if rd != Vector2.ZERO:  # WK-169c
+		_cached_aim = _jitter(_fly_aim(rd))  # WK-169c
+	_hunt = false  # WK-169c
+
+func _wk169c_lowfuel_reachable(pos: Vector2) -> bool:  # WK-169c
+	if not Tuning.showdown_drop or arena == null or not arena.has_method("wk169_golden_target"):  # WK-169c
+		return false  # WK-169c
+	var gp: Vector2 = arena.wk169_golden_target()  # WK-169c
+	if gp == Vector2.INF:  # WK-169c
+		return false  # WK-169c
+	var d: float = pos.distance_to(gp)  # WK-169c
+	var ok: bool = d <= Tuning.bot_golden_lowfuel_reach and me.fuel >= _wk169c_need(pos, gp)  # WK-169c
+	if ok:  # WK-169c
+		wk169c_lowfuel_evals += 1  # WK-169c
+	else:  # WK-169c
+		wk169c_lowfuel_blocked += 1  # WK-169c
+	return ok  # WK-169c
+
+func _wk169_golden_seek(pos: Vector2, p_seek: float = -1.0) -> bool:  # WK-169 (WK-169c: p_seek override for the low-fuel roll)
 	if not Tuning.showdown_drop or arena == null or not arena.has_method("wk169_golden_target"):  # WK-169
 		return false  # WK-169
 	var gp: Vector2 = arena.wk169_golden_target()  # WK-169
 	if gp == Vector2.INF:  # WK-169
 		return false  # WK-169
+	if Tuning.bot_golden_seek_reach_guard and me.fuel < _wk169c_need(pos, gp):  # WK-169c: never start a race it can't fly (void self-KO)
+		wk169c_reach_blocks += 1  # WK-169c
+		return false  # WK-169c
 	var d_me: float = pos.distance_to(gp)  # WK-169
 	var rival = arena.nearest_opponent(me)  # WK-169
 	if rival != null and is_instance_valid(rival) and not rival.is_dead():  # WK-169
 		if d_me > Tuning.bot_golden_seek_ratio * (rival.global_position as Vector2).distance_to(gp):  # WK-169
 			return false  # WK-169
-	if randf() >= Tuning.bot_golden_seek_p:  # WK-169
+	if randf() >= (p_seek if p_seek >= 0.0 else Tuning.bot_golden_seek_p):  # WK-169 (WK-169c: low-fuel passes its own p)
 		return false  # WK-169
 	var g: Vector2 = gp - pos  # WK-169
 	_cached_aim = _jitter(_fly_aim(g.normalized())) if d_me > 1.0 else Vector2.ZERO  # WK-169
