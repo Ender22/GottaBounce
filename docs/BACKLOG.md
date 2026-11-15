@@ -20,164 +20,161 @@ Standard: `docs/COUCH_CONVENTIONS.md` (CC-x.y). Procedure: `docs/WEEKEND_LOOP.md
 
 Legend: `[ ]` open · `[~]` attempted · `[x]` done · `[>]` merged into another item · Size S = one pass, 1-2 files · M = one full slice · L = split it.
 
-## In flight (do NOT reassign) — as of re-rank #9 (2026-11-15, after WK-CD4)
-- **All 3 Godot slots and the headless slot are taken.** Nothing new starts in Godot until one of these finishes; design, spec and art
-  work below runs outside the cap.
-  1. **Lane D: WK-153 (CD4-01 + CD4-02) builder.** It rotates the MEADOW MILE start on REMATCH / the next play of a circuit, and adds the
-     Islands Void sky drop. It holds `PartyMatch.gd` (circuit sequencing), `levels/circuits.json`, Brawl `levels/*.json` and `ArenaRenderer.gd`
-     until it commits.
-  2. **Lane S: WK-108b sports bots round 2** (gameplay-programmer). It holds `InputBot.gd`, `SportsMode.gd` and its own `Tuning.gd` block. They are
-     uncommitted in the working tree right now: never `git add` them from another lane. Its 32-run batch is next in the headless queue.
-  3. **Lane P: WK-135 phase-2 A/B batch** (`wk135_no_pin` true vs false). It **holds the headless slot.** The same agent continues with phase 3 (Next-10 #1).
-- **Environment (unchanged since 02:00 2026-11-15): both GPUs are in an error state, so the game renders in SOFTWARE** (~26-52 fps). Visuals,
+## In flight (do NOT reassign) — as of re-rank #10 (2026-11-16, after WK-CD5)
+- **Godot slots: 2 of 3 taken, headless slot free until WK-161b's acceptance batch starts.**
+  1. **Lane B (bots): WK-161b obstacle-aware chase routing in radial wells** (gameplay-programmer). It holds `InputBot.gd` and its own
+     `Tuning.gd` block (`wk161_chase_route`, default OFF) until it commits. Its acceptance batch (Singularity 40 stages x OFF/ON, same seeds,
+     + black_hole_brawl / twin_moons guard slice) is **#1 in the headless queue**. The WK-93 recording is mandatory (motion change).
+  2. **Lane A (audio): WK-170 (CD5-02) audio priority** (sound-designer, director starting now). It holds `AudioManager.gd`, the bus
+     layout (`default_bus_layout.tres`) and any new trimmed/EQ'd sample files. Its WK-93 recordings count against the Godot cap while they run;
+     the `measure_run.py` analysis is outside the cap.
+  3. **Design (outside the cap): WK-169a (CD5-01) Brawl spectator-time spec** (game-designer, director starting now). Writes `docs/specs/`
+     only. Its A/B is #2 in the headless queue.
+- **Free Godot slot (1):** take Next-10 #4 (WK-176 soak + WK-174/WK-118 repro, read-only).
+- **Environment (unchanged since 02:00 2026-11-15): both GPUs are in an error state, so the game renders in SOFTWARE** (~50 fps). Visuals,
   screenshots, WK-93 recordings and game-time counters (`phase_log.tick_s`, `round_stats`, ball clock) are valid. Wall-clock perf, frame time
-  and feel timing are NOT. **BLOCKED (GPU):** WK-90, WK-101 (and WK-109's hit-stop garnish). All arms of an A/B run in the same session.
+  and feel timing are NOT. **BLOCKED (GPU):** WK-90, WK-101. All arms of an A/B run in the same session. See "Needs a human" below.
 - **Shared-file map (who owns a hot file until their item commits):**
-  - **Lane D (WK-153, in flight):** `PartyMatch.gd`, `levels/circuits.json`, Brawl `levels/*.json`, `ArenaRenderer.gd`. After it commits:
-    WK-20d R5/R6 (level JSON) and WK-152 (`PartyMatch.gd` camera start).
-  - **Lane S (WK-108b, in flight):** `InputBot.gd`, `SportsMode.gd`. After it commits: WK-109 (`Ball.gd`), then WK-116's build (if ruled),
-    WK-110, WK-127b (`InputBot.gd`).
-  - **Lane P (WK-135):** `Player.gd`, `BounceResolver.gd`, its own `Tuning.gd` block. Phase 3's sports ball-touch refund (135c) edits
-    `SportsMode.gd`: that hunk lands after WK-108b commits, or as staged hunks (`python tools/stage_hunks.py`). Phase 3 must not touch
-    `PartyMatch.gd` while WK-153 holds it.
-  - **Lane U (padlock / gate / legend readability):** `SuperLockBadge.gd/.tscn`, `LivingCues.gd`, `KickoffGate.gd`, `KickoffGatePop.gd`,
-    `ControlsLegend.gd`. Order: WK-154 + WK-155, then WK-156. WK-155's "GOALS OPEN!" call also lives in `SportsMode.gd`: that hunk waits for
-    WK-108b, or uses staged hunks.
-  - **Lane H (HUD):** `PlayerCard.gd/.tscn`, `MatchHUD.gd`, `SportsHUD.gd`: WK-31, then WK-99. `PlayerPips.gd` is shared with WK-156 and
-    WK-157(d), so coordinate on it.
-  - **Lane L (lobby) / M (select) / G (ghosts): free.** The P3 nits WK-157 and WK-158 use them.
+  - **Lane B (WK-161b, in flight):** `InputBot.gd`. After it commits: WK-164 (sports bots round 3), then WK-127b.
+  - **Lane A (WK-170, in flight):** `AudioManager.gd`, bus layout, `assets/sfx/` (+ `LICENSES.md`). After it commits: WK-45 (UI sounds; its
+    `HerdLobby.gd` call-site swaps are lane L hunks: stage them, `python tools/stage_hunks.py`).
+  - **Lane D (Brawl match flow):** `PartyMatch.gd`, `levels/circuits.json`. Order: WK-172 (tiny, can go now) -> WK-169c build (if its ruling
+    touches the match flow) -> WK-152.
+  - **Lane G (ghosts):** `GhostGoat*.gd` / `LivingCues.gd`: reserved for WK-169c if the ruled lever is "ghost influence".
+  - **Lane H (HUD):** `PlayerCard.gd/.tscn`, `MatchHUD.gd`, `SportsHUD.gd`: WK-99 with WK-173 riding the same pass.
+  - **Lane S (sports rules):** `SportsMode.gd`, `GameConfig.gd`: WK-110.
+  - **Lane L (lobby / RULES panel):** `LobbySlot.gd`, `HerdLobby.gd`, RULES panel scene: WK-110's GOALS row, then WK-171 (helper line for every
+    row, including GOALS).
+  - **Lane M (menu nav):** `MenuScreen.gd`, `InputRouter.gd` `ui_*` handling: WK-46 (after WK-174's repro, which may feed it).
   - `Tuning.gd` and `EventBus.gd`: every lane appends to them. Keep your constants or signals in your own block, and commit only your hunks.
 - **Concurrency cap (WEEKEND_LOOP):** at most **3 agents running Godot**, and at most **1 headless batch with at most 2 processes**. Code-only,
   design-only, art-generation and offline audio analysis don't count. A WK-93 recording run counts while it runs.
 - **Headless queue (one batch at a time):**
-  1. WK-135 phase-2 A/B (running)
-  2. WK-108b's 32-run batch
-  3. WK-135 phase-3 A/B. The same batch re-runs WK-131's Accept on the merged build (spec §5.1) plus the 1v1 sanity run.
-  4. WK-109's A/B
-  5. WK-20d R5/R6
-  6. WK-116, only if its ruling picks a rule arm
+  1. WK-161b acceptance batch (Singularity OFF/ON + guard slice)
+  2. WK-169b spectator-time A/B (HumanSim5 seats, MEADOW MILE, pre-registered arms from WK-169a)
+  3. WK-164 round-3 A/B (guard turn mult 3.0 -> 2.0; K1b-only at 2.5-3.0 s). The same batch logs CD5-03 gate-drop goals (watch line).
+  4. WK-176's optional headless half (long all-bot session for leak counters), only if the rendered soak finds a slope worth confirming
 - **Ports (WK-130):** one rendered game per agent, each on its own port (9101+). Never use no-arg `stop_game.ps1` or `run_game.ps1 -KillAll`
   while other lanes are running.
 - **Measurement validity:** count game time only, never wall clock across a screenshot burst (a 1080p `gbplay screenshot` stalls the game
-  ~1.25 s). Judge motion from WK-93 recordings.
+  ~1.25 s). Judge motion from WK-93 recordings. Same-seed arms are not paired (lesson WK-161 / WK-116 §3): any "identical" bar needs an
+  A0-repeat control.
 
-## Next 10 (producer re-rank 2026-11-15 #9: after WK-CD4. Front end, sports and Trials SHIP; Brawl is the remaining FIX; no P0/P1 found)
-**Done since re-rank #8.** All headings are ticked with hashes and listed in "Done (recent)". WK-CD4 means the item was re-checked rendered in the CD4 pass.
-- WK-33 CONTROLS screen + WK-139 end-screen kit + WK-140 quit dialog: 7cb2f9f (WK-CD4: end screens, one kit)
-- WK-28a lobby disconnect grace + WK-138 honest lobby prompts + WK-83 nudge / safe area: 6e57111. WK-138 fixes: 89aeb8e. Lobby verdict: e5f47e7
-- WK-28b in-match disconnect overlay: ece86c2. **No ui-ux verdict yet**, so WK-160 checks it.
-- WK-143 RULES pills + WK-145 lobby nits + WK-149 horizontal safe area + WK-141 legend first frame: a1904ba. WK-141's sports legend now
-  hides goats at kickoff; that follow-up is WK-156.
-- WK-142 Trials celebration + WK-44 Options grid / shake / rumble + WK-144 QUIT TO MENU destination: 2e406dc (WK-CD4: CIRCUIT CLEAR!, quit lands on mode select)
-- WK-119 sports team tags + WK-146 HUD collisions + WK-147 Trials one goal surface: 225c9a5 (WK-CD4: team read, UX4-23 fixed)
-- WK-60 select copy + WK-60b preview panel: 614f456 (WK-CD4: "the strongest screens in the flow")
-- WK-150 tag avoidance + WK-148 first-frame cover: b8be06d. WK-148b camera snap, which replaces the cover: 95d4723
-- WK-151 WASD menu navigation: 5521929
-- WK-65 painted court cards + RANDOM crest + Dropshot card: art cc9036f, wiring e6d7483 (WK-CD4). The locked-card blur is filed as WK-65b.
-- WK-131 KICKOFF GATES: 10c5c6a (a), 3c35d59 (3.5 s). A/B: kickoff goals 32.4 % -> 2.8 %, rally 10.4 s. WK-CD4: 0/18 within 4 s at 3.5 s.
-  Residue: the merged-build re-run and the 1v1 sanity run ride WK-135 phase 3's batch. CPU supporter home 33 % feeds WK-108b.
-- WK-135 phases 1-2: 8eec92e, 742c37d. Phase 3 is still open (Next-10 #1).
-- WK-136 near-empty re-light: d23d2a4. WK-CD4 did not judge its feel, so it carries to WK-CD5.
-- WK-20d ladder ruling: e09d727 (R1/R3 dropped, R4 not adopted, R2 adopted). Rung switches: d23d2a4, baefff0.
-- WK-20e R2 spawn truce + Meadow Carousel soft-lock fix: 4282309. WK-CD4: opening self-KOs 0, human self-KO 23 %.
-- WK-CD4 cold playthrough: 469b93e.
+## Needs a human (outside the AI loop: NOT pullable; listed so nobody files them as loop items)
+WK-CD5's caveat: five cold passes on simulated pads and a software GPU, and nobody has heard the game. These are what a real couch notices
+first, and the loop cannot check them. The owner does not playtest (CLAUDE.md), so these stay open as "unverified by design".
+1. **GPU reboot / driver reset** (both AMD adapters in error since 02:00 2026-11-15). Unblocks frame pacing, WK-90 hit-stop, WK-101 stage-load
+   spike, and any feel timing. Cheapest single unblock.
+2. **Listen test on speakers / a TV.** The mix is measured only (-16.9 LUFS, TP -1.9, KO +6.5 LU). Unheard: the "dark" balance (centroid
+   893 Hz), WK-170's countdown/super fix, WK-116's crowd chant at the end of long rallies, music choice, bleats.
+3. **Real pads in real hands** (2+ Xbox-style pads + keyboard). Unverified: stick deadzones and flick response (WK-118), held-direction menu
+   repeat (WK-46), rumble feel after WK-166's 1100 px/s threshold, analogue super aim, B/Start conventions on real hardware.
+4. **A human fun pass on the ~55 auto-QA'd arenas** (STATUS 2026-07-19 note). Bots and HumanSim confirm they work, not that they are fun.
+5. **Owner-ruled questions the loop must not decide** (DECISIONS ruling (c)): LIVES 2 as a default for 3+ humans (CD5-01 lever; owner ruled
+   LIVES default 1, 2026-07-03); knockback 1.0x (CD3-01); WK-109's protected ball constants (incoming-speed retention / striker term).
+6. **`git push`** of `weekend/polish` (agents are denied).
 
-**Filed this pass (from WK-CD4):**
-- WK-153 = CD4-01 + CD4-02, **in progress**
-- WK-154 = CD4-04 (raised to P1/S)
-- WK-155 = CD4-05
-- WK-156 = CD4-06
-- WK-157 = CD4-07 a + d
-- WK-158 = CD4-07 b + c + e
-- WK-159 = CD4-08
-- WK-160 is a QA re-check sweep (stale-entry rule): WK-19, WK-30, WK-28b
-- WK-CD5 is the next recurring cold playthrough
+## Next 10 (producer re-rank 2026-11-16 #10: after WK-CD5. SHIP on every mode for the first time; no P0/P1 open)
+**Done since re-rank #9.** Headings ticked with hashes and listed in "Done (recent)". "CD5" = re-checked rendered in the WK-CD5 pass.
+- WK-153 session arena decks (CD4-01) + Islands Void sky drop (CD4-02): 361b6d2 (CD5: 20 arenas in 21 stages; sky drop reads)
+- WK-154 padlock drain ring + WK-155 kickoff-gate cues: 264646f (CD5: "locked, opens when the ring empties"; OPEN! pops read)
+- WK-162 cloud bank thinned/raised: cb8d40d
+- WK-79a audio measured 3326134 · WK-79b mix eb22764 · WK-79c payoffs b6d0382 · WK-163 Stingers bus 758e163 · WK-165 slam trim 719cf00.
+  **WK-79 closed** (CD5 re-measure: -16.9 LUFS, TP -1.9 dBTP, KO +6.5 LU). Residue -> WK-170.
+- WK-108b round 2 ruling, K3 + K5 ON: 96875a6 (CD5: own goals 44 % -> 16 %). Rest -> WK-164.
+- WK-156..159 CD4 nits: 1da373f (CD5: legend chips fade, mixed-couch footers)
+- WK-31 danger / stocks player cards: b131ac6 (CD5: "read, and they follow Smash convention"; nits -> WK-173)
+- WK-160 re-check sweep: 27ead00. **WK-19 and WK-30 closed** on its evidence. WK-28b gaps -> WK-166.
+- WK-166 disconnect follow-ups + bounce-rumble threshold: 54150be (14ff3f6 carried its last signature hunk)
+- WK-116 PRESSURE NETS ON at +75 %: A/B 23aba91, ship 14ff3f6 (CD5: reads in play; never fired naturally in 19 rallies; RULES row -> WK-171)
+- WK-135 phase 3: built 04c7442, ruling 7005cf1 (**ball-touch refuel ON, refund gates OFF**), A0 re-check b1ca88b. **WK-135 closed**;
+  WK-133 / WK-134 close with it. Gates retune -> WK-175.
+- WK-109 power shot: built 2b6963a (OFF), A/B b1ca88b **not shipped**: needs a redesign on protected constants. Re-scoped P1 -> P2 design.
+- WK-167 bots spend their last fuel: dab9528 · WK-164 K3 swerve hold ON: dab9528 (**partial**; WK-164 stays open)
+- WK-65b MINEFIELD card re-roll: 20ae38f
+- WK-20d closed on Phase A (per-class targets met; no R5/R6): 9684fc6. Watch items -> WK-168.
+- WK-161 Singularity: built cb8d40d, A/B 8be51e3 (ship neither C nor D; 84 % of pins = chasing through an obstacle) -> **WK-161b building**
+- WK-CD5 cold playthrough #5: 7d1732d (**SHIP**: front end, Brawl (was FIX), Rocketball; no P0/P1)
+
+**Filed this pass (from WK-CD5 and the A/B follow-ups):**
+- WK-169 = CD5-01 Brawl spectator time (split 169a spec / 169b A/B / 169c build). **WK-56 merged in** as a candidate lever; WK-168's 1v1-duel
+  bullet merged in.
+- WK-170 = CD5-02 audio priority (countdown under the KO, super transient, brighter combat band)
+- WK-171 = CD5-04 RULES helper line
+- WK-172 = CD5-05 deck reshuffle repeats an arena inside one match
+- WK-173 = CD5-06 card stickers / +1 chip overlap (rides WK-99)
+- WK-174 = CD5-07 RULES D-pad focus on a locked row (unverified; QA repro paired with WK-118)
+- WK-175 = refund-gates retune before they can go ON (WK-135 p3 follow-ups 1-3)
+- WK-176 = soak test. **WEEKEND_LOOP step 6 asks for one every ~12 items; none has run in ~70 commits.**
+- WK-CD6 = next recurring cold playthrough (trigger and scope below)
+- **CD5-03** (gate-drop goals 2/19) -> watch line in WK-164's batch, not an item. **Opening self-KOs 2/21** -> watch line in WK-169b.
 
 **Merged / re-scoped / re-ranked:**
-- **CD4-03 -> WK-20d** (R5/R6). WK-20d drops **P1 -> P2**: CD4 says the short stages are mostly credited KOs ("the game working").
-  **Mis-scope flag:** its T1 target (overall median >= 12 s) doesn't fit the data. The CD4 median is bimodal by circuit position (stages 1-5 run
-  14-43 s, the void back half 4.5-14 s), and the WK-20d headless baseline already sits at 11 s. Re-base the target per arena class before
-  building anything. Also measure R5/R6 after WK-153 lands, because rotation changes which arenas a session plays.
-- **CD4-09 (own goals 13/46)** is a watch line in WK-108b, not an item. QA-131-2 (CPU supporter home at the gate open, 33 % vs a 50 % bar) also
-  joins WK-108b.
-- **CD4 closing note (audio never heard, 4 passes running) -> WK-79**, raised **P3 -> P2** and split:
-  - 79a: measure now. LUFS, true peak and spectrum on a recorded match mix. It has no dependency.
-  - 79b: mix fixes, after WK-45.
-- **WK-19 and WK-30** are probably delivered by 2e406dc / 5521929 / 9eb3c60. They are not closed on that evidence: WK-160 re-checks them.
-- **WK-131** is closed. Its owed rendered Accept is covered by CD4's rendered run at 3.5 s (0/18). The merged-build re-run rides WK-135 phase 3.
-- **WK-116** moves to its rule step. The WK-131 A/B found an 83.8 s LONG HAUL rally and 63.9 s / 51.8 s on CENTER, so it does not close as
-  Won't do.
-- **Stale statuses:** 22 "Status: open" lines on done items were corrected to their hashes (WK-119, 131, 20e, 28, 33, 136, 44, 60, 60b, 65, 83,
-  138-148).
+- **WK-109 P1 -> P2, design-only.** CD5 ships sports without it; the A/B shows the bars are unreachable without protected constants. The build
+  is not pullable until a designer proposal clears change-control, and the protected-constant part may be an owner question (see Needs a human).
+- **WK-56 -> WK-169** (merged): its 20 s / 30 s escalation is the one owner-safe "tail pressure" lever already specced.
+- **WK-32 P1 -> P2.** The lobby blurbs (`HerdLobby.gd` l.29-31) already read as personality, not trait promises, so the "honest copy" half is
+  mostly done. 32a (design decision + DECISIONS entry + a lobby screenshot) likely closes it as cosmetic. On deck.
+- **WK-99** loses its old gate (WK-135 / WK-136 have settled the economy). Its sports half is re-judged: ball-touch refuel is ON and halved
+  starvation, so the sports fuel widget may drop to P3.
+- **WK-168** keeps two tooling bullets (claw-back ring detector; CPU self-KO re-measure: CD5 saw 2/11 after WK-167, small n).
 
 **Ranking logic:**
-- **No P0 is open.** The front end, sports and Trials passed CD4.
-- **What remains:**
-  - **Brawl's default face.** WK-153, in flight, is the CD's #1. Then WK-154, the spawn padlock: the truce is right, but a third of newcomer
-    super presses hit an unexplained lock. Then WK-20d R5/R6.
-  - **Owner-lean sports depth:** WK-108b (in flight), WK-109, WK-116.
-  - **The economy close-out:** WK-135 phase 3.
-- **P1 before P2. Within a band, impact per cost.**
-  - WK-135 phase 3 is #1. It is P1, it closes INV-11 / WK-128 (b), and its agent already holds the slot.
-  - WK-154 is P1/S. It pairs with WK-155 as one "padlock + ring" visual language, which is CD4's suggestion #3.
-  - WK-109 is P1/S, in the owner's fun mode, and is gated only by lane S.
-  - WK-31 is P1/M. The HUD danger state has been missing since CD1, and its files are free.
-- **Cheap verification next (WK-160).** One read-only QA pass may close two P1 entries.
-- **WK-79a costs almost nothing.** It rides a recording someone is already making.
-- **Depth over width.** No new mode, court or circuit is in the 10. WK-115 (new courts) and Team Brawl (WK-62/63) stay below the polish.
+- **No pullable P0 or P1 is open.** (WK-90 is P1 but BLOCKED on the GPU; WK-CD6 is the recurring cold pass.) CD5's verdict is SHIP on every
+  mode it played. The loop is now polishing a shippable build, so the order favours
+  (1) cheap confidence that it stays shippable (soak, audio), then (2) the CD's biggest remaining problem (spectator time), then (3) P2 polish
+  of what exists. No new mode, court or circuit is in the 10.
+- **WK-170 is #1:** P2/S, cheap, in flight, and audio is the one channel nobody can check by hand. The super is the core verb, and a super that
+  sinks under the bed reads as a dud.
+- **WK-169 is #2:** the CD's named "biggest remaining problem". It is P2 because ghosts soften it and 1-life is genre-standard, but it touches
+  every Brawl stage. It is design-first (outside the cap) and constrained by owner rulings (see the entry).
+- **WK-176 is #4 and runs now.** It is read-only, fills the free slot, and nobody has looked for leaks over a long session since the weekend
+  run started. A crash or leak would be a P0 that no CD pass can find.
+- **Then P2 by impact per cost:** WK-164 (S, lane B after 161b), WK-45 (S, lane A after 170), WK-99 (M, HUD; WK-173 rides it), WK-110 (M,
+  sports tension, owner lean), WK-46 (M, real-pad convention).
+- **The CD5 P3s** (WK-171, WK-172) are tiny and lane-disjoint, so they fill gaps rather than wait.
 - Rank is priority order. **Lane** is concurrency: different lanes edit disjoint files, and items in the same lane run in order.
 
 | # | Item | P/Size | Lane | Owner | Files it edits | Can start |
 |---|------|--------|------|-------|----------------|-----------|
-| — | **IN FLIGHT:** WK-153 (CD4-01+02) circuit continues on REMATCH + Islands Void sky drop | P2/M | D | gameplay-programmer + level-designer / art | `PartyMatch.gd`, `levels/circuits.json`, Brawl `levels/*.json`, `ArenaRenderer.gd` | running |
-| — | **IN FLIGHT:** WK-108b sports bots round 2 (+ QA-131-2 supporter home, CD4-09 watch) | P1/M | S | gameplay-programmer | `InputBot.gd`, `SportsMode.gd`, own `Tuning.gd` block | running; 32-run batch after the WK-135 p2 A/B |
-| — | **IN FLIGHT:** WK-135 phase-2 A/B batch | (P1/M) | P | gameplay-programmer / qa | none (scratch) | running, holds the headless slot |
-| 1 | WK-135 phase 3: WK-128 (b) refund gates ON + 135c sports ball-touch refuel. Closes WK-133 / WK-134 | P1/M | P | gameplay-programmer (+ game-designer reads the A/B) | `Player.gd`, `BounceResolver.gd`, `Tuning.gd` (WK-128/135 blocks); `SportsMode.gd` 135c hunk | **Build when its A/B batch ends** (same agent and slot). The `SportsMode.gd` hunk goes in after WK-108b commits, or staged. Its batch is #3 in the headless queue |
-| 2 | WK-154 spawn padlock gets the draining ring, + WK-155 kickoff-gate cues (GOALS OPEN! at full alpha, badge above goats, contrasting pole). One "padlock + ring" slice | P1/S + P2/S | U | ui-ux-designer + gameplay-programmer | `SuperLockBadge.gd/.tscn`, `LivingCues.gd`, `KickoffGate.gd`, `KickoffGatePop.gd`, `ControlsLegend.gd` (+ the `SportsMode.gd` call hunk) | **Next free Godot slot** (whichever of WK-153 / WK-108b finishes first) |
-| 3 | WK-109 power shot dynamic range: cap/floor half, A/B + DECISIONS | P1/S | S | game-designer -> gameplay-programmer | `Ball.gd` + a mode-owned `Tuning.gd` block | Code after WK-108b commits (lane S). Its A/B is #4 in the headless queue: after WK-135 p3, so one sports variable at a time |
-| 4 | WK-31 HUD card shows danger: damage-level state, labelled fuel, stocks when LIVES > 1 | P1/M | H | ui-ux-designer + gameplay-programmer | `PlayerCard.gd/.tscn`, `MatchHUD.gd` | Files free now. Next free slot after #2 |
-| 5 | WK-160 QA re-check sweep: WK-19 rumble call log, WK-30 keyboard parity, WK-28b ui-ux verdict (no build) | P2/S | Q (read-only) | qa-playtester + ui-ux-designer | none | Any free slot. Short; may close two P1 entries |
-| 6 | WK-79a audio numbers: LUFS, true peak and spectrum per mode from a recorded mix. Files fails as items | P2/S | A | sound-designer | report + an analysis script under `tools/` | **Now.** Ask WK-153's WK-93 recording to keep its `movie.avi` (Godot's AVI Movie Maker carries the mix as PCM), or take a 60 s recording in the next free slot. The analysis is outside the cap |
-| 7 | WK-20d R5 margins / R6 catch shelves on the back-half void arenas (CD4-03). Re-base T1 first | P2/M | D | game-designer -> level-designer + qa-playtester (HumanSim4) | Brawl `levels/*.json` (void arenas); `docs/audit/` + DECISIONS | **Design now** (no Godot): target per arena class, arena list, pre-registered predictions. JSON + batch after WK-153 commits, at #5 in the headless queue |
-| 8 | WK-116 rally long tail: rule step (pressure goal-mouth growth / springier floor / LONG HAUL bumpers), then build | P2/S (design) -> M (build) | S | game-designer -> gameplay-programmer | design: `docs/specs/`; build: `SportsMode.gd` / court JSON | **Design now** (outside the cap). Build after WK-109 in lane S |
-| 9 | WK-156 Rocketball stage-1 legend hides goats at kickoff | P2/S | U | ui-ux-designer | `ControlsLegend.gd` (+ `PlayerPips.gd` z-order) | After WK-154/155 in lane U |
-| 10 | WK-152 Brawl/Trials stage start: snap to the computed framing instead of zoom-in-then-ease (owner camera area: before/after recording + DECISIONS) | P3/S | D | gameplay-programmer | `PartyMatch.gd` | After WK-153 commits |
+| 1 | **IN FLIGHT:** WK-170 (CD5-02) audio priority: countdown -5..-7 dB under the KO sting, a 2-5 kHz transient on the super launch, re-measure Brawl + Rocketball | P2/S | A | sound-designer | `AudioManager.gd`, bus layout, `assets/sfx/` + `LICENSES.md` | running |
+| 2 | **IN FLIGHT (169a):** WK-169 (CD5-01) Brawl spectator time: 169a spec + measured gate -> 169b A/B -> 169c build of the ruled lever | P2/M (split S+S+S/M) | design -> D or G | game-designer -> qa (HumanSim5) -> gameplay-programmer | 169a: `docs/specs/` only; 169c: `PartyMatch.gd` or ghost files, own `Tuning.gd` block | 169a now (outside the cap); 169b = headless #2 |
+| 3 | **IN FLIGHT:** WK-161b obstacle-aware chase routing in radial wells (switch OFF -> acceptance batch + WK-93 recording; also the well-aware stuck detector) | P2/S | B | gameplay-programmer -> qa | `InputBot.gd`, own `Tuning.gd` block | running; batch = headless #1 |
+| 4 | WK-176 soak test (rendered 30-40 min bot session across Brawl RANDOM ROTATION, Rocketball, Dropshot, Trials; node/orphan/memory counters every 60 s) **+ WK-174 / WK-118 QA repros** in the same slot | P2/S (+P3/S) | Q (read-only) | qa-playtester (soak-test skill) | none (report + `tools/out/wk/WK-176_*`) | **Now** (the free Godot slot) |
+| 5 | WK-164 sports bots round 3: guard turn mult 3.0 -> 2.0 A/B, K1b-only A/B, K1 keeper rework; + CD5-03 gate-drop watch, THE BOX all-bot WK-93 recording | P2/S | B | gameplay-programmer -> game-designer reads | `InputBot.gd`, its `Tuning.gd` block | After WK-161b commits; batch = headless #3 |
+| 6 | WK-45 distinct UI sounds (move / confirm / back / deny / join x4 / ready / all-ready / hold-tick) | P2/S | A (+ staged L hunks) | sound-designer | `AudioManager.gd`, `assets/sfx/`; `HerdLobby.gd` / `MenuScreen.gd` call sites as staged hunks | After WK-170 commits (sample sourcing can start now, outside the cap) |
+| 7 | WK-99 fuel super-ready notch + billed-chunk flash (brawl half first) **+ WK-173 (CD5-06) sticker / +1 chip overlap** | P2/M + P3/S | H | ui-ux-designer + gameplay-programmer | `PlayerCard.gd/.tscn`, `MatchHUD.gd` (sports half: `SportsHUD.gd`) | Files free now; next free slot after #4 |
+| 8 | WK-110 sports tension: (a) MATCH POINT / GOLDEN GOAL banners, (b) GOALS rule stepper 3/5/7/10 | P2/M (two S halves) | S + L | game-designer + gameplay-programmer + ui-ux | (a) `SportsMode.gd`; (b) `GameConfig.gd`, `LobbySlot.gd` / RULES panel | Files free now. (a) can ship alone |
+| 9 | WK-46 menu nav repeat on held D-pad / stick + explicit LS axes on `ui_*` | P2/M (likely S) | M | gameplay-programmer | `InputRouter.gd`, `MenuScreen.gd` | After WK-174's repro (it may share a cause) |
+| 10 | WK-171 (CD5-04) RULES helper line under the focused row · WK-172 (CD5-05) deck reshuffle keeps this match's arenas at the back | P3/S + P3/S | L · D | ui-ux-designer · gameplay-programmer | `LobbySlot.gd` / RULES panel · `PartyMatch.gd` (session deck) | WK-172 now (lane D is free); WK-171 after WK-110 (b) in lane L, or now if WK-110 (b) hasn't started |
 
-**Outside the cap (any time):**
-- **WK-65b:** MINEFIELD court-card re-roll (art pipeline, `tools/court_badge_compose.py`). Its rendered check is a 1-minute shelf shot in any
-  free slot.
-- **WK-20d R5/R6 design and WK-116's ruling:** game-designer.
-- **WK-79a analysis:** sound-designer.
-- **WK-153's sky-drop art,** if a new painting is needed.
+**Outside the cap (any time):** WK-169a spec (designer) · WK-109 redesign proposal (designer, after 169a) · WK-32a goat decision (designer,
+DECISIONS entry) · WK-45 sample sourcing (sound-designer, CC0) · WK-175a refund-gates ruling (designer, after 169a).
 
 **Concurrency plan (cap: 3 Godot agents, 1 headless batch of <= 2 processes):**
-- **Slot A (lane P):** WK-135 p2 A/B (running) -> WK-135 p3 build -> p3 A/B (headless).
-- **Slot B (lane S):** WK-108b (running) -> WK-109 -> WK-116 build (if ruled) -> WK-110.
-- **Slot C (lane D):** WK-153 (running) -> WK-20d R5/R6 JSON -> WK-152.
-- **UI work borrows the first slot to free:** WK-154 + WK-155, then WK-31, WK-160 and WK-156. If slot C frees before WK-20d's design is ready, it
-  takes WK-154 + WK-155 first, and lane D resumes at the next commit boundary.
+- **Slot A (lane B):** WK-161b build -> its acceptance batch + recording -> WK-164 -> WK-127b.
+- **Slot B (lane A):** WK-170 recordings -> WK-45 -> (re-measure for WK-CD6).
+- **Slot C (free now):** WK-176 soak + WK-174/118 repro -> WK-172 -> WK-99 + WK-173 -> WK-110 -> WK-46 -> WK-171.
+- **Headless:** WK-161b -> WK-169b -> WK-164. WK-169c builds in the first slot to free after its ruling (lane D or G).
 
-**Next cold playthrough: WK-CD5.** It runs after ~6 more deliverables, or right after WK-135 p3 + WK-153 + WK-154 land, whichever comes
-first. Its re-judge list is in the WK-CD5 entry.
+**Next cold playthrough: WK-CD6.** After WK-169c + WK-170 + WK-45 land, or ~6 deliverables, whichever comes first. CD5's closing note stands:
+another simulated pass has lower value than a real session, so CD6 is scoped to what CD5 skipped (see its entry).
 
 **On deck (11+, in order; lane in brackets):**
-1. WK-99 fuel super-ready notch + CD3-04b billed-chunk flash (M) [H after WK-31]
-2. WK-110 MATCH POINT / GOLDEN GOAL banners + GOALS stepper (M) [S after WK-109; sports tension, owner lean]
-3. ~~WK-157~~ done 1da373f — mixed-couch lobby footer glyphs + Sports Victory tag (P3/S) [L + `SportsVictory.gd`]
-4. ~~WK-158~~ done 1da373f — Trials nits: FLIGHT SCHOOL card crop, objective panel jump, end-screen goat overlap (P3/S) [M / `TrialsHUD.gd` / `TrialsVictory.gd`]
-5. ~~WK-159~~ done 1da373f — Trials ball stays in the cage on SOLVED! (P3/S) [`TrialsMode.gd` / `GoalZone.gd`]
-6. WK-127b the_ascent hopping (S) [S after WK-108b]
-7. WK-45 distinct UI sounds (S; then WK-79b mix fixes)
-8. WK-112 sports hazards stun (S) [S] · WK-114 sports courts unlock from sports play (S, JSON)
-9. WK-54 per-player legend (S) [U after WK-156]
-10. WK-46 menu nav repeat on held D-pad/stick (M)
-11. ~~WK-65b~~ done 20ae38f — MINEFIELD card re-roll (P3/S, art; can run any time outside the cap)
-12. WK-123b HOME parking (S, unverified; 2P QA check first) · WK-129 super-only crates (S) · WK-103 pendulum follow-ups (S)
-13. WK-32a hero decision (S)
-14. WK-48 dry-tank sputter · WK-49 powerup name pop · WK-50 supercharge feedback · WK-51 super contact reads as THE hit (S/S/S/M, Brawl juice)
-15. WK-57 arena scorecard tool (M). It would also feed WK-20d's per-arena-class target
-16. WK-53c taunts on ScoreScreen + bleat on fire (S)
-17. BLOCKED (GPU): WK-90 hit-stop re-measure (then WK-109's hit-stop garnish); WK-101 stage-load spike
+1. WK-152 Brawl/Trials stage-start zoom snap (P3/S) [D after WK-172; before/after recording + DECISIONS: owner camera area]
+2. WK-32a goat-pick decision (P2/S, design; likely closes as cosmetic)
+3. WK-109 redesign proposal (P2/S, design; build only after change-control and, if it touches protected constants, an owner ruling)
+4. WK-127b the_ascent hopping (P2/S) [B after WK-164]
+5. WK-51 super contact reads as THE hit (P2/M, Brawl juice: the visual twin of WK-170's super transient)
+6. WK-112 sports hazards stun (S) [S] · WK-114 sports courts unlock from sports play (S, JSON)
+7. WK-54 per-player legend (S) [U]
+8. WK-48 dry-tank sputter · WK-49 powerup name pop · WK-50 supercharge feedback (S/S/S, Brawl juice)
+9. WK-168 tooling: claw-back detector ring fix; CPU self-KO re-measure (P3/S)
+10. WK-175a refund-gates ruling (P3/S design; build stays unsized)
+11. WK-123b HOME parking (S, unverified; 2P QA check first) · WK-129 super-only crates (S) · WK-103 pendulum follow-ups (S)
+12. WK-57 arena scorecard tool (M)
+13. WK-53c taunts on ScoreScreen + bleat on fire (S)
+14. BLOCKED (GPU): WK-90 hit-stop re-measure; WK-101 stage-load spike. See "Needs a human" #1.
 
 ---
 
@@ -354,6 +351,9 @@ first. Its re-judge list is in the WK-CD5 entry.
   taught by the HUD (WK-CD3 §5 G5: nothing on screen says it today). **Accept addition:** a burst of a billed re-light shows the chunk
   flash on the PlayerCard gauge.
 - Status: open (on deck #2 after re-rank #7). After WK-135 + WK-136 settle the fuel economy, and after lane U's WK-42 releases `MatchHUD.gd`.
+- **Re-rank #10: Next-10 #7, lane H, files free.** Gates cleared (WK-135 closed 7005cf1, WK-136 d23d2a4). Brawl half first (S-sized). The sports
+  half is re-judged: ball-touch refuel is ON and halved human starvation (0.27 -> 0.14), so ship the brawl half and file the sports widget as
+  P3 unless a fresh Rocketball capture shows seats running dry. WK-173 (CD5-06 sticker / +1 chip) rides this pass.
 
 ### [x] WK-100 [P2][S] Tooling: display-off pre-flight in run_game.ps1, perf_gate.py and record_match.ps1 — 843c6c2
 - Area: tooling · Owner: gameplay-programmer (tooling) · Source: performance-analyst docs/audit/2026-11-14_perf_wk91.md rec 1(a)(b)
@@ -487,7 +487,11 @@ first. Its re-judge list is in the WK-CD5 entry.
   - Bot half -> WK-108b.
   - The (b2) kickoff RULE with human-style seats was never run -> WK-131 (re-rank #6).
 
-### [ ] WK-109 [P1][S] Power shot gets real dynamic range: split the ball cap, trim the touch floor (SP-07)
+### [ ] WK-109 [P2][S] Power shot gets real dynamic range: split the ball cap, trim the touch floor (SP-07)
+- **Re-rank #10: P1 -> P2, design-only.** Not shipped (A/B b1ca88b; DECISIONS 2026-11-16). WK-CD5 ships sports without it. Next step is a
+  game-designer proposal rebased on the measured touch population (striker ~1000 px/s, ball v_in ~1400; audit §9.1). Two of the three
+  levers touch PROTECTED constants: run `gottabounce-change-control`; if it needs the owner, it goes to "Needs a human" #5, not the loop.
+  No build is pullable until that proposal clears. QA watch if it returns: THE BOX gate-drop goals (A2 12/62 vs 2/71).
 - **A/B 2026-11-16: DON'T SHIP as specced** (docs/audit/2026-11-16_wk109_ab.md). Needs a redesign that lowers touch INPUT speeds
   (incoming-ball retention / striker-speed term = protected constants -> designer ruling). Also unexplained: more goals in the 1 s after the
   gates open with WK-109 on (THE BOX all-bot 12/62 vs 2/71).
@@ -615,7 +619,7 @@ first. Its re-judge list is in the WK-CD5 entry.
   `04_lobby_p2b.png`). Likely a harness artefact: the axis was injected with no intermediate values.
 - Do: re-test with a ramped axis injection (0 -> 1 over ~3 frames, held 80-150 ms). Build nothing unless it reproduces.
 - Accept: a ramped 100 ms flick changes the goat on the first press, or Won't do with the result.
-- Status: open (unverified)
+- Status: open (unverified). **Re-rank #10:** runs with WK-174 in WK-176's QA slot (Next-10 #4). Real-hand flick feel is "Needs a human" #3.
 
 ### [x] WK-119 [P2][S] Sports: team membership readable on the field (team-outlined tags + a CPU pip that stays) (SP-20 + UX4-09) — 225c9a5
 - Area: sports | HUD · Owner: ui-ux-designer · Source: WK-98 SP-20 (WK-10-adjacent); UX4-09 merged and raised P3 -> P2 at re-rank #8
@@ -1328,7 +1332,10 @@ first. Its re-judge list is in the WK-CD5 entry.
 - **Re-rank #9: Next-10 #4, lane H.** WK-136 is done, and WK-135 phase 3 changes only the refund side, not what this card shows, so it no longer
   waits. WK-99 (super-ready notch + CD3-04b) follows in the same lane.
 
-### [ ] WK-32 [P1][M] Make the goat pick real: wire CharacterProfiles OR declare cosmetic and rewrite blurbs
+### [ ] WK-32 [P2][M] Make the goat pick real: wire CharacterProfiles OR declare cosmetic and rewrite blurbs
+- **Re-rank #10: P1 -> P2.** `HerdLobby.gd` blurbs (l.29-31) already read as personality ("Watch THIS recovery."), not trait promises, and
+  no CD pass has flagged the pick. Pull 32a only (design decision + DECISIONS entry + a rendered lobby still showing no stat/trait copy);
+  it likely closes as cosmetic. 32b (wiring + feel battery) only if 32a rules "wire". On deck #2.
 - Sources: D-10, C-16 (roster half), R-14 (roster half) · feel-adjacent: re-run the v2 feel-delta battery if wired
 - Area: brawl · Owner: game-designer (decision) + gameplay-programmer · Deps: WK-20a (+ WK-20b if ruled) — lethality baseline first
 - Split when pulled: WK-32a decision (S, game-designer, DECISIONS entry) -> WK-32b wire + battery OR blurb rewrite (S/M).
@@ -1630,7 +1637,10 @@ first. Its re-judge list is in the WK-CD5 entry.
   below (PlayerPips). Art-director regrade with tools/out/wk37c_R1_sheet.png etc. Move ghost consts into Tuning.
 
 
-### [ ] WK-135 [P1][M] Bumpers are standable (bodies come to rest on them — INV-11 violation, WK-128 spec finding E17)
+### [x] WK-135 [P1][M] Bumpers are standable (bodies come to rest on them — INV-11 violation, WK-128 spec finding E17) — 7005cf1
+- **Re-rank #10: CLOSED.** Phase 3 built 04c7442, ruled 7005cf1 (sports ball-touch refuel ON; refund gates OFF), A0 re-check b1ca88b.
+  Accept met: rest episodes 0 in every arm (`docs/audit/2026-11-16_wk135_p3_ab.md`), Singularity 40-stage arms with no hangs (WK-161 A/B),
+  WK-128 (b) re-run done (fails -> stays OFF). WK-133 / WK-134 close with it. Residue: Singularity pins -> WK-161b; gates retune -> WK-175.
 - **Phase 3 BUILT 04c7442, both switches OFF** (refund_gates_on, sports_touch_refuel). A/B next in the headless queue: P3 arm =
   GB_WK135_GATES=1 GB_WK135_BALL=1 vs OFF; also ball-only. Watch: Meadow Carousel void deaths after a cart hop at 0-4 fuel (3/8 vs 1/4;
   proposed fix: drop the 60 px re-arm floor for tier-less moving decks), sports starved share (the_box 2x), core thrust-pin 13/s vs 12.
@@ -1911,7 +1921,7 @@ first. Its re-judge list is in the WK-CD5 entry.
 - Accept: every finished 4-player match shows 3 award cards whose stats match `round_stats` (eval spot-check 5 matches, screenshots).
 - Status: open
 
-### [ ] WK-56 [P2][S] Stall breaker by escalation (faster powerups at 20 s, golden bubble at 30 s)
+### [>] WK-56 [P2][S] Stall breaker by escalation (faster powerups at 20 s, golden bubble at 30 s) — merged into WK-169 (re-rank #10)
 - Sources: D-23, R-07 (sudden-death alternative) · **OWNER-RULED**: no timer may END a stage (owner 2026-07-03) — this only offers
 - Area: brawl · Owner: gameplay-programmer · Deps: none
 - Accept: scripted 1v1 no smashes 30 s -> golden bubble spawns at 30-31 s; stage-end causes unchanged.
@@ -2208,7 +2218,10 @@ first. Its re-judge list is in the WK-CD5 entry.
   WK-123. It stays P3 (widening, new content, depth-first). Revisit at WK-CD3 once Flight School teaches the super.
 - Accept: 4 courses complete via injected human-style input; rendered screenshots.
 
-### [ ] WK-79 [P2][S] Audio numbers first: LUFS / true-peak / spectrum on a recorded match mix (79a), then the mix pass (79b)
+### [x] WK-79 [P2][S] Audio numbers first: LUFS / true-peak / spectrum on a recorded match mix (79a), then the mix pass (79b) — 3326134, eb22764, b6d0382
+- **Re-rank #10: CLOSED.** 79a measured 3326134, 79b mix eb22764, 79c payoffs b6d0382 (+ WK-163 Stingers bus 758e163). Independent
+  re-measure in WK-CD5: -16.9 LUFS, LRA 5.8, TP -1.9 dBTP, KO +6.5 LU, jetpack -17.9 dB. Remaining fails (countdown loudest, quiet
+  supers, dark balance) -> WK-170. The WK-45 dependency was bypassed (UI sounds are still placeholders; WK-45 stays open).
 - Sources: R-33; WK-CD4 closing note (four creative-director passes in a row couldn't hear the game) · Owner: sound-designer
 - **Re-rank #9: raised P3 -> P2 and split.** The studio has no ears, so turn "sounds fine?" into numbers before anything is called shipped.
 - **79a (now, no deps):**
@@ -2409,6 +2422,13 @@ first. Its re-judge list is in the WK-CD5 entry.
   opening self-KOs 0, human self-KO 23 %)
 - WK-131 KICKOFF GATES — 10c5c6a, opened at 3.5 s 3c35d59 (A/B 32.4 % -> 2.8 %, rally 10.4 s; ruling 941a12a; WK-CD4 0/18)
 - WK-CD4 creative-director cold playthrough #4 (front end / sports / Trials SHIP; Brawl FIX; CD4-01..09 triaged at re-rank #9) — 469b93e
+- WK-153 session arena decks + Islands Void sky drop — 361b6d2 · WK-154 padlock ring + WK-155 gate cues — 264646f (both re-checked in WK-CD5)
+- WK-162 cloud bank — cb8d40d · WK-79 a/b/c audio — 3326134, eb22764, b6d0382 · WK-163 Stingers bus — 758e163 · WK-165 slam trim — 719cf00
+- WK-108b K3 + K5 ON — 96875a6 (follow-ups WK-164) · WK-156..159 CD4 nits — 1da373f · WK-31 danger / stocks cards — b131ac6 (CD5: reads)
+- WK-160 re-check (WK-19, WK-30 closed) — 27ead00 · WK-166 disconnect follow-ups — 54150be · WK-116 PRESSURE NETS ON +75 % — 14ff3f6
+- WK-135 closed (phase 3: ball refuel ON, gates OFF) — 04c7442, 7005cf1, b1ca88b (gates retune -> WK-175) · WK-167 bots spend last fuel — dab9528
+- WK-65b MINEFIELD card — 20ae38f · WK-20d closed on Phase A — 9684fc6 (watch -> WK-168)
+- WK-CD5 creative-director cold playthrough #5 (SHIP on every mode played; CD5-01..07 triaged at re-rank #10) — 7d1732d
 
 ## Deferred / Cut (this weekend) — every finding not covered by an item above
 - **UX4-03's proposed redesign (arm hold-B on every press, act on release)** — NOT adopted (re-rank #8): it would re-open lobby review L8
@@ -2461,6 +2481,13 @@ first. Its re-judge list is in the WK-CD5 entry.
   already set the budget. A longer living fight (WK-20d R5/R6) is the lever, not a shorter interstitial.
 - **CD4 "Brawl: Duck Game-short rounds with a TowerFall-length score card"** — covered by WK-153 (variety) + WK-20d (stage length). Re-judged at
   WK-CD5.
+- **CD5-03 (gate-drop goals 2/19 within 4 s of GO)** — watch, no item (re-rank #10): probably noise (n = 19, one match, the attacking pad
+  seats). Logged in WK-164's batch; act above 10 %. WK-109's unexplained THE BOX gate-drop goals join the same watch.
+- **CD5 opening self-KOs 2/21 (CD4 0)** — watch, no item: small n, both just after the 1.3 s truce. Logged in WK-169b.
+- **CD5-01 lever "LIVES 2 default when 3+ humans"** — not a loop arm: LIVES default 1 is owner-ruled (2026-07-03). Listed under "Needs a
+  human" #5 as an owner question.
+- **CD5 "Dark mix" (centroid 893 Hz)** — the measurable part is WK-170; "is it actually dull" needs ears ("Needs a human" #2).
+- **WK-135 p3 follow-up 5 (human rally median 7.2-7.9 s with ON arms)** — answered by WK-109's A0 re-check (CENTER 8.85 s, in band). Closed.
 
 ## Coverage index (source -> item)
 C-01 01 · C-02 01 (usage in 05-07) · C-03 05,06 · C-04 05,06,04 · C-05 03,04 · C-06 01,09,11 · C-07 28 · C-08 08 · C-09 10 ·
@@ -2518,6 +2545,11 @@ owed merged-build re-run + 1v1 -> 135 phase 3 Accept
 WK-20d R1-R4 (2026-11-15_wk20d_r1.md, ruling e09d727): R2 -> 20e (done) · R1/R3/R4 not adopted · protocol fixes (T1/G2 re-base) -> 20d
 re-rank #9 note · Meadow Carousel soft-lock -> 20e (done)
 Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
+WK-CD5 (2026-11-16_cd5_playthrough.md, triaged re-rank #10): CD5-01 169 (+ 56 merged, 168 duel bullet) · CD5-02 170 (WK-79 closed) ·
+  CD5-03 Deferred (watch in 164) · CD5-04 171 · CD5-05 172 · CD5-06 173 · CD5-07 174 (+118 paired) · watch: opening self-KOs -> 169b ·
+  closing note (hands / ears / frame pacing) -> "Needs a human" · re-confirmed: 153, 154, 155, 156, 157, 116, 31, 108b
+A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 4 -> 167 (done), 5 Deferred (answered) · WK-109 A/B ->
+  109 re-scoped (design) + 164 (THE BOX recording) · WK-161 A/B -> 161b · WK-20d Phase A -> 168, 169 · producer-filed: 176 soak, CD6
 
 ### [x] WK-137 [P2][S] Trials fall triggers the Brawl "FIRST BLOOD!" announcer — 1f5b64d
 - Source: WK-85a builder (2P lesson 4, goat teleported into a gap -> "FIRST BLOOD!"). May be an artefact of the teleport; check a
@@ -2680,7 +2712,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - Files: none (read-only).
 - Status: open. Next-10 #5.
 
-### [ ] WK-CD5 [P1][M] Creative-director cold playthrough #5 (recurring)
+### [x] WK-CD5 [P1][M] Creative-director cold playthrough #5 (recurring) — 7d1732d
 - Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank #10 · Area: all
 - When: after ~6 more deliverables, or right after WK-135 p3 + WK-153 + WK-154 land, whichever comes first.
 - How: a pinned snapshot (`git archive <hash>`), its own port, and the same 3-device HumanSim route as CD3 and CD4, so the numbers compare.
@@ -2698,9 +2730,14 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   6. **Not yet assessed by any pass:** CC-10.2 arming under mashing; WK-28b in-match disconnect, if WK-160 hasn't covered it.
   7. **Audio:** read WK-79a's numbers, since the pass still can't listen.
 - Accept: a findings doc in `docs/audit/` with every finding mapped to a WK id, then producer re-rank #10.
-- Status: open (trigger above).
+- Status: **done 7d1732d** (`docs/audit/2026-11-16_cd5_playthrough.md`, verdict SHIP, no P0/P1). Triaged at re-rank #10: CD5-01 -> 169,
+  CD5-02 -> 170, CD5-03 watch (164), CD5-04 -> 171, CD5-05 -> 172, CD5-06 -> 173, CD5-07 -> 174.
 
 ### [ ] WK-161 [P2][S] BR-135 pin breaker worsens Singularity (stuck episodes 1.46x, p = 0.002); pin bar fails there in both arms
+- **Re-rank #10: in-progress as WK-161b** (chase routing, spec in `docs/audit/2026-11-16_wk161_ab.md` §Spec; `InputBot.gd`, switch
+  `wk161_chase_route` OFF). Built cb8d40d, A/B 8be51e3 (ship neither C nor D; the 1.46x premise did not reproduce: 0.99x). Accept = the
+  spec's batch (pins <= 0.1 / bot-stage, obstacle pins and stucks -50 %, KO/min 0.90-1.15x, side flips <= 1 / episode, guard slice) + the
+  mandatory WK-93 Singularity recording. The well-aware stuck detector (spec "separate follow-up") rides the same pass. Next-10 #3.
 - **A/B 2026-11-16 (docs/audit/2026-11-16_wk161_ab.md):** don't ship C/D (in-well skip, contacts 3). Stuck regression didn't reproduce
   with the breaker isolated (0.99x). 84 % of pins = thrusting at a target THROUGH an obstacle -> build WK-161b chase routing (design in the
   audit, switch default OFF; needs a WK-93 recording + acceptance batch). Also: make the stuck detector well-aware (median 'stuck' speed 951 px/s).
@@ -2725,6 +2762,11 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   Also a listener call: WK-116 crowd chant may dominate the end of long rallies (-4 vs -6 dB).
 
 ### [ ] WK-164 [P2][S] Sports bots round 3 (from the WK-108b A/B, docs/audit/2026-11-15_wk108b_ab.md)
+- **Re-rank #10: partial (K3 swerve hold ON dab9528); Next-10 #5, lane B after WK-161b.** Remaining: guard turn mult 3.0 -> 2.0 own-goal A/B,
+  K1b-only A/B (QA-131-2 bar >= 50 % CPU home at gate open), K1 keeper rework. **Batch additions:** (1) CD5-03 watch: log goals within 1 s
+  of the 3.5 s gate open (CD5 4/19, 2 within 4 s of GO); if > 10 % holds, rule on slowing a ball pinned on the closed gate or a longer
+  boom lift; (2) THE BOX all-bot stuck 16/min + underside 20/min (2x CENTER, `docs/audit/2026-11-16_wk109_ab.md` §7): one WK-93
+  recording on THE BOX all-bot. Own-goal watch: CD5 16 % (3/19), down from 44 %.
 - K3 swerve side hold 0.2 s shipped ON (flips -13 %, sharp turns -7 %). Remaining sharp turns come from wk108b_guard_turn_mult 3.0 ->
   test 2.0 in an own-goal A/B (one run: sharp turns -18 %). K1 rework + K1b-only A/B still open.
 - K3 strike guard shipped ON (2026-11-15) but still misses <= 15 % (all-bot 17.9 %) and 0-in-final-2 (4); add a short hold on the
@@ -2751,7 +2793,132 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   reserve (0.105 s thrust). InputBot's recovery math likely treats < super_min / < some threshold as empty. Make recovery spend it.
 
 ### [ ] WK-168 [P3][S] WK-20d Phase A watch items (docs/audit/2026-11-16_wk20d_phaseA.md)
+- **Re-rank #10:** the 1v1-duel bullet is merged into WK-169 (CD5-01 is the same tail seen from the ghost seats). CPU self-KO after WK-167:
+  CD5 saw 2/11 (small n) -> re-measure in WK-169b's batch. Remaining: the claw-back ring detector fix (tooling). On deck #9.
 - Claw-back detector over-counts on ring-shaped arenas (daisy_ring 21/alive-min vs 0.75-6.75 elsewhere) — fix before it decides anything.
 - Long grounded 1v1 duels (70.8 s on Grassy Expanse, 66 s High Pasture earlier): check sudden-death timing for 1v1 endgames.
 - CPU self-KO share 25.4 % in real matches vs 12.8 % forced loop — re-measure after WK-167 (bots now spend their last fuel).
 - Level-designer note: two_hills ranks bottom-3 for void short stages but isn't R6-eligible; islands_void + stepping_bloom hold 8 of 14 sub-6 s void stages.
+
+## Re-rank #10 filings (WK-CD5, `docs/audit/2026-11-16_cd5_playthrough.md`, + A/B follow-ups)
+
+### [ ] WK-169 [P2][M] (CD5-01) Brawl spectator time: ~25 % of combat dead per human seat, 30-40 s 1v1 tails with two ghosts
+- Area: brawl (pacing) · Owner: game-designer (169a, 169b ruling) -> qa-playtester (HumanSim5) -> gameplay-programmer (169c)
+- Source: creative-director WK-CD5 CD5-01, the pass's "biggest remaining problem". **Merged:** WK-56 (stall breaker by escalation, owner-safe
+  lever), WK-168 bullet 2 (70.8 s / 66 s grounded 1v1 duels).
+- Evidence:
+  - Dead share of combat per human seat: m1 40 / 26 / 23 %, m2 23 / 12 / 43 % (`tools/out/wk/CD5_data/m1.json`, `m2.json`, `sim_stats.dead_f`).
+  - River Split: two deaths by 5.0 s, then a 37 s P1-vs-P2 duel (stage 41.6 s). Windmill Meadow 23.2 s (16 s with two ghosts).
+  - WK-20d Phase A: a 70.8 s grounded 1v1 on Grassy Expanse (`docs/audit/2026-11-16_wk20d_phaseA.md`).
+  - Rocketball keeps all four seats live 100 % of the time.
+- Impact: every Brawl session; the first player out of a long stage is the one who puts the controller down. P2, not P1: ghosts soften it and
+  1-life is genre-standard (Duck Game, TowerFall).
+- **Owner constraints (DECISIONS ruling (c); `docs/feedback/owner_2026-07-03_lives_damage_killrace.md`):**
+  - LIVES default 1 is owner-ruled. "LIVES 2 default when 3+ humans" is an **owner question only**: never a shipped arm.
+  - No timer may END a stage. Sudden death is ONLY the double-KO case. The 20 s laser-wall round-ender was removed by the owner: do not bring
+    it back under a new name.
+  - Camera rules, knockback array and kill target are untouched.
+- Split (do not pull as one M):
+  - **169a [S, design, outside the cap]:** spec in `docs/specs/`. Define the measured gate "spectator seconds per human per match" (median and
+    worst seat) beside stage length. Pick 2-3 owner-safe arms and pre-register predictions. Candidates: WK-56's escalation (faster powerups at
+    20 s, a golden bubble at 30 s: pressure, not an ender); stronger, still uncredited ghost influence once 2 fighters remain (e.g. heckle
+    cooldown halves, puffs nudge harder); a 2-alive "hush" that pulls the arena in visually without ending anything. Note which lane each would
+    edit.
+  - **169b [S, headless #2]:** A/B with HumanSim5 seats on MEADOW MILE (`circuit_session_deck` false for fixed sequences), >= 20 stages per arm,
+    same session, A0-repeat control. Also logs the opening self-KO watch (CD5: 2/21 at 2.8-2.9 s).
+  - **169c [S/M]:** build the ruled lever behind a switch, rendered check + WK-93 recording of a 2-alive tail, DECISIONS entry.
+- Accept: the ruled arm cuts the median human spectator share (CD5 ~25 %) and the worst seat (43 %) by a pre-registered margin with stage
+  length, super share (>= CD5 62 % relative) and human self-KO (CD5 16 %) inside their guardrails; or Won't do with the numbers.
+- Status: **in-progress (169a, director 2026-11-16).** Next-10 #2.
+
+### [ ] WK-170 [P2][S] (CD5-02) Audio priority: the countdown is louder than a KO; some supers sink under the bed; combat mix is dark
+- Area: audio · Owner: sound-designer · Source: WK-CD5 CD5-02 (+ WK-79a's original "countdown loudest", never brought under the stinger bus)
+- Evidence (`tools/out/wk/CD5_rec_meadow/` audio.wav, `tools/out/wk/WK-79a_scripts/measure_run.py`):
+  - countdown rise **+13.2 LU** (max +17.3) vs KO **+6.5 LU** and GO +6.5;
+  - super-fired rise median +3.2 LU, **min -3.6**; smash min -3.4;
+  - combat centroid 893 Hz, 2-5 kHz band -13.2 dB under the mids, air -25 dB.
+- Impact: the loudest moment of every stage is a pre-fight beep, not the payoff; a super you can't hear over three jetpacks reads as a dud
+  (core verb).
+- Do: trim the countdown beeps ~5-7 dB (or route them so the KO sting is always the loudest event); give the super launch a 2-5 kHz transient
+  (layer or EQ) so it cuts through; consider a gentle presence lift on the SFX bus if it doesn't push the limiter.
+- Files: `AudioManager.gd` (per-cue gains), bus layout, `assets/sfx/` (+ `LICENSES.md` for any new/derived file).
+- Accept: `measure_run.py` on a fresh 4-bot Brawl and a Rocketball WK-93 capture: countdown rise below the KO rise; super rise median >= +5 LU
+  and min >= 0 LU; 2-5 kHz share up vs CD5; integrated -16..-18 LUFS; TP <= -1 dBTP; KO and goal rises not reduced. "Does it sound good"
+  stays a human check (Needs a human #2).
+- Status: **in-progress (director, 2026-11-16).** Next-10 #1.
+
+### [ ] WK-171 [P3][S] (CD5-04) RULES rows need a one-line helper (PRESSURE NETS: ON says nothing)
+- Area: menus (lobby RULES) · Owner: ui-ux-designer · Source: WK-CD5 CD5-04
+- Evidence: `tools/out/wk/CD5_16_sports_rules.png`, `CD5_16_rules_strip.png`. ON/OFF only; no rule line or legend explains it.
+- Do: a one-line helper under the focused rules row (e.g. "Long rallies make the goals bigger"), for every row in both modes; include WK-110's
+  GOALS row if it has landed. 28 px floor (WK-18), mixed-couch safe.
+- Files: `LobbySlot.gd` / RULES panel scene.
+- Accept: rendered RULES panel in Brawl and Rocketball with focus on each row: helper text present, fits, no overlap; ui-ux Ship.
+- Status: open. Next-10 #10.
+
+### [ ] WK-172 [P3][S] (CD5-05) The session deck reshuffle can repeat an arena inside one match
+- Area: brawl (circuits) · Owner: gameplay-programmer · Source: WK-CD5 CD5-05
+- Evidence: `tools/out/wk/CD5_data/m2.json`: Sunny Shoulders at stage 2 and again at stage 10, after the 20-arena deck ran out mid-match.
+- Do: when the deck reshuffles mid-match, push arenas already played in the current match to the back of the new deck (keep the CD4-01 rules:
+  MILD/WILD alternation, no back-to-back repeats).
+- Files: `PartyMatch.gd` (session deck; DECISIONS 2026-11-15 CD4-01).
+- Accept: a logged headless or eval run that forces a mid-match reshuffle: no arena repeats before every arena of the match has been played;
+  `circuit_session_deck=false` path unchanged.
+- Status: open. Next-10 #10 (lane D is free).
+
+### [ ] WK-173 [P3][S] (CD5-06) Corner-card stickers and the +1 chip overlap the world and the card name
+- Area: HUD · Owner: ui-ux-designer · Source: WK-CD5 CD5-06 (WK-31 nits)
+- Evidence: `tools/out/wk/CD5_10_m1_p11.png` ("+1" covers PUFF's name), `CD5_10_m1_p5.png` (HURT! sticker hangs onto P3's goat),
+  `CD5_12_m2_p1.png` (P1 beside its own sticker).
+- Do: dim card stickers where a goat is under them (as WK-156 does for legend chips); offset the +1 chip clear of the name.
+- Files: `PlayerCard.gd/.tscn`, `MatchHUD.gd`. Rides WK-99's pass (same files).
+- Accept: stills with a goat under a sticker (dimmed, goat readable) and a +1 on a CPU card (name readable); ui-ux Ship.
+- Status: open. Next-10 #7 (with WK-99).
+
+### [ ] WK-174 [P3][S] (unverified) (CD5-07) RULES panel: D-pad focus once failed to leave a locked row
+- Area: menus · Owner: qa-playtester · Source: WK-CD5 CD5-07
+- Evidence (unverified): `tools/out/wk/CD5_16e/16f/16g.png`: RULES open -> D-pad left x3 on the locked FORMAT row -> D-pad down x2 -> stick
+  down x2: focus stayed on FORMAT. Re-open: normal. Could be simulated-input timing or a stale frame.
+- Do: repro "left on a locked row, then down" 10x on 2 simulated pads + keyboard, with ramped stick injection. Pair with WK-118 (stick flicks)
+  in the same QA slot (WK-176). Build nothing unless it reproduces; if it does, file the cause into WK-46 or a new S.
+- Accept: 10/10 clean, or a reproducible case with a cause. Close as Won't do / not reproduced with the evidence.
+- Status: open (unverified). Next-10 #4 (rides WK-176's slot).
+
+### [ ] WK-175 [P3][M] Refund gates (WK-128 b) need a retune before they can ship ON
+- Area: brawl (economy) · Owner: game-designer (175a ruling) -> gameplay-programmer
+- Source: `docs/audit/2026-11-16_wk135_p3_ab.md` follow-ups 1-3; DECISIONS 2026-11-16 WK-135 phase-3 ruling.
+- Evidence: gates ON: KO/min 0.77x, median stage +24 %, self-KO +6.7 pp, Bumper Gauntlet bot empty-tank falls 1/33 -> 13/35 (F1 re-arm blocks
+  13.8 / bot-minute dominate); `qa_valve_over_natural` = 5 (bar 0); Meadow Carousel deck buzz 27 contacts/s; carousel void deaths after a cart
+  hop at 0-4 fuel (7/12 vs 1/13, p = 0.011).
+- Impact: none to players today (gates are OFF and the build ships). It closes the WK-128 (b) wall-grind refuel exploit, which no CD pass has
+  flagged. Hence P3.
+- Split: **175a [S, design]** ruling on the ladder (bot refuel brain BR-128, re-arm frac, carousel tier-less deck floor) with predictions;
+  the build stays unsized until then. Not pullable as M.
+- Status: open (on deck #10).
+
+### [ ] WK-176 [P2][S] Soak test: long mixed session for crashes, error spam and leaks (WEEKEND_LOOP step 6; never run this weekend)
+- Area: perf / stability · Owner: qa-playtester (skill `soak-test`) · Source: producer re-rank #10 (process gap: step 6 asks for a soak every
+  ~12 items; ~70 commits have landed since the run began with none)
+- Evidence: unverified by design (it is a check, not a bug). A/B batches ran hundreds of headless stages without crashes, but nobody has
+  watched one rendered process across many mode switches, REMATCHes and menu round trips.
+- Do: one rendered process on its own port, 30-40 min game time: Brawl RANDOM ROTATION bots to 10 + REMATCH, back to mode select, Rocketball,
+  Dropshot, a Trials circuit, Pause -> RESTART and CHANGE SETUP round trips, a simulated pad disconnect/reconnect. Every 60 s log
+  `Performance` OBJECT_COUNT, OBJECT_NODE_COUNT, OBJECT_ORPHAN_NODE_COUNT, MEMORY_STATIC, active audio voices, and grep the log for errors /
+  warnings. Software GPU is fine for these counters (not for frame time).
+- Files: none (report + `tools/out/wk/WK-176_*`).
+- Accept: no crash or hang; no recurring error lines; node and orphan counts flat across laps (< 5 % growth after lap 1); memory slope ~0.
+  Any slope or error becomes its own item with a repro.
+- Status: open. Next-10 #4 (the free Godot slot, now).
+
+### [ ] WK-CD6 [P1][M] Creative-director cold playthrough #6 (recurring)
+- Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank #11 · Area: all
+- When: after WK-169c + WK-170 + WK-45 land, or ~6 deliverables, whichever comes first.
+- How: pinned snapshot, own port, HumanSim5 unchanged so numbers compare with CD3-CD5.
+- Scope (CD5's closing note: another simulated pass is worth less than a real session, so cover what CD5 skipped):
+  1. **Trials and Dropshot** (not re-played in CD5; WK-158/159 never re-checked).
+  2. **Brawl spectator share** after WK-169c (CD5: median ~25 %, worst 43 %).
+  3. **Audio numbers** after WK-170 / WK-45 (countdown vs KO, super min, centroid).
+  4. **WK-173 / WK-171** readability, CD5-03 gate-drop goals (act above 10 %), WK-174 if still open.
+  5. Not yet assessed by any pass: CC-10.2 arming under mashing.
+- Accept: findings doc in `docs/audit/`, every finding mapped to a WK id, then producer re-rank #11.
+- Status: open (trigger above).
