@@ -82,3 +82,7 @@ signal kickoff_gates_open()
 # (n = 0, 1, 2 ... locked to the brightness swing peaks).
 signal kickoff_gate_dropped()
 signal kickoff_gate_tick(n)
+
+# --- WK-116 Rocketball PRESSURE NETS (docs/specs/wk116_long_rally_2026-11-15.md §5). PressureNets emits; AudioManager subscribes.  # WK-116
+# step: 0 = anticipation (t1 - warn), 1 = STEP 1 "PRESSURE!", 2 = STEP 2 "MAX PRESSURE!", -1 = over (goal latched / stage torn down).  # WK-116
+signal sports_pressure(step)

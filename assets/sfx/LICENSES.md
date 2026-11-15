@@ -48,3 +48,14 @@ tail. AudioManager adds +3 semitones at playback (spec wk37a §9). Reproduce wit
 | `bleat_ziggy.ogg`, `bleat_ghost_ziggy.ogg` | https://freesound.org/people/saha213131/sounds/691476/ "goat2.mp3" (saha213131) | 0.03-0.70 s | `bleat_ziggy` / `bleat_ghost_ziggy` — ZIGGY (green), clean "meeh" |
 | `bleat_pogo.ogg`, `bleat_ghost_pogo.ogg` | https://freesound.org/people/jsbarrett/sounds/200333/ "Baby goat bleating" (jsbarrett) | 1.40-2.10 s | `bleat_pogo` / `bleat_ghost_pogo` — POGO (pink), kid |
 | `bleat_puff.ogg`, `bleat_ghost_puff.ogg` | https://freesound.org/people/jsbarrett/sounds/200333/ (jsbarrett) | 4.86-5.45 s | `bleat_puff` / `bleat_ghost_puff` — PUFF (yellow), smallest kid |
+
+## WK-116 PRESSURE NETS crowd loops — derived only from files already listed above (no new source audio)
+Rendered by `python tools/audio/render_wk116_crowd.py` (numpy + ffmpeg, fixed RNG seeds, deterministic). Licences follow the sources.
+
+| File | Derived from | How | Use (AudioManager key) |
+|---|---|---|---|
+| `crowd_murmur_loop.ogg` | `rewardCheer.mp3` (owner library, see above) | 40 grains of the sustained cheer (0.10-2.20 s), 0.7-1.3 s each, pitch 0.80-1.00, half reversed, Hann windowed, overlap-added on a circular 6.0 s buffer; band-limited 180 Hz-2.6 kHz in the frequency domain (seamless loop); -18 LUFS, peak -1 dBFS, mono | WK-116 crowd murmur bed (anticipation swell +6 dB, held until the goal) |
+| `crowd_clap_loop.ogg` | `kenney_impactPlank_medium_000..002.ogg` (Kenney, CC0) | 8 crowd claps in 4.0 s (120 BPM, beats 1/3 accented), each 14 plank cracks cut to 90 ms with an 18 ms decay, pitched x1.7-2.4, onsets ~N(0, 11 ms); 700 Hz-7 kHz band; 0.3 s decaying-noise room tail convolved circularly; tanh soft-clip; -18 LUFS, peak -1 dBFS, mono | WK-116 step-2 clap-chant loop (until the goal) |
+
+WK-116 one-shots reuse listed files at playback: `pressure_ka` = `kenney_impactWood_medium_*` pitched x1.25-1.5, `pressure_chunk` =
+`kenney_impactPunch_heavy_*` pitched x0.62-0.78, `pressure_slam` = `slam.mp3` x0.7, `pressure_ooh` = `rewardCheer.mp3` x0.74.

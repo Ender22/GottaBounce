@@ -1133,3 +1133,50 @@ var wk161_radial_pin_skip: bool = false       # WK-161 master switch  # WK-161
 var wk161_radial_keep_release: bool = true    # WK-161 (ON only): a well pin still drops boost for one reaction tick  # WK-161
 var wk161_radial_skip_target: bool = false    # WK-161 (ON only): also skip BR-135a (refuel target class) in a well  # WK-161
 var wk161_dump_max: int = 24                  # WK-161 per-bot per-stage episode dump cap (motion_health.wk161_dump)  # WK-161
+
+# --- WK-116 PRESSURE NETS (docs/specs/wk116_long_rally_2026-11-15.md). Rocketball (soccer courts) only; read by  # WK-116
+# src/systems/PressureNets.gd (spawned per stage by SportsMode, freed with the level on the next kickoff reload, so every  # WK-116
+# kickoff starts with base mouths), GoalZone, SportsNetArt, SportsHUD and AudioManager. Clock = Ball.ball_clock() (live ball,  # WK-116
+# game time: pauses with hit-stop / pause / the disconnect overlay).  # WK-116
+# INVARIANTS (spec §6): t1 - warn > sports_gate_open_s (3.5): pressure and gates never overlap (runtime also holds pressure until  # WK-116
+# every gate is open); t2 > t1; the grown mouth's bottom edge stays above the court's floor-bouncer apex centre (floor top -  # WK-116
+# apex_body_r - the floor tier's bounce height, measured per court at runtime; growth below it moves to the top edge).  # WK-116
+var sports_pressure_rule: int = 0             # 0 = OFF (exactly today's game: no node is ever made), 1 = PRESSURE NETS. The A/B decides  # WK-116
+var sports_pressure_t1_s: float = 30.0        # s of live ball with no goal -> STEP 1 "PRESSURE!" (mouths x (1 + grow1))  # WK-116
+var sports_pressure_t2_s: float = 40.0        # s -> STEP 2 "MAX PRESSURE!" (mouths x (1 + grow2)) + the crowd clap-chant until the goal  # WK-116
+var sports_pressure_warn_s: float = 3.0       # s of anticipation before t1 (trim pulse + crowd swell; no geometry change)  # WK-116
+var sports_pressure_grow1_frac: float = 0.25  # mouth height growth at step 1 (CENTER 300 -> 375 px)  # WK-116
+var sports_pressure_grow2_frac: float = 0.50  # mouth height growth at step 2 (CENTER 300 -> 450 px). Pre-registered A/B step: 0.75  # WK-116
+var sports_pressure_slide_s: float = 0.30     # s the posts take to retract (ease-out); colliders move with the art  # WK-116
+var sports_pressure_back_margin: float = 100.0   # wpx the back post spans past each mouth edge (WK-122: the 60 px slot stays sealed)  # WK-116
+var sports_pressure_min_post_px: float = 80.0    # wpx: a post never retracts shorter than this (it slides into the ceiling / floor)  # WK-116
+var sports_pressure_apex_body_r: float = 44.0    # wpx goat radius in the floor-bouncer apex check (Player.BODY_RADIUS)  # WK-116
+var sports_pressure_art_bleed: float = 4.0       # wpx the post art overhangs its collider ends (ArenaRenderer h + 8): kept when cropping  # WK-116
+# feedback (spec §5)  # WK-116
+var sports_pressure_trim_warn_a: Color = Color("#FFF3D6")   # anticipation pulse: cream ...  # WK-116
+var sports_pressure_trim_warn_b: Color = Color("#FF8A1F")   # ... -> orange (also the step-1 trim)  # WK-116
+var sports_pressure_trim_hot_a: Color = Color("#E3261B")    # step 2: red ...  # WK-116
+var sports_pressure_trim_hot_b: Color = Color("#FFB23A")    # ... flickering to hot amber (the heat shimmer)  # WK-116
+var sports_pressure_trim_alpha: float = 0.85  # max alpha of the trim overlay on the team-tinted cage tubes (outline + gloss survive)  # WK-116
+var sports_pressure_warn_hz: float = 1.5      # anticipation pulse rate  # WK-116
+var sports_pressure_hot_hz: float = 3.0       # step-2 pulse rate  # WK-116
+var sports_pressure_heat_alpha: float = 0.32  # step-2 additive heat glow over each cage (puff_soft), flickering  # WK-116
+var sports_pressure_word_hold: float = 0.9    # s the PRESSURE! / MAX PRESSURE! word holds (top-centre, over neither mouth)  # WK-116
+var sports_pressure_word1_color: Color = Color("#FFC93C")   # team-neutral gold  # WK-116
+var sports_pressure_word2_color: Color = Color("#FF6A2A")   # red-gold  # WK-116
+var sports_pressure_word2_size: int = 76      # px MAX PRESSURE! font size (BannerTop is 58)  # WK-116
+var sports_pressure_word_stack_wait: float = 0.5   # s the word waits after another top banner (spec: never overlap)  # WK-116
+var sports_pressure_chevron_s: float = 1.0    # s the up/down chevrons flash on each post  # WK-116
+var sports_pressure_chevron_wpx: float = 64.0 # wpx chevron width  # WK-116
+var sports_pressure_shake: float = 0.25       # camera trauma per step (FEEL §5.2 Light), x Options SCREEN SHAKE  # WK-116
+var sports_pressure_rumble_weak: float = 0.2  # per pulse, every human pad (InputRouter.rumble_player; Options RUMBLE gates it)  # WK-116
+var sports_pressure_rumble_strong: float = 0.35   # WK-116
+var sports_pressure_rumble_dur: float = 0.08  # s per pulse  # WK-116
+var sports_pressure_rumble_gap: float = 0.12  # s between the two pulses (the "ka-CHUNK")  # WK-116
+# audio (AudioManager; levels sit in the WK-79b mix: goal stinger +4, crowd +2, whistle -2, clonk -12..-3, thrust -12)  # WK-116
+var sports_pressure_bed_db_lo: float = -16.0  # dB crowd murmur bed at the start of the anticipation (file -18 LUFS)  # WK-116
+var sports_pressure_bed_db_hi: float = -10.0  # dB after the +6 dB swell over warn_s; held until the goal  # WK-116
+var sports_pressure_chant_db: float = -4.0    # dB crowd clap-chant loop from step 2 until the goal (-9 measured barely detectable in the WK-93 audio.wav)  # WK-116
+var sports_pressure_clunk_db: float = -4.0    # dB step-1 ka-CHUNK (per mouth; step 2 is +3 dB and lower)  # WK-116
+var sports_pressure_ooh_db: float = -9.0      # dB step-1 crowd "OOOH" (rewardCheer slowed)  # WK-116
+var sports_pressure_fade_out_s: float = 0.25  # s bed + chant fade at the goal (the normal goal roar takes over)  # WK-116

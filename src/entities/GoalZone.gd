@@ -52,6 +52,13 @@ var net_bottom_y: float = NAN  # WK-66b
 # (Ball.ball_clock()) at the latch, the primary kickoff-goal clock for QA. Both inert when no gate exists.  # WK-131
 var _gated: bool = false       # WK-131
 var scored_ball_t: float = -1.0   # WK-131
+# WK-116 PRESSURE NETS (docs/specs/wk116_long_rally_2026-11-15.md §4.1 / §7): PressureNets grows the rect vertically with the
+# retracting posts (x-extent unchanged). Defence in depth: a ball whose centre is inside the rect only BECAUSE the rect grew
+# (outside before, inside after, same tick) must leave and re-enter before it can latch (pressure_instant_goals counts these;
+# must stay 0 by geometry: the new strip was solid post). All inert until set_mouth_span() is called.  # WK-116
+var _shape_rect: RectangleShape2D = null   # WK-116
+var _fresh_block: Array = []               # WK-116: balls that must leave the rect before they can latch
+var pressure_instant_goals: int = 0        # WK-116 (QA)
 
 func setup_from_json(o: Dictionary) -> void:
 	w = float(o.get("w", 200.0))
@@ -78,6 +85,7 @@ func _ready() -> void:
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(w, h)
 	cs.shape = rect
+	_shape_rect = rect   # WK-116
 	add_child(cs)
 	z_index = 44   # over platforms/void, under HUD
 	if not EventBus.combat_started.is_connected(_on_combat_started):
@@ -133,6 +141,36 @@ func set_gated(on: bool) -> void:   # WK-131
 func is_gated() -> bool:   # WK-131
 	return _gated   # WK-131
 
+## WK-116: resize the trigger to the WORLD mouth span [top, bottom] (x unchanged) and resize the cage art with it. A ball that is
+## inside only because the rect grew is fresh-entry blocked (see _fresh_block).
+func set_mouth_span(top: float, bottom: float) -> void:   # WK-116
+	var nh: float = maxf(1.0, bottom - top)
+	var ny: float = (top + bottom) * 0.5
+	if is_equal_approx(nh, h) and is_equal_approx(ny, global_position.y):
+		return
+	var old_pos: Vector2 = global_position
+	var old_h: float = h
+	for b in get_tree().get_nodes_in_group("sports_ball"):
+		if not is_instance_valid(b) or _fresh_block.has(b):
+			continue
+		var bp: Vector2 = (b as Node2D).global_position
+		var was_in: bool = absf(bp.x - old_pos.x) <= w * 0.5 and absf(bp.y - old_pos.y) <= old_h * 0.5
+		var now_in: bool = absf(bp.x - old_pos.x) <= w * 0.5 and absf(bp.y - ny) <= nh * 0.5
+		if now_in and not was_in:
+			_fresh_block.append(b)
+			pressure_instant_goals += 1
+	h = nh
+	global_position = Vector2(old_pos.x, ny)
+	if _shape_rect != null:
+		_shape_rect.size = Vector2(w, h)
+	if _net_art != null and is_instance_valid(_net_art) and _net_art.has_method("resize_goal"):
+		_net_art.call("resize_goal", h)
+
+## WK-116: the trim overlay colour on the cage tubes (alpha = strength; 0 = none). No-op without Rocketball cage art.
+func set_pressure_trim(col: Color) -> void:   # WK-116
+	if _net_art != null and is_instance_valid(_net_art) and _net_art.has_method("set_trim"):
+		_net_art.call("set_trim", col)
+
 func _on_combat_started() -> void:
 	_live = true
 
@@ -149,7 +187,12 @@ func _physics_process(delta: float) -> void:
 			if not is_instance_valid(b):
 				continue
 			var rel: Vector2 = (b as Node2D).global_position - global_position
-			if absf(rel.x) <= w * 0.5 and absf(rel.y) <= h * 0.5:
+			var inside: bool = absf(rel.x) <= w * 0.5 and absf(rel.y) <= h * 0.5
+			if not _fresh_block.is_empty() and _fresh_block.has(b):   # WK-116: must leave, then enter again
+				if not inside:
+					_fresh_block.erase(b)
+				continue
+			if inside:
 				scored = true
 				if b.has_method("ball_clock"):   # WK-131
 					scored_ball_t = float(b.call("ball_clock"))   # WK-131

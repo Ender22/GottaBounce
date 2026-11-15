@@ -368,9 +368,13 @@ func _activate_match(i: int) -> void:
 	match_button_pressed.emit(_match_btns[i].get_meta("id"))
 
 # ------------------------------------------------------------------ TOP banner (transient)
-func show_top(text: String, color: Color, hold: float) -> void:
+func show_top(text: String, color: Color, hold: float, font_size: int = 0) -> void:
 	_top_label.text = text
 	_top_label.add_theme_color_override("font_color", color)
+	if font_size > 0:   # WK-116: MAX PRESSURE! rides the same slot, bigger
+		_top_label.add_theme_font_size_override("font_size", font_size)
+	else:
+		_top_label.remove_theme_font_size_override("font_size")
 	_top_label.visible = true
 	_top_label.modulate.a = 1.0
 	_top_label.reset_size()
@@ -383,3 +387,17 @@ func show_top(text: String, color: Color, hold: float) -> void:
 	_top_tw.tween_interval(hold)
 	_top_tw.tween_property(_top_label, "modulate:a", 0.0, POP_OUT)
 	_top_tw.tween_callback(func() -> void: _top_label.visible = false)
+
+## WK-116 PRESSURE NETS word burst ("PRESSURE!" gold / "MAX PRESSURE!" red-gold, bigger): the top-centre banner slot (y 190-300 at
+## 1080p, above both goal mouths on every court). Banner stacking (spec §5): if another top banner is up (a future WK-110 MATCH
+## POINT / GOLDEN GOAL), the word waits for it to leave plus Tuning.sports_pressure_word_stack_wait, so two never overlap.
+var pressure_words: Array = []   # WK-116 QA: words shown this match (text)
+func show_pressure_word(text: String, color: Color, hold: float, font_size: int = 0) -> void:   # WK-116
+	var waited: float = 0.0
+	while _top_label.visible and _top_label.text != text and waited < 3.0:
+		await get_tree().create_timer(0.1, false).timeout
+		waited += 0.1
+	if waited > 0.0:
+		await get_tree().create_timer(Tuning.sports_pressure_word_stack_wait, false).timeout
+	pressure_words.append(text)
+	show_top(text, color, hold, font_size)

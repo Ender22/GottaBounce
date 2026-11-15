@@ -95,6 +95,19 @@ var _glow_a: float = 0.0
 var _glow_t: float = 0.0
 var _hem_glow: Node2D
 var _pool: Sprite2D
+# WK-116 PRESSURE NETS (docs/specs/wk116_long_rally_2026-11-15.md §4.1 / §5): the Rocketball cage follows a live mouth
+# resize (resize_goal: frame rebuilt at the new height, mesh quads + shader interior updated, x untouched) and carries a
+# pressure TRIM: a second copy of the frame through the same gradient-map shader, modulated to the trim colour (set_trim; the
+# team-tinted tubes shift toward cream/orange/red while the outline + gloss survive), plus an additive heat glow at step 2.
+var _goal_s: float = 1.0       # WK-116: frame uniform scale (wpx per src px), fixed at setup
+var _goal_fw: float = 0.0      # WK-116: frame width
+var _goal_cx: float = 0.0      # WK-116: frame centre x (local)
+var _goal_md: float = 1.0      # WK-116
+var _zone_h: float = 0.0       # WK-116: current mouth height the frame is built for
+var _trim: Node2D = null       # WK-116
+var _trim_col: Color = Color(1.0, 1.0, 1.0, 0.0)   # WK-116
+var _heat: Sprite2D = null     # WK-116
+var _heat_a: float = 0.0       # WK-116
 
 # ============================================================== DROPSHOT
 
@@ -233,6 +246,11 @@ func setup_goal(gz: Node, zone_h: float, mouth_x: float, back_x: float, mouth_di
 	var s: float = frame_w / src.x
 	var frame_h: float = zone_h + 2.0 * GOAL_TUBE_C_SRC * s   # tube centres land on the mouth edges
 	var cx: float = (outer_back + outer_mouth) * 0.5
+	_goal_s = s   # WK-116
+	_goal_fw = frame_w   # WK-116
+	_goal_cx = cx   # WK-116
+	_goal_md = md   # WK-116
+	_zone_h = zone_h   # WK-116
 	_frame_rect_local = Rect2(minf(outer_back, outer_mouth), -frame_h * 0.5, frame_w, frame_h)
 	var back_c: float = outer_back + md * GOAL_BACK_C_SRC * s
 	var mx: float = mouth_x - origin_x
@@ -253,16 +271,95 @@ func setup_goal(gz: Node, zone_h: float, mouth_x: float, back_x: float, mouth_di
 	_frame_mat = ShaderMaterial.new()
 	_frame_mat.shader = FRAME_SHADER
 	_frame_mat.set_shader_parameter("tint_mode", 1)
-	_frame = ThreeSlice.build(GOAL_FRAME_TEX, frame_w, frame_h, GOAL_CAP_FRAC, true)
-	_frame.position = Vector2(cx, 0.0)
-	if md < 0.0:
-		_frame.scale = Vector2(-1.0, 1.0)   # team 1: mirrored (art lit from directly above)
-	_frame.z_as_relative = false
-	_frame.z_index = Z_GOAL_FRAME
+	_frame = _build_goal_frame(frame_h)   # WK-116: shared with resize_goal (same transform as before)
 	_frame.modulate = team_col
-	_apply_frame_mat(_frame)
 	add_child(_frame)
 	_tag_goal_colliders.call_deferred()
+
+## WK-116: the Rocketball cage frame (vertical 3-slice of goal_frame.png) at height `frame_h`, placed + mirrored exactly as
+## setup_goal always did. Material = _frame_mat.
+func _build_goal_frame(frame_h: float) -> Node2D:   # WK-116
+	var f: Node2D = ThreeSlice.build(GOAL_FRAME_TEX, _goal_fw, frame_h, GOAL_CAP_FRAC, true)
+	f.position = Vector2(_goal_cx, 0.0)
+	if _goal_md < 0.0:
+		f.scale = Vector2(-1.0, 1.0)   # team 1: mirrored (art lit from directly above)
+	f.z_as_relative = false
+	f.z_index = Z_GOAL_FRAME
+	_apply_frame_mat(f)
+	return f
+
+## WK-116: rebuild the cage for a new mouth height `zone_h` (the GoalZone already moved its centre). Frame re-sliced at the new
+## height (caps uniform, back-tube middle tiled: ThreeSlice rules), mesh + front veil quads and their shader interior follow,
+## the trim copy follows. Ripples / bulge / flash state are kept.
+func resize_goal(zone_h: float) -> void:   # WK-116
+	if kind != "goal" or _trials or _frame == null or is_equal_approx(zone_h, _zone_h):
+		return
+	_zone_h = zone_h
+	var frame_h: float = zone_h + 2.0 * GOAL_TUBE_C_SRC * _goal_s
+	_frame_rect_local = Rect2(_frame_rect_local.position.x, -frame_h * 0.5, _frame_rect_local.size.x, frame_h)
+	_interior = Rect2(_interior.position.x, -zone_h * 0.5, _interior.size.x, zone_h)
+	var pad: float = maxf(Tuning.goal_bulge_peak, Tuning.net_ripple_amp_px) + 4.0
+	var iv := Vector4(_interior.position.x, _interior.position.y, _interior.size.x, _interior.size.y)
+	var to := Vector2(_interior.get_center().x, _interior.position.y)
+	for q in [_mesh, _front]:
+		if q != null:
+			(q as MeshQuad).rect = _interior.grow(pad)
+			(q as MeshQuad).queue_redraw()
+	for m in [_mesh_mat, _front_mat]:
+		if m != null:
+			(m as ShaderMaterial).set_shader_parameter("interior", iv)
+			(m as ShaderMaterial).set_shader_parameter("tile_origin", to)
+	var old: Node2D = _frame
+	_frame = _build_goal_frame(frame_h)
+	_frame.modulate = old.modulate
+	add_child(_frame)
+	move_child(_frame, old.get_index())
+	old.queue_free()
+	if _trim != null:
+		var old_t: Node2D = _trim
+		_trim = _build_goal_frame(frame_h)
+		_trim.modulate = _trim_col
+		_trim.visible = _trim_col.a > 0.001
+		add_child(_trim)
+		move_child(_trim, old_t.get_index())
+		old_t.queue_free()
+	if _heat != null:
+		_heat.scale = Vector2(_goal_fw + 120.0, frame_h + 120.0) / PUFF_TEX.get_size()
+
+## WK-116: the pressure trim. `col` = trim colour, col.a = strength (0 hides it). Drawn over the frame (same z, later child)
+## through the same gradient map, so the tubes read cream / orange / red while their outline and gloss survive.
+func set_trim(col: Color) -> void:   # WK-116
+	if kind != "goal" or _trials or _frame == null:
+		return
+	_trim_col = col
+	if _trim == null:
+		if col.a <= 0.001:
+			return
+		_trim = _build_goal_frame(_zone_h + 2.0 * GOAL_TUBE_C_SRC * _goal_s)
+		add_child(_trim)
+		move_child(_trim, _frame.get_index() + 1)
+	_trim.modulate = col
+	_trim.visible = col.a > 0.001
+
+## WK-116: step-2 heat shimmer, an additive puff over the cage (alpha 0 hides it). Team-neutral colour from the caller.
+func set_heat(col: Color) -> void:   # WK-116
+	if kind != "goal" or _trials or _frame == null:
+		return
+	if _heat == null:
+		if col.a <= 0.001:
+			return
+		_heat = Sprite2D.new()
+		_heat.texture = PUFF_TEX
+		var add_mat := CanvasItemMaterial.new()
+		add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		_heat.material = add_mat
+		_heat.z_as_relative = false
+		_heat.z_index = Z_GOAL_FRAME
+		_heat.position = Vector2(_goal_cx, 0.0)
+		_heat.scale = Vector2(_goal_fw + 120.0, _zone_h + 2.0 * GOAL_TUBE_C_SRC * _goal_s + 120.0) / PUFF_TEX.get_size()
+		add_child(_heat)
+	_heat.modulate = col
+	_heat.visible = col.a > 0.001
 
 ## Near-miss feed: tag the bumper colliders the cage is mounted in (back post, wall column caps) so the
 ## ball's contact report reaches this net. Meta only — the colliders are untouched.

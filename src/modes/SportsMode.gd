@@ -93,6 +93,14 @@ var _ko_armed_t: float = -1.0          # WK-131: rule 2: ball clock when both te
 var _ko_spit: bool = false             # WK-131
 var _ko_runner = null                  # WK-131: the runner (stage-1 rule-row swap at the open)
 
+# --- WK-116 PRESSURE NETS (docs/specs/wk116_long_rally_2026-11-15.md). Tuning.sports_pressure_rule: 0 = OFF (no node is ever made:
+# byte-identical), 1 = long rallies widen both goal mouths at t1 / t2 of live ball. Soccer courts only (Dropshot / Trials / Brawl
+# never read it). One PressureNets node per stage on the level root: the next kickoff's reload frees it with the moved posts, so
+# every kickoff starts with base mouths and no phase timing changes. ---
+const PRESSURE_SCRIPT := preload("res://src/systems/PressureNets.gd")   # WK-116
+var _pressure: Node = null             # WK-116: this stage's PressureNets (null when the rule is off / not soccer)
+var _pressure_override: float = -1.0   # WK-116: court JSON "pressure_max_grow_px" (-1 = Tuning fractions only)
+
 # --- SPORT VARIANT (owner 2026-07-18 item 5, DROPSHOT) ---
 # The court JSON declares its sport via a top-level "sport" field ("soccer" default | "dropshot").
 # DROPSHOT = volleyball-like: floaty beach ball (Ball.configure_dropshot), a solid centre NET wall
@@ -278,6 +286,7 @@ func configure(runner, config: MatchConfig) -> void:
 	_arena_path = _resolve_court(want)
 	_sport = _read_sport(_arena_path)
 	_kickoff = _read_kickoff(_arena_path) if _sport == "soccer" else {}
+	_pressure_override = _read_pressure_override(_arena_path) if _sport == "soccer" else -1.0   # WK-116
 	_team_scores = [0, 0]
 	_last_scoring_team = -1
 	_last_scored_stage = -1
@@ -289,6 +298,16 @@ func configure(runner, config: MatchConfig) -> void:
 	_last_save = {}
 	_gates = []   # WK-131
 	_ko_runner = null   # WK-131
+	var pn_env: String = OS.get_environment("GB_WK116")   # WK-116 QA arm: "0" | "1" | "1,t1,t2,warn" (unset = Tuning)
+	if pn_env != "":   # WK-116
+		var pp: PackedStringArray = pn_env.split(",")   # WK-116
+		Tuning.sports_pressure_rule = int(pp[0])   # WK-116
+		if pp.size() >= 4:   # WK-116
+			Tuning.sports_pressure_t1_s = float(pp[1])   # WK-116
+			Tuning.sports_pressure_t2_s = float(pp[2])   # WK-116
+			Tuning.sports_pressure_warn_s = float(pp[3])   # WK-116
+		print("WK-116: GB_WK116=%s -> rule=%d t1=%.2f t2=%.2f warn=%.2f" % [pn_env, Tuning.sports_pressure_rule,
+			Tuning.sports_pressure_t1_s, Tuning.sports_pressure_t2_s, Tuning.sports_pressure_warn_s])   # WK-116
 	var arm_env: String = OS.get_environment("GB_WK108B")   # WK-108b: dev/QA arm override ("1" ON arm, "0" all OFF, unset = Tuning)
 	if arm_env == "1" or arm_env == "0":   # WK-108b
 		wk108b_arm(arm_env == "1")   # WK-108b
@@ -550,6 +569,7 @@ func on_stage_ready(runner) -> void:
 	if is_instance_valid(_ball):
 		_ball.touched.connect(_on_ball_touched.bind(runner))
 	_spawn_kickoff_gates(runner)   # WK-131 H1
+	_spawn_pressure(runner)   # WK-116
 	_wk108b_keeper = [-1, -1]   # WK-108b: roles are per stage (every goal is a fresh kickoff)
 	_wk108b_calm_t = [-1.0, -1.0]   # WK-108b
 
@@ -695,6 +715,8 @@ func _credit_goal(runner, scoring: int) -> Dictionary:
 			if aj >= 0 and aj != si and int(_teams[aj]) == scoring 					and run_t - float((tlog[j] as Dictionary)["t"]) <= Tuning.sports_assist_window:
 				out["assist_idx"] = aj
 	out["ball_t"] = _latched_ball_t(runner, goal_t)   # WK-131 H4: GoalZone.scored_ball_t (primary kickoff clock)
+	if _pressure != null and is_instance_valid(_pressure):   # WK-116: per-rally A/B log (absent when the rule is off)
+		out["pressure_step"] = int(_pressure.get("step"))
 	if int(out["scorer_idx"]) >= 0:
 		out["scorer_name"] = str(runner.player_name(int(out["scorer_idx"])))
 	if int(out["assist_idx"]) >= 0:
@@ -873,6 +895,34 @@ func _latched_ball_t(runner, fallback: float) -> float:
 			if bt != null and float(bt) >= 0.0:
 				return float(bt)
 	return fallback
+
+# ------------------------------------------------------------------ WK-116 PRESSURE NETS (spec §4 / §10.1)
+
+## on_stage_ready: one PressureNets per soccer stage while Tuning.sports_pressure_rule != 0 (latched per stage, like the gates).
+func _spawn_pressure(runner) -> void:
+	_pressure = null
+	if _sport != "soccer" or int(Tuning.sports_pressure_rule) == 0 or not is_instance_valid(_ball):
+		return
+	var pn: Node2D = PRESSURE_SCRIPT.new() as Node2D
+	pn.name = "PressureNets"
+	runner._level_root.add_child(pn)   # freed with the level on the next kickoff reload (= the reset)
+	pn.call("setup", runner, self, _ball, _pressure_override)
+	_pressure = pn
+
+## Court JSON "pressure_max_grow_px" (spec §4.3.3): optional cap on a mouth's total growth. -1 = absent.
+func _read_pressure_override(path: String) -> float:
+	if not FileAccess.file_exists(path):
+		return -1.0
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return -1.0
+	return float((parsed as Dictionary).get("pressure_max_grow_px", -1.0))
+
+## QA (spec §11): this stage's pressure telemetry, {"rule": 0} when the rule is off / not soccer.
+func pressure_stats() -> Dictionary:
+	if _pressure == null or not is_instance_valid(_pressure):
+		return {"rule": 0}
+	return _pressure.call("stats")
 
 # ------------------------------------------------------------------ WK-111 (SP-09) match stats + end framing
 

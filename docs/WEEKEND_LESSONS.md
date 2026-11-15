@@ -207,3 +207,13 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **WK-162: the sky-drop cloud bank lives in the 0.18 parallax hills layer, so how high it sits next to the decks depends on each
   level's camera** (screen gap = zoom x (floor_y - deck_y + bank_y - 40 + 0.82 x (cam.y - anchor.y))). Lowering the bank cleared
   Islands Void but parked it ON Flight School 4's pads; raising it to the hills' base (bank_y 0) gave open sky under the decks on all three.
+- **WK-116: Godot 4 `AudioStreamPlayer.playing` reads FALSE while `stream_paused` is true.** A loop that pauses players by hand (AudioManager
+  is PROCESS_MODE_ALWAYS, so its players never auto-pause) and only touches `if pl.playing:` pauses them once and never un-pauses them.
+  Test `pl.playing or pl.stream_paused`.
+- **WK-116: the game keeps running while you look at screenshots.** Fast-forwarding `Ball._clock` and then reviewing a PNG before the next
+  eval let the clock run ~10 s, so step 2 had fired before the "step 1" shot. Script the whole set-clock / sleep / screenshot sequence in ONE
+  shell call (scratch `wk116_cap.sh` pattern), and freeze the goats (`p.frozen = true`) first or a bot goal reloads the stage under you.
+- WK-116: gbplay prints int dictionary keys as JSON strings (`"1": [...]`), but GDScript still needs `d[1]`; `d["1"]` errors and the eval
+  returns `null` with no message.
+- WK-116: teleport the sports ball with `PhysicsServer2D.body_set_state(b.get_rid(), BODY_STATE_TRANSFORM / BODY_STATE_LINEAR_VELOCITY, ...)`;
+  setting `global_position` on the live RigidBody2D from eval is overwritten by the next physics step.

@@ -83,6 +83,14 @@ const SFX := {
 	# already licensed for tile_crack; 40 ms, ~2.2 kHz) pitched up + quiet = a small dry "tk", not a menu click. ---
 	"super_locked":      ["res://assets/sfx/kenney_impactPlank_medium_000.ogg", "res://assets/sfx/kenney_impactPlank_medium_001.ogg",
 	                      "res://assets/sfx/kenney_impactPlank_medium_002.ogg"],   # WK-20e
+	# --- WK-116 PRESSURE NETS (spec docs/specs/wk116_long_rally_2026-11-15.md §5; provenance in LICENSES.md). ka-CHUNK = a pitched-up
+	# wood knock ("ka") then a low heavy punch ("CHUNK") 70 ms later (+ slam on step 2); OOOH = the goal crowd slowed. The murmur bed
+	# and the clap-chant loops are derived from rewardCheer.mp3 / Kenney impactPlank (tools/audio/render_wk116_crowd.py). ---
+	"pressure_ka":       ["res://assets/sfx/kenney_impactWood_medium_000.ogg", "res://assets/sfx/kenney_impactWood_medium_001.ogg"],
+	"pressure_chunk":    ["res://assets/sfx/kenney_impactPunch_heavy_000.ogg", "res://assets/sfx/kenney_impactPunch_heavy_002.ogg",
+	                      "res://assets/sfx/kenney_impactPunch_heavy_004.ogg"],
+	"pressure_slam":     ["res://assets/sfx/slam.mp3"],
+	"pressure_ooh":      ["res://assets/sfx/rewardCheer.mp3"],
 }
 
 # --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
@@ -127,6 +135,7 @@ const PRIORITY_SFX := {
 	"goal_red": true, "goal_blue": true, "goal_crowd": true, "own_goal": true, "own_goal_groan": true,
 	"ball_power": true, "sports_fall": true, "tile_break": true,
 	"whistle_double": true,   # WK-131: the gates-open whistle is a payoff beat
+	"pressure_ka": true, "pressure_chunk": true, "pressure_slam": true, "pressure_ooh": true,   # WK-116: escalation beats
 }
 const FILLER_SFX := {"bounce": true}
 # Per-sound voice caps: past the cap the sound recycles its OWN oldest voice. "countdown" doubles as the Bomb.gd
@@ -246,6 +255,7 @@ func _ready() -> void:
 	EventBus.kickoff_gate_dropped.connect(_on_kickoff_gate_dropped)   # WK-131 stage-intro drop-in clonk
 	EventBus.kickoff_gate_tick.connect(_on_kickoff_gate_tick)   # WK-131 warning wind-up ticks
 	EventBus.super_lock_pressed.connect(_on_super_lock_pressed)   # WK-20e spawn-truce dry click
+	EventBus.sports_pressure.connect(_on_sports_pressure)   # WK-116 pressure nets (bed swell, ka-CHUNK, clap-chant)
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -768,6 +778,128 @@ func _on_kickoff_gate_tick(n) -> void:
 	gate_ticks += 1
 	play_sfx("gate_whine", {"volume_db": GATE_TICK_DB, "pitch": minf(1.0 + 0.12 * float(n), 1.5), "pitch_var": 0.0})
 
+# --------------------------------------------------------------------- WK-116 pressure nets
+
+const PRESSURE_BED_STREAM := "res://assets/sfx/crowd_murmur_loop.ogg"
+const PRESSURE_CHANT_STREAM := "res://assets/sfx/crowd_clap_loop.ogg"
+const PRESSURE_OFF_DB := -60.0
+const PRESSURE_BED_IN_RATE := 60.0     # dB/s: the bed's first fade-in from silence to Tuning.sports_pressure_bed_db_lo
+const PRESSURE_CHANT_IN_S := 0.4       # s the chant takes to fade in at step 2
+const PRESSURE_CHUNK_DELAY := 0.07     # s between the "ka" and the "CHUNK"
+const PRESSURE_MOUTH_STAGGER := 0.035  # s between the two mouths' ka-CHUNKs (one per mouth, thicker than one)
+var pressure_events: Array = []        # QA: every EventBus.sports_pressure step received this session
+var _pressure_bed: AudioStreamPlayer = null
+var _pressure_chant: AudioStreamPlayer = null
+var _bed_db := PRESSURE_OFF_DB
+var _bed_goal := PRESSURE_OFF_DB       # where the bed is heading
+var _bed_rate := 0.0                   # dB/s toward _bed_goal
+var _bed_next := PRESSURE_OFF_DB       # second leg (the +6 dB swell) after the fade-in reaches bed_db_lo
+var _bed_next_rate := 0.0
+var _chant_db := PRESSURE_OFF_DB
+var _chant_goal := PRESSURE_OFF_DB
+var _chant_rate := 0.0
+
+func _pressure_loop(path: String) -> AudioStreamPlayer:
+	var pl := AudioStreamPlayer.new()
+	pl.bus = "SFX"
+	pl.volume_db = PRESSURE_OFF_DB
+	var st := _stream(path)
+	if st != null:
+		if st is AudioStreamOggVorbis:
+			(st as AudioStreamOggVorbis).loop = true
+		pl.stream = st
+	add_child(pl)
+	return pl
+
+## step 0 anticipation: the murmur bed fades in, then swells +6 dB over warn_s. 1: ka-CHUNK per mouth + crowd OOOH. 2: heavier
+## ka-CHUNK per mouth + the clap-chant loop (until the goal). -1: bed + chant fade out (the goal roar takes over).
+func _on_sports_pressure(step) -> void:
+	var st: int = int(step)
+	pressure_events.append(st)
+	if _pressure_bed == null:
+		_pressure_bed = _pressure_loop(PRESSURE_BED_STREAM)
+		_pressure_chant = _pressure_loop(PRESSURE_CHANT_STREAM)
+	var lo: float = Tuning.sports_pressure_bed_db_lo
+	var hi: float = Tuning.sports_pressure_bed_db_hi
+	match st:
+		0:
+			_bed_start(lo, PRESSURE_BED_IN_RATE)
+			_bed_next = hi
+			_bed_next_rate = absf(hi - lo) / maxf(Tuning.sports_pressure_warn_s, 0.05)
+		1, 2:
+			if _bed_goal < hi - 0.01 and _bed_next < hi - 0.01:   # the anticipation was skipped (warn 0): straight to the swell level
+				_bed_start(hi, PRESSURE_BED_IN_RATE)
+			var heavy: bool = st == 2
+			_pressure_clunk(heavy, 0.0)
+			_pressure_clunk(heavy, PRESSURE_MOUTH_STAGGER)
+			if not heavy:
+				play_sfx("pressure_ooh", {"volume_db": Tuning.sports_pressure_ooh_db, "pitch": 0.74, "pitch_var": 0.02})
+			else:
+				if _pressure_chant != null and _pressure_chant.stream != null:
+					if not _pressure_chant.playing:
+						_chant_db = PRESSURE_OFF_DB
+						_pressure_chant.volume_db = _chant_db
+						_pressure_chant.play()
+					_chant_goal = Tuning.sports_pressure_chant_db
+					_chant_rate = absf(_chant_goal - PRESSURE_OFF_DB) / PRESSURE_CHANT_IN_S
+		-1:
+			var fo: float = maxf(Tuning.sports_pressure_fade_out_s, 0.01)
+			_bed_goal = PRESSURE_OFF_DB
+			_bed_rate = absf(_bed_db - PRESSURE_OFF_DB) / fo
+			_bed_next = PRESSURE_OFF_DB
+			_bed_next_rate = 0.0
+			_chant_goal = PRESSURE_OFF_DB
+			_chant_rate = absf(_chant_db - PRESSURE_OFF_DB) / fo
+
+func _bed_start(goal: float, rate: float) -> void:
+	if _pressure_bed == null or _pressure_bed.stream == null:
+		return
+	if not _pressure_bed.playing:
+		_bed_db = PRESSURE_OFF_DB
+		_pressure_bed.volume_db = _bed_db
+		_pressure_bed.play()
+	_bed_goal = goal
+	_bed_rate = rate
+	_bed_next = goal
+	_bed_next_rate = 0.0
+
+## One mouth's two-hit mechanical ka-CHUNK (step 2: lower, +3 dB, with a slam under the CHUNK).
+func _pressure_clunk(heavy: bool, delay: float) -> void:
+	var db: float = Tuning.sports_pressure_clunk_db + (3.0 if heavy else 0.0)
+	var ka := func() -> void:
+		play_sfx("pressure_ka", {"volume_db": db - 3.0, "pitch": 1.25 if heavy else 1.5, "pitch_var": 0.04})
+	var chunk := func() -> void:
+		play_sfx("pressure_chunk", {"volume_db": db, "pitch": 0.62 if heavy else 0.78, "pitch_var": 0.03})
+		if heavy:
+			play_sfx("pressure_slam", {"volume_db": db - 5.0, "pitch": 0.7, "pitch_var": 0.03})
+	if delay <= 0.0:
+		ka.call()
+	else:
+		get_tree().create_timer(delay).timeout.connect(ka)
+	get_tree().create_timer(delay + PRESSURE_CHUNK_DELAY).timeout.connect(chunk)
+
+## Volume legs + pause: the loops pause with the game (this node always processes, so they are paused by hand).
+func _tick_pressure_loops(delta: float) -> void:
+	if _pressure_bed == null:
+		return
+	var paused: bool = get_tree().paused
+	for pl in [_pressure_bed, _pressure_chant]:
+		if pl != null and (pl.playing or pl.stream_paused):   # a paused player reports playing == false
+			pl.stream_paused = paused
+	if paused:
+		return
+	_bed_db = move_toward(_bed_db, _bed_goal, _bed_rate * delta)
+	if is_equal_approx(_bed_db, _bed_goal) and _bed_next != _bed_goal:
+		_bed_goal = _bed_next
+		_bed_rate = _bed_next_rate
+	_pressure_bed.volume_db = _bed_db
+	if _bed_db <= PRESSURE_OFF_DB + 0.01 and _bed_goal <= PRESSURE_OFF_DB and _pressure_bed.playing:
+		_pressure_bed.stop()
+	_chant_db = move_toward(_chant_db, _chant_goal, _chant_rate * delta)
+	_pressure_chant.volume_db = _chant_db
+	if _chant_db <= PRESSURE_OFF_DB + 0.01 and _chant_goal <= PRESSURE_OFF_DB and _pressure_chant.playing:
+		_pressure_chant.stop()
+
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()
 
@@ -785,6 +917,7 @@ func _out_of_court(victim) -> bool:
 
 func _process(delta: float) -> void:
 	_tick_aim_voices(delta)   # WK-26
+	_tick_pressure_loops(delta)   # WK-116
 	var want := _any_boosting()
 	thrust_active = want
 	var target := THRUST_ON_DB if want else THRUST_OFF_DB
