@@ -125,7 +125,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   WK-66a, so WK-66c's contingency is still unjudged) and WK-136's re-light feel.
 
 **On deck (11+, in order; lane in brackets):**
-1. WK-85a Trials void reads as a lethal drop: lesson 1 fill band + lesson 4 floating props (CD3-06) (P2/S) [V, after WK-66b:
+1. ~~WK-85a~~ done 2702dc0 — Trials void reads as a lethal drop: lesson 1 fill band + lesson 4 floating props (CD3-06) (P2/S) [V, after WK-66b:
    `ArenaRenderer.gd`, `levels/courses/tut_01_first_flight.json`, `tut_04_fuel_run.json`]
 2. WK-99 fuel super-ready notch + CD3-04b billed-chunk flash (M) [H: `PlayerCard.gd`, `SportsHUD.gd`; after WK-42 releases `MatchHUD.gd`
    and after WK-135 + WK-136 settle the fuel economy]
@@ -1567,7 +1567,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Status: done 1a91a55. The producer filed this entry retroactively in re-rank #6 and closed it on the commit + loop/skill docs. Evidence
   check: the first multi-lane session. If two agents collide on a port or a run kills another lane's game, reopen.
 
-### [ ] WK-85a [P2][S] Trials void reads as a lethal drop: Flight School lesson 1 fill band + lesson 4 floating props (CD3-06; split from WK-85)
+### [x] WK-85a [P2][S] Trials void reads as a lethal drop: Flight School lesson 1 fill band + lesson 4 floating props (CD3-06; split from WK-85) — 2702dc0
 - Area: trials | art · Owner: art pipeline + level-designer, art-director grade · Source: creative-director WK-CD3 CD3-06, plus the band
   CD1 and CD2 flagged under WK-85 (split out at re-rank #7 so the S that matters is pullable on its own)
 - Evidence: `tools/out/cd3/fs_07_t4.png`: the bottom half of lesson 4 is flat pale green, with bushes and fences floating at pad height
@@ -2133,3 +2133,7 @@ nets not judged (snapshot predates 66a -> 66c to CD4)
 Builder follow-ups since re-rank #6: WK-66a -> 66b, 66c · WK-53b/WK-26 -> 53c · WK-128 -> 135 (spec; absorbs 133, 134, 128b)
 Builder follow-ups since re-rank #5: WK-123 -> 123b, 128 (+ 95f merged in), 129 · WK-108 -> 108b (bots), 131 (kickoff rule, CD2-03 carry-over) ·
 WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38 re-scope note
+
+### [ ] WK-137 [P2][S] Trials fall triggers the Brawl "FIRST BLOOD!" announcer
+- Source: WK-85a builder (2P lesson 4, goat teleported into a gap -> "FIRST BLOOD!"). May be an artefact of the teleport; check a
+  real fall in 2P Flight School. Brawl callouts (FIRST BLOOD / TWO LEFT) should never fire in Trials or sports.
