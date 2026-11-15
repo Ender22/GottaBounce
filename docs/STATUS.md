@@ -9,8 +9,8 @@ Today (all committed, see BACKLOG "Done since re-rank #7/#8"): WK-37d/e ghosts, 
 WK-53b/26 taunt + super-aim cue, WK-13/42/14/40/38/39/29 menus+glyphs, WK-120/125 lobby, WK-85/85a backdrops, WK-117/52/113 sports UI,
 WK-137 Brawl-only callouts, WK-37f ghosts out of terrain. Audits: CD3 (ee892a5), UX4 (c305199). Specs: WK-20d (9c05fa1), WK-131 (f5709c7)
 + gate brief (3a1f82a). Backlog re-rank #8 (3a0b1a8). In flight (SendMessage to resume):
-- WK-135 bumper build (SCRATCH COPY, merges into repo at the end; holds Player/InputBot/BounceResolver/SportsMode/PartyMatch + the
-  headless batch slot) — agent a9403f95b2887d5dd.
+- WK-135: first builder STALLED (no output 09:50-12:55) and was stopped. RECOVERY agent a2b94bf427fc73cb3 finishes PHASE 1 only
+  from scratchpad/wk135proj + scratchpad/wk135 (harness/results), merges phase 1 into the repo; phases 2-3 become a follow-up.
 - Lane U (port 9104): WK-33 controls screen, WK-139 end-screen kit, WK-140 quit dialog — agent ae2fe1dbe4dda3563.
 - Lane L (port 9108): WK-28a lobby disconnect grace, WK-138 + WK-83 lobby prompts/safe area — agent a117e4f03d8143687.
 - WK-131 padlock badge art (ChatGPT via Chrome, per docs/briefs/kickoff_gate_2026-11-15.md) — agent a255265beadf9188e.

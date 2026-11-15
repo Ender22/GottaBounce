@@ -130,3 +130,6 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **Back-to-back gbplay `eval`s advance only ~1 game frame between them** (Engine.get_process_frames 5996 -> 5997), so "eval, then eval
   to read the result" sees almost no animation time. Put a `sleep` step between, or slow the Tuning knob at runtime for a still (WK-83
   set `Tuning.lobby_wait_flash = 4.0` via eval to photograph a 0.45 s flash, then restored it).
+- **Watch long builders for stalls.** The WK-135 builder wrote nothing for ~3 h (last output 09:50) while "running"; a queued
+  SendMessage never reached it. Check its scratch/output dir timestamps each heartbeat; if nothing new for > 45 min and no Godot
+  process is running, TaskStop it and start a recovery agent pointed at its scratch copy + notes.
