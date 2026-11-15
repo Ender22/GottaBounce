@@ -96,8 +96,8 @@ const BLEAT_BY_SKIN := {
 	"yellow": {"hero": "puff",  "pitch": 1.08, "db": 2.0},    # PUFF: smallest, highest kid
 }
 const BLEAT_FALLBACK_ORDER := ["pogo", "butch", "ziggy", "puff", "vex", "billy"]   # unknown skin -> by player idx
-const BLEAT_DB := -4.0            # living taunt: under a smash (-10..+2) and the KO pop (-3), over the music bed
-const BLEAT_GHOST_DB := -6.0      # the dead are a seasoning: just over the thrust loop (-24 dB eff.), under a KO pop
+const BLEAT_DB := -1.0            # WK-79b (was -4; SFX makeup +4 removed): living taunt, under a smash and the KO pop (+1), over the bed
+const BLEAT_GHOST_DB := -4.0      # WK-79b (was -6): the dead are a seasoning, over the thrust loop (-12), under a KO pop
 const BLEAT_GHOST_PITCH := 1.1892 # +3 semitones (spec wk37a §9 "ghostly variant")
 const BLEAT_PITCH_VAR := 0.03     # small per-press spread so repeats aren't a machine-gun of one sample
 const BLEAT_MAX_VOICES := 3       # global cap on simultaneous bleats (4 spamming ghosts can't starve the pool)
@@ -133,7 +133,9 @@ const FILLER_SFX := {"bounce": true}
 # telegraph beep (4 -> 14 Hz, 0.22-0.32 s each): Everything Yard fired 556 in 89 s and held the pool at 14/14 for
 # 85 of 1574 samples. The match 3-2-1 (1 Hz) never reaches the cap.
 const SFX_VOICE_CAP := {"countdown": 3, "super_aim": 3}   # WK-26: <= 3 wind-ups at once (a 4th recycles the oldest)
-const THRUST_ON_DB := -7.0
+# WK-79b (was -7; audit docs/audit/2026-11-15_audio_measure.md §2): the one looped jetpack voice was 38-65 % of all combat
+# sound, 5-9 dB over the music, masking bounce/KO/aim in 0.5-1.5 kHz. With the SFX makeup gone this is -9 dB effective.
+const THRUST_ON_DB := -12.0
 const THRUST_OFF_DB := -60.0
 const THRUST_FADE := 10.0        # db/sec toward target
 
@@ -162,7 +164,7 @@ var bleats_heard := 0            # bleats that produced a sound (rest = rate lim
 var bleat_log: Array = []        # last 32 heard: {ms, idx, ghost, key, pitch} (QA via gbplay eval)
 var _bleat_hist := {}            # "idx:ghost" -> [ms of recent heard bleats] (per-player rate limit)
 # WK-26 super-aim wind-up: one voice per aiming goat, faded out the moment its aim ends (fire / cancel / KO / freeze).
-const SUPER_AIM_DB := -8.0       # under super_fire (-2) and a smash; clearly over the thrust loop and the music bed
+const SUPER_AIM_DB := -2.0       # WK-79b (was -8: measured 1.8 dB UNDER the thrust bed, masked); over the thrust loop and the music bed
 const SUPER_AIM_FADE := 0.05     # s fade-out when the aim ends (no click; the blast / smash covers it anyway)
 var super_aims_seen := 0         # QA: every EventBus.super_aim_started received
 var super_aims_heard := 0        # QA: wind-ups that got a voice
@@ -173,9 +175,9 @@ var _aim_voices := {}            # player instance id -> {"p": Player, "v": Audi
 # a fast ball reads ~2x its exit speed, so the range spans to ~2x the cap; median lands mid-scale.
 const BALL_IMPACT_LO := 800.0    # px/s -> soft tap (a nudge / dribble carry)
 const BALL_IMPACT_HI := 3800.0   # px/s -> full thwack (a fast ball sent straight back)
-const BALL_DB_SOFT := -15.0      # soft tap sits well under the music bed
-const BALL_DB_HARD := -5.0       # a full thwack sits level with bounces
-const BALL_DB_POWER := -1.0      # power shot: the loudest ball sound, still below the goal stinger
+const BALL_DB_SOFT := -12.0      # WK-79b (was -15): soft tap sits at / under the music bed
+const BALL_DB_HARD := -1.0       # WK-79b (was -5): a full thwack sits level with bounces
+const BALL_DB_POWER := 0.0       # WK-79b (was -1): power shot, file peak -1 dBFS -> lands at the limiter ceiling, not over it
 const BALL_GAP_SOFT := 0.04      # min s between touch sounds: merges only true flams (two goats on the
                                  # ball in the same few ticks); Ball's per-player 0.12 s touch cd bounds a
                                  # dribble, and BALL_REPEAT_DUCK keeps a dribble/scrum under the mix
@@ -183,7 +185,8 @@ const BALL_GAP_HARD := 0.03      # a hard hit may follow quickly (a real second 
 const BALL_REPEAT_WINDOW := 0.3  # a touch within this of the last heard one is a dribble/scrum ...
 const BALL_REPEAT_DUCK := -5.0   # ... and is ducked so it never machine-guns over the mix
 const BOUNCE_MIN_GAP := 0.04     # global floor between bounce sounds (s)
-const BOUNCE_DB_SPORTS := -8.0   # bounce level in sports (brawl keeps -4)
+const BOUNCE_DB_SPORTS := -4.0   # WK-79b (was -8): bounce level in sports, 4 dB under brawl so the ball stays the hero
+const BOUNCE_DB_BRAWL := 0.0     # WK-79b (was a hardcoded -4): the core verb measured 2.7 dB under the thrust bed
 const BOUNCE_SOUND_MIN_SPEED := 250.0   # WK-132: px/s exit speed below which a contact may be resting jitter ...
 const BOUNCE_ONSET_GAP := 0.15          # ... and is silent unless that goat was contact-free this long (a landing)
 var bounce_micro_skipped := 0    # WK-132 QA: jitter contacts silenced
@@ -458,7 +461,7 @@ func _on_surface_bounced(surface, player, _normal, _contact) -> void:
 	if now - _bounce_last_t < BOUNCE_MIN_GAP:
 		return
 	_bounce_last_t = now
-	var db: float = BOUNCE_DB_SPORTS if _sports_active() else -4.0
+	var db: float = BOUNCE_DB_SPORTS if _sports_active() else BOUNCE_DB_BRAWL   # WK-79b
 	play_sfx("bounce", {"pitch": pitch, "pitch_var": 0.08, "volume_db": db, "tag": "bounce"})
 
 func _on_smashed(_attacker, _victim, impulse) -> void:
@@ -482,7 +485,11 @@ func _on_hazard_whoosh(_hazard, pos, _speed) -> void:
 	play_sfx("death_whoosh", {"volume_db": -15.0, "pitch": 0.62, "pitch_var": 0.05, "tier": TIER_FILLER})   # WK-132 ambience
 
 func _on_super_boosted(_player) -> void:
-	play_sfx("super_fire", {"volume_db": -2.0, "pitch_var": 0.08})
+	# WK-79b: explosion_boss is 74 % 20-60 Hz at -6 dBFS RMS; at -2 dB it ducked the whole SFX bus ~5 dB for 2.8 s and
+	# read < 2 LU on a TV. Rumble tail down to -10 (peaks at the compressor threshold) + an interim mid "crack" layer
+	# from the owner's slam.mp3 pitched down (distinct from smash_heavy at 1.0) until a real crack is sourced (audit S-1).
+	play_sfx("super_fire", {"volume_db": -10.0, "pitch_var": 0.08})
+	play_sfx("super_fire", {"path": "res://assets/sfx/slam.mp3", "volume_db": -3.0, "pitch": 0.8, "pitch_var": 0.05})
 
 func _on_exploded(_center, _radius) -> void:
 	play_sfx("explode", {"volume_db": 0.0})
@@ -536,9 +543,11 @@ func _on_killed(victim, cause, _attacker) -> void:
 			play_sfx("death", {"volume_db": -8.0, "pitch_var": 0.1})
 		return
 	# off-screen / ring-out kills get the whoosh-out; other causes just the death pop
+	# WK-79b (both were -3): the KO measured only +2.9 dB over the thrust bed; +1 keeps its absolute level with the
+	# SFX makeup removed while the bed falls ~9 dB
 	if str(cause) == "ring_out":
-		play_sfx("death_whoosh", {"volume_db": -3.0})
-	play_sfx("death", {"volume_db": -3.0, "pitch_var": 0.1})
+		play_sfx("death_whoosh", {"volume_db": 1.0})
+	play_sfx("death", {"volume_db": 1.0, "pitch_var": 0.1})
 
 # --------------------------------------------------------------------- sports (WK-105 / SP-01)
 
@@ -580,7 +589,7 @@ func _on_goal_scored(team, _scorer, own_goal) -> void:
 		play_sfx("goal_crowd", {"volume_db": -9.0, "pitch": 0.85, "pitch_var": 0.0, "protect": true})
 		return
 	play_sfx("goal_red" if int(team) == 0 else "goal_blue", {"volume_db": 4.0, "pitch_var": 0.0, "protect": true})
-	play_sfx("goal_crowd", {"volume_db": -2.0, "pitch_var": 0.03, "protect": true})
+	play_sfx("goal_crowd", {"volume_db": 2.0, "pitch_var": 0.03, "protect": true})   # WK-79b (was -2)
 	play_sfx("ball_body", {"volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.0})   # net-bulge thump
 
 var last_goal_own := false       # QA: was the most recent voiced goal an own goal
@@ -592,7 +601,7 @@ func _on_drop_tile_hit(_tile, broken) -> void:
 		play_sfx("tile_break", {"volume_db": -4.0, "pitch": 0.95, "pitch_var": 0.06})
 		play_sfx("tile_break_body", {"volume_db": -8.0, "pitch": 0.9, "pitch_var": 0.05})
 	else:
-		play_sfx("tile_crack", {"volume_db": -9.0, "pitch": 1.15, "pitch_var": 0.08})
+		play_sfx("tile_crack", {"volume_db": -6.0, "pitch": 1.5, "pitch_var": 0.08})   # WK-79b (was -9 / 1.15: 170 Hz centroid, buried)
 
 ## WK-53 bleat / taunt (EventBus.bleated). Each hero has its own goat; a ghost plays the ghost variant +3 st.
 ## Rate limit per player (same numbers as the ghost spec: one per ghost_bleat_min_interval, <= ghost_bleat_max_per_s
@@ -720,7 +729,7 @@ const GATE_CLONK_DB_HARD := -3.0      # under a power shot (-1), over a soft bal
 const GATE_CLONK_GAP := 0.08          # s: a ball pinned on the gate re-contacting can't machine-gun the clonk
 const GATE_OOH_GAP := 1.5             # s rate limit on the crowd ooh (brief §11)
 const GATE_TICK_DB := -9.0
-const GATE_WHISTLE_DB := 0.0          # the loudest gate cue, under the goal stinger (+4)
+const GATE_WHISTLE_DB := -2.0         # WK-79b (was 0: file peak -1.4 sat at the limiter): loudest gate cue, under the goal stinger (+4)
 var gate_clonks := 0                  # QA counters (audio has no visual proof)
 var gate_oohs_wanted := 0             # hard hits that WANT the ooh (silent until a crowd_ooh asset exists)
 var gate_ticks := 0
@@ -788,7 +797,9 @@ func _any_boosting() -> bool:
 	if scene == null or not ("players" in scene):
 		return false
 	for p in scene.players:
+		# WK-79b: a frozen goat (intro pop-in, countdown, STAGE_END, KO freeze) keeps _boosting_now latched while it holds
+		# boost - the drone ran through every goal celebration + countdown after stage 1 (audit §2). Frozen = silent.
 		if is_instance_valid(p) and p.has_method("is_boosting") and p.has_method("is_dead") \
-				and not p.is_dead() and p.is_boosting():
+				and not p.is_dead() and not bool(p.get("frozen")) and p.is_boosting():
 			return true
 	return false

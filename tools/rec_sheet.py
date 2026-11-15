@@ -365,6 +365,63 @@ def report(data):
         print("  hazard smashes (impulse): " + ", ".join(str(e["impulse"]) for e in hs))
 
 
+def extract_audio(avi, buf, d):
+    """WK-79b: keep the recording's mix. Godot's AVI Movie Maker stores the master bus as PCM ('01wb' chunks, s16 48 kHz
+    stereo by default). Write <dir>/audio.wav BEFORE the avi is deleted: ffmpeg first, else a pure-Python copy of the PCM
+    chunks. Returns True if audio.wav exists afterwards, or the avi has no audio stream at all (nothing to keep)."""
+    import shutil
+    import subprocess
+    import wave
+    wav = os.path.join(d, "audio.wav")
+    ff = shutil.which("ffmpeg")
+    if ff:
+        r = subprocess.run([ff, "-v", "error", "-y", "-i", avi, "-vn", "-c:a", "pcm_s16le", wav], capture_output=True)
+        if r.returncode == 0 and os.path.exists(wav) and os.path.getsize(wav) > 44:
+            print("extracted audio.wav (ffmpeg)")
+            return True
+        print("WARNING: ffmpeg audio extract failed (%s); trying the PCM chunk copy" % r.stderr.decode(errors="replace")[-200:])
+    # fallback: WAVEFORMATEX from the audio stream's 'strf' (after the 'auds' strh), then every '01wb' chunk in order
+    a = buf.find(b"auds")
+    if a < 0:
+        print("no audio stream in movie.avi (nothing to keep)")
+        return True
+    f = buf.find(b"strf", a)
+    if f < 0:
+        return False
+    fmt = buf[f + 8:f + 8 + 16]
+    tag, ch, rate = int.from_bytes(fmt[0:2], "little"), int.from_bytes(fmt[2:4], "little"), int.from_bytes(fmt[4:8], "little")
+    bits = int.from_bytes(fmt[14:16], "little")
+    if tag != 1:   # not PCM
+        print("WARNING: audio stream is not PCM (format tag %d); avi kept" % tag)
+        return False
+    pcm = bytearray()
+    i = buf.find(b"movi")
+    if i < 0:
+        return False
+    i += 4
+    L = len(buf)
+    while i + 8 <= L:   # same RIFF chunk walk as extract_avi (a byte search could hit '01wb' inside JPEG data)
+        cid = buf[i:i + 4]
+        size = int.from_bytes(buf[i + 4:i + 8], "little")
+        if cid == b"idx1":
+            break
+        if cid == b"LIST":
+            i += 12
+            continue
+        if cid[2:4] == b"wb":
+            pcm += buf[i + 8:i + 8 + size]
+        i += 8 + size + (size & 1)
+    if not pcm:
+        return False
+    with wave.open(wav, "wb") as w:
+        w.setnchannels(ch)
+        w.setsampwidth(bits // 8)
+        w.setframerate(rate)
+        w.writeframes(bytes(pcm))
+    print("extracted audio.wav (PCM chunk copy, %d ch %d Hz %d bit)" % (ch, rate, bits))
+    return True
+
+
 def extract_avi(d):
     """Godot Movie Maker MJPEG .avi -> frameNNNNNNNN.jpg (each '00dc' chunk is a complete JPEG)."""
     avi = os.path.join(d, "movie.avi")
@@ -393,7 +450,11 @@ def extract_avi(d):
             continue
         i += 8 + size + (size & 1)
     if n > 0:
-        os.remove(avi)
+        # WK-79b: the avi carried the only copy of the mix; extract audio.wav first, keep the avi if that fails
+        if extract_audio(avi, buf, d):
+            os.remove(avi)
+        else:
+            print("WARNING: audio.wav not written - movie.avi KEPT so the mix is not lost")
         print("extracted %d JPEG frames from movie.avi" % n)
     else:
         j = buf.find(b"movi")
