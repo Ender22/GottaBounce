@@ -150,7 +150,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 20. WK-32a hero decision (S)
 21. WK-29 glyph component (M)
 22. WK-65 court cards + Dropshot mode card + CD3-09 thumbnails (M, art generation)
-23. WK-85 tall-arena tiling (the remainder after WK-85a)
+23. ~~WK-85~~ done 5ea164e — tall-arena tiling (the remainder after WK-85a)
 24. WK-57 arena scorecard tool (M; would feed a WK-20d follow-up across all 94 arenas)
 25. BLOCKED (GPU): WK-90 hit-stop re-measure (then WK-109's hit-stop garnish); WK-101 stage-load spike
 
@@ -1581,7 +1581,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   fall here"; art-director Ship.
 - Status: open (on deck #1, lane V after WK-66b)
 
-### [ ] WK-85 [P2][S] Tall arenas: backdrop painting stretches into a murky smear; tall themed platforms gap
+### [x] WK-85 [P2][S] Tall arenas: backdrop painting stretches into a murky smear; tall themed platforms gap — 5ea164e
 - Source: WK-12 spot render (tools/out/wk/WK-12_the_summit.png, WK-12_twin_towers.png). Owner: gameplay-programmer + art.
 - the_summit / sky_ladder_brawl (2100+ px tall): space_nebula scaled to cover reads as flat dark navy. Options: tile/parallax
   the painting vertically, or a starfield layer for tall space arenas. Themed bodies only draw a 64/128 px strip, so
