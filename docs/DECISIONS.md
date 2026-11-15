@@ -2,6 +2,13 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-169 director answers (spec docs/specs/wk169_spectator_time_2026-11-16.md): DQ-1 YES — WK-169's accept is restated
+  around spectator SECONDS and long waits (>15 s), not median share (structural floor ~20-21 % under LIVES 1). DQ-2 YES — WK-20d's 70.8 s
+  duel is a WK-169 watch note, not a reopen. DQ-3 ACCEPT — 'ghost-decided KOs = 0' means ghost-CREDITED and match-deciding ghost KOs are
+  hard zeros; ghost-assisted credited KOs are banded + flagged (WK-37 credit rule unchanged). DQ-4 — SHOWDOWN prep build after WK-161b
+  commits InputBot.gd. Owner questions OQ-1..3 (LIVES 2 for 3+ humans, showdown camera exception, heal pause) are parked for the owner;
+  studio recommends no on all three.
+
 - **2026-11-16** WK-20d CLOSED (director, docs/audit/2026-11-16_wk20d_phaseA.md, decision-table row 1): per-class targets met on
   419 stages (grounded median 12.6 s, void median 10.6 s with 9 % under 6 s, hazard 13.0 s; session stage median 10.45 s, mean match
   3.4 min). CD4's early/late split was arena mix + match-end cut, not position. No R5 margins, no R6 shelves. Watch items filed: one
