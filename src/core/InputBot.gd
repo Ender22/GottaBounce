@@ -165,6 +165,28 @@ var _wk161_last_t := -INF        # WK-161: _mh_clock of my last surface contact 
 var _wk161_last_p := Vector2.ZERO  # WK-161: its contact point
 var _wk161_last_n := Vector2.ZERO  # WK-161: its normal
 var _wk161_last_face := ""       # WK-161: its class (core / floor / wall / ceiling / surface)
+# WK-161b: chase routing round the obstacle blocking the line to the chase target inside a radial well (Tuning "# WK-161b").
+var _wk161b_live := false        # WK-161b: the cached decision is a routed aim (set per _decide)
+var _wk161b_tgt := Vector2.INF   # WK-161b: chase/plan target point of the last decision (dump telemetry, any path)
+var _wk161b_obj := 0             # WK-161b: instance id of the blocker the side is latched for (0 = none)
+var _wk161b_kind := ""           # WK-161b: "core" (round) / "rect"
+var _wk161b_side := 0            # WK-161b: latched side (+1 / -1, 0 = unpicked): round = rotation sense, rect = end along _wk161b_axis
+var _wk161b_axis := Vector2.ZERO # WK-161b: rect side axis (tangent of the face hit when the side was picked)
+var _wk161b_pick_t := -INF       # WK-161b: _pin_clock when the side was (re)committed
+var _wk161b_last_t := -INF       # WK-161b: _pin_clock of the last routed decision
+var _wk161b_ep_t := 0.0          # WK-161b: _pin_clock when the current route episode opened
+var _wk161b_wp := Vector2.ZERO   # WK-161b: current waypoint
+var _wk161b_ep_flips := 0        # WK-161b: side flips in the current episode
+var _wk161b_frames := 0          # WK-161b telemetry (per stage): physics frames flying a routed aim
+var _wk161b_episodes := 0        # WK-161b: route episodes opened
+var _wk161b_flips := 0           # WK-161b: side flips (same blocker, same episode)
+var _wk161b_flip_max := 0        # WK-161b: most flips in one episode
+var _wk161b_fallbacks := 0       # WK-161b: blocked line but no clear detour (today's straight chase kept)
+var _wk161b_max_s := 0.0         # WK-161b: longest route episode (s) - "orbits the core forever" guard
+var _wk161b_pinned_eps := 0      # WK-161b: in-well stuck episodes whose window mean speed < Tuning.wk161b_pinned_speed
+var _wk161b_pinned_s := 0.0      # WK-161b
+var _wk161b_pingpong_eps := 0    # WK-161b: in-well stuck episodes at or above it (bounce ping-pong, not a press)
+var _wk161b_in_pinned := 0       # WK-161b: 0 none, 1 pinned, 2 ping-pong (current stuck episode's class)
 # WK-95 BR-7: purpose of the super this bot last pressed (attack / finisher_attack / dodge / recovery_hot /
 # recovery_unreachable / attack_dump (WK-127); the pre-WK-95 brain also emits recovery_lowfuel). PartyMatch copies it into
 # round_stats.supers_fired[].purpose_bot at fire time. Telemetry only — never read by the decision code.
@@ -343,6 +365,8 @@ func poll() -> InputIntent:
 	it.aim = _cached_aim
 	it.boost = _cached_boost
 	_wk161_path = "refuel" if _refuel_dive else ("hunt" if _hunt else "plan")   # WK-161
+	if _wk161b_live:   # WK-161b telemetry
+		_wk161b_frames += 1   # WK-161b
 	# WK-128 BR-128 (reflex, every frame — a cached dive boost can outlive the bounce it was decided before)
 	if it.boost and _refuel_dive and not _refuel_cross and wk128_refuel_wait and me.refund_rearm_pending(_refuel_dir):
 		it.boost = false
@@ -915,6 +939,8 @@ func _decide() -> void:
 	_cached_super = false
 	_refuel_dive = false
 	_obj_live = false   # WK-108b
+	_wk161b_live = false   # WK-161b: only a routed branch below sets it
+	_wk161b_tgt = Vector2.INF   # WK-161b
 	# --- refuel rhythm (rule 2): below the floor, dive to a bounce surface — one bounce re-arms
 	if me.fuel < _eff_refuel_floor():
 		# Radial frame: the refuel dive is ALONG the local pull — the well's round body / shell
@@ -937,6 +963,7 @@ func _decide() -> void:
 			var rtarget: Vector2 = (rhit["position"] as Vector2) if not rhit.is_empty() \
 				else pos + rdown * Tuning.bot_radial_dive_fallback
 			var rdir := (rtarget - pos).normalized()
+			_wk161b_tgt = rtarget   # WK-161b: dump telemetry
 			_cached_aim = rdir
 			_refuel_dive = true
 			_refuel_dir = rdir
@@ -1015,6 +1042,12 @@ func _decide() -> void:
 				# close the distance by flight; inside 0.8 x range keep flying only to get AROUND a blocker (LOS),
 				# never orbit a target we cannot safely shoot (the first after-recordings showed bots circling)
 				_cached_boost = me.fuel > _eff_refuel_floor() and (fdist > _eff_attack_range() * 0.8 or fwhy == 3)
+				_wk161b_tgt = fopp.global_position   # WK-161b
+				if not fwin:   # WK-161b: line blocked inside a well -> fly round the blocker (why == 3 semantics: boost)
+					var frd: Vector2 = _wk161b_route(pos, fopp.global_position)   # WK-161b
+					if frd != Vector2.ZERO:   # WK-161b
+						_cached_aim = _jitter(_fly_aim(frd))   # WK-161b
+						_cached_boost = me.fuel > _eff_refuel_floor()   # WK-161b
 				if fwhy == 5 or fwhy == 6:
 					_cached_boost = false   # WK-127: in reach but no shot (blinking / whiff exits) -> wait, don't crowd the line
 				if fwin:
@@ -1057,6 +1090,12 @@ func _decide() -> void:
 			# close the distance by flight; inside 0.8 x range keep flying only to get AROUND a blocker (LOS),
 			# never orbit a target we cannot safely shoot (the first after-recordings showed bots circling)
 			_cached_boost = _hunt and me.fuel > _eff_refuel_floor() and (dist > _eff_attack_range() * 0.8 or why == 3)
+			_wk161b_tgt = tp   # WK-161b
+			if _hunt and not win:   # WK-161b: line blocked inside a well -> fly round the blocker (why == 3 semantics: boost)
+				var hrd: Vector2 = _wk161b_route(pos, tp)   # WK-161b
+				if hrd != Vector2.ZERO:   # WK-161b
+					_cached_aim = _jitter(_fly_aim(hrd))   # WK-161b
+					_cached_boost = me.fuel > _eff_refuel_floor()   # WK-161b
 			if why == 5 or why == 6:
 				_cached_boost = false   # WK-127: in reach but no shot (blinking / whiff exits) -> wait, don't crowd the line
 			if win:
@@ -1077,6 +1116,11 @@ func _decide() -> void:
 		var to_land := land - pos
 		_cached_aim = _jitter(_fly_aim(to_land.normalized())) if to_land.length() > 160.0 else Vector2.ZERO
 		_cached_boost = me.fuel > 35.0 and to_land.length() > 360.0
+		_wk161b_tgt = land   # WK-161b
+		if to_land.length() > 160.0:   # WK-161b: same routing for the plan land point (aim only; boost rule unchanged)
+			var prd: Vector2 = _wk161b_route(pos, land)   # WK-161b
+			if prd != Vector2.ZERO:   # WK-161b
+				_cached_aim = _jitter(_fly_aim(prd))   # WK-161b
 		_hunt = false
 
 ## Ask the active mode for a world-point objective this tick (v5_sports bot-play fix). Returns a
@@ -1785,7 +1829,7 @@ func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
 	var intending: bool = boost and aim != Vector2.ZERO
 	# (a) STUCK / no-progress over a ~1s sliding window
 	_mh_clock += dt
-	_mh_samples.append({"t": _mh_clock, "pos": pos, "move": intending})
+	_mh_samples.append({"t": _mh_clock, "pos": pos, "move": intending, "spd": me.velocity.length()})   # WK-161b: + spd
 	while _mh_samples.size() > 1 and _mh_clock - float(_mh_samples[0]["t"]) > MH_STUCK_WINDOW:
 		_mh_samples.pop_front()
 	var span: float = _mh_clock - float(_mh_samples[0]["t"])
@@ -1805,9 +1849,24 @@ func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
 			_mh_in_stuck = true
 			_mh_stuck_episodes += 1
 			_wk161_record("stuck", _wk161_last_p, _wk161_last_n, _wk161_last_face, disp_now)   # WK-161
+			_wk161b_in_pinned = 0   # WK-161b: classify this episode once, at its start
+			if _wk161_in_well(pos):   # WK-161b: well-aware split (the stuck count itself is unchanged)
+				var spd_sum := 0.0   # WK-161b
+				for smp in _mh_samples:   # WK-161b
+					spd_sum += float(smp.get("spd", 0.0))   # WK-161b
+				var spd_mean: float = spd_sum / float(_mh_samples.size())   # WK-161b
+				if spd_mean < Tuning.wk161b_pinned_speed:   # WK-161b
+					_wk161b_in_pinned = 1   # WK-161b
+					_wk161b_pinned_eps += 1   # WK-161b
+				else:   # WK-161b
+					_wk161b_in_pinned = 2   # WK-161b
+					_wk161b_pingpong_eps += 1   # WK-161b
 		_mh_stuck_secs += dt
+		if _wk161b_in_pinned == 1:   # WK-161b
+			_wk161b_pinned_s += dt   # WK-161b
 	else:
 		_mh_in_stuck = false
+		_wk161b_in_pinned = 0   # WK-161b
 	# (c) BLOCKED-ASCENT: aiming up + boosting, but the highest point reached isn't improving.
 	# "Up" is against the LOCAL gravity frame; in a flat arena down=(0,1) so aim.dot(down)==aim.y and
 	# the progress dot == the old ref_y - pos.y test — algebraically identical to the legacy code.
@@ -2056,7 +2115,183 @@ func _wk161_record(kind: String, contact: Vector2, n: Vector2, face: String, dis
 		rec["aim_n"] = snappedf(a.normalized().dot(n.normalized()), 0.01) if a.length() > 0.1 and n != Vector2.ZERO else 0.0  # WK-161
 	if disp >= 0.0:  # WK-161
 		rec["disp"] = roundi(disp)  # WK-161
+	if _wk161b_tgt != Vector2.INF:   # WK-161b: the decision's target point + whether the line to it is blocked right now
+		rec["tgt"] = [roundi(_wk161b_tgt.x), roundi(_wk161b_tgt.y)]   # WK-161b
+		var tl: float = pos.distance_to(_wk161b_tgt)   # WK-161b
+		var th: Dictionary = _surface_along(pos, (_wk161b_tgt - pos).normalized(), tl) if tl > 1.0 else {}   # WK-161b
+		rec["tgt_blocked"] = not th.is_empty()   # WK-161b
+		if not th.is_empty():   # WK-161b
+			var tc: Object = th.get("collider")   # WK-161b
+			rec["tgt_block"] = "core" if tc != null and tc.has_meta("round") else "rect"   # WK-161b
+	if _hunt and _target != null and is_instance_valid(_target):   # WK-161b
+		rec["tgt_live"] = [roundi(_target.global_position.x), roundi(_target.global_position.y)]   # WK-161b
+	rec["route"] = {"on": Tuning.wk161b_chase_route, "live": _wk161b_live, "side": _wk161b_side, "obj": _wk161b_kind,   # WK-161b
+		"wp": [roundi(_wk161b_wp.x), roundi(_wk161b_wp.y)]}   # WK-161b
 	_wk161_dump.append(rec)  # WK-161
+
+# ---------------------------------------------------------------- WK-161b (chase routing round obstacles in a well)
+
+## WK-161b: inside a radial well, if the ray from `pos` to the chase point `goal` hits a collider, return the unit direction
+## to fly round it (tangent point of a round body, or past the nearer clear end of the hit rect face). Returns ZERO = no
+## routing (switch OFF, outside a well, line clear, or no clear detour = today's straight chase). Called on reaction ticks
+## from _decide only. SIDE latch only: nothing here steers once the line is clear (WK-164 lesson).
+func _wk161b_route(pos: Vector2, goal: Vector2) -> Vector2:  # WK-161b
+	if not Tuning.wk161b_chase_route or me == null or not is_instance_valid(me) or not _wk161_in_well(pos):  # WK-161b
+		return Vector2.ZERO  # WK-161b
+	var to := goal - pos  # WK-161b
+	var dist := to.length()  # WK-161b
+	if dist < 1.0:  # WK-161b
+		return Vector2.ZERO  # WK-161b
+	var u := to / dist  # WK-161b
+	var hit := _surface_along(pos, u, dist)  # WK-161b: the line-of-sight ray
+	# WK-161b: body-width line. A point ray "clears" a pylon corner the goat's body then clips (ON recording f722-758: five
+	# bumper kicks off the pylon's top corner), so two side rays at +-radius also count; a side hit within two radii of the
+	# target is the surface the target itself sits on, not a blocker.
+	if hit.is_empty() and Tuning.wk161b_los_halfwidth > 0.0:  # WK-161b
+		var perp := Vector2(-u.y, u.x) * me._radius * Tuning.wk161b_los_halfwidth  # WK-161b
+		for off in [perp, -perp]:  # WK-161b
+			var sh := _surface_along(pos + off, u, dist)  # WK-161b
+			if not sh.is_empty() and (sh["position"] as Vector2).distance_to(goal + off) > me._radius * 2.0:  # WK-161b
+				hit = sh  # WK-161b
+				break  # WK-161b
+	if hit.is_empty():  # WK-161b
+		return Vector2.ZERO  # WK-161b
+	var col: Object = hit.get("collider")  # WK-161b
+	if col == null or not is_instance_valid(col) or not (col is Node2D):  # WK-161b
+		_wk161b_fallbacks += 1  # WK-161b
+		return Vector2.ZERO  # WK-161b
+	var body := col as Node2D  # WK-161b
+	var oid: int = body.get_instance_id()  # WK-161b
+	var fresh: bool = _pin_clock - _wk161b_last_t > Tuning.wk161b_episode_gap_s  # WK-161b: line clear long enough = new episode
+	if fresh or oid != _wk161b_obj:  # WK-161b: a new episode or a different blocker -> pick a side afresh
+		_wk161b_side = 0  # WK-161b
+		_wk161b_axis = Vector2.ZERO  # WK-161b
+		_wk161b_obj = oid  # WK-161b
+	var dir := Vector2.ZERO  # WK-161b
+	if body.has_meta("round"):  # WK-161b
+		_wk161b_kind = "core"  # WK-161b
+		dir = _wk161b_round(pos, goal, body, hit)  # WK-161b
+	else:  # WK-161b
+		_wk161b_kind = "rect"  # WK-161b
+		dir = _wk161b_rect(pos, goal, body, hit)  # WK-161b
+	if dir == Vector2.ZERO:  # WK-161b
+		_wk161b_fallbacks += 1  # WK-161b
+		return Vector2.ZERO  # WK-161b
+	if fresh:  # WK-161b: an episode opens on its first ROUTED decision (fallback-only ticks never open one)
+		_wk161b_episodes += 1  # WK-161b
+		_wk161b_ep_flips = 0  # WK-161b
+		_wk161b_ep_t = _pin_clock  # WK-161b
+	_wk161b_live = true  # WK-161b
+	_wk161b_last_t = _pin_clock  # WK-161b
+	_wk161b_max_s = maxf(_wk161b_max_s, _pin_clock - _wk161b_ep_t)  # WK-161b
+	return dir  # WK-161b
+
+## WK-161b: hysteresis. `best` = the cheaper side now, `gain` = px it saves over the other, `swung` = the target moved more
+## than wk161b_repick_deg onto the other side (caller's geometry). Keep the latched side unless swung, or the commit ran out
+## and the other side is > wk161b_repick_margin_px shorter. Counts flips (same blocker, same episode).
+func _wk161b_pick(best: int, gain: float, swung: bool) -> int:  # WK-161b
+	if _wk161b_side == 0:  # WK-161b
+		_wk161b_side = best  # WK-161b
+		_wk161b_pick_t = _pin_clock  # WK-161b
+		return best  # WK-161b
+	if best == _wk161b_side:  # WK-161b
+		return _wk161b_side  # WK-161b
+	var expired: bool = _pin_clock - _wk161b_pick_t >= Tuning.wk161b_commit_s  # WK-161b
+	if swung or (expired and gain > Tuning.wk161b_repick_margin_px):  # WK-161b
+		_wk161b_set_side(best)  # WK-161b
+	return _wk161b_side  # WK-161b
+
+func _wk161b_set_side(s: int) -> void:  # WK-161b
+	if _wk161b_side != 0 and s != _wk161b_side:  # WK-161b
+		_wk161b_flips += 1  # WK-161b
+		_wk161b_ep_flips += 1  # WK-161b
+		_wk161b_flip_max = maxi(_wk161b_flip_max, _wk161b_ep_flips)  # WK-161b
+	_wk161b_side = s  # WK-161b
+	_wk161b_pick_t = _pin_clock  # WK-161b
+
+## WK-161b: round blocker (the core). R = body radius + my radius + margin; fly to the tangent point of circle (c, R) on the
+## shorter-arc side; already inside R -> along the tangent with an outward lean (the _pin_avoid shape).
+func _wk161b_round(pos: Vector2, goal: Vector2, body: Node2D, hit: Dictionary) -> Vector2:  # WK-161b
+	var c: Vector2 = body.global_position  # WK-161b
+	var br: float = (hit["position"] as Vector2).distance_to(c)  # WK-161b: ray hit lies on the surface
+	for ch in body.get_children():  # WK-161b
+		if ch is CollisionShape2D and (ch as CollisionShape2D).shape is CircleShape2D:  # WK-161b
+			br = ((ch as CollisionShape2D).shape as CircleShape2D).radius  # WK-161b
+			break  # WK-161b
+	var big_r: float = br + me._radius + Tuning.wk161b_route_margin  # WK-161b
+	var rel := pos - c  # WK-161b
+	var dp := rel.length()  # WK-161b
+	if dp < 1.0:  # WK-161b
+		return Vector2.ZERO  # WK-161b
+	var phi: float = rel.angle_to(goal - c)  # WK-161b
+	var best: int = 1 if phi >= 0.0 else -1  # WK-161b: shorter arc
+	# swung: the target sits on the other side by more than repick_deg PAST the diametric line (the arcs are equal at +-180 deg)
+	var swung: bool = phi * float(_wk161b_side) < 0.0 and absf(phi) < PI - deg_to_rad(Tuning.wk161b_repick_deg)  # WK-161b
+	var s: int = _wk161b_pick(best, big_r * maxf(0.0, TAU - 2.0 * absf(phi)), swung)  # WK-161b: gain = arc saved
+	var n := rel / dp  # WK-161b
+	if dp <= big_r * 1.05:  # WK-161b: in the clearance band: hug the tangent, lean out
+		var t := n.rotated(float(s) * PI * 0.5)  # WK-161b
+		var a := (t + n * Tuning.wk161b_inside_lean).normalized()  # WK-161b
+		_wk161b_wp = pos + a * big_r  # WK-161b (telemetry: a point along the aim)
+		return a  # WK-161b
+	var alpha: float = acos(clampf(big_r / dp, -1.0, 1.0))  # WK-161b
+	_wk161b_wp = c + n.rotated(float(s) * alpha) * big_r  # WK-161b
+	return (_wk161b_wp - pos).normalized()  # WK-161b
+
+## WK-161b: rect blocker (pylon / corner block / shell). Candidates = the two ends of the hit face, pushed out along the face
+## tangent by half-length + my radius + margin and off the face by my radius + margin. Latched (or cheaper) end first if its
+## segment pos -> waypoint is clear (one ray), else the other end; both blocked / out of bounds -> ZERO (fallback).
+func _wk161b_rect(pos: Vector2, goal: Vector2, body: Node2D, hit: Dictionary) -> Vector2:  # WK-161b
+	var cs: CollisionShape2D = null  # WK-161b
+	for ch in body.get_children():  # WK-161b
+		if ch is CollisionShape2D and (ch as CollisionShape2D).shape is RectangleShape2D:  # WK-161b
+			cs = ch as CollisionShape2D  # WK-161b
+			break  # WK-161b
+	if cs == null or absf(cs.global_rotation) > 0.01:  # WK-161b: unknown / rotated shape -> today's behaviour
+		return Vector2.ZERO  # WK-161b
+	var sz: Vector2 = (cs.shape as RectangleShape2D).size * cs.global_scale.abs()  # WK-161b
+	var c: Vector2 = cs.global_position  # WK-161b
+	var hn: Vector2 = hit.get("normal", Vector2.UP)  # WK-161b
+	var n := Vector2(signf(hn.x), 0.0) if absf(hn.x) >= absf(hn.y) else Vector2(0.0, signf(hn.y))  # WK-161b
+	var tt := Vector2(-n.y, n.x)  # WK-161b
+	var half_t: float = 0.5 * (absf(tt.x) * sz.x + absf(tt.y) * sz.y)  # WK-161b
+	var half_n: float = 0.5 * (absf(n.x) * sz.x + absf(n.y) * sz.y)  # WK-161b
+	var clear: float = me._radius + Tuning.wk161b_route_margin  # WK-161b
+	var inner: Rect2 = _bounds().grow(-Tuning.wk161b_bounds_inset)  # WK-161b
+	if _wk161b_side == 0 or _wk161b_axis == Vector2.ZERO:  # WK-161b: a side is "which END" along the face tangent first hit
+		_wk161b_axis = tt  # WK-161b (stable when the hit face later turns the corner: pylon outer face -> top face)
+	var cands: Array = []  # WK-161b
+	for k in [1.0, -1.0]:  # WK-161b
+		var wp: Vector2 = c + tt * k * (half_t + clear) + n * (half_n + clear)  # WK-161b
+		var along: float = (wp - c).dot(_wk161b_axis)  # WK-161b
+		var side: int = 0 if absf(along) < 1.0 else (1 if along > 0.0 else -1)  # WK-161b
+		cands.append({"wp": wp, "side": side, "cost": pos.distance_to(wp) + wp.distance_to(goal), "k": k})  # WK-161b
+	var cheap: int = 0 if float(cands[0]["cost"]) <= float(cands[1]["cost"]) else 1  # WK-161b
+	var gain: float = absf(float(cands[0]["cost"]) - float(cands[1]["cost"]))  # WK-161b
+	# degenerate: both ends on the same side of the latched axis (a face across it, e.g. the pylon's top face): cost order,
+	# latch untouched
+	var degen: bool = int(cands[0]["side"]) == int(cands[1]["side"]) or int(cands[0]["side"]) == 0 or int(cands[1]["side"]) == 0  # WK-161b
+	var order: Array = [cands[cheap], cands[1 - cheap]]  # WK-161b
+	if not degen:  # WK-161b
+		var u: float = (goal - c).normalized().dot(_wk161b_axis)  # WK-161b: sin of the target's angle off the axis normal
+		var swung: bool = _wk161b_side != 0 and u * float(_wk161b_side) < -sin(deg_to_rad(Tuning.wk161b_repick_deg))  # WK-161b
+		var s: int = _wk161b_pick(int(cands[cheap]["side"]), gain, swung)  # WK-161b
+		order = [cands[0], cands[1]] if int(cands[0]["side"]) == s else [cands[1], cands[0]]  # WK-161b
+	for cand in order:  # WK-161b
+		var wp: Vector2 = cand["wp"]  # WK-161b
+		if not inner.has_point(wp):  # WK-161b: never route out toward a blast line
+			continue  # WK-161b
+		var seg: Vector2 = wp - pos  # WK-161b
+		var sl: float = seg.length()  # WK-161b
+		if sl < me._radius:  # WK-161b: already at this end and the line is still blocked (another face of it) -> not a detour
+			continue  # WK-161b
+		if not _surface_along(pos, seg / sl, sl).is_empty():  # WK-161b: one ray per tried end
+			continue  # WK-161b
+		if not degen and int(cand["side"]) != _wk161b_side:  # WK-161b: the latched end is blocked -> the other end (a counted flip)
+			_wk161b_set_side(int(cand["side"]))  # WK-161b
+		_wk161b_wp = wp  # WK-161b
+		return seg / sl  # WK-161b
+	return Vector2.ZERO  # WK-161b
 
 ## INV-12 subscriber: a bounce whose (axis-snapped) contact normal points DOWN (n.y > 0) is a hit on a
 ## platform UNDERSIDE — a head-bang. Read-only telemetry; never touches sim state.
@@ -2109,6 +2344,15 @@ func motion_health() -> Dictionary:
 		"wk161_pin_episodes": _wk161_pin_eps,   # WK-161: bot-side pin episodes (any thrust; cf. wk128.bumper_pin_episodes)
 		"wk161_well_skips": _wk161_well_skips,   # WK-161
 		"wk161_dump": _wk161_dump.duplicate(true),   # WK-161: per-episode records (stuck / pin)
+		"route_frames": _wk161b_frames,   # WK-161b: physics frames flying a routed aim
+		"route_episodes": _wk161b_episodes,   # WK-161b
+		"route_side_flips": _wk161b_flips,   # WK-161b (acceptance: <= 1 per route episode)
+		"route_flip_max": _wk161b_flip_max,   # WK-161b: most flips in one episode
+		"route_fallbacks": _wk161b_fallbacks,   # WK-161b: blocked line, no clear detour (straight chase kept)
+		"route_max_s": snappedf(_wk161b_max_s, 0.01),   # WK-161b: longest episode (orbiting guard)
+		"well_pinned_episodes": _wk161b_pinned_eps,   # WK-161b: in-well stuck episodes, window mean speed < wk161b_pinned_speed
+		"well_pinned_secs": snappedf(_wk161b_pinned_s, 0.01),   # WK-161b
+		"well_pingpong_episodes": _wk161b_pingpong_eps,   # WK-161b: in-well stuck episodes at/above it (bounce rhythm)
 	}
 
 ## Reset per stage (called from PartyMatch._bounce_go) so numbers are per-stage.
@@ -2139,5 +2383,19 @@ func reset_motion_health() -> void:
 	_wk161_well_skips = 0   # WK-161
 	_wk161_last_t = -INF   # WK-161
 	_wk161_last_face = ""   # WK-161
+	_wk161b_frames = 0   # WK-161b
+	_wk161b_episodes = 0   # WK-161b
+	_wk161b_flips = 0   # WK-161b
+	_wk161b_flip_max = 0   # WK-161b
+	_wk161b_fallbacks = 0   # WK-161b
+	_wk161b_max_s = 0.0   # WK-161b
+	_wk161b_pinned_eps = 0   # WK-161b
+	_wk161b_pinned_s = 0.0   # WK-161b
+	_wk161b_pingpong_eps = 0   # WK-161b
+	_wk161b_in_pinned = 0   # WK-161b
+	_wk161b_live = false   # WK-161b: a new stage carries no route latch
+	_wk161b_obj = 0   # WK-161b
+	_wk161b_side = 0   # WK-161b
+	_wk161b_last_t = -INF   # WK-161b
 	if me != null and is_instance_valid(me):
 		me.reset_wk128_stats()   # WK-128: per-stage fuel-integrity telemetry

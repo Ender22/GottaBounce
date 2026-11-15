@@ -985,6 +985,9 @@ func _ready() -> void:  # WK-135: QA arm overrides from the environment ("1" ON,
 	var w164: String = OS.get_environment("GB_WK164")  # WK-164: QA arm override for wk164_guard_hold_s
 	if w164 != "":  # WK-164
 		wk164_guard_hold_s = wk164_guard_hold_on if w164 == "1" else 0.0  # WK-164
+	var w161b: String = OS.get_environment("GB_WK161B")  # WK-161b: QA arm override for wk161b_chase_route
+	if w161b != "":  # WK-161b
+		wk161b_chase_route = w161b == "1"  # WK-161b
 
 ## WK-135 phase 3: the EFFECTIVE WK-128 (b) gate values (0 = that gate OFF), with the master switch folded in.  # WK-135
 func gate_rearm_frac() -> float:  # WK-135
@@ -1319,3 +1322,19 @@ var wk167_recover_boost_floor: float = 0.0    # fuel a recovering bot keeps boos
 # QA arm without a Tuning edit: env GB_WK164=1/0 (1 = wk164_guard_hold_on, 0 = 0.0).  # WK-164
 var wk164_guard_hold_s: float = 0.2           # s the K3 swerve SIDE is held once picked (ON 0.2: flips -13 %). 0.0 = OFF  # WK-164
 var wk164_guard_hold_on: float = 0.2          # s the GB_WK164=1 arm sets (brief: 0.15-0.25; L3 turns ~0.2 s / 90 deg)  # WK-164
+# --- WK-161b bot chase routing round obstacles inside a radial gravity well (docs/audit/2026-11-16_wk161_ab.md spec: 84 % of  # WK-161b
+# Singularity pins = a bot thrusting at a target THROUGH a pylon / the core / a corner block). Read ONLY by src/core/InputBot.gd.  # WK-161b
+# ON: when the bot is inside a GravitySource radius and the ray to its chase target (hunt / finisher / plan land point) hits a  # WK-161b
+# collider, it flies to the tangent point round a round body (core) or past the nearer clear end of the hit rect face  # WK-161b
+# (pylon / block / shell), holding the chosen side while the line stays blocked. No steering once the line clears.  # WK-161b
+# QA arm without a Tuning edit: env GB_WK161B=1/0 (read in _ready; headless runs and record_match.ps1 inherit it).  # WK-161b
+var wk161b_chase_route: bool = false          # MASTER (default OFF until the acceptance batch). true = route round blockers in wells  # WK-161b
+var wk161b_route_margin: float = 60.0         # px clearance past body radius / face end + goat radius (spec bot_route_margin)  # WK-161b
+var wk161b_commit_s: float = 0.6              # s a picked side is held before a cheaper side may win (spec bot_route_commit_s)  # WK-161b
+var wk161b_repick_deg: float = 35.0           # deg the target must swing to the OTHER side (round the blocker's centre) to re-pick at once  # WK-161b
+var wk161b_repick_margin_px: float = 60.0     # px shorter the other side must be to win a re-pick once commit_s ran out (anti-dither)  # WK-161b
+var wk161b_inside_lean: float = 0.25          # outward lean added to the tangent aim when already inside the core's clearance band  # WK-161b
+var wk161b_bounds_inset: float = 150.0        # px inside the blast bounds a rect-end waypoint must sit (else that end is not a candidate)  # WK-161b
+var wk161b_episode_gap_s: float = 0.6         # s of clear line before a route episode closes (a re-block sooner keeps the side + episode)  # WK-161b
+var wk161b_los_halfwidth: float = 1.0         # x goat radius: side rays either side of the line-of-sight ray (0 = the spec's single centre ray; a point ray clears corners the body clips)  # WK-161b
+var wk161b_pinned_speed: float = 400.0        # px/s telemetry: an in-well stuck window below this mean speed = "pinned", else "ping-pong"  # WK-161b
