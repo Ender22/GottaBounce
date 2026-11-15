@@ -167,6 +167,7 @@ var _wk161_last_n := Vector2.ZERO  # WK-161: its normal
 var _wk161_last_face := ""       # WK-161: its class (core / floor / wall / ceiling / surface)
 # WK-161b: chase routing round the obstacle blocking the line to the chase target inside a radial well (Tuning "# WK-161b").
 var _wk161b_live := false        # WK-161b: the cached decision is a routed aim (set per _decide)
+var wk169_golden_seeks := 0      # WK-169: decision ticks that chose the golden-seek layer (QA counter, never reset)
 var _wk161b_tgt := Vector2.INF   # WK-161b: chase/plan target point of the last decision (dump telemetry, any path)
 var _wk161b_obj := 0             # WK-161b: instance id of the blocker the side is latched for (0 = none)
 var _wk161b_kind := ""           # WK-161b: "core" (round) / "rect"
@@ -1017,6 +1018,8 @@ func _decide() -> void:
 		var iv: float = _wk108b_replan_iv()   # WK-108b K2: the next fast re-plan counts from this decision
 		_obj_replan_t = iv if iv < INF else 0.05   # WK-108b
 		return
+	if _wk169_golden_seek(pos):   # WK-169: go for a telegraphing / live golden bubble (inert when none exists)
+		return   # WK-169
 	# §2c flee-to-heal RETREAT: a wounded bot may break off to safe ground to heal, bounded by
 	# flee_max / finisher_flee_max so the chaser always closes. Evaluated AFTER refuel (secure fuel
 	# first) and AFTER reflexive _danger_recover (checked in poll — safety always wins).
@@ -1122,6 +1125,35 @@ func _decide() -> void:
 			if prd != Vector2.ZERO:   # WK-161b
 				_cached_aim = _jitter(_fly_aim(prd))   # WK-161b
 		_hunt = false
+
+## WK-169 golden-seek layer (spec §6.1 / §10.3, the HumanSim5g rule at every difficulty): while a golden bubble telegraphs or
+## is live, with p Tuning.bot_golden_seek_p per decision, IF my distance to it <= bot_golden_seek_ratio x my nearest rival's,
+## fly to it (boost beyond bot_golden_boost_dist with fuel > bot_golden_boost_fuel); otherwise keep chasing. Runs after the
+## refuel rhythm and only on decision ticks (never in RECOVER or mid-super: poll handles those first). No golden bubble
+## (every OFF arm) = an early return before any RNG draw, so OFF is byte-identical.
+func _wk169_golden_seek(pos: Vector2) -> bool:  # WK-169
+	if not Tuning.showdown_drop or arena == null or not arena.has_method("wk169_golden_target"):  # WK-169
+		return false  # WK-169
+	var gp: Vector2 = arena.wk169_golden_target()  # WK-169
+	if gp == Vector2.INF:  # WK-169
+		return false  # WK-169
+	var d_me: float = pos.distance_to(gp)  # WK-169
+	var rival = arena.nearest_opponent(me)  # WK-169
+	if rival != null and is_instance_valid(rival) and not rival.is_dead():  # WK-169
+		if d_me > Tuning.bot_golden_seek_ratio * (rival.global_position as Vector2).distance_to(gp):  # WK-169
+			return false  # WK-169
+	if randf() >= Tuning.bot_golden_seek_p:  # WK-169
+		return false  # WK-169
+	var g: Vector2 = gp - pos  # WK-169
+	_cached_aim = _jitter(_fly_aim(g.normalized())) if d_me > 1.0 else Vector2.ZERO  # WK-169
+	_cached_boost = d_me > Tuning.bot_golden_boost_dist and me.fuel > Tuning.bot_golden_boost_fuel  # WK-169
+	_wk161b_tgt = gp  # WK-161b telemetry target (WK-169 path)
+	var rd: Vector2 = _wk161b_route(pos, gp)  # WK-169: the WK-161b well routing applies to this target too (its own switch)
+	if rd != Vector2.ZERO:  # WK-169
+		_cached_aim = _jitter(_fly_aim(rd))  # WK-169
+	_hunt = false  # WK-169
+	wk169_golden_seeks += 1  # WK-169 telemetry: decisions spent going for the golden bubble
+	return true  # WK-169
 
 ## Ask the active mode for a world-point objective this tick (v5_sports bot-play fix). Returns a
 ## Vector2 (fly here) or null (no override -> default hunt). `arena._mode` is the runner's GameMode;

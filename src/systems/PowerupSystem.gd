@@ -51,6 +51,34 @@ func grant(player, id: String) -> void:
 	_refresh_held_icon(player)
 	EventBus.powerup_picked.emit(player, id)   # audio: pickup cue (distinct from activate)
 
+## WK-169 L1 GOLDEN TANK (spec §6.1): auto-activated on touch, never enters the held slot. Unlimited Boost for `dur` s
+## (fuel pinned, refire lockout pu_unlimited_super_lockout via fuel_locked). Grabbing it again while an Unlimited Boost
+## runs refreshes the timer to `dur`; any other running effect ends first (the normal one-active-effect rule).
+## Only ShowdownDirector's golden bubble calls this (switch showdown_drop, default OFF).
+func grant_golden_tank(player, dur: float) -> void:  # WK-169
+	if player == null or not is_instance_valid(player) or player.is_dead():  # WK-169
+		return  # WK-169
+	EventBus.powerup_picked.emit(player, "unlimited_boost")   # WK-169: audio pickup cue (the gold sting is 169c)
+	EventBus.powerup_used.emit(player, "unlimited_boost")     # WK-169
+	if _active.has(player) and _active[player]["id"] == "unlimited_boost":  # WK-169: refresh
+		_active[player]["t"] = dur  # WK-169
+		_active[player]["golden"] = true  # WK-169
+		player.powerup_time_left = dur  # WK-169
+		player.fuel = Tuning.fuel_max  # WK-169
+		return  # WK-169
+	if _active.has(player):  # WK-169
+		_end_effect(player, false)  # WK-169
+	player.fuel_locked = true  # WK-169
+	player.fuel = Tuning.fuel_max  # WK-169
+	_begin_effect(player, "unlimited_boost", [])  # WK-169
+	_active[player]["t"] = dur  # WK-169
+	_active[player]["golden"] = true  # WK-169
+	player.powerup_time_left = dur  # WK-169
+
+## WK-169: is `player` running a golden tank right now (telemetry + the drop's tank lock)?
+func golden_tank_active(player) -> bool:  # WK-169
+	return _active.has(player) and _active[player]["id"] == "unlimited_boost" and bool(_active[player].get("golden", false))  # WK-169
+
 func try_use(player) -> void:
 	if player == null or not is_instance_valid(player) or player.is_dead():
 		return
@@ -68,6 +96,7 @@ func _activate(id: String, player) -> void:
 	# Re-activating the SAME active effect restarts its timer, no doubling (spec §2).
 	if _active.has(player) and _active[player]["id"] == id:
 		_active[player]["t"] = _duration(id)
+		_active[player].erase("golden")   # WK-169: a held Unlimited Boost re-activated over a golden tank is a normal one now
 		player.powerup_time_left = _active[player]["t"]
 		if id == "black_hole":   # restart = re-channel
 			player.channel_broken = false

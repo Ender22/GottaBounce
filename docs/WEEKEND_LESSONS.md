@@ -250,3 +250,13 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   needs the 3x guard turn rate, so sharp turns scale with guard frames: a 0.2 s release hold gave 2.7x guard frames and 1.7x
   sharp turns (in-game probe, 90 s x 4 L3 on THE BOX). Only the swerve SIDE latch (held while the guard stays tripped) is safe.
   Single 20 s recordings are too noisy for this (seed 5 vs 6 baseline: 48 vs 73 sharp turns); use the per-tick probe.
+- **WK-169: Python text-mode writes on Windows turn LF files into CRLF** (`open(p,'w')` translates `\n` -> `\r\n`); one edit flipped all
+  of Tuning.gd. Edit repo files with `open(p, encoding='utf-8', newline='')` (read AND write) and check with `file <path>` after.
+- **WK-169: GhostBot keeps its OWN puff schedule** (`_puff_due`, it recomputed 14 s from Tuning itself), so a GhostDirector cooldown change
+  never reaches bot ghosts. It now reads `director.cooldown_for(ghost)`. Any future ghost-rate lever: check bot-ghost puff gaps in round_stats.
+- **WK-169: gbplay eval output is cut at ~4 KB** (round_stats dumps arrive as broken JSON). Have the eval write `JSON.stringify(...)` to a
+  scratch file with FileAccess and read that.
+- **WK-169: invincible fighters are a bad "long tail" fixture** — bots whiff supers through them and self-KO into the void within seconds.
+  For forced long tails null the fighters' `provider` (they bounce in place) and tether them on void arenas; restore the provider later.
+- **WK-37 (found in WK-169 QA, not fixed): ghost_spawn_delay is REAL seconds**, so under KO slow-mo a ghost can rise ~0.15 game-s after its
+  death, BEFORE a double-KO SD revive at +0.16 s: Grassy Expanse showed the revived seat 3 alive AND its ghost through the whole SD.

@@ -47,7 +47,7 @@ func _init(g, dir, run, died_at: Vector2) -> void:
 	death_pos = died_at
 	_rng.randomize()
 	_bleat_t = _exp_interval()
-	var eff: float = Tuning.ghost_puff_cooldown / maxf(Tuning.bot_ghost_puff_rate_mult, 0.01)
+	var eff: float = director.cooldown_for(ghost)   # WK-169: = ghost_puff_cooldown / bot_ghost_puff_rate_mult (x the L2 showdown mult)
 	_puff_due = director.clock() + Tuning.ghost_puff_arm_delay + _rng.randf_range(0.0, eff)
 	if KillPipeline.killed.is_connected(_on_killed) == false:
 		KillPipeline.killed.connect(_on_killed)
@@ -121,7 +121,7 @@ func poll() -> InputIntent:
 				it.use_powerup = true   # the same press a human makes (B)
 				_target_used(_target)
 				_chasing = false
-				var eff: float = Tuning.ghost_puff_cooldown / maxf(Tuning.bot_ghost_puff_rate_mult, 0.01)
+				var eff: float = director.cooldown_for(ghost)   # WK-169: the director's cooldown (L2 showdown halves it)
 				_puff_due = director.clock() + eff - Tuning.bot_ghost_puff_lead_time
 			elif close:
 				it.aim = director.separation_push(ghost).limit_length(1.0)   # on the spot early: wait (but never stack)

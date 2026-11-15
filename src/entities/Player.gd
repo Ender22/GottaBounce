@@ -46,6 +46,7 @@ var invincible := false      # Star: zero impulse/hitstun from players
 var contact_launch := false  # Star: any body contact launches the other player
 var counter_active := false  # Counter Shield: live parry window
 var bounce_mult := 1.0       # Mega Bounce
+var wk169_launch_mult := 1.0  # WK-169 L3 ROWDY ARENA: x tier bounce launch speed, set ONLY by ShowdownDirector (1.0 = today)
 var rainbow := false         # Star telegraphy: rainbow hue-cycle tint
 var silhouette := false      # Black Hole telegraphy: silhouette-dark body
 var channel_broken := false  # Black Hole: smashed mid-channel (cancelled, no fuel refill)
@@ -858,6 +859,10 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			var launch_h: float = tier_h * profile.eff_bounce_apex()
 			var tier_in: float = maxf(0.0, -velocity.dot(n))   # WK-128: pre-resolve incoming normal speed (telemetry)
 			velocity = BounceResolver.resolve(velocity, n, launch_h, g.length(), boost_held)
+			if wk169_launch_mult != 1.0:   # WK-169 L3: scale the launch (normal) speed only; tangential, DI and refuel untouched
+				var wk169_vn: float = velocity.dot(n)   # WK-169
+				if wk169_vn > 0.0:   # WK-169
+					velocity += n * wk169_vn * (wk169_launch_mult - 1.0)   # WK-169
 			# Directional influence: holding a direction along the surface as you bounce nudges the
 			# launch that way, so you can steer your arc (e.g. press right on a floor -> up-and-right).
 			var tangent := Vector2(-n.y, n.x)

@@ -988,6 +988,23 @@ func _ready() -> void:  # WK-135: QA arm overrides from the environment ("1" ON,
 	var w161b: String = OS.get_environment("GB_WK161B")  # WK-161b: QA arm override for wk161b_chase_route
 	if w161b != "":  # WK-161b
 		wk161b_chase_route = w161b == "1"  # WK-161b
+	_wk169_env(OS.get_environment("GB_WK169"))  # WK-169: SHOWDOWN QA arms (see the WK-169 block at the end of the file)
+
+## WK-169: apply a GB_WK169 arm string (comma list; see the WK-169 block). "" = leave every switch as authored.  # WK-169
+func _wk169_env(v: String) -> void:  # WK-169
+	if v.strip_edges() == "":  # WK-169
+		return  # WK-169
+	showdown_telemetry = true  # WK-169: any arm (incl. the A0 control) logs the spectator telemetry
+	for raw in v.to_lower().split(",", false):  # WK-169
+		var tok: String = raw.strip_edges()  # WK-169
+		if tok == "drop" or tok == "a1" or tok == "a4" or tok == "all" or tok == "1":  # WK-169
+			showdown_drop = true  # WK-169
+		if tok == "ghost" or tok == "a2" or tok == "a4" or tok == "all" or tok == "1":  # WK-169
+			showdown_ghost_boost = true  # WK-169
+		if tok == "rowdy" or tok == "a3" or tok == "all" or tok == "1":  # WK-169
+			showdown_rowdy = true  # WK-169
+	var frame_only: bool = v.to_lower().split(",", false).has("frame")  # WK-169: "frame" = the state + dim / rim, no lever
+	showdown_enabled = frame_only or showdown_drop or showdown_ghost_boost or showdown_rowdy  # WK-169: 0 / a0 / tel = telemetry only
 
 ## WK-135 phase 3: the EFFECTIVE WK-128 (b) gate values (0 = that gate OFF), with the master switch folded in.  # WK-135
 func gate_rearm_frac() -> float:  # WK-135
@@ -1338,7 +1355,6 @@ var wk161b_bounds_inset: float = 150.0        # px inside the blast bounds a rec
 var wk161b_episode_gap_s: float = 0.6         # s of clear line before a route episode closes (a re-block sooner keeps the side + episode)  # WK-161b
 var wk161b_los_halfwidth: float = 1.0         # x goat radius: side rays either side of the line-of-sight ray (0 = the spec's single centre ray; a point ray clears corners the body clips)  # WK-161b
 var wk161b_pinned_speed: float = 400.0        # px/s telemetry: an in-well stuck window below this mean speed = "pinned", else "ping-pong"  # WK-161b
-
 # --- WK-172 (CD5-05) session-deck reshuffle never repeats this match's arenas early. Read ONLY by src/modes/BrawlMode.gd.  # WK-172
 # When a CD4-01 deck runs dry, the new deck holds back (to the end of its MILD / WILD half; interleave + no-back-to-back  # WK-172
 # kept) every arena drawn in the current match plus the session's last wk172_deck_recent_n draws for that deck.  # WK-172
@@ -1347,3 +1363,48 @@ var wk172_deck_recent_n: int = 5              # session draws remembered across 
 # --- WK-171 (CD5-04) RULES panel helper line: one sentence explaining the FOCUSED rules row, shown in the lobby's rules bar  # WK-171
 # (under the panels) while a RULES card is open. Read ONLY by src/ui/HerdLobby.gd. Texts live in HerdLobby._rules_defs.  # WK-171
 var wk171_rules_helper: bool = true           # ON. false = the bar keeps the rules summary while editing (pre-WK-171)  # WK-171
+# --- WK-169 SHOWDOWN (CD5-01 Brawl spectator time; spec docs/specs/wk169_spectator_time_2026-11-16.md §5-§9). The 169b-prep  # WK-169
+# prototype: every lever behind its OWN switch, all default OFF = today (no ShowdownDirector node, no showdown / spectator  # WK-169
+# keys in round_stats). Read by src/systems/ShowdownDirector.gd (state, L1 drop, dim + rim), GhostDirector.gd (L2),  # WK-169
+# Player.gd (L3 launch multiplier only; the hitstun triad / knockback array / protected constants are untouched),  # WK-169
+# PowerupSystem.gd + PowerupBubble.gd (golden tank), InputBot.gd (golden seek). NEVER ends a stage: no timer, no boundary.  # WK-169
+# QA arm without a Tuning edit: env GB_WK169 = comma list (read in _ready): drop / ghost / rowdy (one lever each, implies  # WK-169
+# showdown_enabled), a1 (=drop) a2 (=ghost) a3 (=rowdy) a4 (=drop,ghost), all / 1 (every lever), frame (state + dim / rim,  # WK-169
+# no lever), 0 / a0 / tel (telemetry only, the A0 control). Any non-empty value turns showdown_telemetry on. Headless arms can also use tune_<name>=<v>.  # WK-169
+var showdown_enabled: bool = false            # MASTER. false = no state, no node, no showdown telemetry (spec §8)  # WK-169
+var showdown_telemetry: bool = false          # spectator / tail / ghost-dry telemetry without any lever (A0 control). Implied by showdown_enabled  # WK-169
+var showdown_delay: float = 6.0               # s of 2-alive (stage started >= 3) COMBAT before SHOWDOWN (game time)  # WK-169
+var showdown_step_s: float = 8.0              # s between escalation steps (step 1 = entry)  # WK-169
+var showdown_max_steps: int = 3               # escalation holds after this step (tail 6 / 14 / 22 s). Never an end  # WK-169
+var showdown_drop: bool = false               # L1 GOLDEN DROP switch  # WK-169
+var showdown_drop_interval: float = 8.0       # s between golden drops (telegraph start to telegraph start)  # WK-169
+var showdown_drop_telegraph: float = 1.0      # s of gold converging sparkle before the bubble is live (= pu_spawn_telegraph)  # WK-169
+var showdown_drop_life: float = 7.0           # s a live golden bubble waits, then pops uncollected  # WK-169
+var showdown_drop_dur: float = 6.0            # s of Unlimited Boost the golden tank grants (re-grab refreshes)  # WK-169
+var showdown_drop_view_inset: float = 120.0   # SCREEN px: only spawners inside the view inset by this qualify (none -> all)  # WK-169
+var showdown_drop_tank_lock: float = 1.0      # s after a golden tank ends before the next drop may telegraph  # WK-169
+var showdown_drop_live_wait: float = 1.5      # s max a drop waits for a respawning fighter (LIVES > 1), then drops anyway  # WK-169
+var showdown_drop_scale: float = 1.2          # golden bubble size vs a normal powerup bubble  # WK-169
+var showdown_drop_tel_radius: float = 1.3     # golden telegraph sparkle radius vs the normal telegraph  # WK-169
+var bot_golden_seek_p: float = 0.5            # CPU: p per decision to go for a golden bubble when d_me <= ratio x d_rival  # WK-169
+var bot_golden_seek_ratio: float = 1.25       # CPU: the "I can win this race" distance ratio (spec §6.1 / §10.3)  # WK-169
+var bot_golden_boost_dist: float = 180.0      # px: the seek boosts beyond this distance (with fuel > bot_golden_boost_fuel)  # WK-169
+var bot_golden_boost_fuel: float = 8.0        # fuel the seek needs to boost  # WK-169
+var showdown_ghost_boost: bool = false        # L2 RESTLESS GHOSTS switch  # WK-169
+var showdown_ghost_cd_mult: float = 0.5       # x puff cooldown in the showdown (7.0 -> 3.5 s; bot ghosts 14 -> 7 s)  # WK-169
+var showdown_ghost_cap_per_step: int = 3      # + per-stage puff cap per step (3 -> 6 -> 9 -> 12)  # WK-169
+var showdown_rowdy: bool = false              # L3 ROWDY ARENA switch  # WK-169
+var showdown_bounce_mult_per_step: float = 1.07   # x tier bounce launch speed per step (apex x1.14 / 1.31 / 1.50)  # WK-169
+var showdown_dim: float = 0.10                # backdrop multiply-dim at step 1 (backdrop layers only, never goats / decks / ghosts)  # WK-169
+var showdown_dim_step: float = 0.03           # + dim per later step  # WK-169
+var showdown_dim_max: float = 0.16            # dim cap  # WK-169
+var showdown_dim_ease: float = 1.0            # s the dim eases in (static afterwards: no edge, no inward motion)  # WK-169
+var showdown_dim_z: int = -79                 # z of the dim plate: above the backdrop stack (-100..-80), below void paint / decks  # WK-169
+var showdown_rim_alpha: float = 0.9           # gold rim ring alpha (spec 0.6 read as a faint green disc on bright skies, rendered 2026-11-16)  # WK-169
+var showdown_rim_color: Color = Color("#ffd23f")   # rim gold (= PartyMatch GOLD)  # WK-169
+var showdown_rim_px: float = 4.0              # SCREEN px width of the gold rim ring (zoom-compensated)  # WK-169
+var showdown_rim_radius_mult: float = 1.25   # x body (collider) radius where the rim starts: the goat art overhangs the collider  # WK-169
+var showdown_rim_gap_px: float = 3.0          # SCREEN px past that radius before the ring  # WK-169
+var showdown_rim_halo_px: float = 7.0         # SCREEN px the soft gold halo extends past the ring  # WK-169
+var showdown_banner_time: float = 1.0         # s the "SHOWDOWN!" top band holds (= TWO LEFT!)  # WK-169
+var showdown_long_wait_s: float = 15.0        # telemetry: a human wait longer than this counts as a long wait (S3)  # WK-169

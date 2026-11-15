@@ -186,6 +186,10 @@ var _ko_blast                    # KOEdgeBlast CanvasLayer (WK-23; QA: _ko_blast
 # null with GHOSTS OFF (and in SPORTS/TRIALS) -> every hook below is skipped = byte-for-byte the pre-WK-37 match.
 const GHOST_DIRECTOR := preload("res://src/systems/GhostDirector.gd")
 var _ghost_dir = null
+# WK-169 SHOWDOWN (docs/specs/wk169_spectator_time_2026-11-16.md): BRAWL only, and only with Tuning.showdown_enabled or
+# showdown_telemetry on. null (the default, every switch OFF) -> every hook below is skipped = today byte-for-byte.
+const SHOWDOWN_DIRECTOR := preload("res://src/systems/ShowdownDirector.gd")  # WK-169
+var _showdown = null  # WK-169
 const OFF_STAGE_GROW := 120.0    # px: "off-stage" = outside _stage_rect grown by this (stats + WK-24 ring)
 
 # level rotation (shuffle-bag) lives in the mode now (BrawlMode)
@@ -240,6 +244,10 @@ func _ready() -> void:
 		_ghost_dir = GHOST_DIRECTOR.new()
 		_ghost_dir.setup(self, int(_config.ghosts))
 		add_child(_ghost_dir)
+	if _config != null and _config.mode_id == &"brawl" and (Tuning.showdown_enabled or Tuning.showdown_telemetry):  # WK-169
+		_showdown = SHOWDOWN_DIRECTOR.new()  # WK-169
+		_showdown.setup(self)  # WK-169
+		add_child(_showdown)  # WK-169
 	_load_stage(LEVEL_POOL[0])   # a level exists before the camera/HUD reference _stage_rect
 
 	_camera = CameraController.new()
@@ -659,6 +667,8 @@ func _start_match() -> void:
 func _begin_stage() -> void:
 	if _ghost_dir != null:
 		_ghost_dir.clear_all()   # WK-37: ghosts/clouds never outlive their stage
+	if _showdown != null:
+		_showdown.clear()   # WK-169: dim / rims / golden drop never outlive their stage
 	stage_index += 1
 	round_index = stage_index
 	round_clock = 0.0
@@ -797,6 +807,8 @@ func _bounce_go() -> void:
 	}
 	if _ghost_dir != null:
 		_ghost_dir.on_combat_start(_cur_stats)   # WK-37: ghosts_mode / hush / cloud counters (ON / BAA ONLY only)
+	if _showdown != null:
+		_showdown.on_combat_start(_cur_stats)   # WK-169: fresh showdown / spectator record
 	for p in players:
 		p.frozen = false
 		p.fuel = Tuning.fuel_max   # every stage starts on a full tank
@@ -823,6 +835,8 @@ func _tick_combat(delta: float, rdelta: float) -> void:
 			for p in _alive_players():
 				p.frozen = false
 		return
+	if _showdown != null and state == "COMBAT":
+		_showdown.tick(delta)   # WK-169: 2-alive clock, steps, golden drop (never ends a stage)
 	# idle-hunt bookkeeping (lethality §3.2 rule 3): ticks only during combat; the Player
 	# resets its own counter on boost/super input
 	for p in players:
@@ -1096,6 +1110,8 @@ func _on_killed(victim, cause, attacker) -> void:
 	if not rec.is_empty():
 		rec["credited"] = credited
 		rec["self_ko_cost"] = ko_cost   # points the self-KO took (0 under Ra, or a -1 floored at 0)
+		if _showdown != null:
+			_showdown.annotate_kill(rec, idx, ai)   # WK-169: phase / step / golden holder / credit-integrity flags
 	_credit_pop(victim, ai, idx, credited, ko_cost, scores_before, haunted)
 	# FIRST BLOOD is a BRAWL kill-race moment — never in SPORTS (rocketball/dropshot), where knocking
 	# a rival out of bounds is incidental, not the point (owner 2026-07-19: "killing each other is not the point").
@@ -1111,6 +1127,8 @@ func _on_killed(victim, cause, attacker) -> void:
 	# do not wait for STAGE_END. Requires a strict single leader at >= target (mode decides).
 	var widx: int = _mode.match_winner(self)
 	if widx >= 0:
+		if _showdown != null:
+			_showdown.on_match_winning_kill(rec)   # WK-169: KM-4 check on the match-deciding KO
 		_enter_match_end(widx)
 		return
 	# lives / elimination (spec §3)
@@ -1129,6 +1147,8 @@ func _on_killed(victim, cause, attacker) -> void:
 			_recent_dead = [victim]
 		_last_death_clock = round_clock
 	var ne := _not_eliminated_count()
+	if _showdown != null and eliminated:
+		_showdown.on_elimination(idx, ne)   # WK-169: spectator clock + the 2-alive start
 	if ne == 2 and not _two_left_fired and _stage_start_alive >= 3 and _attribution_mode():   # WK-137: BRAWL only
 		_two_left_fired = true
 		_hud.show_top("TWO LEFT!", Color.WHITE, 1.0)
@@ -1242,6 +1262,11 @@ func _sudden_death_revive() -> void:
 		v.seed_damage(2)         # pre-damaged Lv2: first clean near-edge hit sends the loser out (§5)
 		v.frozen = true          # suspended while the banner holds — no 3-2-1, keep it panicky
 		_hud.set_dead(i, false)
+	if _showdown != null:
+		var wk169_rev: Array = []   # WK-169
+		for v in _recent_dead:   # WK-169
+			wk169_rev.append(players.find(v))   # WK-169
+		_showdown.on_sudden_death(wk169_rev)   # WK-169: the showdown clears instantly on SD entry (spec §5.3)
 	_recent_dead.clear()
 	_sd_lock = SD_REVIVE_LOCK
 	_hud.show_center("SUDDEN DEATH!", DANGER, SD_REVIVE_LOCK)
@@ -1270,8 +1295,12 @@ func _enter_stage_end(deferred := false) -> void:
 		_cur_stats["motion_health"] = bot_motion_health()   # process gate: per-stage locomotion pathologies
 		if _ghost_dir != null:
 			_ghost_dir.finalize_stats(_cur_stats)   # WK-37 §8.2 ghost telemetry
+		if _showdown != null:
+			_showdown.finalize_stats(_cur_stats)   # WK-169 telemetry (after the ghost rows it reads)
 		round_stats.append(_cur_stats)
 		_cur_stats = {}
+	if _showdown != null:
+		_showdown.clear()   # WK-169: dim / rims / golden drop go with the KO freeze
 	if _ghost_dir != null:
 		_ghost_dir.on_stage_end()   # WK-37: ghosts hold still and fade with the KO freeze; clouds go
 	# powerup stage-end sweep (spec §2): all active effects, held slots, and field objects
@@ -1457,8 +1486,12 @@ func _enter_match_end(widx: int) -> void:
 		_cur_stats["motion_health"] = bot_motion_health()
 		if _ghost_dir != null:
 			_ghost_dir.finalize_stats(_cur_stats)   # WK-37 §8.2 ghost telemetry
+		if _showdown != null:
+			_showdown.finalize_stats(_cur_stats)   # WK-169 telemetry
 		round_stats.append(_cur_stats)
 		_cur_stats = {}
+	if _showdown != null:
+		_showdown.clear()   # WK-169
 	if _ghost_dir != null:
 		_ghost_dir.on_stage_end()      # WK-37: freeze + fade; the ceremony clears them (below)
 		_ghost_dir.remove_ghost(widx)  # a winner on points while dead is respawned for the bow — never two of them
@@ -1765,6 +1798,18 @@ func ko_blast_enabled() -> bool:
 ## when the RULES option is not OFF.
 func _ghosts_enabled() -> bool:
 	return _config != null and _config.mode_id == &"brawl" and int(_config.ghosts) != MatchConfig.Ghosts.OFF
+
+## WK-169 QA (gbplay eval): the ShowdownDirector (null with every WK-169 switch OFF / not BRAWL).
+func showdown_director():  # WK-169
+	return _showdown  # WK-169
+
+## WK-169 QA: this match's spectator / showdown roll-up ({} with the switches OFF).
+func wk169_summary() -> Dictionary:  # WK-169
+	return _showdown.summary(round_stats) if _showdown != null else {}  # WK-169
+
+## WK-169 bot seam (InputBot golden-seek layer): the telegraphing / live golden bubble, or Vector2.INF.
+func wk169_golden_target() -> Vector2:  # WK-169
+	return _showdown.golden_target() if _showdown != null else Vector2.INF  # WK-169
 
 ## QA (gbplay eval): the GhostDirector (null when ghosts are OFF / not BRAWL).
 func ghost_director():

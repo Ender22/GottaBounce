@@ -50,6 +50,11 @@ var _ghost_rows := {}             # idx -> row dict (spec §8.2 `ghosts[]`)
 var _pairs_frames := 0
 var _pairs_ok := 0
 var blocked_fx_count := 0         # QA: blocked-puff markers shown (WK-37c)
+# WK-169 L2 RESTLESS GHOSTS (ShowdownDirector.set_showdown drives these; 1.0 / 0 / false = the WK-37 rules exactly)
+var wk169_cd_mult := 1.0          # WK-169: x puff cooldown while the showdown runs with showdown_ghost_boost
+var wk169_cap_bonus := 0          # WK-169: + per-stage puff cap (showdown_ghost_cap_per_step x step)
+var wk169_showdown := false       # WK-169: the stage is in SHOWDOWN (telemetry split, any lever)
+var wk169_tel := false            # WK-169: dry / showdown telemetry rows (showdown_telemetry or showdown_enabled)
 
 func setup(runner_ref, ghosts_mode: int) -> void:
 	runner = runner_ref
@@ -66,6 +71,7 @@ func setup(runner_ref, ghosts_mode: int) -> void:
 	add_child(_ui)
 	EventBus.bounced.connect(_on_bounced)
 	KillPipeline.killed.connect(_on_any_killed)
+	wk169_tel = Tuning.showdown_telemetry or Tuning.showdown_enabled   # WK-169
 
 ## WK-37c (WK-34 follow-up): the pause plate hides the HUD cards + controls legend for the whole pause
 ## (PartyMatch.set_match_overlays_hidden). The ghost layer's screen-space overlays (the "GHOST! FLOAT · PUFF · BAA"
@@ -118,7 +124,7 @@ func living_players() -> Array:
 func puff_ready(g) -> bool:
 	if g == null or not puffs_enabled() or _hushed or g.frozen:
 		return false
-	if g.puffs_used >= Tuning.ghost_puff_max_per_stage:
+	if g.puffs_used >= puff_cap():   # WK-169 (= ghost_puff_max_per_stage outside an L2 showdown)
 		return false
 	if g.live_cloud != null and is_instance_valid(g.live_cloud):
 		return false
@@ -128,7 +134,7 @@ func puff_ready(g) -> bool:
 func puff_ready_within(g, lead: float) -> bool:
 	if g == null or not puffs_enabled() or _hushed or g.frozen:
 		return false
-	if g.puffs_used >= Tuning.ghost_puff_max_per_stage:
+	if g.puffs_used >= puff_cap():   # WK-169
 		return false
 	if g.live_cloud != null and is_instance_valid(g.live_cloud):
 		return false
@@ -136,7 +142,7 @@ func puff_ready_within(g, lead: float) -> bool:
 
 ## 0..1 cooldown progress for the HUD ring (1 = ready).
 func puff_progress(g) -> float:
-	if g == null or g.puffs_used >= Tuning.ghost_puff_max_per_stage:
+	if g == null or g.puffs_used >= puff_cap():   # WK-169
 		return 0.0
 	if puff_ready(g):
 		return 1.0
@@ -144,10 +150,39 @@ func puff_progress(g) -> float:
 	return clampf(1.0 - (g.next_puff_t - _clock) / maxf(span, 0.01), 0.0, 1.0)
 
 ## Human ghosts: ghost_puff_cooldown (7 s). Bot ghosts: / bot_ghost_puff_rate_mult (14 s, spec §6).
+## WK-169 L2: x wk169_cd_mult (1.0 unless an L2 showdown runs: 3.5 s / 7 s).
 func _cooldown_for(g) -> float:
 	if g != null and not g.human:
-		return Tuning.ghost_puff_cooldown / maxf(Tuning.bot_ghost_puff_rate_mult, 0.01)
-	return Tuning.ghost_puff_cooldown
+		return Tuning.ghost_puff_cooldown / maxf(Tuning.bot_ghost_puff_rate_mult, 0.01) * wk169_cd_mult
+	return Tuning.ghost_puff_cooldown * wk169_cd_mult
+
+## WK-169: public cooldown for GhostBot's own puff schedule (it used to recompute 14 s itself, so L2 never reached bot ghosts).
+func cooldown_for(g) -> float:  # WK-169
+	return _cooldown_for(g)  # WK-169
+
+## WK-169: the per-stage puff cap in force (WK-37 cap + the L2 showdown bonus).
+func puff_cap() -> int:  # WK-169
+	return Tuning.ghost_puff_max_per_stage + wk169_cap_bonus  # WK-169
+
+## WK-169: ShowdownDirector -> ghosts. `active` = the stage is in SHOWDOWN; `step` 1..showdown_max_steps. L2 (switch
+## showdown_ghost_boost) halves the cooldown and raises the cap per step; a charge already cooling down at entry gets its
+## remaining time scaled too (the 1.0 s arm delay of a fresh ghost is never touched). K-5 / K-6 hushes still override.
+func set_showdown(active: bool, step: int) -> void:  # WK-169
+	var was: bool = wk169_cd_mult != 1.0  # WK-169
+	wk169_showdown = active  # WK-169
+	if active and Tuning.showdown_ghost_boost:  # WK-169
+		wk169_cd_mult = Tuning.showdown_ghost_cd_mult  # WK-169
+		wk169_cap_bonus = Tuning.showdown_ghost_cap_per_step * maxi(step, 1)  # WK-169
+		if not was:  # WK-169: entry: scale the remaining cooldown of every charge already cooling down
+			for g in ghosts.values():  # WK-169
+				if is_instance_valid(g) and int(g.puffs_used) > 0 and float(g.next_puff_t) > _clock:  # WK-169
+					g.next_puff_t = _clock + (float(g.next_puff_t) - _clock) * wk169_cd_mult  # WK-169
+				var b = g.provider if is_instance_valid(g) else null  # WK-169: a bot ghost's own "next want" clock too
+				if b != null and "_puff_due" in b and float(b._puff_due) > _clock:  # WK-169
+					b._puff_due = _clock + (float(b._puff_due) - _clock) * wk169_cd_mult  # WK-169
+	else:  # WK-169
+		wk169_cd_mult = 1.0  # WK-169
+		wk169_cap_bonus = 0  # WK-169
 
 ## Called from PartyMatch._on_killed when a player loses their LAST life in BRAWL COMBAT/SUDDEN_DEATH.
 func on_eliminated(idx: int, victim) -> void:
@@ -185,6 +220,9 @@ func on_combat_start(cur_stats: Dictionary) -> void:
 	_pairs_ok = 0
 	_last_cloud_t.clear()
 	_last_bounce_t.clear()
+	wk169_cd_mult = 1.0   # WK-169: every stage starts on the WK-37 rules
+	wk169_cap_bonus = 0   # WK-169
+	wk169_showdown = false   # WK-169
 	if cur_stats != null:
 		for k in _st.keys():
 			cur_stats[k] = _st[k]
@@ -480,6 +518,14 @@ func _physics_process(delta: float) -> void:
 		row["ghost_s"] = float(row.get("ghost_s", 0.0)) + delta
 		if _hushed:
 			row["hushed_s"] = float(row.get("hushed_s", 0.0)) + delta
+		if wk169_tel:   # WK-169 S5: ghost seconds with no puff available (arming, cooldown, cap, live cloud, hushed)
+			var wk169_dry: bool = not puff_ready(g)   # WK-169
+			if wk169_dry:   # WK-169
+				row["dry_s"] = float(row.get("dry_s", 0.0)) + delta   # WK-169
+			if wk169_showdown:   # WK-169
+				row["showdown_s"] = float(row.get("showdown_s", 0.0)) + delta   # WK-169
+				if wk169_dry:   # WK-169
+					row["showdown_dry_s"] = float(row.get("showdown_dry_s", 0.0)) + delta   # WK-169
 		if float(row.get("t_first_move", -1.0)) < 0.0 and before.distance_to(g.global_position) > 0.5 and bool(e["active"]):
 			row["t_first_move"] = float(runner.round_clock)
 		_terrain_settle(g, delta)   # WK-37f: never rest hidden inside a platform
@@ -634,6 +680,12 @@ func _try_puff(g) -> void:
 	(row["puffs"] as Array).append(rec)
 	c.record = rec
 	_st["clouds_spawned"] = int(_st.get("clouds_spawned", 0)) + 1
+	if wk169_tel:   # WK-169 telemetry
+		rec["showdown"] = wk169_showdown   # WK-169
+		if wk169_showdown:   # WK-169
+			row["puffs_in_showdown"] = int(row.get("puffs_in_showdown", 0)) + 1   # WK-169
+		if int(g.puffs_used) >= puff_cap():   # WK-169
+			row["cap_hits"] = int(row.get("cap_hits", 0)) + 1   # WK-169
 
 ## Cloud centre: inside (visible rect ∩ camera_bounds) and clear of static geometry; nudged up <= ghost_puff_nudge_max.
 ## null = dud (no charge spent).
@@ -805,7 +857,7 @@ func _update_hud() -> void:
 		var g = ghost_for(int(i))
 		if g == null:
 			continue
-		hud.set_ghost_ring(int(i), puff_progress(g), _hushed, g.puffs_used >= Tuning.ghost_puff_max_per_stage)
+		hud.set_ghost_ring(int(i), puff_progress(g), _hushed, g.puffs_used >= puff_cap())   # WK-169
 
 func _show_legend(i: int) -> void:
 	var hud = runner._hud
