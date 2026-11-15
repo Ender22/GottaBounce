@@ -336,7 +336,7 @@ another simulated pass has lower value than a real session, so CD6 is scoped to 
   `tools/out/sports/` and `tools/out/rec/wk98_*`). Triaged by producer 2026-11-14 #4: every SP finding is a WK entry or merged; see the
   SPORTS section below and the Coverage index.
 
-### [ ] WK-99 [P2][M] Fuel gauge shows a super-ready notch (threshold now 10 %) — brawl cards AND a sports fuel readout
+### [x] WK-99 [P2][M] Fuel gauge shows a super-ready notch (threshold now 10 %) — brawl cards AND a sports fuel readout — fa785dc
 - Area: HUD | sports · Owner: ui-ux-designer (+ gameplay-programmer for the sports widget) · Source: game-designer WK-95 spec §6.4 +
   WK-98 SP-14 (merged) · Deps: WK-95 (done, threshold 10)
 - Impact: with `super_boost_min_fuel` 10 (was 5), "can I super?" stops being trivially yes; the PlayerCard gauge and the off-screen
@@ -2871,7 +2871,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   `circuit_session_deck=false` path unchanged.
 - Status: open. Next-10 #10 (lane D is free).
 
-### [ ] WK-173 [P3][S] (CD5-06) Corner-card stickers and the +1 chip overlap the world and the card name
+### [x] WK-173 [P3][S] (CD5-06) Corner-card stickers and the +1 chip overlap the world and the card name — fa785dc
 - Area: HUD · Owner: ui-ux-designer · Source: WK-CD5 CD5-06 (WK-31 nits)
 - Evidence: `tools/out/wk/CD5_10_m1_p11.png` ("+1" covers PUFF's name), `CD5_10_m1_p5.png` (HURT! sticker hangs onto P3's goat),
   `CD5_12_m2_p1.png` (P1 beside its own sticker).
@@ -2931,6 +2931,6 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 ### [ ] WK-177 [P3][S] Draw circuits (the_foundry, mayhem_mile) can repeat an arena back-to-back across a match boundary
 - Source: WK-172 sim: the_foundry played the same arena twice in a row 9 times in 3640 draws (separate code path from the CD4-01 decks).
 
-### [ ] WK-178 [P3][S] Ghost rise delay is real-time: under KO slow-mo a ghost appears before a double-KO sudden-death revive
+### [x] WK-178 [P3][S] Ghost rise delay is real-time: under KO slow-mo a ghost appears before a double-KO sudden-death revive — fa785dc
 - Source: WK-169 build (Grassy Expanse: revived goat and its ghost both on screen through sudden death). Use game time for the 0.6 s
   ghost delay (GhostDirector) or cancel the ghost when a revive is pending.
