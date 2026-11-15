@@ -4,20 +4,20 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-15 ~12:30) <<<**
-Today (all committed, see BACKLOG "Done since re-rank #7/#8"): WK-37d/e ghosts, WK-128 bill, WK-66a/b/c nets + gold trials goals,
-WK-53b/26 taunt + super-aim cue, WK-13/42/14/40/38/39/29 menus+glyphs, WK-120/125 lobby, WK-85/85a backdrops, WK-117/52/113 sports UI,
-WK-137 Brawl-only callouts, WK-37f ghosts out of terrain. Audits: CD3 (ee892a5), UX4 (c305199). Specs: WK-20d (9c05fa1), WK-131 (f5709c7)
-+ gate brief (3a1f82a). Backlog re-rank #8 (3a0b1a8). In flight (SendMessage to resume):
-- WK-135: first builder STALLED (no output 09:50-12:55) and was stopped. RECOVERY agent a2b94bf427fc73cb3 finishes PHASE 1 only
-  from scratchpad/wk135proj + scratchpad/wk135 (harness/results), merges phase 1 into the repo; phases 2-3 become a follow-up.
-- Lane U (port 9104): WK-33 controls screen, WK-139 end-screen kit, WK-140 quit dialog — agent ae2fe1dbe4dda3563.
-- Lane L (port 9108): WK-28a lobby disconnect grace, WK-138 + WK-83 lobby prompts/safe area — agent a117e4f03d8143687.
-- WK-131 padlock badge art (ChatGPT via Chrome, per docs/briefs/kickoff_gate_2026-11-15.md) — agent a255265beadf9188e.
-Queue after WK-135: WK-20d R1 spawn A/B (variants in tools/out/wk/wk20d_r1/), WK-131a build, WK-136, then WK-20d code rungs.
+**>>> RESUME HERE (2026-11-15 ~15:30) <<<**
+Since 12:30 (all committed): WK-33/139/140, WK-28a/138/83, WK-143/145/149/141, WK-142/44/144, WK-119/146/147, WK-60/60b, WK-150/148,
+WK-151, WK-131 gate art (29aedde), WK-135 PHASE 1 bumper kick floor (8eec92e). Audits: UX4 (c305199) + lobby verdict (e5f47e7).
+Briefs: kickoff gate (3a1f82a), court cards (3cd6387). Backlog re-rank #8 (3a0b1a8). In flight (SendMessage to resume):
+- Lane U (port 9104): WK-28b in-match disconnect overlay — agent ad455dbc6708eac7f.
+- WK-20d baseline repro + R1 spawn A/B (HOLDS the headless batch slot) -> docs/audit/2026-11-15_wk20d_r1.md — agent aeb3cf52a86d4fa14.
+- WK-131a kickoff gates build (port 9110; A/B after the batch slot frees) — agent aa5c13203e2a274c2.
+- WK-65 court card art (ChatGPT via Chrome) — agent aa150fc053ebeca67.
+NEXT when a slot frees: WK-136 near-empty relight + WK-20d rungs 2-4 switches (Player.gd fuel code, one builder), then the rung batch;
+WK-131 A/B batch; WK-135 phases 2-3 (rebuild from spec); WK-148b camera snap (PartyMatch); WK-CD4 cold playthrough after pacing lands.
 GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
-WK-38: automation server is OFF unless --gb-port is passed (run_game.ps1 passes it).
+WK-38: automation server is OFF unless --gb-port is passed (run_game.ps1 passes it). Don't pipe run_game.ps1.
 Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Keep-awake runs as a background task (scratchpad/keepawake.ps1).
+Stall check: if a long builder writes nothing for > 45 min and no Godot runs, TaskStop it and start a recovery agent.
 CONCURRENCY CAP: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
 
 **WEEKEND POLISH RUN (started 2026-11-14, branch `weekend/polish`, UNATTENDED — owner: "i dont want to be
