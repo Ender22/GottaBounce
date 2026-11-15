@@ -795,15 +795,15 @@ var sports_auto_2v2_humans: int = 2           # joined humans at which an AUTO F
 var trials_drop_haze: Color = Color("#EAF8FF")     # cloud-level mist (hills dissolve into it)  # WK-85a
 var trials_drop_sky: Color = Color("#5ED0FB")      # open air below the islands (sky_grass_day ~0.8 row)  # WK-85a
 var trials_drop_deep: Color = Color("#159CF0")     # deep blue far below (sky_grass_day mid-sky tone)  # WK-85a
-var trials_drop_haze_px: float = 160.0             # WK-85a
-var trials_drop_sky_px: float = 650.0              # WK-85a
+var trials_drop_haze_px: float = 100.0             # WK-85a (WK-162: 160 -> 100, bluer air right under the islands)
+var trials_drop_sky_px: float = 300.0              # WK-85a (WK-162: 650 -> 300, open-sky blue reads under the lowest decks)
 var trials_drop_deep_px: float = 1300.0            # WK-85a
-var trials_drop_bank_y: float = 150.0              # front cloud row centre, px below the ramp start  # WK-85a
-var trials_drop_bank_row_gap: float = 70.0         # back row sits this much higher  # WK-85a
-var trials_drop_bank_y_jitter: float = 80.0        # WK-85a
-var trials_drop_bank_spacing: float = 300.0        # px between bank clouds (per row)  # WK-85a
-var trials_drop_bank_scale_min: float = 0.36       # cloud art is 854x515  # WK-85a
-var trials_drop_bank_scale_max: float = 0.72       # WK-85a
+var trials_drop_bank_y: float = 0.0                # front cloud row centre, px below the ramp start  # WK-85a
+var trials_drop_bank_row_gap: float = 40.0         # back row sits this much higher  # WK-85a (WK-162: 70 -> 40, thinner)
+var trials_drop_bank_y_jitter: float = 60.0        # WK-85a (WK-162: 80 -> 60)
+var trials_drop_bank_spacing: float = 420.0        # px between bank clouds (per row)  # WK-85a (WK-162: 300 -> 420, broken row)
+var trials_drop_bank_scale_min: float = 0.26       # cloud art is 854x515  # WK-85a (WK-162: 0.36 -> 0.26)
+var trials_drop_bank_scale_max: float = 0.46       # WK-85a (WK-162: 0.72 -> 0.46)
 var trials_drop_bank_back_tint: Color = Color("#CFE6F7")  # WK-85a
 var trials_drop_deep_clouds: int = 7               # small faint clouds deeper in the drop (depth cue)  # WK-85a
 var trials_drop_deep_cloud_y_min: float = 500.0    # WK-85a
@@ -1122,3 +1122,14 @@ var sports_gate_badge_margin: float = 6.0     # (b) wpx kept between the ring's 
 var sports_gate_badge_z: int = 39             # (b) badge + ring z: above goats, under the ball (40); WK-131 drew them at the gate's -1  # WK-155
 var sports_gate_stripe_a: Color = Color("#FFF6EA")   # (c) pole stripe A: warm white (was cream #FFF3D6)  # WK-155
 var sports_gate_stripe_b: Color = Color("#D9262E")   # (c) pole stripe B: barrier red (was honey gold #F2B33D, read as the gold goal trim)  # WK-155
+
+# --- WK-161 BR-135 pin breaker inside a radial gravity well (Singularity). Read by src/core/InputBot.gd.  # WK-161
+# Source: docs/audit/2026-11-15_wk135_p2_ab.md (BR-135 ON raised Singularity stuck episodes 1.46x, p = 0.002).  # WK-161
+# ON: while the bot / the pinned contact is inside a GravitySource radius, the pin breaker neither EXCLUDES the pinned  # WK-161
+# face (BR-135b) nor SLIDE-STEERS off it (_pin_avoid, BR-135c), so wells revert to the BR-135-OFF brain; flat arenas  # WK-161
+# are unchanged (no gravity source there). OFF (false) = current (BR-135 everywhere). QA arm: env GB_WK161=1 / 0  # WK-161
+# overrides this at bot creation (record_match.ps1 / headless runs inherit the env; no Tuning edit needed).  # WK-161
+var wk161_radial_pin_skip: bool = false       # WK-161 master switch  # WK-161
+var wk161_radial_keep_release: bool = true    # WK-161 (ON only): a well pin still drops boost for one reaction tick  # WK-161
+var wk161_radial_skip_target: bool = false    # WK-161 (ON only): also skip BR-135a (refuel target class) in a well  # WK-161
+var wk161_dump_max: int = 24                  # WK-161 per-bot per-stage episode dump cap (motion_health.wk161_dump)  # WK-161

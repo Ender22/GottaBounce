@@ -200,3 +200,10 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   before the sky-drop code, so `sky_drop` does nothing there. Also: with `Tuning.circuit_session_deck` on, a `circuit=meadow_mile`
   harness / RecordBoot run plays grassy_expanse then a SHUFFLED deck, not the authored order. A/B arms that need identical arena
   sequences must set the knob false (or use `arena=`).
+- **WK-161: two WK-93 recordings of the SAME build + seed are frame-identical only until ~the first KO.** pinball_pit seed 7, knob
+  OFF vs ON (the knob is inert on flat arenas): identical for 12.2 s (incl. 2 breaker trips, same avoid-frame counts), then a 0.1 px
+  split that grows to chaos. Suspect wall-clock code that runs after deaths (GhostDirector bleat timing uses Time.get_ticks_msec).
+  So "first divergence frame" proves a change engaged only if it lands BEFORE the first death; after that, compare counters only.
+- **WK-162: the sky-drop cloud bank lives in the 0.18 parallax hills layer, so how high it sits next to the decks depends on each
+  level's camera** (screen gap = zoom x (floor_y - deck_y + bank_y - 40 + 0.82 x (cam.y - anchor.y))). Lowering the bank cleared
+  Islands Void but parked it ON Flight School 4's pads; raising it to the hills' base (bank_y 0) gave open sky under the decks on all three.

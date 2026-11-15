@@ -151,6 +151,20 @@ var _pin_ex_off := Vector2.ZERO  # WK-135: its RectangleShape2D offset in the bo
 var _pin_ex_half_t := -1.0       # WK-135: face half-length along its tangent (-1 = unknown shape: plane test)
 var _pin_ex_half_n := 0.0        # WK-135: rect half-extent along the face normal
 var _pin_avoiding := false       # WK-135: _pin_avoid redirected the aim this frame (snap the stick: bot_pin_turn_mult)
+# WK-161: per-episode dump (telemetry only, never read by decisions). motion_health()["wk161_dump"] carries one record per
+# STUCK episode and per bot-side PIN episode (Player's bumper_pin_episodes rule: >= Player.PIN_CONTACTS contacts with one
+# bumper face within Player.PIN_WINDOW, ANY thrust) with thrust dir, hitstun, black-hole / well state and contact point.
+var _wk161_dump: Array = []      # WK-161: this stage's records (capped at Tuning.wk161_dump_max)
+var _wk161_path := ""            # WK-161: which poll branch emitted the last intent (aim / recover / plan)
+var _wk161_pin_key := ""         # WK-161: bot-side pin detector, face of the current run (any thrust)
+var _wk161_pin_times: Array = [] # WK-161: _mh_clock of its contacts in the window
+var _wk161_in_pin := false       # WK-161: inside a pin episode (one record per episode)
+var _wk161_pin_eps := 0          # WK-161: bot-side pin episodes this stage (cross-check vs wk128.bumper_pin_episodes)
+var _wk161_well_skips := 0       # WK-161: breaker trips inside a well that skipped exclusion + slide (knob ON)
+var _wk161_last_t := -INF        # WK-161: _mh_clock of my last surface contact (any surface)
+var _wk161_last_p := Vector2.ZERO  # WK-161: its contact point
+var _wk161_last_n := Vector2.ZERO  # WK-161: its normal
+var _wk161_last_face := ""       # WK-161: its class (core / floor / wall / ceiling / surface)
 # WK-95 BR-7: purpose of the super this bot last pressed (attack / finisher_attack / dodge / recovery_hot /
 # recovery_unreachable / attack_dump (WK-127); the pre-WK-95 brain also emits recovery_lowfuel). PartyMatch copies it into
 # round_stats.supers_fired[].purpose_bot at fire time. Telemetry only — never read by the decision code.
@@ -204,6 +218,9 @@ func _init(player: Player, arena_ref, bot_level := 3) -> void:
 	arena = arena_ref
 	level = bot_level
 	profile = BotProfile.for_level(bot_level)
+	var wk161_env: String = OS.get_environment("GB_WK161")   # WK-161 QA arm override ("1" ON, "0" OFF, unset = Tuning)
+	if wk161_env == "1" or wk161_env == "0":   # WK-161
+		Tuning.wk161_radial_pin_skip = wk161_env == "1"   # WK-161
 	# underside-bounce sense (INV-12 subscriber): the sim emits surface_bounced with the contact
 	# normal; a normal pointing DOWN means we hit a platform's underside (head-bang). Read-only.
 	EventBus.surface_bounced.connect(_on_surface_bounced)
@@ -289,6 +306,7 @@ func poll() -> InputIntent:
 	# --- own AIM state: steer the led solution, fire when good enough or timed out (§3.2 rule 1)
 	if me.is_super_aiming():
 		_my_aim_t += dt
+		_wk161_path = "aim"   # WK-161
 		_tick_aiming(it)
 		return it
 	_my_aim_t = 0.0
@@ -298,6 +316,7 @@ func poll() -> InputIntent:
 	_braking = false
 	_pin_avoiding = false   # WK-135
 	if _danger_recover(it):
+		_wk161_path = "recover"   # WK-161
 		it.aim = _bang_escape(it.aim, it.boost)
 		if it.boost:
 			it.aim = _pin_avoid(it.aim)   # WK-135 BR-135c: a recovery steers off an excluded face (never drops its boost)
@@ -323,6 +342,7 @@ func poll() -> InputIntent:
 		_wk108b_replan(dt)   # WK-108b
 	it.aim = _cached_aim
 	it.boost = _cached_boost
+	_wk161_path = "refuel" if _refuel_dive else ("hunt" if _hunt else "plan")   # WK-161
 	# WK-128 BR-128 (reflex, every frame — a cached dive boost can outlive the bounce it was decided before)
 	if it.boost and _refuel_dive and not _refuel_cross and wk128_refuel_wait and me.refund_rearm_pending(_refuel_dir):
 		it.boost = false
@@ -900,7 +920,8 @@ func _decide() -> void:
 		if _radial(rdown):
 			var rhit := _surface_along(pos - rdown * 40.0, rdown, VOID_PROBE_DROP)
 			var no_target := false   # WK-135 BR-135a: surfaces along the pull, but none that can pay
-			if wk135_no_pin and not rhit.is_empty() and not _wk135_refuel_ok(rhit):   # WK-135 BR-135a
+			var wk161_skip_a: bool = Tuning.wk161_radial_pin_skip and Tuning.wk161_radial_skip_target and _wk161_in_well(pos)   # WK-161
+			if wk135_no_pin and not wk161_skip_a and not rhit.is_empty() and not _wk135_refuel_ok(rhit):   # WK-135 BR-135a (WK-161)
 				rhit = {}   # WK-135
 				for ang in [0.45, -0.45]:   # WK-135: look a little either side of the pull for a paying face
 					var alt := _surface_along(pos - rdown * 40.0, rdown.rotated(ang), VOID_PROBE_DROP)   # WK-135
@@ -1763,8 +1784,10 @@ func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
 		_mh_samples.pop_front()
 	var span: float = _mh_clock - float(_mh_samples[0]["t"])
 	var stuck_now := false
+	var disp_now := -1.0   # WK-161: window displacement (dump)
 	if span >= MH_STUCK_WINDOW * 0.9:
 		var disp: float = pos.distance_to(_mh_samples[0]["pos"])
+		disp_now = disp   # WK-161
 		var moving := 0.0
 		for s in _mh_samples:
 			if s["move"]:
@@ -1775,6 +1798,7 @@ func _update_motion_health(dt: float, boost: bool, aim: Vector2) -> void:
 		if not _mh_in_stuck:
 			_mh_in_stuck = true
 			_mh_stuck_episodes += 1
+			_wk161_record("stuck", _wk161_last_p, _wk161_last_n, _wk161_last_face, disp_now)   # WK-161
 		_mh_stuck_secs += dt
 	else:
 		_mh_in_stuck = false
@@ -1831,6 +1855,13 @@ func _wk135_pin_contact(surface: Node2D, n: Vector2, contact: Vector2) -> void: 
 	if _pin_hits.size() < Tuning.bot_pin_contacts:  # WK-135
 		return  # WK-135
 	_pin_hits.clear()  # WK-135
+	if Tuning.wk161_radial_pin_skip and (surface.has_meta("round") or _wk161_in_well(contact)):   # WK-161: inside a radial
+		_wk161_well_skips += 1   # well: no face exclusion, no slide steering (BR-135-OFF brain); optionally the release only  # WK-161
+		me.wk135_count("wk161_well_skips")   # WK-161
+		if Tuning.wk161_radial_keep_release:   # WK-161
+			_pin_release_t = profile.reaction_time   # WK-161
+			me.wk135_count("wk135_pin_breaks")   # WK-161: a release still counts as a break (comparable to the A/B)
+		return   # WK-161
 	_pin_release_t = profile.reaction_time  # WK-135
 	_react = _pin_release_t   # re-plan the moment the release ends, with the face excluded  # WK-135
 	_pin_ex_t = Tuning.bot_pin_exclude_s  # WK-135
@@ -1860,6 +1891,8 @@ func _wk135_ex_frame() -> Vector3:  # WK-135
 	if _pin_ex_t <= 0.0 or not wk135_no_pin or me == null or not is_instance_valid(me):  # WK-135
 		return Vector3(0.0, 0.0, INF)  # WK-135
 	var pos: Vector2 = me.global_position  # WK-135
+	if Tuning.wk161_radial_pin_skip and _wk161_in_well(pos):   # WK-161: an exclusion set outside a well never steers inside one
+		return Vector3(0.0, 0.0, INF)   # WK-161
 	if _pin_ex_round:  # WK-135
 		var rel := pos - _pin_ex_c  # WK-135
 		var rn := rel.normalized() if rel.length() > 0.01 else _pin_ex_n  # WK-135
@@ -1928,11 +1961,103 @@ func _wk135_refuel_ok(hit: Dictionary) -> bool:  # WK-135
 		return true  # WK-135
 	return n.dot(-_gdown(hit.get("position", me.global_position))) > Tuning.bumper_floor_dot  # WK-135
 
+# ---------------------------------------------------------------- WK-161 (BR-135 in radial wells + per-episode dump)
+
+## WK-161: is `p` inside a radial gravity well (any registered GravitySource radius)? Flat arenas have none -> false.
+func _wk161_in_well(p: Vector2) -> bool:  # WK-161
+	return bool(_wk161_core(p).get("in", false))  # WK-161
+
+## WK-161: gravity wells at `p`: {"in": inside any source radius, "d": px from the nearest round body surface (centre if none)}.
+func _wk161_core(p: Vector2) -> Dictionary:  # WK-161
+	var srcs: Array = GravityField.get("_sources") if GravityField.get("_sources") != null else []  # WK-161
+	var best := INF  # WK-161
+	var inside := false  # WK-161
+	for src in srcs:  # WK-161
+		if not is_instance_valid(src) or not (src is Node2D):  # WK-161
+			continue  # WK-161
+		var d: float = p.distance_to((src as Node2D).global_position) - float(src.get("body_r"))  # WK-161
+		best = minf(best, d)  # WK-161
+		if src.has_method("contains") and bool(src.contains(p)):  # WK-161: inside ANY well (two-moon orbit arenas)
+			inside = true  # WK-161
+	return {"in": inside, "d": best}  # WK-161
+
+## WK-161: class of a contact face for the dump: core (round collider) / floor / wall / ceiling (local gravity) / surface
+## (non-bumper tier). Bumper rect faces use Tuning.bumper_floor_dot like Player._wk135_face_class.
+func _wk161_face(surface: Object, n: Vector2, at: Vector2) -> String:  # WK-161
+	if surface == null or not is_instance_valid(surface):  # WK-161
+		return "?"  # WK-161
+	if surface.has_meta("round"):  # WK-161
+		return "core" if surface.has_meta("bumper") else "round"  # WK-161
+	var up: Vector2 = -_gdown(at)  # WK-161
+	var d: float = n.dot(up)  # WK-161
+	var cls := "floor" if d > Tuning.bumper_floor_dot else ("ceiling" if d < -0.5 else "wall")  # WK-161
+	return ("bumper_" + cls) if surface.has_meta("bumper") else cls  # WK-161
+
+## WK-161: every surface contact: remember it (stuck records carry the last one) and run the bot-side pin detector
+## (Player's bumper_pin_episodes rule, any thrust) so each pin EPISODE gets one dump record.
+func _wk161_contact(surface: Object, n: Vector2, contact: Vector2) -> void:  # WK-161
+	if me == null or not is_instance_valid(me):  # WK-161
+		return  # WK-161
+	var face := _wk161_face(surface, n, contact)  # WK-161
+	_wk161_last_t = _mh_clock  # WK-161
+	_wk161_last_p = contact  # WK-161
+	_wk161_last_n = n  # WK-161
+	_wk161_last_face = face  # WK-161
+	if surface == null or not is_instance_valid(surface) or not surface.has_meta("bumper"):  # WK-161
+		return  # WK-161
+	var key := _wk135_face_key(surface, n)  # WK-161
+	if key != _wk161_pin_key:  # WK-161
+		_wk161_pin_key = key  # WK-161
+		_wk161_pin_times.clear()  # WK-161
+		_wk161_in_pin = false  # WK-161
+	_wk161_pin_times.append(_mh_clock)  # WK-161
+	while not _wk161_pin_times.is_empty() and _mh_clock - float(_wk161_pin_times[0]) > Player.PIN_WINDOW:  # WK-161
+		_wk161_pin_times.pop_front()  # WK-161
+	if _wk161_pin_times.size() >= Player.PIN_CONTACTS:  # WK-161
+		if not _wk161_in_pin:  # WK-161
+			_wk161_in_pin = true  # WK-161
+			_wk161_pin_eps += 1  # WK-161
+			_wk161_record("pin", contact, n, face, -1.0)  # WK-161
+	else:  # WK-161
+		_wk161_in_pin = false  # WK-161
+
+## WK-161: append one episode record (capped). Thrust = the emitted stick + whether the jetpack is lit; aim_n = aim . contact
+## normal (< -0.5 = thrusting into it, the BR-135b test); bh = black-hole powerup drag (Player._pulled); well/core_d = the
+## radial well; brk = pin-breaker state at that moment. `disp` = stuck window displacement (-1 for pins).
+func _wk161_record(kind: String, contact: Vector2, n: Vector2, face: String, disp: float) -> void:  # WK-161
+	if _wk161_dump.size() >= Tuning.wk161_dump_max or me == null or not is_instance_valid(me):  # WK-161
+		return  # WK-161
+	var pos: Vector2 = me.global_position  # WK-161
+	var a: Vector2 = _intent.aim  # WK-161
+	var core := _wk161_core(pos)  # WK-161
+	var down := _gdown(pos)  # WK-161
+	var rec := {  # WK-161
+		"kind": kind, "t": snappedf(_mh_clock, 0.01),  # WK-161
+		"pos": [roundi(pos.x), roundi(pos.y)], "vel": [roundi(me.velocity.x), roundi(me.velocity.y)],  # WK-161
+		"aim": [snappedf(a.x, 0.01), snappedf(a.y, 0.01)], "boost": me.is_boosting(), "fuel": snappedf(me.fuel, 0.1),  # WK-161
+		"hitstun": me.in_hitstun(), "path": _wk161_path, "refuel_dive": _refuel_dive,  # WK-161
+		"bh": float(me.get("_pulled")) > 0.0, "well": bool(core["in"]),  # WK-161
+		"core_d": roundi(float(core["d"])) if float(core["d"]) < INF else -1,  # WK-161
+		"radial": _radial(down), "down": [snappedf(down.x, 0.01), snappedf(down.y, 0.01)],  # WK-161
+		"brk": {"ex": _pin_ex_t > 0.0, "rel": _pin_release_t > 0.0, "avoid": _pin_avoiding,  # WK-161
+			"skip_on": Tuning.wk161_radial_pin_skip, "on": wk135_no_pin},  # WK-161
+	}  # WK-161
+	if _wk161_last_t > -INF:  # WK-161
+		rec["contact"] = [roundi(contact.x), roundi(contact.y)]  # WK-161
+		rec["n"] = [snappedf(n.x, 0.01), snappedf(n.y, 0.01)]  # WK-161
+		rec["face"] = face  # WK-161
+		rec["contact_age"] = snappedf(_mh_clock - _wk161_last_t, 0.01)  # WK-161
+		rec["aim_n"] = snappedf(a.normalized().dot(n.normalized()), 0.01) if a.length() > 0.1 and n != Vector2.ZERO else 0.0  # WK-161
+	if disp >= 0.0:  # WK-161
+		rec["disp"] = roundi(disp)  # WK-161
+	_wk161_dump.append(rec)  # WK-161
+
 ## INV-12 subscriber: a bounce whose (axis-snapped) contact normal points DOWN (n.y > 0) is a hit on a
 ## platform UNDERSIDE — a head-bang. Read-only telemetry; never touches sim state.
 func _on_surface_bounced(_surface, player, normal: Vector2, _contact) -> void:
 	if player != me:
 		return
+	_wk161_contact(_surface, normal, _contact)   # WK-161 per-episode dump feed (telemetry only)
 	if wk135_no_pin and is_instance_valid(_surface) and _surface is Node2D and _surface.has_meta("bumper"):   # WK-135 BR-135b
 		_wk135_pin_contact(_surface as Node2D, normal, _contact as Vector2)   # WK-135
 	# gravity-frame "underside": the normal points ALONG the local pull (flat: normal.y > 0.5, identical)
@@ -1975,6 +2100,9 @@ func motion_health() -> Dictionary:
 		# refunds, nopay_contacts, dribble_episodes, income/spend, P-a1 counter) + bot time below the refuel floor
 		"time_below_refuel_floor": snappedf(_mh_below_floor_s, 0.01),
 		"wk128": me.wk128_stats() if me != null and is_instance_valid(me) else {},
+		"wk161_pin_episodes": _wk161_pin_eps,   # WK-161: bot-side pin episodes (any thrust; cf. wk128.bumper_pin_episodes)
+		"wk161_well_skips": _wk161_well_skips,   # WK-161
+		"wk161_dump": _wk161_dump.duplicate(true),   # WK-161: per-episode records (stuck / pin)
 	}
 
 ## Reset per stage (called from PartyMatch._bounce_go) so numbers are per-stage.
@@ -1997,5 +2125,13 @@ func reset_motion_health() -> void:
 	_pin_hits.clear()   # WK-135
 	_pin_release_t = 0.0   # WK-135
 	_pin_ex_t = 0.0   # WK-135
+	_wk161_dump.clear()   # WK-161
+	_wk161_pin_key = ""   # WK-161
+	_wk161_pin_times.clear()   # WK-161
+	_wk161_in_pin = false   # WK-161
+	_wk161_pin_eps = 0   # WK-161
+	_wk161_well_skips = 0   # WK-161
+	_wk161_last_t = -INF   # WK-161
+	_wk161_last_face = ""   # WK-161
 	if me != null and is_instance_valid(me):
 		me.reset_wk128_stats()   # WK-128: per-stage fuel-integrity telemetry
