@@ -1271,7 +1271,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   stat pips visible in the lobby (screenshot); cosmetic -> blurbs rewritten as personality, DECISIONS entry.
 - Status: open
 
-### [ ] WK-33 [P1][M] CONTROLS screen (full move set, device glyphs) reachable from Pause and Options
+### [x] WK-33 [P1][M] CONTROLS screen (full move set, device glyphs) reachable from Pause and Options — 7cb2f9f
 - Sources: C-12 (screen half), C-20 (CONTROLS entry), R-22 (controls view), CC-11.1, CC-7.1
 - Area: menus · Owner: ui-ux-designer · Deps: WK-29 (done 9eb3c60), WK-09 (done 5926f10) — pullable
 - Merged UX4-01 (re-rank #8, `docs/audit/2026-11-15_ux4_frontend.md`, the audit's #1 front-end gap): Pause shows RESUME · RESTART ·
@@ -2000,7 +2000,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   ui-ux Ship verdict.
 - Status: open. UI lane (lane L), with WK-83 as one lobby pass, after WK-28a (same `HerdLobby.gd`).
 
-### [ ] WK-139 [P2][S] End screens share one button kit + an A/B glyph footer; Trials end hides the HUD (UX4-06 + UX4-07)
+### [x] WK-139 [P2][S] End screens share one button kit + an A/B glyph footer; Trials end hides the HUD (UX4-06 + UX4-07) — 7cb2f9f
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4 2026-11-15 (UX4-06, UX4-07; UX4-21 rides along)
 - Evidence:
   - UX4-06: Brawl and Sports Victory draw unfocused CHANGE SETUP / QUIT TO MENU **grey and translucent** — reads as disabled across a room
@@ -2018,7 +2018,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   Trials end shows no HUD cards or objective panel; WK-11 arm gate unchanged; ui-ux Ship verdict.
 - Status: open. UI lane (lane U), disjoint from WK-33's and the lobby's files: can run in parallel with either.
 
-### [ ] WK-140 [P2][S] Title quit dialog: last navy panel -> opaque cream ToyPanel with glyph hints (UX4-14)
+### [x] WK-140 [P2][S] Title quit dialog: last navy panel -> opaque cream ToyPanel with glyph hints (UX4-14) — 7cb2f9f
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4-14 2026-11-15
 - Evidence: `tools/out/ux/UX4_05`: navy rounded "QUIT GOTTABOUNCE?" panel in an all-cream product; PLAY's outline ghosts through its lower
   edge (the 0.97-alpha ToyPanel lesson).
