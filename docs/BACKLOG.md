@@ -1845,7 +1845,7 @@ another simulated pass has lower value than a real session, so CD6 is scoped to 
   must queue behind whichever lobby item holds that file (WK-28a / WK-138) or use staged hunks.
 - Status: open (sound-designer; sample sourcing runs outside the Godot cap).
 
-### [ ] WK-46 [P2][M] Menu nav repeat on held D-pad/stick + explicit LS axes on `ui_*`
+### [x] WK-46 [P2][M] Menu nav repeat on held D-pad/stick + explicit LS axes on `ui_*` — 17ffa8d
 - Sources: C-21 (global half; lobby half in WK-05), CC-5.3
 - Area: menus · Owner: gameplay-programmer · Deps: WK-03
 - Accept (rendered): holding pad right on ArenaSelect moves >= 5 cards in 1 s after 0.40 s delay; LS navigates with hysteresis (no double-steps).
@@ -2935,9 +2935,14 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 - Source: WK-169 build (Grassy Expanse: revived goat and its ghost both on screen through sudden death). Use game time for the 0.6 s
   ghost delay (GhostDirector) or cancel the ghost when a revive is pending.
 
-### [ ] WK-179 [P3][S] Soak findings (docs/audit/2026-11-16_wk176_soak.md)
+### [x] WK-179 [P3][S] Soak findings (docs/audit/2026-11-16_wk176_soak.md) — 17ffa8d
 - F1: unlock celebrations (HerdLobby.gd:1677 flair card, ArenaSelect.gd:980 circuit unlock) reuse EventBus.match_won for the fanfare,
   so AudioManager switches the front-end music to scoreboard.mp3 until the next match. Use a dedicated unlock cue/signal.
 - F2: ArenaRenderer _warn_once is per-renderer -> the same missing-decal warnings repeat every stage (131 lines/86 min); the
   "missing bumper_post.png" warning is wrong (file exists; horizontal bumpers always use the placeholder strip).
 - WK-46 note: stop menu auto-repeat from wrapping (a held D-pad on a 3-row panel lands back on the start row).
+
+### [ ] WK-180 [P3][S] Grass decal art exists but isn't wired (art-director call)
+- Source: WK-179. ArenaRenderer looks for assets/world/grass/decal_*.png but the art is at assets/world/grass/decals/{tuft_a,tuft_b,flower_white}.png.
+  Wiring it changes every grass platform's look -> art-director brief/grade first. Same call: give horizontal bumpers real art (today a grey strip).
+  Also: the CIRCUIT UNLOCKED banner text overlaps the arena preview panel's chips.
