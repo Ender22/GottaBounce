@@ -147,3 +147,12 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **WK-60: crest_trials_orbit / crest_trials_varied shipped with OPAQUE dark backgrounds** (the other 10 crests were keyed). Cards crop
   them so nobody noticed; at hero size (ArenaSelect preview, TrialsVictory) they showed a dark rectangle. Keyed with
   `python tools/art.py keyout IN OUT --tol 45`; a game launch does NOT reimport a changed PNG, run the `--editor --quit` pass first.
+- **WK-151: WASD now IS on ui_up/down/left/right** (project.godot). Declaring a `ui_*` action in project.godot REPLACES the engine's
+  built-in one, so the entry must re-list the defaults (arrow keycode, D-pad 11-14, left-stick axis, deadzone 0.5) plus the new keys
+  (WASD by physical_keycode, like move_*). Every menu handler already reads `ui_X or move_X` with `or`, so nothing double-fires;
+  end screens/HUD rows are FOCUS_NONE (MenuInputGate), and no Control holds focus during live play, so gameplay WASD can't leak into
+  focus nav. Dump a project's effective map with a `--script` SceneTree that prints `InputMap.action_get_events()`.
+- gbplay raw `key_press` is a TAP (auto-release next frame); hold with raw `key_hold` + `key_release` inside one `gbplay script`.
+  A backgrounded `gbplay hold` gets its socket kicked by the next gbplay call (one client at a time) and leaves the key STUCK down.
+- Forcing an end screen with `eval "get_tree().current_scene._enter_match_end(1)"` works, but it banks progression
+  (matches_played / total_kills / circuit_plays in user://settings.cfg). Back the file up first and restore it after.

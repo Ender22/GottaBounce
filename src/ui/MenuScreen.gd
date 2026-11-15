@@ -4,8 +4,8 @@ extends Control
 ## focus/press juice, footer/header assemble-on-enter, content stagger, back handling, and the ui
 ## audio. Concrete screens override the small hook methods and wire their own focus-neighbour map.
 ##
-## Focus MOVEMENT itself is Godot's built-in focus system (arrows / D-pad / left-stick all map to the
-## ui_* actions): each screen sets focus_neighbour_* for wrap-around. ACTIVATION rides Button.pressed
+## Focus MOVEMENT itself is Godot's built-in focus system (arrows / WASD / D-pad / left-stick all map to the
+## ui_* actions; WASD added in project.godot by WK-151, CC-2.1): each screen sets focus_neighbour_* for wrap-around. ACTIVATION rides Button.pressed
 ## (Enter / gamepad-A both fire ui_accept). BACK is menu_back, handled here.
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)

@@ -37,7 +37,8 @@ const LETTER_PX := 28                      # WK-18 / CC-8.1 couch floor for ever
 const ARROWS_W := 76.0                     # WK-29 "arrows" key cap width
 
 ## WK-29: keyboard twins of the pad glyphs. Menus (CC-2.1 / project.godot menu_* + ui_*): Enter confirms and
-## goes, Esc backs, R = Y, Tab = View, Q/E = LB/RB, arrows move focus. Gameplay (CC-2.2 scheme KB-L): WASD move,
+## goes, Esc backs, R = Y, Tab = View, Q/E = LB/RB, arrows AND WASD move focus
+## (WK-151: WASD is on ui_* too; the menu "stick" twin stays the arrows cap, which is still true). Gameplay (CC-2.2 scheme KB-L): WASD move,
 ## Space boost, K super, L powerup, J taunt, Esc pause. A glyph with no twin (e.g. "check") passes through.
 const KEYS_MENU := {"A": "key:ENTER", "B": "key:ESC", "X": "key:F", "Y": "key:R", "START": "key:ENTER",
 	"VIEW": "key:TAB", "LB": "key:Q", "RB": "key:E", "stick": "arrows"}
