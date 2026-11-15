@@ -9,6 +9,10 @@ Committed since the freeze: WK-37d (b76d36f) + WK-37e (6c0d612) ghost tags; WK-1
 WK-66a sports nets (2bd049c); WK-53b living taunt + WK-26 super-aim wind-up + target "!" (4ca9472). In flight (SendMessage to resume):
 - WK-135 bumper build (3 phases; SCRATCH COPY, applies to repo at the end; port 9105) — agent a9403f95b2887d5dd.
 - WK-CD3 cold playthrough (port 9106) -> docs/audit/2026-11-15_cd3_playthrough.md — agent a72674c1962b636e4. Then producer re-rank #7.
+- WK-20d Brawl pacing: spec 9c05fa1. Rung 1 (spawn spread) variants READY (not in levels/; A/B copies them into a scratch copy):
+  tools/out/wk/wk20d_r1/levels/*.json + wk20d_r1_spawns.py gen|check (High Pasture min 600 px is the only <700 case).
+  NEXT: QA baseline repro + R1 A/B batch when the headless slot frees (WK-135 holds it); rungs 2-4 code after WK-135 commits.
+- Lane U (port 9104): WK-14 / WK-40 / WK-38 / WK-39 in progress — agent acec1feee5dd2a01f.
 GPU PROBLEM: both AMD adapters in error (RX 6700S disabled, iGPU failed-add) -> software rendering ~37 fps since the freeze.
 Visuals/recordings OK, perf/timing numbers invalid; WK-90 (hit-stop re-measure) waits for the owner to reboot / re-enable.
 Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Keep-awake runs as a background task (scratchpad/keepawake.ps1).
