@@ -1376,12 +1376,12 @@ var wk171_rules_helper: bool = true           # ON. false = the bar keeps the ru
 # QA arm without a Tuning edit: env GB_WK169 = comma list (read in _ready): drop / ghost / rowdy (one lever each, implies  # WK-169
 # showdown_enabled), a1 (=drop) a2 (=ghost) a3 (=rowdy) a4 (=drop,ghost), all / 1 (every lever), frame (state + dim / rim,  # WK-169
 # no lever), 0 / a0 / tel (telemetry only, the A0 control). Any non-empty value turns showdown_telemetry on. Headless arms can also use tune_<name>=<v>.  # WK-169
-var showdown_enabled: bool = false            # MASTER. false = no state, no node, no showdown telemetry (spec §8)  # WK-169
+var showdown_enabled: bool = true             # ON (WK-169b-2 ruling: A1 shipped). MASTER. false = no state, no node, no showdown telemetry (spec §8)  # WK-169
 var showdown_telemetry: bool = false          # spectator / tail / ghost-dry telemetry without any lever (A0 control). Implied by showdown_enabled  # WK-169
 var showdown_delay: float = 6.0               # s of 2-alive (stage started >= 3) COMBAT before SHOWDOWN (game time)  # WK-169
 var showdown_step_s: float = 8.0              # s between escalation steps (step 1 = entry)  # WK-169
 var showdown_max_steps: int = 3               # escalation holds after this step (tail 6 / 14 / 22 s). Never an end  # WK-169
-var showdown_drop: bool = false               # L1 GOLDEN DROP switch  # WK-169
+var showdown_drop: bool = true                # ON (WK-169b-2). L1 GOLDEN DROP switch  # WK-169
 var showdown_drop_interval: float = 8.0       # s between golden drops (telegraph start to telegraph start)  # WK-169
 var showdown_drop_telegraph: float = 1.0      # s of gold converging sparkle before the bubble is live (= pu_spawn_telegraph)  # WK-169
 var showdown_drop_life: float = 7.0           # s a live golden bubble waits, then pops uncollected  # WK-169

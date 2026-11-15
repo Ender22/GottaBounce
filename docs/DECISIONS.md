@@ -2,6 +2,13 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-169 SHOWDOWN SHIPPED (A1 golden drop; docs/audit/2026-11-16_wk169b2.md, decision row 1): after 6 s of a 2-alive
+  tail with a ghost watching, SHOWDOWN (dim + rim) and a golden tank every 8 s (6 s Unlimited Boost). Pre-registered primary: P(tail
+  that reaches 6 s goes past 20 s) 14.2 % -> 3.4 % (p 0.019); tail metric 0.45x; projected waits > 15 s -42 %, spectator s -11 %.
+  Ghost-credited / match-deciding ghost KOs 0/0. Human self-KO +4.4 pp ruled noise (0 of 8 showdown deaths were self-KOs). FLAG:
+  tank holder won 88.6 % of tails (band 85 %) -> designer call on showdown_drop_dur 6 -> 4 (needs a lane-T re-check). Restless ghosts
+  and rowdy arena stay OFF. 169c polish (music hush/stings, gold HUD frame, real tank art) follows; no camera change.
+
 - **2026-11-16** WK-169 director answers (spec docs/specs/wk169_spectator_time_2026-11-16.md): DQ-1 YES — WK-169's accept is restated
   around spectator SECONDS and long waits (>15 s), not median share (structural floor ~20-21 % under LIVES 1). DQ-2 YES — WK-20d's 70.8 s
   duel is a WK-169 watch note, not a reopen. DQ-3 ACCEPT — 'ghost-decided KOs = 0' means ghost-CREDITED and match-deciding ghost KOs are
