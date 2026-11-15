@@ -5,7 +5,7 @@ extends MenuScreen
 ##
 ## WK-34 Toybox panel kit A: one centred cream ToyPanel (the lobby / pause plate) with a ToyRibbon header —
 ## pink in the shell, the pause owner's goat colour when hosted by the PauseMenu — rows in ToyRow wells
-## (focus = ToyRowFocus gold well + 1.04 scale), and the footer hint strip inside the plate. The old focusable
+## (focus = ToyRowFocus gold well + 1.02 scale, no tilt: WK-34 F2), and the footer hint strip inside the plate. The old focusable
 ## "< BACK" button is now a non-focusable glyph chip in the ribbon (CC-5.5: B goes back, the chip is only for
 ## the mouse), and the navy plate, the screen-corner BACK and the screen-corner "v0.1" (which sat over the P1 / P4
 ## HUD cards, R-22) are gone: nothing is drawn outside the plate.
@@ -122,7 +122,8 @@ func _add_slider(title: String, v: float):
 	var s := SLIDER.instantiate()
 	_rows_box.add_child(s)
 	s.setup(title, v, _accent)
-	register(s, 1.04)
+	s.set_meta("focus_rot_deg", 0.0)   # WK-34 F2: long rows breathe, never tilt
+	register(s, 1.02)
 	s.focus_entered.connect(func() -> void: s.set_focus_active(true))
 	s.focus_exited.connect(func() -> void: s.set_focus_active(false))
 	_rows.append(s)
@@ -132,7 +133,8 @@ func _add_toggle(title: String, b: bool):
 	var t := TOGGLE.instantiate()
 	_rows_box.add_child(t)
 	t.setup(title, b, _accent)
-	register(t, 1.04)
+	t.set_meta("focus_rot_deg", 0.0)   # WK-34 F2: long rows breathe, never tilt
+	register(t, 1.02)
 	t.focus_entered.connect(func() -> void: t.set_focus_active(true))
 	t.focus_exited.connect(func() -> void: t.set_focus_active(false))
 	_rows.append(t)

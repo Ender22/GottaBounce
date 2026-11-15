@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/ui/SportsVictory.gd" id="1_sv"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
@@ -23,41 +23,11 @@ void fragment() {
 shader = SubResource("rays_tint")
 shader_parameter/team = Color(1, 0.823529, 0.247059, 1)
 
-[sub_resource type="StyleBoxFlat" id="row_plain"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.04)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
 [sub_resource type="StyleBoxEmpty" id="row_header"]
-content_margin_left = 14.0
+content_margin_left = 20.0
 content_margin_top = 0.0
-content_margin_right = 14.0
+content_margin_right = 20.0
 content_margin_bottom = 0.0
-
-[sub_resource type="StyleBoxFlat" id="name_ribbon"]
-content_margin_left = 26.0
-content_margin_top = 2.0
-content_margin_right = 26.0
-content_margin_bottom = 4.0
-bg_color = Color(0.231373, 0.141176, 0.105882, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(1, 0.823529, 0.247059, 1)
-corner_radius_top_left = 22
-corner_radius_top_right = 22
-corner_radius_bottom_right = 22
-corner_radius_bottom_left = 22
-shadow_color = Color(0.12, 0.07, 0.05, 0.4)
-shadow_size = 4
-shadow_offset = Vector2(0, 3)
 
 [sub_resource type="StyleBoxFlat" id="mvp_chip"]
 content_margin_left = 12.0
@@ -77,28 +47,6 @@ corner_radius_bottom_left = 18
 shadow_color = Color(0.12, 0.07, 0.05, 0.45)
 shadow_size = 4
 shadow_offset = Vector2(0, 3)
-
-[sub_resource type="StyleBoxFlat" id="score_plate"]
-content_margin_left = 30.0
-content_margin_top = 0.0
-content_margin_right = 30.0
-content_margin_bottom = 4.0
-bg_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 22
-corner_radius_top_right = 22
-corner_radius_bottom_right = 22
-corner_radius_bottom_left = 22
-
-[sub_resource type="StyleBoxFlat" id="fact_plate"]
-content_margin_left = 18.0
-content_margin_top = 4.0
-content_margin_right = 18.0
-content_margin_bottom = 6.0
-bg_color = Color(1, 1, 1, 0.06)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
 
 [node name="SportsVictory" type="CanvasLayer"]
 layer = 13
@@ -122,7 +70,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.0784314, 0.0784314, 0.156863, 0.6)
+color = Color(0.14, 0.09, 0.07, 0.55)
 
 [node name="FX" type="Node2D" parent="Root"]
 
@@ -184,7 +132,7 @@ mouse_filter = 2
 [node name="Ribbon" type="PanelContainer" parent="Root/Team/Slot0/NameL"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("name_ribbon")
+theme_type_variation = &"ToyNameRibbon"
 
 [node name="Box" type="HBoxContainer" parent="Root/Team/Slot0/NameL/Ribbon"]
 layout_mode = 2
@@ -195,19 +143,17 @@ alignment = 1
 [node name="NameText" type="Label" parent="Root/Team/Slot0/NameL/Ribbon/Box"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 52
+theme_type_variation = &"ToyIdLabel"
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 54
 text = "P1"
 vertical_alignment = 1
 
 [node name="SubText" type="Label" parent="Root/Team/Slot0/NameL/Ribbon/Box"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 30
+theme_type_variation = &"ToyIdLabel"
+theme_override_font_sizes/font_size = 32
 text = "POGO"
 vertical_alignment = 1
 
@@ -263,8 +209,8 @@ vertical_alignment = 1
 [node name="TrayArea" type="Control" parent="Root"]
 layout_mode = 0
 offset_left = 900.0
-offset_right = 1880.0
-offset_bottom = 900.0
+offset_right = 1890.0
+offset_bottom = 910.0
 mouse_filter = 2
 
 [node name="TrayCenter" type="CenterContainer" parent="Root/TrayArea"]
@@ -278,7 +224,8 @@ mouse_filter = 2
 
 [node name="Tray" type="PanelContainer" parent="Root/TrayArea/TrayCenter"]
 layout_mode = 2
-theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+theme_type_variation = &"ToyPanel"
 
 [node name="Box" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray"]
 layout_mode = 2
@@ -288,54 +235,72 @@ theme_override_constants/separation = 12
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Plate" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC"]
+[node name="ScoreLine" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("score_plate")
+theme_override_constants/separation = 14
+alignment = 1
 
-[node name="ScoreLine" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate"]
+[node name="HalfA" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
+
+[node name="Box" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfA"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 18
-alignment = 1
 
-[node name="NameA" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+[node name="NameA" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfA/Box"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"ToyIdLabel"
 theme_override_font_sizes/font_size = 40
 text = "RED"
 vertical_alignment = 1
 
-[node name="ScoreA" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+[node name="ScoreA" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfA/Box"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"ToyIdLabel"
+theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 64
 text = "6"
 vertical_alignment = 1
 
-[node name="Dash" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+[node name="Dash" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 44
 text = "—"
 vertical_alignment = 1
 
-[node name="ScoreB" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+[node name="HalfB" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
+
+[node name="Box" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfB"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+
+[node name="ScoreB" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfB/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ToyIdLabel"
+theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 64
 text = "4"
 vertical_alignment = 1
 
-[node name="NameB" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine"]
+[node name="NameB" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfB/Box"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"ToyIdLabel"
 theme_override_font_sizes/font_size = 40
 text = "BLUE"
 vertical_alignment = 1
@@ -369,8 +334,8 @@ mouse_filter = 2
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
-theme_type_variation = &"StepTitle"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.8)
 text = "GOALS"
 horizontal_alignment = 1
 vertical_alignment = 2
@@ -379,8 +344,8 @@ vertical_alignment = 2
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
-theme_type_variation = &"StepTitle"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.8)
 text = "ASSISTS"
 horizontal_alignment = 1
 vertical_alignment = 2
@@ -389,8 +354,8 @@ vertical_alignment = 2
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
-theme_type_variation = &"StepTitle"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.8)
 text = "SAVES"
 horizontal_alignment = 1
 vertical_alignment = 2
@@ -399,8 +364,8 @@ vertical_alignment = 2
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
-theme_type_variation = &"StepTitle"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.8)
 text = "TOUCHES"
 horizontal_alignment = 1
 vertical_alignment = 2
@@ -409,8 +374,8 @@ vertical_alignment = 2
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
-theme_type_variation = &"StepTitle"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.8)
 text = "OWN
 GOALS"
 horizontal_alignment = 1
@@ -423,7 +388,8 @@ theme_override_constants/separation = 8
 [node name="RowTemplate" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows"]
 visible = false
 layout_mode = 2
-theme_override_styles/panel = SubResource("row_plain")
+mouse_filter = 2
+theme_type_variation = &"ToyRow"
 
 [node name="RowBox" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate"]
 layout_mode = 2
@@ -432,6 +398,7 @@ theme_override_constants/separation = 8
 [node name="Head" type="TextureRect" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
 custom_minimum_size = Vector2(56, 56)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
@@ -441,20 +408,23 @@ custom_minimum_size = Vector2(128, 0)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = -8
+theme_override_constants/separation = -2
 
-[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+[node name="NamePill" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
 layout_mode = 2
-theme_type_variation = &"CardName"
-theme_override_font_sizes/font_size = 32
+size_flags_horizontal = 0
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
+
+[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox/NamePill"]
+layout_mode = 2
+theme_type_variation = &"ToyIdLabel"
 text = "P1"
 
 [node name="PSub" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+modulate = Color(1, 1, 1, 0.72)
 layout_mode = 2
-theme_type_variation = &"CardName"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"TextDark"
 text = "CPU"
 
 [node name="MvpSlot" type="CenterContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
@@ -480,7 +450,8 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -489,7 +460,8 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -498,7 +470,8 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -507,7 +480,8 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -516,7 +490,8 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -529,26 +504,24 @@ theme_override_constants/separation = 8
 [node name="RallyP" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("fact_plate")
+theme_type_variation = &"ToyRow"
 
 [node name="RallyL" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts/RallyP"]
 layout_mode = 2
-theme_type_variation = &"BannerSub"
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 30
 text = "LONGEST RALLY  14.2 s  ·  19 TOUCHES"
 horizontal_alignment = 1
 
 [node name="WinGoalP" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("fact_plate")
+theme_type_variation = &"ToyRow"
 
 [node name="WinGoalL" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Facts/WinGoalP"]
 layout_mode = 2
-theme_type_variation = &"BannerSub"
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 30
 text = "WINNING GOAL  P1  ·  ASSIST VEX"
 horizontal_alignment = 1
 

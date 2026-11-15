@@ -2,7 +2,9 @@ extends CanvasLayer
 ## SPORTS HUD (docs/specs/v5_sports_mode.md §5, chip rework per owner list 2026-07-18 item 1).
 ## Built from SportsHUD.tscn + assets/ui/theme.tres. The score readout is ONE compact color-coded
 ## pill TOP-CENTER — red number | dash | blue number with a tiny "TO N" cap line — replacing the two
-## huge side panels that ate the screen. Navy chip, chocolate outline, chunky type (theme grammar).
+## huge side panels that ate the screen. WK-35 (SP-18, kit B): a cream ToyHudPlate holding two team-colour halves
+## ([RED 3] TO 6 [2 BLUE]) — colour is the FILL, white digits + team names with the chocolate outline, the cap in
+## chocolate at 30 px (the old ~14 px "TO 6" broke the 28 px floor). The scoring half flashes on the WK-106 pop.
 ## WK-106 / WK-16: ONE goal banner. On EVERY goal (EventBus.goal_scored) the HUD fires a full-screen
 ## team-coloured flash (tint only — no second headline) and pops the scoring team's chip digit; the banner
 ## itself is the runner's centre banner (SportsMode.stage_end_banner: "GOAL!" / "OWN GOAL!" + scorer line),
@@ -23,6 +25,7 @@ const MATCH_BTN_MIN := Vector2(300, 84)
 # old centre panel; it owns the REMATCH / CHANGE SETUP / QUIT row and its input from then on.
 const VICTORY_SCENE := preload("res://scenes/ui/SportsVictory.tscn")
 const VICTORY_DELAY := 0.9     # = PartyMatch.VICTORY_DELAY: the in-world winning-team frame breathes first
+const ToyKit := preload("res://src/ui/ToyKit.gd")
 
 var _runner   # PartyMatch (untyped so mode/state member access is dynamic — no runner class edit)
 var _center_tw: Tween
@@ -33,8 +36,10 @@ var _goal_sub_color: Variant = null   # WK-106: scorer-line colour for the NEXT 
 var _goal_banner_next := false        # WK-124: the NEXT show_center is the goal banner (set by goal_scored)
 var _goal_banner_live := false        # WK-124: the goal banner is up and rides over the kickoff reset
 
-@onready var _red_score: Label = $Root/ScoreChip/ChipBox/Scores/RedScore
-@onready var _blue_score: Label = $Root/ScoreChip/ChipBox/Scores/BlueScore
+@onready var _red_score: Label = $Root/ScoreChip/ChipBox/RedHalf/Box/RedScore
+@onready var _blue_score: Label = $Root/ScoreChip/ChipBox/BlueHalf/Box/BlueScore
+@onready var _red_half: PanelContainer = $Root/ScoreChip/ChipBox/RedHalf
+@onready var _blue_half: PanelContainer = $Root/ScoreChip/ChipBox/BlueHalf
 @onready var _cap: Label = $Root/ScoreChip/ChipBox/CapLabel
 @onready var _flash: ColorRect = $Root/GoalFlash
 
@@ -68,8 +73,8 @@ func _ready() -> void:
 	add_child(_gate)
 	_gate.verb.connect(_on_match_verb)
 	_flash.visible = false
-	_red_score.add_theme_color_override("font_color", RED)
-	_blue_score.add_theme_color_override("font_color", BLUE)
+	ToyKit.fill_panel(_red_half, RED)     # WK-35: team colour is the half's fill; digits stay white
+	ToyKit.fill_panel(_blue_half, BLUE)
 	# WK-106: THE goal event (one per goal, same-team repeats included) drives the flash + score pop.
 	if not EventBus.goal_scored.is_connected(_on_goal_scored):
 		EventBus.goal_scored.connect(_on_goal_scored)
@@ -134,6 +139,8 @@ func _goal_flash(team: int) -> void:
 func _score_pop(team: int) -> void:
 	var lbl: Label = _red_score if team == 0 else _blue_score
 	var other: Label = _blue_score if team == 0 else _red_score
+	var half: Control = _red_half if team == 0 else _blue_half
+	var other_half: Control = _blue_half if team == 0 else _red_half
 	if _runner != null and _runner._mode != null and _runner._mode.has_method("team_scores"):
 		var sc: Array = _runner._mode.team_scores()
 		if sc.size() >= 2:
@@ -143,13 +150,16 @@ func _score_pop(team: int) -> void:
 		_pop_tw.kill()
 	other.scale = Vector2.ONE
 	other.modulate = Color.WHITE
+	other_half.modulate = Color.WHITE
 	lbl.pivot_offset = lbl.size * 0.5
 	lbl.scale = Vector2(1.9, 1.9)
 	lbl.modulate = Color(2.2, 2.2, 2.2, 1.0)
+	half.modulate = Color(1.7, 1.7, 1.7, 1.0)   # the team-colour half flares (white digits can't brighten)
 	_pop_tw = create_tween()
 	_pop_tw.set_parallel(true)
 	_pop_tw.tween_property(lbl, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	_pop_tw.tween_property(lbl, "modulate", Color.WHITE, 0.5)
+	_pop_tw.tween_property(half, "modulate", Color.WHITE, 0.5)
 
 # ------------------------------------------------------------------ CENTER banner (countdown / GOAL freeze)
 func show_center(text: String, color: Color, hold: float, sub := "") -> void:
@@ -218,12 +228,7 @@ func show_match_end(text: String, color: Color, subline: String) -> void:
 	_gate.open()   # the end screen "appears" now: presses must begin after this and the row arms >= 1.0 s later
 	_match_text.text = text
 	_match_text.add_theme_color_override("font_color", color)
-	_match_sub.text = subline
-	var sb := _match_panel.get_theme_stylebox("panel")
-	if sb is StyleBoxFlat:
-		var sb2: StyleBoxFlat = (sb as StyleBoxFlat).duplicate()
-		sb2.border_color = color
-		_match_panel.add_theme_stylebox_override("panel", sb2)
+	_match_sub.text = subline   # WK-35: cream ToyPanel keeps its chocolate rim (no navy, no recoloured rim)
 	_match_panel.visible = true
 	_match_panel.modulate.a = 1.0
 	_match_panel.reset_size()

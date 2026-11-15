@@ -7,15 +7,21 @@ extends CanvasLayer
 ## in-world punch-zoom breathes first; the screen owns all input while live and reports the
 ## player's choice through the three signals below. Data-driven (present(...)) so Sports can
 ## adopt it in a later slice. Terminal screen — the ≤3.4s between-stage pacing does not bind.
+##
+## WK-35 Toybox panel kit B: the FINAL SCORE tray is the ScoreScreen's cream ToyPanel (gold ToyRibbon header, ToyRow
+## wells, ToyBarTrack race bars, chocolate numbers) and the identity grammar is WK-34 F1's (goat-colour ToyIdPill
+## names; the winner's name ribbon is a goat-colour ToyNameRibbon). The winner's row is a gold ToyRowWinner well.
+## Chocolate scrim (no navy). Confetti / focus-row juice come from ToyKit (shared with SportsVictory).
 
 signal rematch_pressed
 signal setup_pressed
 signal menu_pressed
 
+const ToyKit := preload("res://src/ui/ToyKit.gd")
 const GOLD := Color("#ffd23f")
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const ARM_TIME := 1.1          # s from present() to interactive (absolute ~2.0 from the kill)
-const BAR_PAD := 3.0
+const BAR_PAD := 6.0
 const ROW_STAGGER := 0.12
 const FILL_TIME := 0.5
 const RAYS_PATH := "res://assets/ui/victory_rays.png"
@@ -31,13 +37,14 @@ const CONFETTI_COLORS: Array[Color] = [
 @onready var _shadow: TextureRect = $Root/Shadow
 @onready var _bust: TextureRect = $Root/Bust
 @onready var _winner_l: Label = $Root/WinnerL
-# WK-92(1): the winner's name sits on a chocolate ribbon (StageIntroCard language); yellow PUFF straight over
-# the gold rays was unreadable. WK-88 (CC-8.5): NAME big in the goat colour + the small sub-tag (goat name / "CPU").
+# WK-92(1): the winner's name sits on a ribbon (yellow PUFF straight over the gold rays was unreadable). WK-35: the
+# ribbon is a goat-colour FILL with white type (kit F1 grammar). WK-88 (CC-8.5): NAME big + the small sub-tag.
 @onready var _name_l: Control = $Root/NameL
 @onready var _name_ribbon: PanelContainer = $Root/NameL/Ribbon
 @onready var _name_text: Label = $Root/NameL/Ribbon/Box/NameText
 @onready var _name_sub: Label = $Root/NameL/Ribbon/Box/SubText
 @onready var _tray: PanelContainer = $Root/TrayArea/TrayCenter/Tray
+@onready var _sub: Label = $Root/TrayArea/TrayCenter/Tray/Box/Sub
 @onready var _rows_box: VBoxContainer = $Root/TrayArea/TrayCenter/Tray/Box/Rows
 @onready var _template: PanelContainer = $Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate
 @onready var _prompts: HBoxContainer = $Root/Prompts
@@ -97,18 +104,15 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 		_bust.texture = tex
 		_shadow.texture = tex
 	var wcol: Color = winner.get("color", Color.WHITE)
-	_name_text.text = str(winner.get("name", "P%d" % int(winner.get("pn", 1))))
-	# a touch toward white so the darkest goat colour (VEX purple) still reads on chocolate; WK-42 owns contrast
-	_name_text.add_theme_color_override("font_color", wcol.lerp(Color.WHITE, 0.15))
+	# WK-35: white name + sub-tag on a goat-colour ribbon (colour is the fill, never the stroke)
+	ToyKit.id_pill(_name_ribbon, _name_text, str(winner.get("name", "P%d" % int(winner.get("pn", 1)))), wcol)
 	_name_sub.text = str(winner.get("sub", ""))
 	_name_sub.visible = _name_sub.text != ""
-	var rsb: StyleBoxFlat = (_name_ribbon.get_theme_stylebox("panel") as StyleBoxFlat).duplicate()
-	rsb.border_color = wcol
-	_name_ribbon.add_theme_stylebox_override("panel", rsb)
+	_sub.text = "FIRST TO %d KOs" % maxi(1, target)
 	if ResourceLoader.exists(RAYS_PATH):
 		_rays.texture = load(RAYS_PATH)
 	else:
-		_rays.texture = _fallback_glow()
+		_rays.texture = ToyKit.fallback_glow()
 	# --- standings rows (sorted desc; winner row gold-rimmed) ---
 	for c in _rows_box.get_children():
 		if c != _template:
@@ -143,7 +147,7 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 	slam.tween_interval(0.10)
 	slam.tween_callback(func() -> void:
 		AudioManager.play_sfx("smash_heavy")
-		_burst(Vector2(220, 90), 55.0)
+		ToyKit.burst(_fx, Vector2(220, 90), 55.0, CONFETTI_COLORS)
 		_rays_spin())
 	slam.tween_property(_bust, "modulate:a", 1.0, 0.08)
 	slam.parallel().tween_property(_shadow, "modulate:a", 0.85, 0.08)
@@ -162,7 +166,7 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 	wl.tween_interval(0.25)
 	wl.tween_callback(func() -> void:
 		AudioManager.play_sfx("ui_click")
-		_burst(Vector2(1700, 90), 125.0))
+		ToyKit.burst(_fx, Vector2(1700, 90), 125.0, CONFETTI_COLORS))
 	wl.tween_property(_winner_l, "modulate:a", 1.0, 0.10)
 	wl.parallel().tween_property(_winner_l, "scale", Vector2.ONE, 0.18) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -183,7 +187,7 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 	_tweens.append(pr)
 	pr.tween_interval(ARM_TIME)
 	pr.tween_property(_prompts, "modulate:a", 1.0, 0.15)
-	_drizzle()
+	ToyKit.drizzle(_fx, CONFETTI_COLORS, 26)
 
 # ------------------------------------------------------------------ rows (ScoreScreen recipe)
 
@@ -191,36 +195,26 @@ func _build_row(r: Dictionary, target: int, is_winner: bool) -> Dictionary:
 	var row: PanelContainer = _template.duplicate()
 	row.visible = true
 	if is_winner:
-		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = Color(GOLD.r, GOLD.g, GOLD.b, 0.12)
-		sb.border_color = GOLD
-		sb.set_border_width_all(4)
-		sb.set_corner_radius_all(12)
-		sb.set_content_margin_all(6.0)
-		sb.content_margin_left = 10.0
-		sb.content_margin_right = 10.0
-		row.add_theme_stylebox_override("panel", sb)
+		row.theme_type_variation = &"ToyRowWinner"   # WK-35: gold well, chocolate rim
 	_rows_box.add_child(row)
 	var color: Color = r["color"]
 	var head: TextureRect = row.get_node("RowBox/Head")
 	var head_path := "res://assets/characters/bouncer_%s_idle.png" % str(r["skin"])
 	if ResourceLoader.exists(head_path):
 		head.texture = load(head_path)
-	var name_l: Label = row.get_node("RowBox/NameBox/PName")
-	name_l.text = str(r.get("name", "P%d" % int(r["pn"])))   # WK-88 (CC-8.5): "P3" / "VEX"
-	name_l.add_theme_color_override("font_color", color)
+	# WK-88 (CC-8.5): "P3" / "VEX" — WK-35: the WK-34 F1 identity pill
+	ToyKit.id_pill(row.get_node("RowBox/NameBox/NamePill"), row.get_node("RowBox/NameBox/NamePill/PName"),
+		str(r.get("name", "P%d" % int(r["pn"]))), color)
 	var sub_l: Label = row.get_node("RowBox/NameBox/PSub")
 	sub_l.text = str(r.get("sub", ""))                        # small tag: goat name / "CPU"
 	sub_l.visible = sub_l.text != ""
 	var fill: Panel = row.get_node("RowBox/BarSlot/BarFill")
 	var fill_sb := StyleBoxFlat.new()
 	fill_sb.bg_color = color
-	fill_sb.set_corner_radius_all(7)
+	fill_sb.set_corner_radius_all(8)
 	fill.add_theme_stylebox_override("panel", fill_sb)
 	var score_l: Label = row.get_node("RowBox/Score")
 	score_l.text = "0"
-	if is_winner:
-		score_l.add_theme_color_override("font_color", GOLD)
 	return {"row": row, "fill": fill, "score_l": score_l, "to": int(r["score"]), "target": maxi(1, target)}
 
 func _animate_rows(built: Array) -> void:
@@ -281,21 +275,7 @@ func _arm() -> void:
 
 func _set_focus(i: int) -> void:
 	_focus = i
-	if _pulse != null and _pulse.is_valid():
-		_pulse.kill()
-	for j in range(_btns.size()):
-		var b: Button = _btns[j]
-		var focused: bool = j == i
-		b.modulate.a = 1.0 if focused else 0.85
-		var tw := create_tween()
-		tw.tween_property(b, "scale", Vector2(1.12, 1.12) if focused else Vector2.ONE, 0.12) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	# "press me" idle breath on the focused button
-	var fb: Button = _btns[i]
-	_pulse = create_tween()
-	_pulse.set_loops()
-	_pulse.tween_property(fb, "scale", Vector2(1.075, 1.075), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_pulse.tween_property(fb, "scale", Vector2(1.12, 1.12), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse = ToyKit.focus_row(self, _btns, i, _pulse)   # "press me" breath on the focused button
 
 func _activate(i: int) -> void:
 	AudioManager.play_sfx("ui_click")
@@ -370,69 +350,3 @@ func _rays_spin() -> void:
 	_tweens.append(tw)
 	tw.set_loops()
 	tw.tween_property(_rays, "rotation", TAU, 24.0)
-
-## Fallback when victory_rays.png hasn't been generated yet: soft radial gold glow (brief §4).
-func _fallback_glow() -> Texture2D:
-	var g := Gradient.new()
-	g.set_color(0, Color(1.0, 0.86, 0.35, 0.55))
-	g.set_color(1, Color(1.0, 0.86, 0.35, 0.0))
-	var t := GradientTexture2D.new()
-	t.gradient = g
-	t.fill = GradientTexture2D.FILL_RADIAL
-	t.fill_from = Vector2(0.5, 0.5)
-	t.fill_to = Vector2(0.5, 0.0)
-	t.width = 512
-	t.height = 512
-	return t
-
-func _burst(pos: Vector2, angle_deg: float) -> void:
-	var p := CPUParticles2D.new()
-	p.position = pos
-	p.one_shot = true
-	p.explosiveness = 1.0
-	p.amount = 120
-	p.lifetime = 2.2
-	p.direction = Vector2.from_angle(deg_to_rad(angle_deg))
-	p.spread = 35.0
-	p.gravity = Vector2(0, 400)
-	p.initial_velocity_min = 500.0
-	p.initial_velocity_max = 1100.0
-	p.scale_amount_min = 6.0
-	p.scale_amount_max = 10.0
-	p.angular_velocity_min = -360.0
-	p.angular_velocity_max = 360.0
-	_tint_confetti(p)
-	p.emitting = true
-	_fx.add_child(p)
-	# self-owned cleanup: a tween bound to the particles dies with them (a SceneTreeTimer lambda capturing `p`
-	# logged "Lambda capture at index 0 was freed" whenever dismiss() freed the burst first — fast REMATCH)
-	var life := p.create_tween()
-	life.tween_interval(3.0)
-	life.tween_callback(p.queue_free)
-
-## Lazy top-edge confetti drizzle while the screen lives (brief §3).
-func _drizzle() -> void:
-	var p := CPUParticles2D.new()
-	p.position = Vector2(960, -20)
-	p.amount = 26
-	p.lifetime = 3.2
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(960, 4)
-	p.direction = Vector2.DOWN
-	p.spread = 12.0
-	p.gravity = Vector2(0, 240)
-	p.initial_velocity_min = 60.0
-	p.initial_velocity_max = 160.0
-	p.scale_amount_min = 5.0
-	p.scale_amount_max = 8.0
-	p.angular_velocity_min = -220.0
-	p.angular_velocity_max = 220.0
-	_tint_confetti(p)
-	p.emitting = true
-	_fx.add_child(p)
-
-func _tint_confetti(p: CPUParticles2D) -> void:
-	var g := Gradient.new()
-	g.set_color(0, CONFETTI_COLORS[randi() % CONFETTI_COLORS.size()])
-	g.set_color(1, CONFETTI_COLORS[randi() % CONFETTI_COLORS.size()])
-	p.color_ramp = g

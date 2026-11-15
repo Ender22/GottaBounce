@@ -7,6 +7,8 @@ extends RefCounted
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const ACCENT_PINK := Color("#ff5fa8")
+## WK-34 F2: shell-wide guard — a focused control wider than this never tilts (scale-only breathing).
+const WIDE_ROW_PX := 700.0
 
 ## Focus-IN: springy scale-up (BACK/OUT 0.18) then start the idle wobble + micro-rotate loops.
 static func focus_in(c: Control) -> void:
@@ -29,9 +31,18 @@ static func _start_wobble(c: Control, fs: float) -> void:
 	wob.tween_property(c, "scale", Vector2(fs * 1.02, fs * 1.02), 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	wob.tween_property(c, "scale", Vector2(fs * 0.98, fs * 0.98), 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	c.set_meta("fx_wob", wob)
+	# WK-34 F2 (ux review): rotation must scale with width — a long row tilted ±1° drops 7-18 px end to end and
+	# reads as a layout bug. Per-control meta `focus_rot_deg` (default 1.0); anything wider than WIDE_ROW_PX
+	# breathes (scale only) and never tilts.
+	var rot_deg: float = float(c.get_meta("focus_rot_deg", 1.0))
+	if c.size.x > WIDE_ROW_PX:
+		rot_deg = 0.0
+	if rot_deg <= 0.0:
+		c.rotation = 0.0
+		return
 	var rot := c.create_tween().set_loops()
-	rot.tween_property(c, "rotation", deg_to_rad(1.0), 0.65).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	rot.tween_property(c, "rotation", deg_to_rad(-1.0), 0.65).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	rot.tween_property(c, "rotation", deg_to_rad(rot_deg), 0.65).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	rot.tween_property(c, "rotation", deg_to_rad(-rot_deg), 0.65).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	c.set_meta("fx_rot", rot)
 
 ## Focus-OUT: snap back to rest (QUAD/IN 0.12) — snappier than focus-in so the new item wins the eye.

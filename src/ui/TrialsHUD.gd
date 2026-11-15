@@ -100,7 +100,7 @@ func _ready() -> void:
 
 func _pip_bg_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.12, 0.09, 0.07, 0.85)
+	sb.bg_color = Color(0.231373, 0.141176, 0.105882, 0.22)   # WK-35: light chocolate well on the cream plate
 	sb.set_border_width_all(4)
 	sb.border_color = Color(0.231373, 0.141176, 0.105882, 1.0)
 	sb.set_corner_radius_all(15)
@@ -432,12 +432,7 @@ func show_match_end(text: String, color: Color, subline: String) -> void:
 	_gate.open()   # the end screen "appears" now: presses must begin after this and the row arms >= 1.0 s later
 	_match_text.text = text
 	_match_text.add_theme_color_override("font_color", color)
-	_match_sub.text = subline
-	var sb := _match_panel.get_theme_stylebox("panel")
-	if sb is StyleBoxFlat:
-		var sb2: StyleBoxFlat = (sb as StyleBoxFlat).duplicate()
-		sb2.border_color = color
-		_match_panel.add_theme_stylebox_override("panel", sb2)
+	_match_sub.text = subline   # WK-35: cream ToyPanel keeps its chocolate rim (no navy, no recoloured rim)
 	_match_panel.visible = true
 	_match_panel.modulate.a = 1.0
 	_match_panel.reset_size()

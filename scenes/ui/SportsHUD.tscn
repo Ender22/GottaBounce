@@ -1,26 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://src/ui/SportsHUD.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
-
-[sub_resource type="StyleBoxFlat" id="score_chip"]
-content_margin_left = 26.0
-content_margin_top = 6.0
-content_margin_right = 26.0
-content_margin_bottom = 8.0
-bg_color = Color(0.0784314, 0.0784314, 0.156863, 0.93)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.231373, 0.141176, 0.105882, 1)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_left = 24
-corner_radius_bottom_right = 24
-shadow_color = Color(0, 0, 0, 0.25)
-shadow_size = 6
-shadow_offset = Vector2(0, 4)
 
 [node name="SportsHUD" type="CanvasLayer"]
 layer = 10
@@ -41,55 +22,87 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -110.0
-offset_right = 110.0
-offset_top = 18.0
+offset_left = -200.0
+offset_top = 16.0
+offset_right = 200.0
 grow_horizontal = 2
-theme_override_styles/panel = SubResource("score_chip")
 mouse_filter = 2
+theme_type_variation = &"ToyHudPlate"
 
-[node name="ChipBox" type="VBoxContainer" parent="Root/ScoreChip"]
+[node name="ChipBox" type="HBoxContainer" parent="Root/ScoreChip"]
 layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
 alignment = 1
-theme_override_constants/separation = -6
 
-[node name="Scores" type="HBoxContainer" parent="Root/ScoreChip/ChipBox"]
+[node name="RedHalf" type="PanelContainer" parent="Root/ScoreChip/ChipBox"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 16
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
 
-[node name="RedScore" type="Label" parent="Root/ScoreChip/ChipBox/Scores"]
+[node name="Box" type="HBoxContainer" parent="Root/ScoreChip/ChipBox/RedHalf"]
 layout_mode = 2
-theme_type_variation = &"BannerCenter"
-theme_override_font_sizes/font_size = 52
-text = "0"
-horizontal_alignment = 1
-vertical_alignment = 1
+mouse_filter = 2
+theme_override_constants/separation = 12
 
-[node name="Dash" type="Label" parent="Root/ScoreChip/ChipBox/Scores"]
+[node name="RedName" type="Label" parent="Root/ScoreChip/ChipBox/RedHalf/Box"]
 layout_mode = 2
-theme_type_variation = &"BannerCenter"
+size_flags_vertical = 4
+theme_type_variation = &"ToyIdLabel"
 theme_override_font_sizes/font_size = 30
-theme_override_colors/font_color = Color(0.949, 0.918, 0.847, 0.85)
-text = "—"
-horizontal_alignment = 1
+text = "RED"
 vertical_alignment = 1
 
-[node name="BlueScore" type="Label" parent="Root/ScoreChip/ChipBox/Scores"]
+[node name="RedScore" type="Label" parent="Root/ScoreChip/ChipBox/RedHalf/Box"]
+custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-theme_type_variation = &"BannerCenter"
-theme_override_font_sizes/font_size = 52
+size_flags_vertical = 4
+theme_type_variation = &"ToyIdLabel"
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 54
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="CapLabel" type="Label" parent="Root/ScoreChip/ChipBox"]
 layout_mode = 2
-theme_type_variation = &"Hint"
-theme_override_font_sizes/font_size = 28
-theme_override_colors/font_color = Color(0.949, 0.918, 0.847, 0.92)
+size_flags_vertical = 4
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 30
 text = "TO 6"
 horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BlueHalf" type="PanelContainer" parent="Root/ScoreChip/ChipBox"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
+
+[node name="Box" type="HBoxContainer" parent="Root/ScoreChip/ChipBox/BlueHalf"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="BlueScore" type="Label" parent="Root/ScoreChip/ChipBox/BlueHalf/Box"]
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ToyIdLabel"
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 54
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BlueName" type="Label" parent="Root/ScoreChip/ChipBox/BlueHalf/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ToyIdLabel"
+theme_override_font_sizes/font_size = 30
+text = "BLUE"
+vertical_alignment = 1
 
 [node name="GoalFlash" type="ColorRect" parent="Root"]
 visible = false
@@ -165,7 +178,7 @@ horizontal_alignment = 1
 [node name="MatchPanel" type="PanelContainer" parent="Root/CenterC"]
 visible = false
 layout_mode = 2
-theme_type_variation = &"MatchEndPanel"
+theme_type_variation = &"ToyPanel"
 mouse_filter = 2
 
 [node name="MatchBox" type="VBoxContainer" parent="Root/CenterC/MatchPanel"]

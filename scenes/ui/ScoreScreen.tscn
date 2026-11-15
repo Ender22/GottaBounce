@@ -94,15 +94,21 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="NameBox" type="VBoxContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
-custom_minimum_size = Vector2(130, 0)
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = -8
+theme_override_constants/separation = -2
 
-[node name="PName" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/NameBox"]
+[node name="NamePill" type="PanelContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/NameBox"]
 layout_mode = 2
-theme_type_variation = &"ToyName"
+size_flags_horizontal = 0
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
+
+[node name="PName" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/NameBox/NamePill"]
+layout_mode = 2
+theme_type_variation = &"ToyIdLabel"
 text = "P1"
 
 [node name="PSub" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/NameBox"]
@@ -145,12 +151,26 @@ theme_override_font_sizes/font_size = 46
 text = "0"
 horizontal_alignment = 2
 
-[node name="Delta" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
-custom_minimum_size = Vector2(100, 0)
+[node name="DeltaSlot" type="CenterContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate/H"]
+custom_minimum_size = Vector2(136, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"ToyName"
-text = ""
+mouse_filter = 2
+
+[node name="Delta" type="PanelContainer" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/DeltaSlot"]
+visible = false
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyDeltaPill"
+
+[node name="Text" type="Label" parent="Root/Center/Panel/Box/Rows/RowTemplate/H/DeltaSlot/Delta"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ToyDeltaLabel"
+text = "+1"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="KillList" type="HFlowContainer" parent="Root/Center/Panel/Box"]
 visible = false
@@ -183,6 +203,7 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"ToyName"
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 30
 text = "P2"
 
@@ -193,11 +214,11 @@ size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="Back" type="Polygon2D" parent="Root/Center/Panel/Box/KillList/KillTemplate/H/Arrow"]
-color = Color(0.231373, 0.141176, 0.105882, 1)
+color = Color(1, 0.968627, 0.921569, 1)
 polygon = PackedVector2Array(4, 7, 28, 21, 4, 35)
 
 [node name="Fill" type="Polygon2D" parent="Root/Center/Panel/Box/KillList/KillTemplate/H/Arrow"]
-color = Color(1, 0.823529, 0.247059, 1)
+color = Color(1, 0.968627, 0.921569, 1)
 polygon = PackedVector2Array(8, 13.5, 20, 21, 8, 28.5)
 
 [node name="VHead" type="TextureRect" parent="Root/Center/Panel/Box/KillList/KillTemplate/H"]
@@ -212,6 +233,7 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"ToyName"
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 30
 text = "P3"
 
@@ -220,6 +242,7 @@ visible = false
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"ToyName"
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 30
 text = "OOPS!"
 

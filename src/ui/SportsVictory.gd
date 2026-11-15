@@ -10,11 +10,18 @@ extends CanvasLayer
 ## chip on the MVP's bust; the right tray has the final score plate, a per-player stat table (winners first; the
 ## column leader in gold; zeros dimmed) and two match facts (longest rally, winning goal). Data comes from
 ## SportsMode.match_stats(); SportsHUD presents it at match end and relays the three signals.
+##
+## WK-35 Toybox panel kit B: the tray is the match flow's cream ToyPanel (no navy), headed by the final score as two
+## team-colour halves (ToyIdPill fills, white type); rows are ToyRow wells — the winning team's in a team-tinted well,
+## the MVP's in the gold ToyRowWinner well — with goat-colour identity pills (WK-34 F1), chocolate stat numbers and
+## the column leader on a gold ToyStatLead pill (gold TEXT on cream would be ~1.1:1). Chocolate scrim; confetti and
+## the focus-row pulse come from ToyKit (shared with the Brawl VictoryScreen).
 
 signal rematch_pressed
 signal setup_pressed
 signal menu_pressed
 
+const ToyKit := preload("res://src/ui/ToyKit.gd")
 const GOLD := Color("#ffd23f")
 const CREAM := Color(1.0, 0.97, 0.9)
 const ARM_TIME := 1.1          # s from present() to the prompt row fading in (VictoryScreen's beat)
@@ -39,11 +46,12 @@ const SLOT_LAYOUT := {
 @onready var _slot_tpl: Control = $Root/Team/Slot0
 @onready var _winner_l: Label = $Root/WinnerL
 @onready var _tray: PanelContainer = $Root/TrayArea/TrayCenter/Tray
-@onready var _score_plate: PanelContainer = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate
-@onready var _name_a: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine/NameA
-@onready var _score_a: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine/ScoreA
-@onready var _score_b: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine/ScoreB
-@onready var _name_b: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/Plate/ScoreLine/NameB
+@onready var _half_a: PanelContainer = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfA
+@onready var _half_b: PanelContainer = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfB
+@onready var _name_a: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfA/Box/NameA
+@onready var _score_a: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfA/Box/ScoreA
+@onready var _score_b: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfB/Box/ScoreB
+@onready var _name_b: Label = $Root/TrayArea/TrayCenter/Tray/Box/ScoreC/ScoreLine/HalfB/Box/NameB
 @onready var _headers: Array = [
 	$Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox/H0, $Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox/H1,
 	$Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox/H2, $Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox/H3,
@@ -137,21 +145,16 @@ func present(data: Dictionary) -> void:
 			return am
 		return int(a["rating"]) > int(b["rating"]))
 	_build_slots(winners, mvp, tcol)
-	# --- score plate: RED 6 — 4 BLUE in team colours ---
+	# --- score header: [RED 6] — [4 BLUE] as two team-colour halves (WK-35: colour is the fill, white type) ---
 	var sc: Array = data.get("scores", [0, 0])
 	_name_a.text = str(names[0])
 	_name_b.text = str(names[1])
 	_score_a.text = str(int(sc[0]))
 	_score_b.text = str(int(sc[1]))
-	for pair in [[_name_a, _score_a, 0], [_name_b, _score_b, 1]]:
-		var c: Color = (cols[int(pair[2])] as Color).lerp(Color.WHITE, 0.1)
-		(pair[0] as Label).add_theme_color_override("font_color", c)
-		(pair[1] as Label).add_theme_color_override("font_color", c)
-		(pair[1] as Label).add_theme_font_size_override("font_size", 72 if int(pair[2]) == win else 56)
-	var psb: StyleBoxFlat = (_score_plate.get_theme_stylebox("panel") as StyleBoxFlat).duplicate()
-	psb.border_color = tcol
-	psb.set_border_width_all(4)
-	_score_plate.add_theme_stylebox_override("panel", psb)
+	ToyKit.fill_panel(_half_a, cols[0])
+	ToyKit.fill_panel(_half_b, cols[1])
+	_score_a.add_theme_font_size_override("font_size", 72 if win == 0 else 56)
+	_score_b.add_theme_font_size_override("font_size", 72 if win == 1 else 56)
 	# --- stat table ---
 	var team_size: int = maxi(winners.size(), rows.size() - winners.size())
 	var columns: Array = _columns(sport, team_size, str(data.get("goal_word", "GOAL!")))
@@ -243,8 +246,8 @@ func present(data: Dictionary) -> void:
 			slam.tween_callback(func() -> void:
 				AudioManager.play_sfx("smash_heavy")
 				AudioManager.play_sfx("goal_crowd")
-				_burst(Vector2(120, 100), 55.0)
-				_burst(Vector2(1800, 100), 125.0)
+				ToyKit.burst(_fx, Vector2(120, 100), 55.0, _palette)
+				ToyKit.burst(_fx, Vector2(1800, 100), 125.0, _palette)
 				_rays_spin())
 		slam.tween_property(bust, "modulate:a", 1.0, 0.08)
 		slam.parallel().tween_property(shadow, "modulate:a", 0.85, 0.08)
@@ -277,7 +280,7 @@ func present(data: Dictionary) -> void:
 	var pr := _tw()
 	pr.tween_interval(ARM_TIME)
 	pr.tween_property(_prompts, "modulate:a", 1.0, 0.15)
-	_drizzle()
+	ToyKit.drizzle(_fx, _palette, 30)
 
 # ------------------------------------------------------------------ build
 
@@ -334,13 +337,10 @@ func _build_slots(winners: Array, mvp: int, tcol: Color) -> void:
 		var nt: Label = root.get_node("NameL/Ribbon/Box/NameText")
 		var st: Label = root.get_node("NameL/Ribbon/Box/SubText")
 		var wcol: Color = w.get("color", tcol)
-		nt.text = str(w.get("name", "P1"))                        # CC-8.5 NAME in the goat colour
-		nt.add_theme_color_override("font_color", wcol.lerp(Color.WHITE, 0.15))
+		# CC-8.5 NAME — WK-35: white on a goat-colour ribbon (kit F1 grammar)
+		ToyKit.id_pill(ribbon, nt, str(w.get("name", "P1")), wcol)
 		st.text = str(w.get("sub", ""))                            # + the small sub-tag
 		st.visible = st.text != ""
-		var rsb: StyleBoxFlat = (ribbon.get_theme_stylebox("panel") as StyleBoxFlat).duplicate()
-		rsb.border_color = tcol
-		ribbon.add_theme_stylebox_override("panel", rsb)
 		var mv: Control = root.get_node("Mvp")
 		mv.visible = int(w.get("idx", -1)) == mvp
 		_slots.append({"root": root, "bust": bust, "shadow": shadow, "name_l": name_l, "mvp": mv,
@@ -350,33 +350,25 @@ func _build_row(r: Dictionary, columns: Array, leaders: Array, win: int, tcol: C
 	var row: PanelContainer = _row_tpl.duplicate()
 	row.visible = true
 	var won: bool = int(r.get("team", -1)) == win
-	if won:
-		var sb := StyleBoxFlat.new()
-		var rim: Color = GOLD if is_mvp else tcol
-		sb.bg_color = Color(rim.r, rim.g, rim.b, 0.14)
-		sb.border_color = rim
-		sb.set_border_width_all(4)
-		sb.set_corner_radius_all(12)
-		sb.content_margin_left = 10.0
-		sb.content_margin_right = 10.0
-		sb.content_margin_top = 4.0
-		sb.content_margin_bottom = 4.0
-		row.add_theme_stylebox_override("panel", sb)
-	_rows_box.add_child(row)
+	if is_mvp or won:
+		row.theme_type_variation = &"ToyRowWinner"     # WK-35: the MVP's gold well (chocolate rim)
+	_rows_box.add_child(row)   # in the tree first: the themed stylebox only resolves under Root's theme
+	if won and not is_mvp:
+		# the rest of the winning team: the same rimmed well, tinted in the team colour
+		ToyKit.fill_panel(row, Color(tcol.r, tcol.g, tcol.b, 0.28))
 	var head: TextureRect = row.get_node("RowBox/Head")
 	var head_path := "res://assets/characters/bouncer_%s_idle.png" % str(r.get("skin", "pink"))
 	if ResourceLoader.exists(head_path):
 		head.texture = load(head_path)
-	var name_l: Label = row.get_node("RowBox/NameBox/PName")
-	name_l.text = str(r.get("name", "P1"))
-	name_l.add_theme_color_override("font_color", (r.get("color", Color.WHITE) as Color).lerp(Color.WHITE, 0.1))
+	# WK-35: the WK-34 F1 identity pill (goat-colour fill, white type)
+	ToyKit.id_pill(row.get_node("RowBox/NameBox/NamePill"), row.get_node("RowBox/NameBox/NamePill/PName"),
+		str(r.get("name", "P1")), r.get("color", Color.WHITE))
 	var sub_l: Label = row.get_node("RowBox/NameBox/PSub")
 	sub_l.text = str(r.get("sub", ""))
 	sub_l.visible = sub_l.text != ""
 	var chip: Control = row.get_node("RowBox/MvpSlot/Chip")
 	chip.modulate.a = 1.0 if is_mvp else 0.0     # keeps its width either way (column alignment)
-	if not won:
-		row.modulate = Color(0.86, 0.86, 0.9, 1.0)   # the losing side reads a step back
+	# the losing side reads a step back by its plain well (no tint); a modulate dim would grey the cream
 	for i in range(5):
 		var cell: Label = row.get_node("RowBox/S%d" % i)
 		cell.visible = i < columns.size()
@@ -388,7 +380,7 @@ func _build_row(r: Dictionary, columns: Array, leaders: Array, win: int, tcol: C
 		if v == 0:
 			cell.modulate.a = ZERO_ALPHA
 		elif v == int(leaders[i]):
-			cell.add_theme_color_override("font_color", GOLD)
+			cell.theme_type_variation = &"ToyStatLead"   # WK-35: the column leader on a gold pill
 		_counts.append({"label": cell, "to": v, "row": _rows.size()})
 	return row
 
@@ -499,20 +491,7 @@ func _arm() -> void:
 
 func _set_focus(i: int) -> void:
 	_focus = i
-	if _pulse != null and _pulse.is_valid():
-		_pulse.kill()
-	for j in range(_btns.size()):
-		var b: Button = _btns[j]
-		var focused: bool = j == i
-		b.modulate.a = 1.0 if focused else 0.85
-		var tw := create_tween()
-		tw.tween_property(b, "scale", Vector2(1.12, 1.12) if focused else Vector2.ONE, 0.12) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var fb: Button = _btns[i]
-	_pulse = create_tween()
-	_pulse.set_loops()
-	_pulse.tween_property(fb, "scale", Vector2(1.075, 1.075), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_pulse.tween_property(fb, "scale", Vector2(1.12, 1.12), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse = ToyKit.focus_row(self, _btns, i, _pulse)
 
 ## One activation per screen life: a second accept in the same frame (two pads) can't double-fire.
 func _activate(i: int) -> void:
@@ -566,61 +545,3 @@ func dismiss() -> void:
 	for c in _fx.get_children():
 		c.queue_free()
 	visible = false
-
-# ------------------------------------------------------------------ confetti (team palette)
-
-func _burst(pos: Vector2, angle_deg: float) -> void:
-	var p := CPUParticles2D.new()
-	p.position = pos
-	p.one_shot = true
-	p.explosiveness = 1.0
-	p.amount = 120
-	p.lifetime = 2.2
-	p.direction = Vector2.from_angle(deg_to_rad(angle_deg))
-	p.spread = 35.0
-	p.gravity = Vector2(0, 400)
-	p.initial_velocity_min = 500.0
-	p.initial_velocity_max = 1100.0
-	p.scale_amount_min = 6.0
-	p.scale_amount_max = 10.0
-	p.angular_velocity_min = -360.0
-	p.angular_velocity_max = 360.0
-	_tint_confetti(p)
-	p.emitting = true
-	_fx.add_child(p)
-	var life := p.create_tween()
-	life.tween_interval(3.0)
-	life.tween_callback(p.queue_free)
-
-func _drizzle() -> void:
-	var p := CPUParticles2D.new()
-	p.position = Vector2(960, -20)
-	p.amount = 30
-	p.lifetime = 3.2
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(960, 4)
-	p.direction = Vector2.DOWN
-	p.spread = 12.0
-	p.gravity = Vector2(0, 240)
-	p.initial_velocity_min = 60.0
-	p.initial_velocity_max = 160.0
-	p.scale_amount_min = 5.0
-	p.scale_amount_max = 8.0
-	p.angular_velocity_min = -220.0
-	p.angular_velocity_max = 220.0
-	_tint_confetti(p)
-	p.emitting = true
-	_fx.add_child(p)
-
-## Team-palette confetti: each particle picks a colour across the ramp (team, its tints, gold, cream).
-func _tint_confetti(p: CPUParticles2D) -> void:
-	var offs := PackedFloat32Array()
-	var cols := PackedColorArray()
-	for k in range(_palette.size()):
-		offs.append(float(k) / float(_palette.size()))
-		cols.append(_palette[k])
-	var g := Gradient.new()
-	g.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
-	g.offsets = offs
-	g.colors = cols
-	p.color_initial_ramp = g

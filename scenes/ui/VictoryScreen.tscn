@@ -1,53 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://src/ui/VictoryScreen.gd" id="1_vs"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
-
-[sub_resource type="StyleBoxFlat" id="row_plain"]
-content_margin_left = 10.0
-content_margin_top = 6.0
-content_margin_right = 10.0
-content_margin_bottom = 6.0
-bg_color = Color(1, 1, 1, 0.04)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="name_ribbon"]
-content_margin_left = 34.0
-content_margin_top = 4.0
-content_margin_right = 34.0
-content_margin_bottom = 6.0
-bg_color = Color(0.231373, 0.141176, 0.105882, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(1, 0.823529, 0.247059, 1)
-corner_radius_top_left = 22
-corner_radius_top_right = 22
-corner_radius_bottom_right = 22
-corner_radius_bottom_left = 22
-shadow_color = Color(0.12, 0.07, 0.05, 0.4)
-shadow_size = 4
-shadow_offset = Vector2(0, 3)
-
-[sub_resource type="StyleBoxFlat" id="row_winner"]
-content_margin_left = 10.0
-content_margin_top = 6.0
-content_margin_right = 10.0
-content_margin_bottom = 6.0
-bg_color = Color(1, 0.823529, 0.247059, 0.12)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(1, 0.823529, 0.247059, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
 
 [node name="VictoryScreen" type="CanvasLayer"]
 layer = 13
@@ -71,7 +25,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.0784314, 0.0784314, 0.156863, 0.6)
+color = Color(0.14, 0.09, 0.07, 0.55)
 
 [node name="FX" type="Node2D" parent="Root"]
 
@@ -135,7 +89,7 @@ mouse_filter = 2
 [node name="Ribbon" type="PanelContainer" parent="Root/NameL"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("name_ribbon")
+theme_type_variation = &"ToyNameRibbon"
 
 [node name="Box" type="HBoxContainer" parent="Root/NameL/Ribbon"]
 layout_mode = 2
@@ -146,28 +100,26 @@ alignment = 1
 [node name="NameText" type="Label" parent="Root/NameL/Ribbon/Box"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 56
+theme_type_variation = &"ToyIdLabel"
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 60
 text = "P1"
 vertical_alignment = 1
 
 [node name="SubText" type="Label" parent="Root/NameL/Ribbon/Box"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.9)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"ToyIdLabel"
+theme_override_font_sizes/font_size = 34
 text = "POGO"
 vertical_alignment = 1
 
 [node name="TrayArea" type="Control" parent="Root"]
 layout_mode = 0
-offset_left = 1150.0
+offset_left = 1120.0
 offset_top = 0.0
-offset_right = 1860.0
-offset_bottom = 1080.0
+offset_right = 1890.0
+offset_bottom = 920.0
 mouse_filter = 2
 
 [node name="TrayCenter" type="CenterContainer" parent="Root/TrayArea"]
@@ -181,62 +133,86 @@ mouse_filter = 2
 
 [node name="Tray" type="PanelContainer" parent="Root/TrayArea/TrayCenter"]
 layout_mode = 2
-theme_type_variation = &"MatchEndPanel"
+mouse_filter = 2
+theme_type_variation = &"ToyPanel"
 
 [node name="Box" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray"]
 custom_minimum_size = Vector2(640, 0)
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 12
 
-[node name="Header" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+[node name="Ribbon" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+custom_minimum_size = Vector2(0, 92)
 layout_mode = 2
-theme_type_variation = &"StepTitle"
+mouse_filter = 2
+theme_type_variation = &"ToyRibbon"
+
+[node name="Header" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Ribbon"]
+layout_mode = 2
+theme_type_variation = &"ToyRibbonTitle"
+theme_override_font_sizes/font_size = 58
 text = "FINAL SCORE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Sub" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 32
+text = "FIRST TO 10 KOs"
 horizontal_alignment = 1
 
 [node name="Rows" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box"]
 layout_mode = 2
-theme_override_constants/separation = 10
+mouse_filter = 2
+theme_override_constants/separation = 8
 
 [node name="RowTemplate" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows"]
 visible = false
 layout_mode = 2
-theme_override_styles/panel = SubResource("row_plain")
+mouse_filter = 2
+theme_type_variation = &"ToyRow"
 
 [node name="RowBox" type="HBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate"]
 layout_mode = 2
-theme_override_constants/separation = 12
+mouse_filter = 2
+theme_override_constants/separation = 14
 
 [node name="Head" type="TextureRect" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(58, 58)
 layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
-mouse_filter = 2
 
 [node name="NameBox" type="VBoxContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = -6
+theme_override_constants/separation = -2
 
-[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+[node name="NamePill" type="PanelContainer" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
 layout_mode = 2
-theme_type_variation = &"CardName"
-theme_override_font_sizes/font_size = 28
+size_flags_horizontal = 0
+mouse_filter = 2
+theme_type_variation = &"ToyIdPill"
+
+[node name="PName" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox/NamePill"]
+layout_mode = 2
+theme_type_variation = &"ToyIdLabel"
 text = "P1"
 
 [node name="PSub" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/NameBox"]
+modulate = Color(1, 1, 1, 0.72)
 layout_mode = 2
-theme_type_variation = &"CardName"
-theme_override_colors/font_color = Color(1, 0.97, 0.9, 0.85)
-theme_override_constants/outline_size = 0
-theme_override_font_sizes/font_size = 28
+theme_type_variation = &"TextDark"
 text = "CPU"
 
 [node name="BarSlot" type="Control" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
-custom_minimum_size = Vector2(240, 32)
+custom_minimum_size = Vector2(220, 36)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -250,22 +226,22 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_type_variation = &"FuelBG"
+theme_type_variation = &"ToyBarTrack"
 
 [node name="BarFill" type="Panel" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox/BarSlot"]
 layout_mode = 0
-offset_left = 3.0
-offset_top = 3.0
-offset_right = 3.0
-offset_bottom = 29.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 6.0
+offset_bottom = 30.0
 mouse_filter = 2
 
 [node name="Score" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate/RowBox"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
 size_flags_vertical = 4
-theme_type_variation = &"BannerSub"
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 46
 text = "0"
 horizontal_alignment = 2
 

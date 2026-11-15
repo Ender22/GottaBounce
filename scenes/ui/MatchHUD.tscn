@@ -126,7 +126,7 @@ horizontal_alignment = 1
 [node name="MatchPanel" type="PanelContainer" parent="Root/CenterC"]
 visible = false
 layout_mode = 2
-theme_type_variation = &"MatchEndPanel"
+theme_type_variation = &"ToyPanel"
 mouse_filter = 2
 
 [node name="MatchBox" type="VBoxContainer" parent="Root/CenterC/MatchPanel"]
