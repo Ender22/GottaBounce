@@ -873,3 +873,15 @@ var trials_victory_arm: float = 1.3           # s from present() until the row a
 var trials_victory_scrim_alpha: float = 0.8   # chocolate scrim alpha behind the celebration  # WK-142
 var trials_victory_hop: float = 46.0          # px each cheering goat hops  # WK-142
 var trials_victory_next_iris: float = 0.24    # s the cream iris takes to cover before NEXT CIRCUIT loads  # WK-142
+
+# --- WK-119 sports team identity on the in-world tags (UX4-09 / CC-8.3). Read by src/ui/PlayerPip.gd + src/ui/PlayerPips.gd.  # WK-119
+var sports_pip_team_dress: bool = true         # sports tags wear a team-colour rim + home-side cap (false = pre-WK-119 goat-colour tags)  # WK-119
+var sports_pip_rim_px: float = 5.0             # px team-colour band around the tab (inside the rim's own chocolate outline)  # WK-119
+var sports_pip_cap_px: float = 14.0            # px extra rim on the team's home side (RED left, BLUE right): the colour-blind-safe shape cue  # WK-119
+var sports_cpu_pip_persist: bool = true        # a sports CPU's "NAME CPU" tag stays all match (Brawl keeps the intro-only CPU tag)  # WK-119
+var sports_cpu_pip_alpha: float = 0.70         # a sports CPU tag's settled alpha in play (= pip_idle_alpha for humans)  # WK-119
+var sports_pip_cpu_gap: int = 6                # px between a sports CPU tag's NAME and its small "CPU" (one row)  # WK-119
+# --- WK-146 / WK-147 tags keep clear of HUD cards + off-screen bubbles (UX4-23 / UX4-24). Read by src/ui/PlayerPips.gd.  # WK-146
+var pip_card_gap: float = 6.0                  # px a living pip / ghost tag keeps from a HUD corner card  # WK-146
+var pip_bubble_gap: float = 6.0                # px a living pip keeps from an off-screen bubble's rim  # WK-147
+var pip_avoid_hysteresis_px: float = 12.0      # px the top side must clear by before a card/bubble-flipped pip flips back up  # WK-146

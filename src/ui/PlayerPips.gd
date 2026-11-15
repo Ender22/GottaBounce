@@ -10,6 +10,13 @@ extends Control
 ##   - Off-screen goats get no pip (the EdgeIndicators chevron is the cue); a goat near the top edge gets
 ##     its pip flipped below it so it never leaves the screen.
 ##
+##   - WK-119 (UX4-09) SPORTS: every tag wears its TEAM (PlayerPip.set_team: team-colour rim + a cap on the team's
+##     home side, colour-blind-safe), and a bot's "ZIGGY CPU" tag stays the whole match (settles to
+##     Tuning.sports_cpu_pip_alpha like a human's pip) instead of fading after the intro. Brawl / Trials unchanged.
+##   - WK-146 (UX4-23): no tag (living or ghost) is drawn over a HUD corner card: it flips to the clear side of its
+##     goat, else it is clamped out of the card rect (the edge-clamp rule, with the card as the edge).
+##   - WK-147 (UX4-24): a living pip that would sit under an off-screen bubble flips below its goat (else hides).
+##
 ## Screen space under a CanvasLayer (constant ~30 px type at every camera zoom; immune to the body's
 ## tumble rotation / spawn-blink modulate). Pure presentation: polls the runner, never feeds back.
 
@@ -25,6 +32,10 @@ var _hold: Array = []           # s of full-alpha hold left (+ the fade tail), h
 var _ghost_mode: Array = []     # WK-37d: pip currently dressed as a ghost tag (scale / z / sub-font)
 var _ghost_flip: Array = []     # WK-37d: ghost tag hangs below its ghost (hysteresis: kept while it stays clear)
 var _ghost_tag_rects: Array = [] # WK-37e: ghost tags already placed THIS frame (later tags keep clear of them)
+var _teams: Array = []          # WK-119: team per pip (-1 = no team dress: Brawl / Trials)
+var _avoid_flip: Array = []     # WK-146/147: pip flipped below its goat to clear a card / bubble (hysteresis)
+var _cards_now: Array = []      # WK-146: this frame's HUD card keep-out rects (screen px)
+var _bubbles_now: Array = []    # WK-147: this frame's off-screen bubbles [{c, r}] (screen px)
 
 func setup(match_ref) -> void:
 	_match = match_ref
@@ -38,7 +49,8 @@ func debug_state() -> Array:
 		var pip = _pips[i]
 		out.append({"tag": pip.get_node("Tab/Box/Label").text, "sub": pip.get_node("Tab/Box/Sub").text,
 			"visible": pip.visible, "alpha": snappedf(pip.modulate.a, 0.01), "pos": pip.position,
-			"font_px": pip.get_node("Tab/Box/Label").get_theme_font_size("font_size")})
+			"font_px": pip.get_node("Tab/Box/Label").get_theme_font_size("font_size"),
+			"team": pip.team(), "rect": Rect2(pip.position + pip.local_rect().position, pip.local_rect().size)})
 	return out
 
 func _sync_roster() -> void:
@@ -59,11 +71,16 @@ func _sync_roster() -> void:
 	_hold.clear()
 	_ghost_mode.clear()
 	_ghost_flip.clear()
+	_teams.clear()
+	_avoid_flip.clear()
 	_owners = players.duplicate()
 	for i in range(players.size()):
 		var pip = PIP_SCENE.instantiate()
 		add_child(pip)
 		var cpu: bool = not _match.is_human_player(i)
+		var team: int = _team_of(i)
+		if team >= 0:
+			pip.set_team(team, SportsMode.TEAM_COLORS[team % SportsMode.TEAM_COLORS.size()])   # WK-119
 		# WK-88 (CC-8.5): the NAME everywhere; only the CPU intro pip carries the sub-tag
 		pip.setup(_match.player_name(i), _match.player_color(i), cpu, "CPU" if cpu else "")
 		pip.visible = false
@@ -72,6 +89,24 @@ func _sync_roster() -> void:
 		_hold.append(0.0)
 		_ghost_mode.append(false)
 		_ghost_flip.append(false)
+		_teams.append(team)
+		_avoid_flip.append(false)
+
+## WK-119: player i's sports team (0 RED / 1 BLUE), or -1 outside sports / with the team dress switched off.
+## SportsMode._teams is the spawn-order truth; the goat's team colourway (TEAM_SKINS) is the fallback.
+func _team_of(i: int) -> int:
+	if not Tuning.sports_pip_team_dress:
+		return -1
+	var cfg = _match.get("_config")
+	if cfg == null or not SportsMode.is_sports_mode(cfg.mode_id):
+		return -1
+	var mode = _match.get("_mode")
+	if mode != null:
+		var ts: Variant = mode.get("_teams")
+		if ts is Array and i < (ts as Array).size():
+			return int((ts as Array)[i])
+	var p = _match.players[i]
+	return SportsMode.team_for_skin(str(p.skin)) if is_instance_valid(p) else -1
 
 func _process(delta: float) -> void:
 	if _match == null or not is_instance_valid(_match):
@@ -97,6 +132,8 @@ func _process(delta: float) -> void:
 	# would sit on it is hidden (WK-41 one-overlay-at-a-time; the pip comes back once the banner pops out).
 	var banner: Rect2 = _banner_rect() if active and st == "STAGE_END" else Rect2()
 	_ghost_tag_rects.clear()
+	_cards_now = _card_rects() if active else []       # WK-146
+	_bubbles_now = _bubble_list() if active else []    # WK-147
 	for i in range(_pips.size()):
 		var pip = _pips[i]
 		var p = _owners[i]
@@ -116,12 +153,15 @@ func _process(delta: float) -> void:
 			continue
 		_set_ghost_mode(i, pip, false)
 		var human: bool = _match.is_human_player(i)
+		# WK-119: a sports CPU's tag stays all match, held + settled like a human's pip
+		var persist: bool = human or (int(_teams[i]) >= 0 and Tuning.sports_cpu_pip_persist)
 		if not _shown[i]:
 			_shown[i] = true
 			_hold[i] = Tuning.pip_full_hold + Tuning.pip_fade
 			pip.pop()
 		_hold[i] = maxf(0.0, float(_hold[i]) - rdelta)
-		var a: float = _alpha(human, intro, fight, since_go, float(_hold[i]))
+		var a: float = _alpha(persist, intro, fight, since_go, float(_hold[i]),
+			Tuning.pip_idle_alpha if human else Tuning.sports_cpu_pip_alpha)
 		if a <= 0.01:
 			pip.visible = false
 			continue
@@ -138,13 +178,32 @@ func _process(delta: float) -> void:
 		var lift: float = r * Tuning.pip_head_clearance
 		var sp: Vector2 = (p.global_position + Vector2(0.0, -lift) - cam_center) * z + vp * 0.5 \
 			- Vector2(0.0, Tuning.pip_screen_gap)
-		var flip: bool = sp.y - pip.pip_height() < TOP_MARGIN
-		if flip:
-			sp = (p.global_position + Vector2(0.0, lift) - cam_center) * z + vp * 0.5 \
-				+ Vector2(0.0, Tuning.pip_screen_gap)
-		pip.set_flipped(flip)
+		var dn: Vector2 = (p.global_position + Vector2(0.0, lift) - cam_center) * z + vp * 0.5 \
+			+ Vector2(0.0, Tuning.pip_screen_gap)
 		var half_w: float = pip.tab_width() * 0.5 + 4.0
 		sp.x = clampf(sp.x, half_w, vp.x - half_w)   # a goat hugging a side edge keeps its whole pip on screen
+		dn.x = sp.x
+		var ph0: float = pip.pip_height()
+		var flip: bool = sp.y - ph0 < TOP_MARGIN
+		# WK-146 / WK-147: above the head under a HUD card or an off-screen bubble -> hang below the goat when that side
+		# is clear (kept while the top side stays blocked, so it never flickers on the boundary)
+		if not flip and dn.y + ph0 <= vp.y - TOP_MARGIN:
+			var up_r := Rect2(Vector2(sp.x, sp.y) + _tag_rel(pip, false, 1.0).position, _tag_rel(pip, false, 1.0).size)
+			var dn_r := Rect2(Vector2(dn.x, dn.y) + _tag_rel(pip, true, 1.0).position, _tag_rel(pip, true, 1.0).size)
+			var grow: float = Tuning.pip_avoid_hysteresis_px if bool(_avoid_flip[i]) else 0.0
+			flip = _blocked(up_r.grow(grow)) and not _blocked(dn_r)
+			_avoid_flip[i] = flip
+		else:
+			_avoid_flip[i] = false
+		if flip:
+			sp = dn
+		pip.set_flipped(flip)
+		var rel: Rect2 = _tag_rel(pip, flip, 1.0)
+		if not _cards_now.is_empty():
+			sp = _clamp_out_of_cards(sp, rel, vp)   # WK-146: the card is one more screen edge
+		if not _bubbles_now.is_empty() and _hits_bubble(Rect2(sp + rel.position, rel.size)):
+			pip.visible = false   # WK-147: neither side clears the bubble (one cue at a time)
+			continue
 		if banner.has_area():
 			var ph: float = pip.pip_height()
 			if banner.intersects(Rect2(sp.x - half_w, sp.y - ph, half_w * 2.0, ph * 2.0)):
@@ -240,7 +299,7 @@ func _place_ghost_pip(i: int, pip, g, cam_center: Vector2, z: float, vp: Vector2
 	below.x = above.x
 	var r_up := Rect2(above.x - w * 0.5, above.y - h, w, h)
 	var r_dn := Rect2(below.x - w * 0.5, below.y, w, h)
-	var rects: Array = _living_rects(cam_center, z, vp) + _ghost_tag_rects   # WK-37e FIX 3: tags never stack
+	var rects: Array = _living_rects(cam_center, z, vp) + _ghost_tag_rects + _cards_now   # WK-37e FIX 3 + WK-146 cards
 	var o_up: float = _overlap_area(r_up, rects) if above.y - h >= TOP_MARGIN else INF
 	var o_dn: float = _overlap_area(r_dn, rects) if below.y + h <= vp.y - TOP_MARGIN else INF
 	# hysteresis: keep the current side while it is clear; otherwise take the clear side; otherwise the lesser overlap,
@@ -250,14 +309,20 @@ func _place_ghost_pip(i: int, pip, g, cam_center: Vector2, z: float, vp: Vector2
 	var o_alt: float = o_up if flip else o_dn
 	if o_cur > 0.0 and o_alt < o_cur:
 		flip = not flip
-	var o_pick: float = o_dn if flip else o_up
-	if o_pick > 0.0:
-		a = minf(a, Tuning.ghost_pip_near_alpha)
 	_ghost_flip[i] = flip
+	var pos: Vector2 = below if flip else above
+	var rel: Rect2 = _tag_rel(pip, flip, k)
+	if not _cards_now.is_empty():
+		pos = _clamp_out_of_cards(pos, rel, vp)   # WK-146: an edge-clamped ghost tag never sits on a HUD card
+	var r_fin := Rect2(pos + rel.position, rel.size)
+	# the near-fade is judged on the FINAL (card-clamped) rect against living goats + earlier tags only: a card is
+	# handled by the clamp, so a tag that cleared it stays at its readable alpha (WK-146)
+	if _overlap_area(r_fin, _living_rects(cam_center, z, vp) + _ghost_tag_rects) > 0.0:
+		a = minf(a, Tuning.ghost_pip_near_alpha)
 	# WK-37d + CD2-06: the HUD centre banner ("TWO LEFT!", "FIRST BLOOD", the stage-end line) owns its rect in ANY
 	# state — a ghost tag (lower priority than a living pip) under it is hidden, not drawn through the banner text.
 	var bn: Rect2 = _banner_rect()
-	if bn.has_area() and bn.intersects(r_dn if flip else r_up):
+	if bn.has_area() and bn.intersects(r_fin):
 		pip.visible = false
 		return
 	# WK-37e FIX 2: while this ghost's own "BAAA!" word is up, its tag fades out (the owner-tinted burst carries identity
@@ -266,22 +331,90 @@ func _place_ghost_pip(i: int, pip, g, cam_center: Vector2, z: float, vp: Vector2
 	if gd != null and is_instance_valid(gd) and gd.has_method("word_active") and gd.word_active(i):
 		a = 0.0
 	if a > 0.0:
-		_ghost_tag_rects.append(r_dn if flip else r_up)   # FIX 3: later tags keep clear (a faded tag claims no room)
+		_ghost_tag_rects.append(r_fin)   # FIX 3: later tags keep clear (a faded tag claims no room)
 	pip.set_flipped(flip)
-	pip.position = (below if flip else above).round()
+	pip.position = pos.round()
 	pip.modulate.a = move_toward(pip.modulate.a if pip.visible else 0.0, a, 0.08)
 	pip.visible = true
 
-## Alpha for one pip this frame. Humans never drop below pip_idle_alpha; bots fade to 0 after the intro.
-func _alpha(human: bool, intro: bool, fight: bool, since_go: float, hold: float) -> float:
-	var settled: float = Tuning.pip_idle_alpha if human else 0.0
+## Alpha for one pip this frame. Persistent pips (humans; WK-119 sports CPUs) never drop below `idle`; other bots
+## fade to 0 after the intro.
+func _alpha(persist: bool, intro: bool, fight: bool, since_go: float, hold: float, idle: float) -> float:
+	var settled: float = idle if persist else 0.0
 	var base: float = settled
 	if intro:
 		base = 1.0
 	elif fight:
 		var k: float = clampf((since_go - Tuning.pip_intro_linger) / maxf(Tuning.pip_fade, 0.01), 0.0, 1.0)
 		base = lerpf(1.0, settled, k)
-	if not human:
+	if not persist:
 		return base
 	var h: float = clampf(hold / maxf(Tuning.pip_fade, 0.01), 0.0, 1.0)
-	return maxf(base, lerpf(Tuning.pip_idle_alpha, 1.0, h))
+	return maxf(base, lerpf(idle, 1.0, h))
+
+# ------------------------------------------------------------------ WK-146 / WK-147 keep-outs
+
+## A tag's rect relative to its origin (the pointer tip) for a side, at scale k: above = hangs up, flipped = hangs down.
+func _tag_rel(pip, flipped: bool, k: float) -> Rect2:
+	var w: float = pip.tab_width() * k
+	var h: float = pip.pip_height() * k
+	return Rect2(-w * 0.5, 0.0 if flipped else -h, w, h)
+
+## WK-146: the HUD's visible corner cards (MatchHUD / TrialsHUD `_cards`), grown by pip_card_gap. Sports has none.
+func _card_rects() -> Array:
+	var out: Array = []
+	var hud = _match.get("_hud")
+	if hud == null or not is_instance_valid(hud):
+		return out
+	var cards: Variant = hud.get("_cards")
+	if not (cards is Array):
+		return out
+	for c in (cards as Array):
+		if c is Control and is_instance_valid(c) and (c as Control).is_visible_in_tree():
+			out.append((c as Control).get_global_rect().grow(Tuning.pip_card_gap))
+	return out
+
+## WK-147: this frame's off-screen bubbles (EdgeIndicators) as screen circles, grown by pip_bubble_gap.
+func _bubble_list() -> Array:
+	var out: Array = []
+	var ei = _match.get("_edge_indicators")
+	if ei == null or not is_instance_valid(ei):
+		return out
+	var list: Variant = ei.get("bubbles")
+	if not (list is Array):
+		return out
+	for b in (list as Array):
+		if b is Dictionary:
+			var bd: Dictionary = b
+			out.append({"c": bd["c"], "r": float(bd["r"]) * float(bd.get("pop", 1.0)) + Tuning.pip_bubble_gap})
+	return out
+
+func _hits_bubble(r: Rect2) -> bool:
+	for b in _bubbles_now:
+		var c: Vector2 = b["c"]
+		var q := Vector2(clampf(c.x, r.position.x, r.end.x), clampf(c.y, r.position.y, r.end.y))
+		if q.distance_to(c) < float(b["r"]):
+			return true
+	return false
+
+func _blocked(r: Rect2) -> bool:
+	for c in _cards_now:
+		if r.intersects(c as Rect2):
+			return true
+	return _hits_bubble(r)
+
+## WK-146: move a tag (origin `pos`, relative rect `rel`) out of every card it overlaps, by the shorter inward push
+## (toward the screen centre, horizontal or vertical): the HUD card acts as one more screen edge.
+func _clamp_out_of_cards(pos: Vector2, rel: Rect2, vp: Vector2) -> Vector2:
+	for c in _cards_now:
+		var cr: Rect2 = c
+		var r := Rect2(pos + rel.position, rel.size)
+		if not r.intersects(cr):
+			continue
+		var dx: float = (cr.end.x - r.position.x) if cr.get_center().x < vp.x * 0.5 else -(r.end.x - cr.position.x)
+		var dy: float = (cr.end.y - r.position.y) if cr.get_center().y < vp.y * 0.5 else -(r.end.y - cr.position.y)
+		if absf(dx) < absf(dy):
+			pos.x += dx
+		else:
+			pos.y += dy
+	return pos

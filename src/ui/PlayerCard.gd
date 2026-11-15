@@ -145,4 +145,19 @@ func set_ghost_ring(frac: float, hushed: bool, spent: bool) -> void:
 		return
 	if _ghost_ring.visible:
 		_ghost_ring.call("set_state", frac, hushed, spent, _color)
+		if hushed and not _shh.visible:
+			_place_shh()
 		_shh.visible = hushed
+
+## WK-146 (UX4-23): the "SHH" stamp sits UNDER the ghost head, centred on the fuel row (meaningless on a dead card), so
+## it never covers the NAME / sub-tag beside the head (it used to straddle the head and the start of the name).
+func _place_shh() -> void:
+	var slot: Control = $Margin/VBox/IdentityRow/HeadSlot
+	var fuel: Control = $Margin/VBox/FuelSlot
+	var sz: Vector2 = _shh.get_combined_minimum_size()
+	_shh.size = sz
+	_shh.pivot_offset = sz * 0.5
+	var fy: float = fuel.position.y + fuel.size.y * 0.5 - slot.position.y   # fuel-row centre in head-slot space (same VBox)
+	var row_y: float = (slot.get_parent() as Control).position.y
+	_shh.position = Vector2(slot.size.x * 0.5 - sz.x * 0.5, fy - row_y - sz.y * 0.5)
+	_shh.z_index = 1   # the head slot comes before the fuel row in the tree: without this the gauge draws over the stamp

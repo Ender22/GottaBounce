@@ -206,6 +206,10 @@ func _process(delta: float) -> void:
 	# are hidden — the panel carries only the course hint, and vanishes entirely when there is none.
 	_sub_label.visible = _sub_label.text != ""
 	_home_panel.visible = n > 1 or _sub_label.text != "" or _hint_row.visible
+	if _home_panel.visible and (_sub_label.text != "" or _hint_row.visible):   # WK-147: one goal surface
+		var lg = _runner.get("_legend")
+		if lg != null and is_instance_valid(lg) and lg.has_method("retire_goal"):
+			lg.retire_goal()   # the panel carries the instruction -> the legend's gold chip steps aside
 	_place_home_panel(mode, delta)
 
 # ------------------------------------------------------------------ WK-87 objective-panel placement

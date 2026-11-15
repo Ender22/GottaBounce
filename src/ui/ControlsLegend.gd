@@ -51,6 +51,7 @@ var _sports := false                # WK-141: this present() is the top-docked s
 var _ball_hooked: Object = null     # WK-141: the sports ball whose first live touch dims the legend
 var _touch_dimmed := false
 var _gen := 0                       # WK-141: present() generation (a REMATCH re-present cancels a pending layout)
+var _goal_retired := false          # WK-147: a HUD panel carries the instruction, so the gold goal chip stepped aside
 
 func _ready() -> void:
 	visible = false
@@ -70,6 +71,7 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 	_strip.modulate.a = 1.0
 	_strip2.modulate.a = 1.0
 	_goal_row.modulate.a = 1.0
+	_goal_retired = false   # WK-147
 	var sports: bool = _is_sports()   # WK-113
 	_sports = sports
 	_touch_dimmed = false
@@ -245,6 +247,23 @@ func _on_ball_touched(_p: Variant = null, _is_power: Variant = null) -> void:
 func _on_goal_scored(_team: Variant = null, _scorer: Variant = null, _own: Variant = null) -> void:
 	if _sports and visible and not _dying:
 		_fade_out()
+
+## WK-147 (UX4-24): ONE goal surface. A mode HUD that already carries the instruction (the Trials objective panel's
+## course hint, "HOLD A / SPACE - FLY UP TO THE RING") retires the gold chip ("FLY INTO THE GOLD RING"): gone at once
+## if it has not popped in yet, otherwise a FADE_TIME fade. The controls strip keeps its own timing. Idempotent.
+func retire_goal() -> void:
+	if _goal_retired or not visible or _dying or not _goal_row.visible:
+		return
+	_goal_retired = true
+	if _root.modulate.a < 0.05 or _goal_chip.modulate.a < 0.5:
+		_goal_row.visible = false
+		return
+	var tw := create_tween()
+	tw.tween_property(_goal_row, "modulate:a", 0.0, FADE_TIME)
+	tw.tween_callback(func() -> void: _goal_row.visible = false)
+
+func goal_retired() -> bool:
+	return _goal_retired
 
 ## eval-readable (QA): the legend's effective alpha (layer x rows).
 func shown_alpha() -> float:
