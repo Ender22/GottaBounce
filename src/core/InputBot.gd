@@ -280,6 +280,8 @@ func poll() -> InputIntent:
 	# WK-128 BR-128 (reflex, every frame — a cached dive boost can outlive the bounce it was decided before)
 	if it.boost and _refuel_dive and not _refuel_cross and wk128_refuel_wait and me.refund_rearm_pending(_refuel_dir):
 		it.boost = false
+	if _cached_super and me.super_arm_locked():   # WK-20d: truce / fumble-reserve gate would drop the press -> keep flying
+		_cached_super = false
 	if _cached_super:
 		_cached_super = false
 		it.super_hold = true   # press: Player enters AIM this frame; _tick_aiming takes over next
@@ -806,7 +808,7 @@ func _danger_recover(it: InputIntent) -> bool:
 			unreachable = _over_void(me.global_position) \
 				and me.fuel < _nearest_ground_dx(me.global_position) * CROSS_FUEL_PER_PX
 		var hot: bool = out_speed > 1400.0 and (not wk95_hot_stopdist or not _can_arrest(out_speed))
-		if me.fuel >= Tuning.super_boost_min_fuel and (hot or unreachable):
+		if me.fuel >= Tuning.super_boost_min_fuel and (hot or unreachable) and not me.super_arm_locked():   # WK-20d: a locked super press is dropped -> boost instead
 			it.super_hold = true
 			it.boost = false
 			_super_purpose = "recovery_hot" if hot else "recovery_unreachable"
@@ -814,7 +816,7 @@ func _danger_recover(it: InputIntent) -> bool:
 			it.aim = _fly_aim(it.aim)   # BR-2: boost home on a sag-compensated line
 	else:
 		var stranded: bool = _over_void(me.global_position) and not _can_reach(land_dist)
-		if me.fuel >= Tuning.super_boost_min_fuel and (me.fuel <= 12.0 or out_speed > 1400.0 or stranded):
+		if me.fuel >= Tuning.super_boost_min_fuel and (me.fuel <= 12.0 or out_speed > 1400.0 or stranded) and not me.super_arm_locked():   # WK-20d
 			it.super_hold = true
 			it.boost = false
 			_super_purpose = "recovery_hot" if out_speed > 1400.0 else ("recovery_unreachable" if stranded else "recovery_lowfuel")
