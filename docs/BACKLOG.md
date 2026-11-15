@@ -2707,7 +2707,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   under the platforms and "a new player could take it for a soft floor". Tune the WK-85a knobs (Tuning "# WK-85a": cloud bank offset /
   alpha / density) so the bank sits lower or thinner and the open sky gap under the platforms is visible. Applies to Trials + Islands Void.
 
-### [ ] WK-163 [P2][M] Stinger bus for KO / goal / match-win (bypass the SFX compressor) + punchier KO sting
+### [x] WK-163 [P2][M] Stinger bus for KO / goal / match-win (bypass the SFX compressor) + punchier KO sting — 758e163
 - Source: docs/audit/2026-11-15_audio_measure.md (WK-79c section). KO rise stuck at +3.3 LU (target +6): mm_quickdie.mp3 is quiet and
   spread over 2 s; more gain just hits the shared compressor/limiter. Do: (1) a Stingers bus (own light limiter, no SFX compressor) for
   KO / goal / match win; (2) source a 0.3-0.6 s broadband KO sting layer (CC0); (3) optional 0.3 s duck of background SFX on KO.
@@ -2719,3 +2719,6 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - K1 sticky keeper: rework — 6 of 9 human-style CPU own goals came from `keeper_route` pushing the ball toward its own goal.
 - K1b gate-return lead: run a K1b-only A/B at 2.5-3.0 s (never measured without K1); QA-131-2 bar >= 50 % CPU home at gate open.
 - K5: 14 Dropshot crossings in 40 points remain (7 stunned/super, 5 recovery/refuel, 2 normal play at fuel 0 just over the net top).
+
+### [ ] WK-165 [P3][S] slam.mp3 starts with 0.13 s of silence (heavy smash + super layer ~4 frames late)
+- Source: WK-163. Trim into a new file (`ffmpeg -af atrim=start=0.12`), point AudioManager at it, note it in LICENSES.md.
