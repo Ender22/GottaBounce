@@ -820,3 +820,10 @@ var sports_legend_top: float = 128.0          # px from the screen top to the go
 var sports_legend_goal_h: float = 62.0        # px gold rule row height  # WK-113
 var sports_legend_gap: float = 12.0           # px between the rule row and the chip strip  # WK-113
 var sports_legend_strip_h: float = 64.0       # px chip strip height  # WK-113
+
+# --- WK-85 tall arenas (ArenaRenderer). Display only.  # WK-85
+var themed_body_full_height: bool = true       # themed (rock/steel/stone) bodies draw >= collider height (no art-less band)  # WK-85
+var painting_horizon_min_off: float = -350.0   # painted horizon sits at most this far ABOVE the play-rect centre (wpx, negative = up)  # WK-85
+var themed_body_stretch_max: float = 1.6     # taller than this x canonical (64/128) -> canonical strip + tinted tiled fill  # WK-85
+var themed_fill_brightness: float = 2.0      # grey earth tile brightness (its mean luma is ~0.25) before the theme tint  # WK-85
+var themed_fill_contrast: float = 1.0        # WK-85

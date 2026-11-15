@@ -23,9 +23,13 @@ const HERO_TEX := "res://assets/world/grass/platform_wide.png"
 # open-sky levels). Missing themed file -> grass body fallback via _platform_body (never a flat poly).
 const BODIES := {
 	"grass": { "path": "res://assets/world/grass/body_std.png", "cap_frac": 0.22, "grass_decals": true },
-	"space_rock": { "path": "res://assets/world/bodies/body_space_rock.png", "cap_frac": 0.22, "grass_decals": false },
-	"foundry_steel": { "path": "res://assets/world/bodies/body_foundry_steel.png", "cap_frac": 0.22, "grass_decals": false },
-	"quarry_stone": { "path": "res://assets/world/bodies/body_quarry_stone.png", "cap_frac": 0.22, "grass_decals": false },
+	# fill_tint (WK-85): modulate on the desaturated earth tile under TALL themed bodies (sampled from each strip)
+	"space_rock": { "path": "res://assets/world/bodies/body_space_rock.png", "cap_frac": 0.22, "grass_decals": false,
+		"fill_tint": "#4054CE" },
+	"foundry_steel": { "path": "res://assets/world/bodies/body_foundry_steel.png", "cap_frac": 0.22, "grass_decals": false,
+		"fill_tint": "#A69E94" },
+	"quarry_stone": { "path": "res://assets/world/bodies/body_quarry_stone.png", "cap_frac": 0.22, "grass_decals": false,
+		"fill_tint": "#DCCCB0" },
 }
 # dusk_gold reuses quarry_stone warm-tinted to sandstone (§A.1 "reuse one" saving), not a 4th body.
 const DUSK_BODY_TINT := Color("#E8C79E")
@@ -157,6 +161,8 @@ var _body_path := BODY_TEX
 var _body_tint := Color.WHITE
 var _body_grass_decals := true
 var _body_is_grass := true
+var _body_fill_tint := Color.WHITE   # WK-85: tint of the tiled fill under tall themed bodies
+static var _grey_earth: Texture2D = null   # WK-85: desaturated earth tile (built once, see _grey_earth_texture)
 var _surfaces := {}          # StaticBody2D -> { tier, art, mat, w, top, last_ms } for bounce FX
 var _warned := {}
 var _t := 0.0
@@ -232,6 +238,7 @@ func _resolve_body(json: Dictionary) -> void:
 	_body_grass_decals = bool(m.get("grass_decals", false))
 	_body_is_grass = id == "grass"
 	_body_tint = tint
+	_body_fill_tint = Color(str(m.get("fill_tint", "#FFFFFF"))) * tint   # WK-85 (dusk: sandstone x stone)
 
 ## Resolve the abyss fill + dirt-wall colors paint_void uses, from the level's backdrop_painting knob.
 ## Missing/unknown id -> meadow_day (the shipped grass ramp) so nothing regresses.
@@ -681,9 +688,14 @@ func _build_painting_backdrop(json: Dictionary, brect: Rect2, floor_y: float) ->
 	node.add_child(sp)
 	var sky_h := tex.get_height() * sc
 	var hf: float = float(m.get("horizon_frac", 0.58))
+	# WK-85: floor_y is the WIDEST platform's top. On tall arenas whose widest ledge is near the TOP (the_summit,
+	# foundry_cascade, singularity...) that pinned the horizon far above the play centre, and since the painting
+	# barely parallaxes (0.05) the camera only ever saw its featureless lower abyss: a flat dark smear. Keep the
+	# horizon at most painting_horizon_min_off above the play-rect centre (normal arenas sit well inside it).
+	var horizon_y := maxf(floor_y, _anchor.y + Tuning.painting_horizon_min_off)
 	# sprite is centered: image top sits at local -sky_h/2, the horizon line at local (hf-0.5)*sky_h.
-	# pin that horizon world-y to floor_y => node origin (sprite center) world-y = floor_y + (0.5-hf)*sky_h.
-	var base := Vector2(_anchor.x, floor_y + (0.5 - hf) * sky_h)
+	# pin that horizon world-y => node origin (sprite center) world-y = horizon_y + (0.5-hf)*sky_h.
+	var base := Vector2(_anchor.x, horizon_y + (0.5 - hf) * sky_h)
 	# extend the painting's own near-black bottom row from its bottom edge (local +sky_h/2) down past the
 	# arena bottom, in the node's LOCAL space (world_bottom - base.y). Guarantees no gradient seam below.
 	var pad := 2600.0
@@ -1027,14 +1039,24 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 		# FLOATING-ISLAND earth body (owner 2026-07-19): fill the FULL collider height with tiled earth so
 		# a tall platform is one solid island (grass levels only for now — themed bodies keep their strip).
 		# The grass-fringe strip is still drawn on TOP for the grassy edge; the earth fills below it.
-		if _body_is_grass:
+		# WK-85: themed bodies fill the whole collider too. Up to themed_body_stretch_max x the canonical height the
+		# themed strip simply draws taller (ThreeSlice scales uniformly by height, caps keep their aspect); past that
+		# (tower blocks) the 3-slice seams get huge, so a themed TILED fill goes under a canonical strip instead,
+		# exactly like grass: the shared earth tile, desaturated and tinted to the theme's rock (BODIES fill_tint).
+		var canon := _canonical_height(h)
+		var themed_full := not _body_is_grass and Tuning.themed_body_full_height and h > canon
+		var themed_fill := themed_full and h > canon * Tuning.themed_body_stretch_max
+		if _body_is_grass or themed_fill:
 			var earth_w := w + BODY_BLEED_SIDE * 2.0
 			var earth_h := h + BODY_BLEED_TOP
-			var earth := _earth_body(earth_w, earth_h)
+			var earth := _earth_body(earth_w, earth_h, _body_fill_tint if themed_fill else Color.WHITE,
+				_grey_earth_texture() if themed_fill else EARTH_TEX)
 			earth.position = Vector2(0.0, top - BODY_BLEED_TOP + earth_h * 0.5)
 			art.add_child(earth)
 		# themed 3-slice body / grass fringe strip, art height snapped to canonical H64/H128
-		var art_h := _canonical_height(h) + BODY_BLEED_TOP
+		var art_h := canon + BODY_BLEED_TOP
+		if themed_full and not themed_fill:
+			art_h = h + BODY_BLEED_TOP   # WK-85: no 32 px art-less band under a 96 px themed ledge
 		var art_w := w + BODY_BLEED_SIDE * 2.0
 		var body_art := _platform_body(art_w, art_h)
 		if body_art != null:
@@ -1085,22 +1107,39 @@ func _canonical_height(h: float) -> float:
 ## (no more capped strip + dark void gradient below it). Centred on the origin; caller positions it so
 ## the top sits under the mat. UV-tiled via a Polygon2D so the on-screen rock size == EARTH_TILE_WORLD
 ## regardless of the texture's pixel resolution.
-func _earth_body(w: float, h: float, tint: Color = Color.WHITE) -> Node2D:
+func _earth_body(w: float, h: float, tint: Color = Color.WHITE, tex: Texture2D = EARTH_TEX) -> Node2D:
 	var root := Node2D.new()
 	# chocolate outline: a slightly larger rounded rect behind the earth
 	var outline := _rounded_rect_poly(w + BODY_OUTLINE_PX * 2.0, h + BODY_OUTLINE_PX * 2.0,
 		BODY_CORNER_R + BODY_OUTLINE_PX, BODY_OUTLINE)
 	root.add_child(outline)
-	# earth fill: rounded rect textured with the tiling earth; per-vertex UV = pos / tile-world so it repeats
+	# earth fill: rounded rect textured with the tiling earth; per-vertex UV = pos / tile-world so it repeats.
+	# WK-85: Polygon2D.uv is in TEXTURE PIXELS, not 0..1 — the old pos/tile UV sampled a ~2 px corner of the
+	# tile, so every tall island's earth rendered as one flat brown fill. Scale by the texture size.
 	var earth := _rounded_rect_poly(w, h, BODY_CORNER_R, tint)
-	earth.texture = EARTH_TEX
+	earth.texture = tex
 	earth.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	var px_per_world: Vector2 = tex.get_size() / EARTH_TILE_WORLD
 	var uv := PackedVector2Array()
 	for p in earth.polygon:
-		uv.append((p as Vector2) / EARTH_TILE_WORLD)
+		uv.append((p as Vector2) * px_per_world)
 	earth.uv = uv
 	root.add_child(earth)
 	return root
+
+## WK-85: the shared earth tile with its colour removed (native Image.adjust_bcs, once per session), so a
+## themed body's fill can be tinted to its rock via modulate (a brown tile multiplied blue only goes muddy).
+func _grey_earth_texture() -> Texture2D:
+	if _grey_earth != null:
+		return _grey_earth
+	var img := EARTH_TEX.get_image()
+	if img == null:
+		return EARTH_TEX
+	if img.is_compressed():
+		img.decompress()
+	img.adjust_bcs(Tuning.themed_fill_brightness, Tuning.themed_fill_contrast, 0.0)
+	_grey_earth = ImageTexture.create_from_image(img)
+	return _grey_earth
 
 ## Themed body art (§A). GRASS: whole-sprite hero (has mid-span flowers) if within ±20% aspect, else
 ## the grass 3-slice body. THEMED: 3-slice the resolved themed strip (22/56/22), warm-tinted for dusk;
