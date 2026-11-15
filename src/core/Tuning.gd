@@ -1085,7 +1085,7 @@ var wk108b_replan_ball_speed: float = 450.0   # K2: px/s ball speed that counts 
 var wk108b_replan_near_px: float = 450.0      # K2: ... or the ball within this of the bot  # WK-108b
 # K3 GOAL-MOUTH CLEAR RULE (CD3-03): per-frame reflex - a bot never drives into the ball toward its own goal while the ball is in  # WK-108b
 # its own half; it swerves to the ball's goal side and brakes (a graze clears it away, the next plan lines up from the goal side).  # WK-108b
-var wk108b_strike_guard: bool = false         # K3 (A/B switch)  # WK-108b
+var wk108b_strike_guard: bool = true          # K3 ON (A/B: all-bot CPU own goals 25.9 -> 17.9 %, final-2 own goals 10 -> 4)  # WK-108b
 var wk108b_guard_frac: float = 1.0            # K3: active while the ball is within this share of the axis from my goal (1.0 = whole  # WK-108b
                                               # pitch: a trackback overtaking a ball already running at my goal hit it in from 2000 px)  # WK-108b
 var wk108b_guard_horizon_s: float = 0.30      # K3: s to contact at the current closing speed that trips it (L3 turns ~0.2 s / 90 deg)  # WK-108b
