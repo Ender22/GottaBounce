@@ -1238,3 +1238,40 @@ var trials_net_catch_gravity: float = 0.5     # x the ball's gravity while caugh
 var trials_net_catch_wall_keep: float = 0.3   # x speed a ball heading out through a net side keeps when it turns back in  # WK-159
 var trials_net_catch_push: float = 6.0        # 1/s ease back inside for a ball already past a net side (velocity = gap x this)  # WK-159
 var trials_net_catch_s: float = 4.0           # s the catch lasts (the course change frees the ball first; gravity restored after)  # WK-159
+
+# --- WK-31 HUD card danger + stocks + labelled fuel (R-06). Read by src/ui/PlayerCard.gd / MatchHUD.gd / FuelIcon.gd.  # WK-31
+# Danger = Player.damage_level (0 / 1 / 2; launch x dmg_launch_mult, full heal after dmg_heal_time). Three distinct card  # WK-31
+# states that never rely on hue alone: a WORD sticker (HURT! / DANGER!) with a draining heal bar, a thicker border, and  # WK-31
+# motion (a kick on every qualifying hit, a sustained tremble only at Lv2). BRAWL only: MatchHUD drives it; TrialsHUD's  # WK-31
+# cards never call it and Sports has no cards.  # WK-31
+var hud_danger_on: bool = true                # false = the pre-WK-31 card (no danger state)  # WK-31
+var hud_danger_words: PackedStringArray = PackedStringArray(["", "HURT!", "DANGER!"])   # sticker text by damage_level  # WK-31
+var hud_danger_tag_fill: Array[Color] = [Color(0, 0, 0, 0), Color("#ffc93f"), Color("#e32020")]   # sticker fill: light amber / dark crimson (luminance differs too)  # WK-31
+var hud_danger_border: Array[Color] = [Color(0.231373, 0.141176, 0.105882), Color("#ff8a1f"), Color("#e32020")]   # card border colour by level  # WK-31
+var hud_danger_border_w: Array[int] = [4, 6, 8]   # px card border width by level (the non-hue thickness cue)  # WK-31
+var hud_danger_flush: Color = Color("#e32020")    # the crimson glow that bleeds in from the card edge (a full wash muddied green/yellow cards to brown)  # WK-31
+var hud_danger_flush_lv1: Vector2 = Vector2(0.45, 0.20)   # (mid, amp) alpha of the edge glow at Lv1 (gentle throb)  # WK-31
+var hud_danger_flush_lv2: Vector2 = Vector2(0.75, 0.25)   # (mid, amp) alpha at Lv2 (deep, never clears)  # WK-31
+var hud_danger_glow_px: Array[int] = [0, 12, 22]   # px how far the edge glow bleeds in, by level (Lv2 reaches further: a non-hue size cue)  # WK-31
+var hud_danger_lv1_hz: float = 1.5            # wash throb at Lv1 (= dmg_pulse_slow_hz, the goat's own pulse rate)  # WK-31
+var hud_danger_lv2_hz: float = 2.5            # wash throb at Lv2 (slower than the goat's 4 Hz: a card-sized 4 Hz flash reads as flicker)  # WK-31
+var hud_danger_kick_deg: float = 7.0          # deg peak card rotation of the hit kick (decays over kick_s)  # WK-31
+var hud_danger_kick_s: float = 0.4            # s the kick lasts  # WK-31
+var hud_danger_kick_scale: float = 0.10       # +x scale punch at the start of a kick  # WK-31
+var hud_danger_tremble_deg: float = 1.4       # deg sustained card tremble while at Lv2 (0 = none)  # WK-31
+var hud_danger_tremble_hz: float = 7.0        # tremble rate  # WK-31
+var hud_danger_tag_tilt_deg: float = -4.0     # deg the sticker sits tilted (mirrored on right-hand cards)  # WK-31
+var hud_danger_tag_overlap: float = 10.0      # px the sticker overlaps the card's inner edge (clear of the fuel gauge)  # WK-31
+var hud_danger_tag_overhang: float = 10.0     # px the sticker pokes past the card's centre-facing side (more when it has to clear the stock tab)  # WK-31
+var hud_danger_tag_stock_gap: float = 2.0     # px min gap between the stock tab and the sticker when both show  # WK-31
+var hud_danger_heal_bar: bool = true          # the sticker's bar drains as the 8 s heal runs out (re-fills on a re-hit)  # WK-31
+var hud_danger_rehit_frac: float = 0.05       # heal-frac jump that counts as a re-hit at the same level (kick again)  # WK-31
+var hud_stocks_min_lives: int = 2             # stock heads show when RULES LIVES >= this  # WK-31
+var hud_stocks_max_lives: int = 9             # ...and <= this (Sports / Trials run 99 lives: never a stock row)  # WK-31
+var hud_stock_icon_px: float = 36.0           # px each stock head  # WK-31
+var hud_stock_lost_alpha: float = 0.35        # lost stock = dark silhouette at this alpha (shape + luminance, not hue)  # WK-31
+var hud_stock_tuck: float = 8.0               # px the stock tab tucks under the card's inner edge  # WK-31
+var hud_stock_inset: float = 14.0             # px from the card's screen-edge side  # WK-31
+var hud_stock_lose_s: float = 0.45            # s the lost head's pop-and-darken takes  # WK-31
+var hud_fuel_icon: bool = true                # flame glyph at the left of the fuel gauge  # WK-31
+var hud_fuel_icon_px: float = 28.0            # px flame height (overhangs the 16 px gauge row)  # WK-31

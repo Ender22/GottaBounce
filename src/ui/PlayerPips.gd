@@ -447,7 +447,9 @@ func _card_rects() -> Array:
 		return out
 	for c in (cards as Array):
 		if c is Control and is_instance_valid(c) and (c as Control).is_visible_in_tree():
-			out.append((c as Control).get_global_rect().grow(Tuning.pip_card_gap))
+			# WK-31: a MatchHUD card's rect includes its stock tab / danger sticker when they show
+			var cr: Rect2 = (c as Control).call("hud_rect") if (c as Control).has_method("hud_rect") else (c as Control).get_global_rect()
+			out.append(cr.grow(Tuning.pip_card_gap))
 	return out
 
 ## WK-147: this frame's off-screen bubbles (EdgeIndicators) as screen circles, grown by pip_bubble_gap.

@@ -14,7 +14,7 @@ extends HBoxContainer
 @export var dark_text := false     # chocolate labels with no outline (for strips sitting on a cream plate)
 ## WK-29 (CC-1.6): "" = draw the specs literally (PauseMenu / Options pass their owner's own device glyphs).
 ## "menu" / "play" = the specs are PAD glyphs of a SHARED footer: they follow PadGlyph.shared_kind() (key caps
-## when only the keyboard is in, pad glyphs otherwise; a mixed couch sees both on the A / START confirm prompt)
+## when only the keyboard is in, pad glyphs otherwise; a mixed couch sees both on every prompt, WK-31)
 ## and re-skin on join / leave / last-device changes.
 @export var device_ctx := ""
 
@@ -67,11 +67,12 @@ func rebuild() -> void:
 		if label != "":
 			group.add_child(_text_label(label))
 
-## WK-29: map pad glyph ids to the shared device's glyphs (confirm/go prompts show both twins on a mixed couch).
+## WK-29: map pad glyph ids to the shared device's glyphs. WK-31 (extends WK-157 to every shared footer, CC-1.6): on a
+## mixed keyboard + pad couch EVERY prompt shows both twins ("B / ESC BACK"), not only the A / START confirm prompt.
 func _device_tokens(toks: PackedStringArray) -> PackedStringArray:
 	var out := PackedStringArray()
 	for t in toks:
-		for g in PadGlyph.shared_spec(t, device_ctx, t == "A" or t == "START"):
+		for g in PadGlyph.shared_spec(t, device_ctx, true):
 			if not out.has(str(g)):
 				out.append(str(g))
 	return out

@@ -17,6 +17,7 @@ var _center_tw: Tween
 var _top_tw: Tween
 var _top_queue: Array = []
 var _top_busy := false
+var _runner = null   # WK-31: the PartyMatch that owns this HUD (lives_left / lives_per_player are polled, never written)
 
 @onready var _center_box: VBoxContainer = $Root/CenterC/CenterBox
 @onready var _center_text: Label = $Root/CenterC/CenterBox/CenterText
@@ -31,6 +32,7 @@ var _top_busy := false
 func setup(players: Array, colors: Array, skins: Array) -> void:
 	_players = players
 	_cards = [$Root/Card0, $Root/Card1, $Root/Card2, $Root/Card3]
+	_runner = get_parent()   # WK-31 (PartyMatch adds the HUD as its child before calling setup)
 	# WK-02: one card per REAL fighter; corners with no player are hidden (no ghost "P1" cards, and
 	# no out-of-bounds colors[i]/skins[i] read when fewer than 4 fight). The roster cap
 	# (MatchConfig.MAX_FIGHTERS == 4 == corner count) guarantees a 5th card is never needed.
@@ -41,6 +43,7 @@ func setup(players: Array, colors: Array, skins: Array) -> void:
 			var col: Color = colors[i] if i < colors.size() else Color.WHITE
 			var skin: String = str(skins[i]) if i < skins.size() else "pink"
 			_cards[i].setup(i, col, skin)
+			_cards[i].set_corner(i < 2, i % 2 == 0)   # WK-31: tabs hang off the centre-facing edge
 
 ## WK-10/WK-88 (CC-8.5): per-card NAME from PartyMatch.player_names() ("P3" / "VEX") + optional sub-tags
 ## from player_subtags() (goat name / "CPU").
@@ -50,11 +53,28 @@ func set_labels(labels: Array, subs: Array = []) -> void:
 
 func _process(_delta: float) -> void:
 	# fuel gauges + held-powerup icons track the players live (v0 spec §3 / v1_powerups §2)
+	var stock_total: int = _stock_total()   # WK-31
+	var lives: Variant = _runner.get("lives_left") if _runner != null and is_instance_valid(_runner) else null   # WK-31
 	for i in range(mini(_players.size(), _cards.size())):
 		var p = _players[i]
 		if is_instance_valid(p):
 			_cards[i].set_fuel(p.get_fuel_ratio(), p.fuel_locked)
 			_cards[i].set_powerup(p.held_powerup)
+			# WK-31 danger: the goat's transient damage_level (0/1/2) + how much of the heal countdown is left. A dead
+			# goat (between a stock loss and its respawn, or eliminated) shows no danger: respawn heals it to 0 anyway.
+			var dead: bool = p.is_dead()
+			var lv: int = 0 if dead else int(p.damage_level)
+			var heal: float = clampf(float(p.heal_time_left()) / maxf(0.01, Tuning.dmg_heal_time), 0.0, 1.0)
+			_cards[i].set_danger(lv, heal)
+			var left: int = int((lives as Array)[i]) if lives is Array and i < (lives as Array).size() else 0
+			_cards[i].set_stocks(stock_total, left)
+
+## WK-31: RULES LIVES when the stock row should show (>= hud_stocks_min_lives and <= hud_stocks_max_lives), else 0.
+func _stock_total() -> int:
+	if _runner == null or not is_instance_valid(_runner):
+		return 0
+	var lpp: int = int(_runner.get("lives_per_player")) if _runner.get("lives_per_player") != null else 1
+	return lpp if lpp >= Tuning.hud_stocks_min_lives and lpp <= Tuning.hud_stocks_max_lives else 0
 
 func set_dead(i: int, dead: bool) -> void:
 	if i >= 0 and i < _cards.size():
@@ -73,7 +93,7 @@ func set_ghost_ring(i: int, frac: float, hushed: bool, spent: bool) -> void:
 ## WK-37: card i's screen rect (the ghost legend sits beside it). Empty Rect2 for an unused corner.
 func card_rect(i: int) -> Rect2:
 	if i >= 0 and i < _cards.size() and _cards[i].visible:
-		return (_cards[i] as Control).get_global_rect()
+		return _cards[i].hud_rect()   # WK-31: includes a visible stock tab / danger sticker
 	return Rect2()
 
 func reset_scores() -> void:

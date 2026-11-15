@@ -60,9 +60,12 @@ and pad players see pad buttons. Rules 2-5 of that brief still stand.
 - **CC-1.6** **Glyphs are consistent and device-aware.** There is ONE glyph component (Xbox-coloured A/B/X/Y circles,
   Start/View/LB/RB pills, stick glyph, and key-cap chips for keyboard). A prompt that belongs to one player (a
   character-select panel, the pause menu) shows that player's device glyphs. A shared prompt (footers, end
-  screens) shows PAD glyphs if any pad is joined/active, key caps only when the keyboard is the sole device, and
-  both on a GO/confirm prompt when pads and keyboard are mixed (amended 2026-11-14 per lobby review: last-device
-  glyphs flicker in a 4-player lobby). Never ASCII "(A)", never mixed chip styles.
+  screens) follows who is JOINED, never the last device pressed: PAD glyphs when only pads are joined, key caps
+  when the keyboard is the sole device, and BOTH twins on EVERY prompt when pads and keyboard are mixed
+  ("A / ENTER SELECT · B / ESC BACK"), not only on GO/confirm (amended 2026-11-14 per lobby review: last-device
+  glyphs flicker in a 4-player lobby; widened 2026-11-15 by WK-157 / WK-31: a keyboard player on a mixed couch had
+  no back / random / move prompt). Static on join / leave only, so nothing flickers while four people mash. Never
+  ASCII "(A)", never mixed chip styles.
 - **CC-1.7** Prompts name the real binding. If the footer says "Y Random", Y does Random on that screen, and the
   keyboard equivalent works too (and shows when keyboard is the active device).
 
