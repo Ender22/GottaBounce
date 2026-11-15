@@ -1425,6 +1425,8 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 
 
 ### [ ] WK-108b [P1][M] Sports bots round 2: keeper stickiness, fast-ball re-plan, goal-mouth crowding, BOWL own goals
+- Also check (lane L, WK-120 run): CPUs seen flying across the net into the other half in a 2V2 Dropshot match
+  (`tools/out/wk/WK-120_10*.png`) — confirm whether Dropshot bots respect their side.
 - Source: WK-108 report (ee80867, tools/out/wk/WK-108_sports_bots.json). 70-80% of remaining own goals = chaser on the
   wrong side of the ball flying back toward its own goal (re-plan every 0.28 s at L3 while the ball moves ~300 px).
   Keeper presence 12% vs 70% target — keeper becomes chaser the moment it challenges (make roles sticky / hysteresis).
