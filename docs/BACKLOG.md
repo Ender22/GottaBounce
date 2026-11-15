@@ -2416,3 +2416,8 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
   to the court; the WK-148 MatchCover hides it but also hides the goats popping in + legend build. Snap straight to the mode framing
   (camera rules: check docs/feedback/owner_2026-07-10_camera_rules.md) after WK-135 releases PartyMatch; also check the per-goal
   STAGE_INTRO and Pause->RESTART / REMATCH paths (no cover there).
+
+### [ ] WK-65b [P3][S] HAMMER YARD and MINEFIELD court cards blur together when locked
+- Source: WK-65 blind 480 read (`tools/out/wk/WK-65_40_rb_shelf_480_blind_B.png`): both locked Tier-3 cards are dim and brownish under the
+  LOCKED banner; the hazards are too small at 480 px, so colour does all the work (measured dE76 17.3 < 20). Fix: re-roll the MINEFIELD
+  interior in a clearly different hue (e.g. cool dusk teal/purple) via tools/court_badge_compose.py, and/or lighten the locked dim.
