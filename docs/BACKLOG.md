@@ -1626,6 +1626,9 @@ first. Its re-judge list is in the WK-CD5 entry.
 
 
 ### [ ] WK-135 [P1][M] Bumpers are standable (bodies come to rest on them — INV-11 violation, WK-128 spec finding E17)
+- **Phase 3 BUILT 04c7442, both switches OFF** (refund_gates_on, sports_touch_refuel). A/B next in the headless queue: P3 arm =
+  GB_WK135_GATES=1 GB_WK135_BALL=1 vs OFF; also ball-only. Watch: Meadow Carousel void deaths after a cart hop at 0-4 fuel (3/8 vs 1/4;
+  proposed fix: drop the 60 px re-arm floor for tier-less moving decks), sports starved share (the_box 2x), core thrust-pin 13/s vs 12.
 - **Phase 2 BUILT (see git log; BR-135 ON)**: pinball post buzz 1.7 -> 0.40 s; singularity logged 1 pin episode (0.25/bot-stage vs spec <= 0.1,
   1 stage only) -> confirm in the A/B batch (wk135_no_pin true vs false). Phase 3 (gates ON + sports ball refuel) remains.
 - **Phase 1 DONE 8eec92e** (bumper kick floor 48 px; 0 rest episodes; bumper-arena self-KO +5.9 pp to watch). Phases 2-3 (face
