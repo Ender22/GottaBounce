@@ -137,7 +137,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
    `SportsMode.gd`: stage hunks]
 8. ~~WK-52~~ done 5a74fa8 — unlock toast becomes a banner card + CD3-07 (S) [L, after WK-120 + WK-125]
 9. ~~WK-14~~ done ab11c61 — singular focus (S) [U]
-10. WK-37f ghosts never hide behind terrain (P3/S) [G]
+10. ~~WK-37f~~ done 1f5b64d — ghosts never hide behind terrain (P3/S) [G]
 11. ~~WK-113~~ done 5a74fa8 — sports legend off the floor (S)
 12. WK-112 sports hazards stun (S) [S]
 13. WK-114 court unlock gates (S, JSON, with or after WK-112)
@@ -1964,7 +1964,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Accept: a 15-stage run prints each missing-decal warning at most once; skill §2 corrected; golden updated to the measured value.
 - Status: open
 
-### [ ] WK-37f [P3][S] Ghosts never hide behind terrain (CD3-08)
+### [x] WK-37f [P3][S] Ghosts never hide behind terrain (CD3-08) — 1f5b64d
 - Area: brawl (ghosts) · Owner: gameplay-programmer (+ art-director glance) · Source: creative-director WK-CD3 CD3-08
 - Evidence: `tools/out/cd3/m1/03_ghost1_s1.png`: the P2 ghost is parked under the main floor; the platform art hides its body and only its
   tag peeks out below. CD3's driver steered it there, but a real player will too.
@@ -2134,6 +2134,6 @@ Builder follow-ups since re-rank #6: WK-66a -> 66b, 66c · WK-53b/WK-26 -> 53c �
 Builder follow-ups since re-rank #5: WK-123 -> 123b, 128 (+ 95f merged in), 129 · WK-108 -> 108b (bots), 131 (kickoff rule, CD2-03 carry-over) ·
 WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38 re-scope note
 
-### [ ] WK-137 [P2][S] Trials fall triggers the Brawl "FIRST BLOOD!" announcer
+### [x] WK-137 [P2][S] Trials fall triggers the Brawl "FIRST BLOOD!" announcer — 1f5b64d
 - Source: WK-85a builder (2P lesson 4, goat teleported into a gap -> "FIRST BLOOD!"). May be an artefact of the teleport; check a
   real fall in 2P Flight School. Brawl callouts (FIRST BLOOD / TWO LEFT) should never fire in Trials or sports.
