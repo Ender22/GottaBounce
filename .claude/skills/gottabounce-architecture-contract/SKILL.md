@@ -159,6 +159,11 @@ pop-ins) → `COUNTDOWN` (3-2-1) → `COMBAT` → optional `SUDDEN_DEATH` (laser
 timer at `sudden_death_time` OR by double-KO revive) → `ROUND_END` (KO freeze) → next round, or
 `MATCH_END` (first to `match_target_score` with a strict lead; rematch/quit prompt).
 
+> **STALE (2026-11-16):** the laser-wall/timer sudden death was removed by the owner (2026-07-03 kill-race directive). Today
+> SUDDEN_DEATH happens ONLY when the last two goats lose their last life within `double_ko_window` (0.5 s, GAME time since WK-181)
+> and revives exactly those two. See docs/feedback/owner_2026-07-03_lives_damage_killrace.md, docs/specs/v1_party_killrace.md §5,
+> and WK-181 in docs/BACKLOG.md. State names (STAGE_INTRO / STAGE_END etc.) also differ from this section — read PartyMatch.gd.
+
 **The real-time-vs-scaled-delta trick** (PartyMatch.gd:156-172): hitstop works by scaling
 `Engine.time_scale`, which shrinks `_physics_process` delta. Flow/UI beats must run on the wall
 clock, so PartyMatch computes `rdelta = delta / maxf(Engine.time_scale, 0.05)` and ticks
