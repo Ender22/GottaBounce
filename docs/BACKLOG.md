@@ -1664,7 +1664,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   with a net, title baseline level with its neighbours; art-director approval.
 - Status: open (kept P2 by WK-98 §4)
 
-### [ ] WK-66a [P1][M] Nets read as nets: Dropshot net panel (DOME's moving net visible) + Rocketball goal net sprite (WK-98 SP-13)
+### [x] WK-66a [P1][M] Nets read as nets: Dropshot net panel (DOME's moving net visible) + Rocketball goal net sprite (WK-98 SP-13) — 2bd049c
 - Area: art | sports · Owner: art pipeline + art-director (grade) + level-designer · Source: WK-98 SP-13, split out of WK-66 and raised
   to P1 (WK-98 §4). Re-sized: CD filed S, but it needs art generation, a draw hook over the existing bumper collider and an art-director
   grade, so M.
@@ -1919,3 +1919,13 @@ WK-20a results (2026-11-14_wk20a_results.md) + rulings fecb4a9: self-KO Ra -> 20
 round_stats -> 89 Won't do · bot self-KO / early deaths -> 127 (done) -> 127b
 Builder follow-ups since re-rank #5: WK-123 -> 123b, 128 (+ 95f merged in), 129 · WK-108 -> 108b (bots), 131 (kickoff rule, CD2-03 carry-over) ·
 WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38 re-scope note
+
+### [ ] WK-66b [P1][M] TRIALS goal zones still draw the old code grid
+- Source: WK-66a art grade (docs/audit/2026-11-15_wk66a_artgrade.md follow-up 2). Ten TRIALS courses use `goal_zone` with free-standing
+  goals up to 700x620; WK-66a only builds the cage where the zone has `net_mouth_x`/`net_back_x`. Needs a free-standing goal layout
+  (or a different "finish" visual) — art-director brief first. Lane V (ArenaRenderer/GoalZone).
+
+### [ ] WK-66c [P3][S] Dropshot net: taller-tape re-art (contingency)
+- Source: WK-66a F5 blind read: best guess "volleyball net" but "reads more like a lattice pole at 480 px; I got net from the setting".
+  Only do it if WK-CD3 or a later cold read calls it a pole/tower: re-art D1 frame with a ~26 wpx tape (brief §3), or raise
+  `net_tape_scale` to 1.6 first. Also capture one WK-27 colourway frame for test 7.
