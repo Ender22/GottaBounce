@@ -94,3 +94,7 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   CM_PROB_FAILED_ADD, so Godot runs on the Microsoft Basic Render Driver (software, ~37 fps). Probably a leftover of the 02:00 freeze.
   Visual checks and fixed-fps recordings stay valid; perf/fps/timing numbers taken since are NOT. Check
   `Get-PnpDevice -Class Display` before any perf work. Fixing it needs the owner (reboot / re-enable the device) — not us.
+- **End screens ignore unjoined devices (CC-3.3), so QA must drive them with the device that JOINED.** WK-42: after a
+  pad-joined Brawl, `gbplay key LEFT/ENTER` on the Victory screen did nothing (correctly). Not a bug; join with the
+  keyboard (title Enter -> mode Enter auto-joins kb) to test keyboard end-screen nav. Also: `eval` one-liners with
+  `for x in y: a; return b` put the return INSIDE the loop; use real newlines in the eval string.

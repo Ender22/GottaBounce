@@ -74,6 +74,20 @@ func set_tag_text(t: String) -> void:
 	_tag.text = t
 	_tag.visible = t != ""
 
+## WK-13: the name strip's CONTENT height (labels + strip padding), ignoring any min height set below. A row of
+## cards reads this after layout and pins every strip to the tallest one, so every art plate is the same height
+## (the Plate expands into whatever the strip leaves, so a 3-line tagline used to shrink its card's art).
+func name_strip_content_height() -> float:
+	var strip: PanelContainer = $Content/VBox/NameStrip
+	var pad := 0.0
+	var sb := strip.get_theme_stylebox("panel")
+	if sb != null:
+		pad = sb.get_minimum_size().y
+	return ($Content/VBox/NameStrip/Labels as Control).get_combined_minimum_size().y + pad
+
+func set_name_strip_min_height(h: float) -> void:
+	($Content/VBox/NameStrip as Control).custom_minimum_size.y = h
+
 func set_glyph(t: String) -> void:
 	_glyph.text = t
 	_glyph.visible = t != ""

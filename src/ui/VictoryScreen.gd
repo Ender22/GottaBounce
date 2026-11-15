@@ -2,7 +2,7 @@ extends CanvasLayer
 ## VICTORY CEREMONY (match_ceremony brief §3). Brawl-only match-end screen replacing the old
 ## text panel: winner's charge-pose bust slams in over gold rays + confetti, "WINNER!" in gold,
 ## final standings in the ScoreScreen race-bar language, then a focused REMATCH / CHANGE SETUP /
-## MENU prompt row. Interactive at ARM_TIME; accept before that FAST-FORWARDS every tween to its
+## QUIT TO MENU prompt row. Interactive at ARM_TIME; accept before that FAST-FORWARDS every tween to its
 ## end state (never a black cut). PartyMatch presents it ~0.9s after the winning kill so the
 ## in-world punch-zoom breathes first; the screen owns all input while live and reports the
 ## player's choice through the three signals below. Data-driven (present(...)) so Sports can
@@ -84,6 +84,7 @@ func _ready() -> void:
 func present(winner: Dictionary, rows: Array, target: int) -> void:
 	visible = true
 	_live = true
+	_set_match_overlays_hidden(true)   # WK-42 (R-28): no combat HUD cards behind the ceremony
 	_armed = false
 	_ff_done = false
 	_t = 0.0
@@ -321,6 +322,8 @@ func _fast_forward() -> void:
 	_gate.delay_arm(Tuning.end_screen_ff_rearm)
 
 func dismiss() -> void:
+	if _live:
+		_set_match_overlays_hidden(false)   # WK-42: REMATCH brings the corner cards back for the new match
 	_live = false
 	_armed = false
 	_gate.close()
@@ -333,6 +336,14 @@ func dismiss() -> void:
 	for c in _fx.get_children():
 		c.queue_free()
 	visible = false
+
+## WK-42 (R-28 / CC-8.4): the corner HUD cards (and the controls legend) hide while the ceremony is up — they showed
+## through the scrim and the button row butted into the P3/P4 cards. Reuses the match's presentation-only overlay
+## toggle (WK-80(f), INV-12; the same one Pause -> Options uses — pause is closed in MATCH_END, so they never nest).
+func _set_match_overlays_hidden(hidden: bool) -> void:
+	var host := get_parent()
+	if host != null and host.has_method("set_match_overlays_hidden"):
+		host.set_match_overlays_hidden(hidden)
 
 # ------------------------------------------------------------------ flourish helpers
 
