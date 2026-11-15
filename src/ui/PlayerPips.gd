@@ -22,6 +22,8 @@ var _owners: Array = []         # Player per pip (roster snapshot; rebuilt if th
 var _pips: Array = []
 var _shown: Array = []          # was the pip's goat alive+visible last frame (edge -> pop + full hold)
 var _hold: Array = []           # s of full-alpha hold left (+ the fade tail), humans only
+var _ghost_mode: Array = []     # WK-37d: pip currently dressed as a ghost tag (scale / z / sub-font)
+var _ghost_flip: Array = []     # WK-37d: ghost tag hangs below its ghost (hysteresis: kept while it stays clear)
 
 func setup(match_ref) -> void:
 	_match = match_ref
@@ -54,6 +56,8 @@ func _sync_roster() -> void:
 	_pips.clear()
 	_shown.clear()
 	_hold.clear()
+	_ghost_mode.clear()
+	_ghost_flip.clear()
 	_owners = players.duplicate()
 	for i in range(players.size()):
 		var pip = PIP_SCENE.instantiate()
@@ -65,6 +69,8 @@ func _sync_roster() -> void:
 		_pips.append(pip)
 		_shown.append(false)
 		_hold.append(0.0)
+		_ghost_mode.append(false)
+		_ghost_flip.append(false)
 
 func _process(delta: float) -> void:
 	if _match == null or not is_instance_valid(_match):
@@ -86,21 +92,27 @@ func _process(delta: float) -> void:
 	var since_go: float = float(Time.get_ticks_msec() - int(_match.combat_start_msec)) / 1000.0
 	var intro: bool = st == "STAGE_INTRO" or st == "COUNTDOWN"
 	var fight: bool = st == "COMBAT" or st == "SUDDEN_DEATH"
+	# WK-35 / CD2-06: the STAGE_END banner ("P1 +1 · P2 +1 · P1 SURVIVED") owns its rect — a surviving goat's pip that
+	# would sit on it is hidden (WK-41 one-overlay-at-a-time; the pip comes back once the banner pops out).
+	var banner: Rect2 = _banner_rect() if active and st == "STAGE_END" else Rect2()
 	for i in range(_pips.size()):
 		var pip = _pips[i]
 		var p = _owners[i]
 		var alive: bool = active and is_instance_valid(p) and not p.is_dead() and p.is_visible_in_tree()
 		if not alive:
 			_shown[i] = false
-			# WK-37: an eliminated player's GHOST carries their pip (spec §5): full alpha for ghost_pip_full_time after
-			# it appears and whenever it moves again after ghost_pip_idle_after s idle, otherwise ghost_pip_dim_alpha.
-			# Humans only (a CPU's name tag is an intro-only cue, its ghost stays tag-free).
+			# WK-37 / WK-37d (R3 identity): EVERY ghost carries its tag — "P#" for a human, NAME + "CPU" for a bot (the
+			# WK-88 naming / WK-10 pip style) — dressed smaller + fainter than a living pip and drawn behind them:
+			# ghost_pip_full_alpha for ghost_pip_full_time after it appears and whenever it moves again after
+			# ghost_pip_idle_after s idle, otherwise ghost_pip_dim_alpha; placed so it never sits on a living goat.
 			var g = _ghost_of(i) if active and fight else null
-			if g != null and _match.is_human_player(i) and not g.frozen:
-				_place_ghost_pip(pip, g, cam_center, z, vp, frame)
+			if g != null and not g.frozen:
+				_set_ghost_mode(i, pip, true)
+				_place_ghost_pip(i, pip, g, cam_center, z, vp, frame)
 			else:
 				pip.visible = false
 			continue
+		_set_ghost_mode(i, pip, false)
 		var human: bool = _match.is_human_player(i)
 		if not _shown[i]:
 			_shown[i] = true
@@ -131,9 +143,25 @@ func _process(delta: float) -> void:
 		pip.set_flipped(flip)
 		var half_w: float = pip.tab_width() * 0.5 + 4.0
 		sp.x = clampf(sp.x, half_w, vp.x - half_w)   # a goat hugging a side edge keeps its whole pip on screen
+		if banner.has_area():
+			var ph: float = pip.pip_height()
+			if banner.intersects(Rect2(sp.x - half_w, sp.y - ph, half_w * 2.0, ph * 2.0)):
+				pip.visible = false   # CD2-06: never draw an identity pip over the stage-end banner text
+				continue
 		pip.position = sp.round()
 		pip.modulate.a = a
 		pip.visible = true
+
+## WK-35 / CD2-06: the HUD's live centre banner in screen space (every mode HUD has Root/CenterC/CenterBox), padded;
+## an empty Rect2 when no banner is up.
+func _banner_rect() -> Rect2:
+	var hud = _match.get("_hud")
+	if hud == null or not is_instance_valid(hud) or not (hud is Node):
+		return Rect2()
+	var box := (hud as Node).get_node_or_null("Root/CenterC/CenterBox") as Control
+	if box == null or not box.is_visible_in_tree() or box.modulate.a < 0.05:
+		return Rect2()
+	return box.get_global_rect().grow(14.0)
 
 ## WK-37: the GhostDirector's ghost for player i (null when ghosts are OFF / none).
 func _ghost_of(i: int):
@@ -142,22 +170,87 @@ func _ghost_of(i: int):
 		return null
 	return gd.ghost_for(i)
 
-func _place_ghost_pip(pip, g, cam_center: Vector2, z: float, vp: Vector2, frame: Rect2) -> void:
+## WK-37d: dress / undress a pip as a ghost tag. Smaller = ghost_pip_scale (the 30 px label lands on the 28 px WK-18
+## floor; the CPU sub-line is bumped 28 -> 30 first so it lands on 28 too); behind every living pip (z -1).
+func _set_ghost_mode(i: int, pip, on: bool) -> void:
+	if bool(_ghost_mode[i]) == on:
+		if on:
+			pip.scale = Vector2.ONE * Tuning.ghost_pip_scale
+		return
+	_ghost_mode[i] = on
+	var sub := pip.get_node("Tab/Box/Sub") as Label
+	var tw = pip.get("_pop_tw")
+	if tw != null and (tw as Tween).is_valid():
+		(tw as Tween).kill()
+	if on:
+		pip.z_index = -1
+		pip.scale = Vector2.ONE * Tuning.ghost_pip_scale
+		sub.add_theme_font_size_override("font_size", int(ceil(28.0 / maxf(Tuning.ghost_pip_scale, 0.01) - 0.01)))
+		pip.modulate.a = 0.0
+		_ghost_flip[i] = false
+	else:
+		pip.z_index = 0
+		pip.scale = Vector2.ONE
+		sub.add_theme_font_size_override("font_size", 28)
+	pip.call_deferred("_layout")
+
+## Living goats' keep-out rects in screen px: body (+ horns / flame) and the head zone where their own pip sits.
+func _living_rects(cam_center: Vector2, z: float, vp: Vector2) -> Array:
+	var out: Array = []
+	for p in _match.players:
+		if not is_instance_valid(p) or p.is_dead() or not p.is_visible_in_tree():
+			continue
+		var c: Vector2 = (p.global_position - cam_center) * z + vp * 0.5
+		var rv: Variant = p.get("_radius")
+		var h: float = (float(rv) if rv != null else 44.0) * z * 1.35 + 8.0
+		out.append(Rect2(c.x - h, c.y - h - 56.0, h * 2.0, h * 2.0 + 56.0))
+	return out
+
+func _overlap_area(r: Rect2, rects: Array) -> float:
+	var a := 0.0
+	for o in rects:
+		a += r.intersection(o as Rect2).get_area()
+	return a
+
+func _place_ghost_pip(i: int, pip, g, cam_center: Vector2, z: float, vp: Vector2, frame: Rect2) -> void:
 	var centre: Vector2 = (g.global_position - cam_center) * z + vp * 0.5
 	if not frame.has_point(centre):
 		pip.visible = false
 		return
 	var full: bool = g.age < Tuning.ghost_pip_full_time or g.moved_after_idle > 0.0
-	var a: float = 1.0 if full else Tuning.ghost_pip_dim_alpha
+	var a: float = Tuning.ghost_pip_full_alpha if full else Tuning.ghost_pip_dim_alpha
 	var lift: float = 44.0 * Tuning.ghost_scale * Tuning.pip_head_clearance
-	var sp: Vector2 = (g.global_position + Vector2(0.0, -lift) - cam_center) * z + vp * 0.5 - Vector2(0.0, Tuning.pip_screen_gap)
-	var flip: bool = sp.y - pip.pip_height() < TOP_MARGIN
-	if flip:
-		sp = (g.global_position + Vector2(0.0, lift) - cam_center) * z + vp * 0.5 + Vector2(0.0, Tuning.pip_screen_gap)
+	var k: float = Tuning.ghost_pip_scale
+	var w: float = pip.tab_width() * k
+	var h: float = pip.pip_height() * k
+	var above: Vector2 = (g.global_position + Vector2(0.0, -lift) - cam_center) * z + vp * 0.5 - Vector2(0.0, Tuning.pip_screen_gap)
+	var below: Vector2 = (g.global_position + Vector2(0.0, lift) - cam_center) * z + vp * 0.5 + Vector2(0.0, Tuning.pip_screen_gap)
+	above.x = clampf(above.x, w * 0.5 + 4.0, vp.x - w * 0.5 - 4.0)
+	below.x = above.x
+	var r_up := Rect2(above.x - w * 0.5, above.y - h, w, h)
+	var r_dn := Rect2(below.x - w * 0.5, below.y, w, h)
+	var rects: Array = _living_rects(cam_center, z, vp)
+	var o_up: float = _overlap_area(r_up, rects) if above.y - h >= TOP_MARGIN else INF
+	var o_dn: float = _overlap_area(r_dn, rects) if below.y + h <= vp.y - TOP_MARGIN else INF
+	# hysteresis: keep the current side while it is clear; otherwise take the clear side; otherwise the lesser overlap,
+	# faded to ghost_pip_near_alpha (it never covers a living goat at a readable alpha)
+	var flip: bool = bool(_ghost_flip[i])
+	var o_cur: float = o_dn if flip else o_up
+	var o_alt: float = o_up if flip else o_dn
+	if o_cur > 0.0 and o_alt < o_cur:
+		flip = not flip
+	var o_pick: float = o_dn if flip else o_up
+	if o_pick > 0.0:
+		a = minf(a, Tuning.ghost_pip_near_alpha)
+	_ghost_flip[i] = flip
+	# WK-37d + CD2-06: the HUD centre banner ("TWO LEFT!", "FIRST BLOOD", the stage-end line) owns its rect in ANY
+	# state — a ghost tag (lower priority than a living pip) under it is hidden, not drawn through the banner text.
+	var bn: Rect2 = _banner_rect()
+	if bn.has_area() and bn.intersects(r_dn if flip else r_up):
+		pip.visible = false
+		return
 	pip.set_flipped(flip)
-	var half_w: float = pip.tab_width() * 0.5 + 4.0
-	sp.x = clampf(sp.x, half_w, vp.x - half_w)
-	pip.position = sp.round()
+	pip.position = (below if flip else above).round()
 	pip.modulate.a = move_toward(pip.modulate.a if pip.visible else 0.0, a, 0.08)
 	pip.visible = true
 

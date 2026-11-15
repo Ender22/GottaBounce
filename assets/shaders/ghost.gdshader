@@ -40,7 +40,37 @@ uniform float off_hue_flatten = 0.0;  // body: extra flatten for SATURATED pixel
                                   // (the baked orange jetpack; cream horns are unsaturated and survive). Hue distance
                                   // to its OWN skin, so BILLY's orange body is never eaten (brief E5 concern).
 
+// WK-37d bright-backdrop lift: the backdrop luma behind the ghost's CENTRE (bright_uv, set per frame from GDScript;
+// a high mip of the screen copy = a ~16 px average, so the whole ghost gets ONE alpha, never a mottled one) lifts the
+// root alpha toward bright_alpha_max on pale backdrops only (smoothstep lum_lo..lum_hi; mid/dark = no change, so T9's
+// 0.40 / 0.25 hold there). The lift scales the alpha the ghost already has (near-fight 0.25 stays proportionally lower)
+// and never pushes it above bright_alpha_max (nor lowers an alpha that is already higher, e.g. the widest-camera boost).
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+uniform bool bright_on = false;
+uniform vec2 bright_uv = vec2(0.5);
+uniform float bright_base_alpha = 0.40;
+uniform float bright_alpha_max = 0.50;
+uniform float bright_lum_lo = 0.62;
+uniform float bright_lum_hi = 0.82;
+uniform float bright_lod = 4.0;
+uniform int bright_debug = 0;     // QA only: 1 = paint the sampled backdrop colour, 2 = paint the lift amount k
+
+vec3 bright_bg() {
+	return textureLod(screen_tex, clamp(bright_uv, vec2(0.0), vec2(1.0)), bright_lod).rgb;
+}
+
 varying vec4 v_col;
+
+float lifted_alpha(float a) {
+	if (!bright_on) {
+		return a;
+	}
+	vec3 bg = bright_bg();
+	float lum = dot(bg, vec3(0.299, 0.587, 0.114));
+	float k = smoothstep(bright_lum_lo, bright_lum_hi, lum);
+	float mult = mix(1.0, bright_alpha_max / max(bright_base_alpha, 0.01), k);
+	return max(a, min(a * mult, bright_alpha_max));
+}
 
 // 4-tap rotated-grid supersample at the screen footprint: the 780 px goat art is drawn ~40 px tall, and the ghost's
 // 40 % alpha exposes minification shimmer that the opaque living goat hides. Soft is on-theme for a ghost.
@@ -114,7 +144,7 @@ void fragment() {
 		}
 		float sum = inner + outer;
 		vec3 col = sum > 1e-4 ? (rim_col.rgb * inner + deep_col.rgb * outer) / sum : rim_col.rgb;
-		COLOR = vec4(col * v_col.rgb, clamp(clamp(sum, 0.0, 1.0) * v_col.a * rim_gain, 0.0, 1.0));
+		COLOR = vec4(col * v_col.rgb, clamp(clamp(sum, 0.0, 1.0) * lifted_alpha(v_col.a) * rim_gain, 0.0, 1.0));
 	} else {
 		vec2 uv = UV;
 		if (wave_amp > 0.0) {
@@ -154,6 +184,12 @@ void fragment() {
 			vec3 line_col = mn < 0.5 ? rim_col.rgb : deep_col.rgb;
 			col = mix(col, line_col, dark);
 		}
-		COLOR = vec4(col * v_col.rgb, a * v_col.a);
+		COLOR = vec4(col * v_col.rgb, a * lifted_alpha(v_col.a));
+		if (bright_debug == 1) {
+			COLOR = vec4(bright_bg(), a);
+		} else if (bright_debug == 2) {
+			float lum = dot(bright_bg(), vec3(0.299, 0.587, 0.114));
+			COLOR = vec4(vec3(smoothstep(bright_lum_lo, bright_lum_hi, lum)), a);
+		}
 	}
 }

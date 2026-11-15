@@ -624,3 +624,45 @@ var bot_ghost_puff_give_up: float = 3.0       # s chasing a placement before aba
 var bot_ghost_puff_lead_time: float = 1.5     # s before the charge is back that a bot ghost starts flying to its placement
 var bot_ghost_puff_press_dist: float = 120.0  # px: a bot ghost presses PUFF within this of its placement (x2.5 after half the chase)
 var ghost_stuck_secs: float = 6.0             # s zero displacement (away from a hover spot) = a stuck bot ghost (QA)
+
+# --- WK-37d ghost goats follow-ups (gameplay-programmer, 2026-11-15 · moved out of the Ghost*.gd files) ---  # WK-37d
+# Rim = a screen-space OUTLINE band (ghost.gdshader flat_mode), constant px at any zoom.  # WK-37d
+var ghost_rim_quad_pad: float = 1.30          # rim quad vs the art (idle art is trimmed to its edges)  # WK-37d
+var ghost_rim_px: float = 2.5                 # pale rim band, px at 1080p  # WK-37d
+var ghost_rim_px_wide: float = 3.5            # ... on the widest camera  # WK-37d
+var ghost_rim_gain: float = 2.0               # band alpha = root alpha x this (0.40 -> 0.80)  # WK-37d
+var ghost_deep_px: float = 1.0                # thin outer line in the ghost's deep hue, px at 1080p  # WK-37d
+var ghost_deep_gain: float = 0.8              # its alpha vs the band  # WK-37d
+# Wide-camera compensation: 0 at zoom >= *_full, 1 at ghost_wide_zoom_max and below.  # WK-37d
+var ghost_wide_zoom_full: float = 0.55        # size / rim / fill / flatten start here (WK-37d: was 0.46)  # WK-37d
+var ghost_wide_alpha_zoom_full: float = 0.46  # ALPHA starts here: T9 holds 0.40 / 0.25 at the 0.46 reference zoom  # WK-37d
+var ghost_wide_zoom_max: float = 0.30         # full compensation at / below this zoom  # WK-37d
+var ghost_wide_ease: float = 2.0              # /s the wide factor eases at (no snap on a zoom jump)  # WK-37d
+var ghost_max_vis_step: float = 0.0333        # s cap on the real-time visual step per frame (no alpha snap in slow-mo)  # WK-37d
+var ghost_wide_alpha_mult: float = 1.3        # 0.40 -> 0.52 / 0.25 -> 0.325 at the widest  # WK-37d
+var ghost_wide_scale: float = 0.95            # ghost body scale at the widest (living = 1.0)  # WK-37d
+var ghost_flatten: float = 0.40               # body colour pulled toward the flat ghost hue  # WK-37d
+var ghost_flatten_wide: float = 0.65          # ... on the widest camera  # WK-37d
+var ghost_off_hue_flatten: float = 0.85       # saturated off-hue pixels (baked jetpack) pulled to the ghost hue  # WK-37d
+var ghost_fill_sat: float = 0.3               # flat-fill target toward the saturated living colour  # WK-37d
+var ghost_fill_sat_wide: float = 0.75         # ... on the widest camera  # WK-37d
+# Bright-backdrop lift: the shader reads the backdrop luminance behind the ghost (mipmapped screen texture).  # WK-37d
+var ghost_bright_alpha_max: float = 0.50      # pale backdrop: alpha lifted toward this (never above it)  # WK-37d
+var ghost_bright_lum_lo: float = 0.62         # backdrop luma where the lift starts (mid backdrops: no lift)  # WK-37d
+var ghost_bright_lum_hi: float = 0.82         # backdrop luma for the full lift  # WK-37d
+var ghost_bright_lod: float = 4.0             # screen-texture mip level sampled (~16 px average)  # WK-37d
+# Bot ghost spacing (T11), spawn spread, blocked-puff marker.  # WK-37d
+var ghost_sep_radius_mult: float = 1.4        # separation push reaches spacing x this  # WK-37d
+var ghost_pick_spacing_mult: float = 1.3      # hover / spawn spots keep spacing x this  # WK-37d
+var ghost_spawn_spread_step: float = 130.0    # px spawn spread search ring step  # WK-37d
+var ghost_blocked_color: Color = Color("#ff4a3d")   # blocked-puff outline colour  # WK-37d
+var ghost_blocked_time: float = 0.5           # s the blocked marker shows  # WK-37d
+var ghost_blocked_blink_hz: float = 8.0       # its blink rate  # WK-37d
+var ghost_blocked_shake_px: float = 10.0      # world px "no" shake amplitude (decays)  # WK-37d
+var ghost_blocked_shake_hz: float = 9.0       # shake rate  # WK-37d
+var bot_ghost_chase_sep_weight: float = 4.0   # separation weight while a bot ghost chases a puff placement  # WK-37d
+var bot_ghost_bleat_min_gap: float = 2.0      # s min gap between one bot ghost's bleats (WK-37d: was 3)  # WK-37d
+# Ghost identity tag (R3): every ghost carries its P# / NAME+CPU pip, smaller and fainter than a living pip.  # WK-37d
+var ghost_pip_scale: float = 0.9333           # 30 px label -> 28 px (the WK-18 floor; can't go smaller)  # WK-37d
+var ghost_pip_full_alpha: float = 0.65        # spawn / moved-again alpha (< a living human's idle 0.70)  # WK-37d
+var ghost_pip_near_alpha: float = 0.25        # when no placement keeps it off a living goat  # WK-37d

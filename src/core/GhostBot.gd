@@ -13,15 +13,11 @@ extends RefCounted
 ## FIGHTING brain (and is owned by another work item); ghosts never touch it.
 ## Kept free of class_name (loaded by path from GhostDirector — no class-cache dependency).
 
-# WK-37c T11 (consts here while WK-128 owns Tuning.gd): weight of the separation push while chasing a puff placement.
-# 1.5 let two bots chasing one target settle ~90 px apart; at 4.0 the push wins inside ~200 px (radius 280).
-const CHASE_SEP_WEIGHT := 4.0
-# WK-37c bleat cadence (WK-53a found ~4.3 s between one bot ghost's bleats; spec §6 ambient mean 8 s + a 50 % reaction
-# per KO). Ambient intervals are BLEAT_MIN_GAP + Exp(mean - BLEAT_MIN_GAP), so the ambient mean is exactly
-# bot_ghost_bleat_mean_interval with no near-double bleats. ANY bleat (ambient or reactive) restarts the ambient clock:
-# a reaction REPLACES the next ambient bleat instead of adding to it. A reaction is skipped inside BLEAT_MIN_GAP of
-# this ghost's last bleat, so a KO burst is one bleat, not a chorus from every bot ghost every time.
-const BLEAT_MIN_GAP := 3.0
+# WK-37c/d (Tuning WK-37d block): bot_ghost_chase_sep_weight = separation weight while chasing a puff placement
+# (1.5 let two bots chasing one target settle ~90 px apart). Bleat cadence: ambient intervals are
+# bot_ghost_bleat_min_gap + Exp(mean - min_gap), so the ambient mean stays bot_ghost_bleat_mean_interval with no
+# near-double bleats; ANY bleat restarts the ambient clock (a reaction replaces, never adds); a reaction inside the
+# min gap is skipped (a KO burst is one bleat, not a chorus).
 
 var ghost                    # GhostGoat
 var director                 # GhostDirector
@@ -61,8 +57,8 @@ func dispose() -> void:
 		KillPipeline.killed.disconnect(_on_killed)
 
 func _exp_interval() -> float:
-	var tail: float = maxf(0.1, Tuning.bot_ghost_bleat_mean_interval - BLEAT_MIN_GAP)
-	return BLEAT_MIN_GAP + -log(maxf(1e-4, _rng.randf())) * tail
+	var tail: float = maxf(0.1, Tuning.bot_ghost_bleat_mean_interval - Tuning.bot_ghost_bleat_min_gap)
+	return Tuning.bot_ghost_bleat_min_gap + -log(maxf(1e-4, _rng.randf())) * tail
 
 func _on_killed(_victim, _cause, _attacker) -> void:
 	if ghost == null or not is_instance_valid(ghost) or ghost.frozen or _react_t >= 0.0:
@@ -88,7 +84,7 @@ func poll() -> InputIntent:
 		it.taunt = true
 	if _react_t >= 0.0:
 		_react_t -= dt
-		if _react_t < 0.0 and _since_bleat >= BLEAT_MIN_GAP:
+		if _react_t < 0.0 and _since_bleat >= Tuning.bot_ghost_bleat_min_gap:
 			it.taunt = true
 	if it.taunt:
 		_since_bleat = 0.0
@@ -130,7 +126,7 @@ func poll() -> InputIntent:
 				it.aim = director.separation_push(ghost).limit_length(1.0)   # on the spot early: wait (but never stack)
 			else:
 				# full float speed toward the placement (no hurry); two ghosts chasing one target still keep apart
-				it.aim = (to.normalized() + director.separation_push(ghost) * CHASE_SEP_WEIGHT).limit_length(1.0)
+				it.aim = (to.normalized() + director.separation_push(ghost) * Tuning.bot_ghost_chase_sep_weight).limit_length(1.0)
 			return it
 	# --- float to a hover spot ---
 	_repick_t -= dt

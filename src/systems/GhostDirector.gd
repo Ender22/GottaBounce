@@ -23,15 +23,9 @@ const GHOST_BOT_SCRIPT := preload("res://src/core/GhostBot.gd")
 const WORD_SCENE := preload("res://scenes/ui/WordBurst.tscn")
 const LEGEND_SCENE := preload("res://scenes/ui/GhostLegend.tscn")
 const HUSH_TEXT := "MATCH POINT · GHOSTS HUSH"
-# --- WK-37c (consts here while WK-128 owns Tuning.gd; move to the Tuning ghost block later) ---
-# T11 stacking: the old push faded to 0 AT bot_ghost_spacing (and a 0.05 dead-zone cut it at ~190 px), so two bot
-# ghosts settled ~190 px apart = a fail every frame. The push now reaches past the target and the hover / spawn
-# picks keep a margin over it.
-const SEP_RADIUS_MULT := 1.4          # separation push active out to spacing x this (280 px)
-const PICK_SPACING_MULT := 1.3        # hover spots / spawn spots keep spacing x this (260 px) from other ghosts
-const SPAWN_SPREAD_STEP := 130.0      # px: spawn spread search ring step (8 directions x 5 rings)
-# Dud feedback: a ghost whose cloud is blocked by a platform sees the would-be cloud outline flash red + shake.
-const BLOCKED_COLOR := Color("#ff4a3d")
+# WK-37c/d tunables (separation radius, pick spacing, spawn spread, blocked-marker colour) live in Tuning's WK-37d
+# block. T11 stacking: the old push faded to 0 AT bot_ghost_spacing, so two bot ghosts settled ~190 px apart; the push
+# now reaches spacing x ghost_sep_radius_mult and hover / spawn picks keep spacing x ghost_pick_spacing_mult.
 
 var runner                        # PartyMatch
 var mode: int = 0                 # MatchConfig.Ghosts.ON / BAA_ONLY
@@ -311,7 +305,7 @@ func clamp_to_view(p: Vector2) -> Vector2:
 
 ## Spacing (with margin) a hover / spawn spot keeps from other ghosts and their hover spots.
 func pick_spacing() -> float:
-	return Tuning.bot_ghost_spacing * PICK_SPACING_MULT
+	return Tuning.bot_ghost_spacing * Tuning.ghost_pick_spacing_mult
 
 func nearest_other_ghost_dist(me, p: Vector2) -> float:
 	var best := INF
@@ -324,12 +318,12 @@ func nearest_other_ghost_dist(me, p: Vector2) -> float:
 			best = minf(best, p.distance_to(b.hover))
 	return best
 
-## Soft separation steer (bots): away from any ghost closer than bot_ghost_spacing x SEP_RADIUS_MULT (the push still
+## Soft separation steer (bots): away from any ghost closer than bot_ghost_spacing x Tuning.ghost_sep_radius_mult (the push still
 ## has bite AT the spacing target, so the equilibrium sits above it). A push into the view-inset edge the ghost is pinned
 ## against slides along that edge instead (two ghosts swept by a panning camera onto one edge used to stay stacked).
 func separation_push(me) -> Vector2:
 	var push := Vector2.ZERO
-	var rad: float = Tuning.bot_ghost_spacing * SEP_RADIUS_MULT
+	var rad: float = Tuning.bot_ghost_spacing * Tuning.ghost_sep_radius_mult
 	for g in ghosts.values():
 		if g == me or not is_instance_valid(g):
 			continue
@@ -360,7 +354,7 @@ func separation_push(me) -> Vector2:
 		out = Vector2(out.x + sx * absf(out.y), 0.0)
 	return out
 
-## Spawn spot: the death position clamped into the view inset, spread to >= spacing x PICK_SPACING_MULT from every
+## Spawn spot: the death position clamped into the view inset, spread to >= spacing x Tuning.ghost_pick_spacing_mult from every
 ## other ghost (two players rung out at one spot, or swept onto the same edge point by the clamp, used to start
 ## stacked). Smallest displacement wins; falls back to the roomiest candidate. Always inside the inset (T1).
 func _spread_spawn(me, want: Vector2) -> Vector2:
@@ -372,7 +366,7 @@ func _spread_spawn(me, want: Vector2) -> Vector2:
 	for ring in range(1, 6):
 		for k in range(8):
 			var dir := Vector2.from_angle(float(k) * TAU / 8.0 + float(ring) * 0.39)
-			var cand: Vector2 = clamp_to_view(want + dir * SPAWN_SPREAD_STEP * float(ring))
+			var cand: Vector2 = clamp_to_view(want + dir * Tuning.ghost_spawn_spread_step * float(ring))
 			var d: float = nearest_other_ghost_dist(me, cand)
 			if d >= need:
 				return cand
@@ -601,7 +595,7 @@ func _cloud_spawn_center(want: Vector2) -> Variant:
 ## not in `clouds` (no contacts, no telemetry, no director callbacks).
 func _blocked_fx(g, want: Vector2) -> void:
 	var c = PUFF_SCRIPT.new()
-	c.setup(runner, null, int(g.idx), BLOCKED_COLOR)
+	c.setup(runner, null, int(g.idx), Tuning.ghost_blocked_color)
 	c.blocked = true
 	_cloud_layer.add_child(c)
 	var r := view_rect()
