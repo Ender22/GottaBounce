@@ -63,6 +63,9 @@ const TIER_COLORS := {
 # circuit id -> display name, filled while loading cards (used to phrase locked-card unlock hints).
 var _circuit_display: Dictionary = {}
 var _pending_celebrate := ""
+# WK-180 (brief §3): the CIRCUIT UNLOCKED! ribbon's rest y in the header band, stored once in _ready so a second
+# celebration never drifts.
+var _banner_rest_y := 22.0
 var _sports := false   # SPORTS flow: one COURTS shelf instead of circuits/arenas (§3.8)
 var _trials := false   # TRIALS flow (owner 2026-07-16): one CIRCUITS shelf of course sets
 
@@ -272,6 +275,9 @@ func _ready() -> void:
 	# BRAWL only: the celebration is a circuit moment and consuming the flag here would eat it.
 	if not _sports and not _trials:
 		_pending_celebrate = Settings.take_pending_unlock()
+	var ub := get_node_or_null("UnlockBanner") as Control
+	if ub != null:
+		_banner_rest_y = ub.position.y
 
 ## WK-166 (G1): BackGlyph (device_ctx "menu") already shows ESC for a keyboard-only couch and B for pads; a mixed couch
 ## adds the "/ ESC" twin and the chip widens to fit (it is a Button, so it does not size itself to its Row).
@@ -967,9 +973,11 @@ func enter() -> void:
 ## One-shot "you earned it" moment: a banner flash + a pop/focus-snap on the just-unlocked card,
 ## with the win announcer sting. The card is scrolled to center first (§3.6) so the celebration is
 ## never off-screen. The pending flag was already consumed (take_pending_unlock) so it fires once.
+## WK-180 (brief §3): the banner is a one-line gold ToyRibbon toast in the HEADER band that stands in for the
+## title (the preview below already names the circuit, so no second line).
 func _play_unlock_celebration(cid: String) -> void:
-	var banner := get_node_or_null("UnlockBanner")
-	var display := str(_circuit_display.get(cid, cid)).to_upper()
+	var banner := get_node_or_null("UnlockBanner") as Control
+	var title := get_node_or_null("Header/Title") as Control
 	# find the (now-unlocked) card for this circuit (Shelf A holds the circuits)
 	var target: Button = null
 	for card in _a_cards:
@@ -983,19 +991,35 @@ func _play_unlock_celebration(cid: String) -> void:
 		EventBus.unlock_celebrated.emit("circuit")   # WK-179: the fanfare only (match_won also swapped the music to the scoreboard loop)
 		if is_instance_valid(target):
 			(_shelf_a as Object).call("scroll_to", target)
-		if banner is Label:
-			(banner as Label).text = "CIRCUIT UNLOCKED\n%s" % display
+		if banner != null:
+			var lbl := banner.get_node_or_null("Label") as Label
+			if lbl != null:
+				lbl.text = "CIRCUIT UNLOCKED!"
+			if title != null:
+				title.create_tween().tween_property(title, "modulate:a", 0.0, 0.12)
+			# the brief's 22..108 is centred on the header's AUTHORED centre line (y 65); WK-83 _fit_safe_area then nudges
+			# the whole Header down into the TV-safe band (+25 px at 1080p), so follow that nudge to stay on the chips' line.
+			var hdr := get_node_or_null("Header") as Control
+			var rest := _banner_rest_y + (hdr.offset_top if hdr != null else 0.0)
+			var up := rest - 110.0
 			banner.visible = true
+			banner.position.y = up
 			banner.modulate.a = 0.0
 			banner.pivot_offset = banner.size * 0.5
-			banner.scale = Vector2(0.7, 0.7)
+			banner.scale = Vector2(0.85, 0.85)
+			# sequential steps; parallel() joins a tweener to the step before it (WK-83 tween trap: no set_parallel)
 			var tb := banner.create_tween()
-			tb.set_parallel(true)
-			tb.tween_property(banner, "modulate:a", 1.0, 0.25)
-			tb.tween_property(banner, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-			tb.chain().tween_interval(1.4)
-			tb.chain().tween_property(banner, "modulate:a", 0.0, 0.4)
-			tb.chain().tween_callback(func() -> void: banner.visible = false)
+			tb.tween_property(banner, "position:y", rest, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tb.parallel().tween_property(banner, "modulate:a", 1.0, 0.15)
+			tb.parallel().tween_property(banner, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tb.tween_interval(1.6)
+			tb.tween_property(banner, "position:y", up, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tb.parallel().tween_property(banner, "modulate:a", 0.0, 0.3).set_ease(Tween.EASE_IN)
+			if title != null:
+				tb.tween_property(title, "modulate:a", 1.0, 0.2)
+			tb.tween_callback(func() -> void:
+				banner.visible = false
+				banner.position.y = rest)
 		if is_instance_valid(target):
 			target.grab_focus()
 			target.pivot_offset = target.size * 0.5

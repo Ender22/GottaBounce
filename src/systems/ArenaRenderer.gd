@@ -55,9 +55,15 @@ const CLOUD_TEXES: Array[String] = ["res://assets/bg/cloud_a.png", "res://assets
 const PROP_TEXES: Array[String] = ["res://assets/bg/bush_round.png", "res://assets/bg/fence_wood.png"]
 const BUMPER_POST_TEX := "res://assets/world/bumper_post.png"
 const NET_ART := preload("res://src/systems/SportsNetArt.gd")   # WK-66a sports nets
-const TUFT_TEXES: Array[String] = [
-	"res://assets/world/grass/decal_tuft_a.png", "res://assets/world/grass/decal_tuft_b.png"]
-const FLOWER_TEX := "res://assets/world/grass/decal_flower_white.png"
+# WK-180: horizontal bumpers. RAIL = bumper_post transposed (lighting stays top-left), BLOCK = the 2x2-stud cushion.
+const BUMPER_RAIL_TEX := "res://assets/world/bumper_rail.png"
+const BUMPER_BLOCK_TEX := "res://assets/world/bumper_block.png"
+# WK-180 R1: the decals live in grass/decals/ (the old grass/decal_*.png paths never existed, so nothing drew since July).
+# *_fit = recoloured onto the fringe's lime ramp + downsized to ~2x display size (no mipmaps needed).
+# R5: the LEFT end takes tuft_b and the RIGHT end tuft_a so the tall blade leans OUTWARD (never flipped: lit top-left).
+const TUFT_LEFT_TEX := "res://assets/world/grass/decals/tuft_b_fit.png"
+const TUFT_RIGHT_TEX := "res://assets/world/grass/decals/tuft_a_fit.png"
+const FLOWER_TEX := "res://assets/world/grass/decals/flower_white_fit.png"
 
 # --- tier readability table (brief §2): color + mat per tier; bumper is the only grey ---
 const TIERS := {
@@ -1064,10 +1070,16 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 		if body_art != null:
 			body_art.position = Vector2(0.0, top - BODY_BLEED_TOP + art_h * 0.5)
 			art.add_child(body_art)
-		if _body_grass_decals:   # §A.3: no grass tufts on themed (rock/steel/stone) bodies
-			_scatter_back_tufts(art, w, top, rng)   # behind the mat, tips peeking above it
 		mat_h = MAT_H
 		mat_top = top - MAT_RISE
+		# WK-180 R2-R5: grass bodies only (§A.3), never on mat-only slabs (this branch), added AFTER the body art and
+		# BEFORE the mat pivot so any overlap tucks behind the mat. The mid-span back tufts (R3) are gone.
+		if _body_grass_decals:
+			var hero := body_art != null and bool(body_art.get_meta("hero", false))
+			var fringe_bottom := top - BODY_BLEED_TOP + Tuning.wk180_fringe_frac * art_h
+			if not hero:   # R2: the hero sprite already has baked daisies
+				_fringe_daisies(art, w, mat_top, fringe_bottom, rng, suppress_left, suppress_right)
+			_end_tufts(art, w, mat_top, fringe_bottom, rng, suppress_left, suppress_right)
 	else:
 		# thin slab: the mat alone IS the platform (a 36px grass smear reads as nothing)
 		mat_h = h + SLAB_MAT_BLEED
@@ -1083,8 +1095,6 @@ func paint_platform(p: Dictionary, body: StaticBody2D, void_rects: Array = []) -
 		mat.position = Vector2(0.0, -mat_h * 0.5)
 		pivot.add_child(mat)
 
-	if _body_grass_decals:   # §A.3: themed bodies carry their own end detail — no grass tufts/flowers
-		_scatter_end_decals(art, w, mat_top, rng, suppress_left, suppress_right)   # tufts + flowers (skipped at a void lip)
 	if tier == "spring":
 		_springs.append({ "pivot": pivot, "next_t": _t + randf_range(2.0, 5.0) })
 	_surfaces[body] = { "tier": tier, "art": art, "mat": pivot, "w": w, "top": top, "last_ms": -9999 }
@@ -1154,6 +1164,7 @@ func _platform_body(art_w: float, art_h: float) -> Node2D:
 				continue
 			var whole := ThreeSlice.build_whole(load(path), art_w, art_h)
 			if whole != null:
+				whole.set_meta("hero", path == HERO_TEX)   # WK-180 R2: platform_wide.png has baked daisies
 				return whole
 		if ResourceLoader.exists(BODY_TEX):
 			return ThreeSlice.build(load(BODY_TEX), art_w, art_h, 0.22)
@@ -1185,15 +1196,32 @@ func _mat_texture(tier: String) -> Dictionary:
 	return { "tex": null, "tint": Color.WHITE }
 
 ## Bumpers bounce on all faces: the whole body is the bumper asset (no mat). Vertical walls use
-## the post 3-sliced VERTICALLY (never a rotated horizontal platform).
+## the post 3-sliced VERTICALLY (never a rotated horizontal platform). WK-180 (brief §2): horizontal bumpers
+## with w/h >= 1.6 draw the RAIL (the post transposed, so the studs stay lit top-left) with the same slicing;
+## squarer ones draw the BLOCK whole (build_whole, ±20% aspect), else the rail. Post + rail tile in WHOLE
+## pearls (ThreeSlice `units`), so no seam or crop ever cuts through a stud. No tint: chrome grey IS the tier.
 func _paint_bumper(art: Node2D, w: float, h: float) -> void:
 	var vertical := h >= w
+	var cap: float = Tuning.wk180_post_cap_frac
+	var units: int = Tuning.wk180_bumper_pearl_units
 	var has_post := ResourceLoader.exists(BUMPER_POST_TEX)
 	if has_post and vertical:
-		art.add_child(ThreeSlice.build(load(BUMPER_POST_TEX), w + WALL_FACE_BLEED * 2.0, h + 8.0, 0.22, true))
+		art.add_child(ThreeSlice.build(load(BUMPER_POST_TEX), w + WALL_FACE_BLEED * 2.0, h + 8.0, cap, true,
+			Color.WHITE, units))
 		return
-	# Stand-in: marshmallow mat strip tinted bumper-grey. HORIZONTAL bumpers always take it (the post art is a vertical
-	# piece; there is no horizontal bumper art yet), vertical ones only when bumper_post.png is missing.
+	if not vertical:
+		if w / h < Tuning.wk180_rail_min_aspect and ResourceLoader.exists(BUMPER_BLOCK_TEX):
+			var pad: float = Tuning.wk180_block_pad
+			var block := ThreeSlice.build_whole(load(BUMPER_BLOCK_TEX), w + pad, h + pad)
+			if block != null:
+				art.add_child(block)
+				return
+		if ResourceLoader.exists(BUMPER_RAIL_TEX):
+			art.add_child(ThreeSlice.build(load(BUMPER_RAIL_TEX), w + 8.0, h + WALL_FACE_BLEED * 2.0, cap, false,
+				Color.WHITE, units))
+			return
+		_warn_once("bumper_rail", "ArenaRenderer: missing " + BUMPER_RAIL_TEX + " — grey mat strip stand-in")
+	# Stand-in: marshmallow mat strip tinted bumper-grey, only when the bumper art itself is missing.
 	var fb := str(TIERS["marshmallow"]["mat"])
 	if ResourceLoader.exists(fb):
 		if not has_post:   # WK-179 (soak F2): only a truly missing post warns (horizontal bumpers logged a false "missing")
@@ -1212,69 +1240,75 @@ func _paint_bumper(art: Node2D, w: float, h: float) -> void:
 			strip2.rotation = -PI * 0.5
 		art.add_child(strip2)
 
-# --- decals (seeded scatter; seed = hash of platform x,y so it's stable) ---
+# --- decals (WK-180 brief §1; seeded: rng seed = hash of platform x,y so the scatter is stable) ---
+# R0: no decal pixel above mat_top + wk180_decal_max_rise; the mat's top edge is the landing line.
 
-func _tuft_textures() -> Array:
-	var out: Array = []
-	for path in TUFT_TEXES:
-		if ResourceLoader.exists(path):
-			out.append(load(path))
-	return out
+## One decal sprite whose stem base (texture bottom) sits at (x, base_y), `hgt` world px tall, shrunk so its top
+## stays at or below `min_top`. Skipped (false) when it would end up under wk180_decal_min_h.
+func _place_decal(art: Node2D, tex: Texture2D, x: float, base_y: float, hgt: float, min_top: float) -> bool:
+	if base_y - hgt < min_top:
+		hgt = base_y - min_top
+	if hgt < Tuning.wk180_decal_min_h:
+		return false
+	var sc := hgt / float(tex.get_height())
+	var sp := Sprite2D.new()
+	sp.texture = tex
+	sp.scale = Vector2(sc, sc)
+	sp.position = Vector2(x, base_y - hgt * 0.5)
+	art.add_child(sp)
+	return true
 
-## Back-edge tufts: drawn under the mat (child order), positioned so tips peek above it.
-func _scatter_back_tufts(art: Node2D, w: float, top: float, rng: RandomNumberGenerator) -> void:
-	var tufts := _tuft_textures()
-	if tufts.is_empty():
-		_warn_once("tufts", "ArenaRenderer: no grass decal tufts yet — scatter skipped")
+## R4: small daisies down in the grass fringe band under the mat (they break the rock band's ~230 px repeat).
+## Stratified jitter (never metronome spacing), 35% get a smaller buddy. None within 60 px of a void-lip end.
+func _fringe_daisies(art: Node2D, w: float, mat_top: float, fringe_bottom: float, rng: RandomNumberGenerator,
+		suppress_left: bool, suppress_right: bool) -> void:
+	if not Tuning.wk180_fringe_daisies or w < Tuning.wk180_daisy_min_w:
 		return
-	var n := int(w / 140.0)
-	for i in range(n):
-		var tex: Texture2D = tufts[rng.randi_range(0, tufts.size() - 1)]
-		var size := rng.randf_range(42.0, 68.0)
-		var sc := size / float(tex.get_width())
-		var sp := Sprite2D.new()
-		sp.texture = tex
-		sp.scale = Vector2(sc, sc)
-		sp.position = Vector2(rng.randf_range(-w * 0.5 + 36.0, w * 0.5 - 36.0),
-			top - MAT_RISE - tex.get_height() * sc * 0.28)
-		art.add_child(sp)
+	if not ResourceLoader.exists(FLOWER_TEX):
+		_warn_once("flower", "ArenaRenderer: missing " + FLOWER_TEX + " — fringe daisies skipped")
+		return
+	var ftex: Texture2D = load(FLOWER_TEX)
+	var count := clampi(floori(w / Tuning.wk180_daisy_px_per), 1, Tuning.wk180_daisy_max)
+	var lo := -w * 0.5 + Tuning.wk180_daisy_end_inset
+	var hi := w * 0.5 - Tuning.wk180_daisy_end_inset
+	var cell := (hi - lo) / float(count)
+	var base_y: float = fringe_bottom + Tuning.wk180_daisy_base_off
+	var min_top: float = mat_top + MAT_H - Tuning.wk180_daisy_tuck_px
+	var jit: float = Tuning.wk180_daisy_jitter
+	var clear: float = Tuning.wk180_daisy_lip_clear
+	for i in range(count):
+		var x := lo + cell * float(i) + cell * (0.5 + rng.randf_range(-jit, jit))
+		var hgt := rng.randf_range(Tuning.wk180_daisy_h_min, Tuning.wk180_daisy_h_max)
+		var buddy := rng.randf() < Tuning.wk180_daisy_buddy_chance
+		var bx := x + (-1.0 if rng.randf() < 0.5 else 1.0) * rng.randf_range(
+			Tuning.wk180_daisy_buddy_dx_min, Tuning.wk180_daisy_buddy_dx_max)
+		var picks: Array = [[x, hgt]]
+		if buddy:
+			picks.append([bx, hgt * Tuning.wk180_daisy_buddy_scale])
+		for pk in picks:
+			var px: float = pk[0]
+			if (suppress_left and px < -w * 0.5 + clear) or (suppress_right and px > w * 0.5 - clear):
+				continue
+			_place_decal(art, ftex, px, base_y, float(pk[1]), min_top)
 
-## End decals over the mat corners (~20% of cap width in) + flowers at cap ends only (max 2).
-## suppress_left/suppress_right skip the tuft+flower on a cap that sits at a lethal-void lip
-## (pit_void_rendering.md §6.3) — no cheerful greenery at a death edge.
-func _scatter_end_decals(art: Node2D, w: float, mat_top: float, rng: RandomNumberGenerator,
-		suppress_left := false, suppress_right := false) -> void:
-	var tufts := _tuft_textures()
-	if not tufts.is_empty():
-		for side in [-1.0, 1.0]:
-			if (side < 0.0 and suppress_left) or (side > 0.0 and suppress_right):
-				continue
-			var tex: Texture2D = tufts[rng.randi_range(0, tufts.size() - 1)]
-			var size := rng.randf_range(40.0, 56.0)
-			var sc := size / float(tex.get_width())
-			var sp := Sprite2D.new()
-			sp.texture = tex
-			sp.scale = Vector2(sc, sc)
-			sp.position = Vector2(side * (w * 0.5 - rng.randf_range(4.0, 14.0)),
-				mat_top + rng.randf_range(2.0, 8.0))
-			art.add_child(sp)
-	if ResourceLoader.exists(FLOWER_TEX):
-		var flowers := mini(2, int(w / 400.0))
-		var ftex: Texture2D = load(FLOWER_TEX)
-		for i in range(flowers):
-			var side := -1.0 if i == 0 else 1.0
-			if (side < 0.0 and suppress_left) or (side > 0.0 and suppress_right):
-				continue
-			var size := rng.randf_range(36.0, 50.0)
-			var sc := size / float(ftex.get_width())
-			var sp := Sprite2D.new()
-			sp.texture = ftex
-			sp.scale = Vector2(sc, sc)
-			sp.position = Vector2(side * (w * 0.5 - rng.randf_range(28.0, 60.0)),
-				mat_top - ftex.get_height() * sc * 0.30)
-			art.add_child(sp)
-	else:
-		_warn_once("flower", "ArenaRenderer: no decal_flower_white yet — flowers skipped")
+## R5: one tuft per (non-void-lip) end, straddling the body's side outline below the mat, tall blade leaning
+## outward (left = tuft_b, right = tuft_a; never flipped). Top clamped to mat_top + 8 (R0).
+func _end_tufts(art: Node2D, w: float, mat_top: float, fringe_bottom: float, rng: RandomNumberGenerator,
+		suppress_left: bool, suppress_right: bool) -> void:
+	if not Tuning.wk180_end_tufts or w < Tuning.wk180_tuft_min_w:
+		return
+	var base_y: float = fringe_bottom + Tuning.wk180_tuft_base_off
+	var min_top: float = mat_top + Tuning.wk180_decal_max_rise
+	for side in [-1.0, 1.0]:
+		var hgt := rng.randf_range(Tuning.wk180_tuft_h_min, Tuning.wk180_tuft_h_max)   # drawn either way: stable seed
+		if (side < 0.0 and suppress_left) or (side > 0.0 and suppress_right):
+			continue
+		var path := TUFT_LEFT_TEX if side < 0.0 else TUFT_RIGHT_TEX
+		if not ResourceLoader.exists(path):
+			_warn_once("tuft_" + path, "ArenaRenderer: missing " + path + " — end tuft skipped")
+			continue
+		var x: float = side * (w * 0.5 + BODY_BLEED_SIDE - Tuning.wk180_tuft_inset)
+		_place_decal(art, load(path), x, base_y, hgt, min_top)
 
 # ============================== LETHAL VOID (pit_void_rendering.md) ==============================
 

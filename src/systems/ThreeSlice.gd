@@ -10,8 +10,12 @@ class_name ThreeSlice
 const CORR_MIN := 0.85
 const CORR_MAX := 1.20
 
+## WK-180: `units` > 0 = the centre slice holds that many identical repeat units (the bumper's pearl studs:
+## 5 per centre at cap_frac 0.20). The run is then quantised to WHOLE units with one shared correction
+## (k stays ~1.0 on any length) and a short remainder is a whole-unit crop starting at the centre's first
+## gap, so no seam or crop ever cuts through a pearl. 0 = the classic tile/correction/crop rules above.
 static func build(tex: Texture2D, target_w: float, target_h: float, cap_frac: float,
-		vertical: bool = false, tint: Color = Color.WHITE) -> Node2D:
+		vertical: bool = false, tint: Color = Color.WHITE, units: int = 0) -> Node2D:
 	var root := Node2D.new()
 	if tex == null or target_w <= 0.0 or target_h <= 0.0:
 		return root
@@ -44,10 +48,24 @@ static func build(tex: Texture2D, target_w: float, target_h: float, cap_frac: fl
 		var pos := cap_len - overlap
 		var n := maxi(1, roundi(span / tile))
 		var k := span / (float(n) * tile)
-		if k > CORR_MAX:
+		if units > 0:
+			# WK-180: whole repeat units only (every cut lands in a gap between pearls)
+			var unit := tile / float(units)
+			var total := maxi(1, roundi(span / unit))
+			var ku := span / (float(total) * unit)
+			var n_whole := floori(float(total) / float(units))
+			for i in range(n_whole):
+				tiles.append({ "off": cap_src, "len": center_src, "k": ku, "pos": pos })
+				pos += tile * ku
+			var rem_units := total - n_whole * units
+			if rem_units > 0:
+				tiles.append({ "off": cap_src, "len": center_src * float(rem_units) / float(units), "k": ku, "pos": pos })
+		elif k > CORR_MAX:
 			n += 1
 			k = span / (float(n) * tile)
-		if k >= CORR_MIN and k <= CORR_MAX:
+		if units > 0:
+			pass
+		elif k >= CORR_MIN and k <= CORR_MAX:
 			for i in range(n):
 				tiles.append({ "off": cap_src, "len": center_src, "k": k, "pos": pos })
 				pos += tile * k

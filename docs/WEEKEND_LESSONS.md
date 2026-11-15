@@ -264,3 +264,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   ~0.45 real s, so PartyMatch's real-time 0.5 s double-KO `_end_check` expired only 0.03-0.07 GAME s after the death (a 0.22 game-s
   double-KO ended the stage instead of SD), while headless it was ~0.5 game s. Any gameplay window that follows a kill must count game
   time (delta), never rdelta; rdelta is for UI/flow beats only. Forced-kill QA: space kills with physics frames or game time from a probe.
+- **WK-180: MenuScreen._fit_safe_area (WK-83) nudges the whole Header DOWN at runtime (+25 px on ArenaSelect at 1080p)**, so a brief's
+  header-band numbers in "design space" (title centre y 65) are 25 px off the live chip line (y 90). A node that must sit ON the header row
+  but is a sibling of Header (UnlockBanner) has to add `Header.offset_top` (= the nudge once the slide-in ends) to its authored y.
+- WK-180: jump straight to one Trials course from gbplay: start trials with `cfg.circuit_id = '<set>'`, then
+  `pm._mode._course_idx = N; pm._begin_stage()` (N = index in course_sets.json). Any level JSON (courses too) also loads in brawl SINGLE,
+  but the brawl camera frames it differently.
+- WK-180: gbplay `screenshot`/`burst` frames FREEZE the game ~1.25 s each, so a slow-mo (Engine.time_scale 0.1-0.25) burst advances only
+  interval x time_scale of game time per frame: to catch a late tween phase, `wait` N frames at time_scale 1 first, THEN slow down and burst.

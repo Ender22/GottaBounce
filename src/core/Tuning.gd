@@ -1465,3 +1465,35 @@ var wk110_gg_whistle_db: float = -4.0          # dB GOLDEN GOAL referee double w
 var wk110_gg_sting_db: float = -4.0            # dB GOLDEN GOAL sting (two_left, pitched down) on the Stingers bus  # WK-110
 var wk110_crowd_db: float = -13.0              # dB crowd swell under the sting (the WK-105 goal crowd, slowed); GOLDEN GOAL plays it +4 dB  # WK-110
 var wk110_goal_choices: Array[int] = [3, 5, 6, 7, 10]   # RULES GOALS / POINTS values; the default is sports_goal_target (6)  # WK-110
+# --- WK-180 (docs/briefs/wk180_decals_bumpers_2026-11-16.md) bumper art + grass decals. Read ONLY by src/systems/ArenaRenderer.gd  # WK-180
+# (+ src/systems/ThreeSlice.gd via its `units` arg). Bumpers: vertical = bumper_post 3-sliced, horizontal w/h >= rail_min_aspect =  # WK-180
+# bumper_rail (the post transposed), squarer horizontal = bumper_block drawn whole. Pearl runs are tiled in WHOLE pearls (no seam or  # WK-180
+# crop ever cuts a stud). Decals: grass bodies only, never on mat-only slabs, never above mat_top + 8 (R0 landing line).  # WK-180
+var wk180_post_cap_frac: float = 0.20          # bumper_post / bumper_rail cap fraction: both cuts land in a pearl gap (was 0.22 = half-pearl seams)  # WK-180
+var wk180_bumper_pearl_units: int = 5          # pearls in the post/rail centre slice at cap 0.20 (tiling quantum; 0 = classic ThreeSlice rules)  # WK-180
+var wk180_rail_min_aspect: float = 1.6         # horizontal bumper w/h at or above this draws the rail; below = the block (rail if the block can't fit)  # WK-180
+var wk180_block_pad: float = 8.0               # px the whole-drawn block exceeds its collider on each axis (total)  # WK-180
+var wk180_fringe_daisies: bool = true          # R4 small daisies in the grass fringe below the mat (false = none)  # WK-180
+var wk180_end_tufts: bool = true               # R5 one outward-leaning tuft per platform end (false = none; R6 "dark blob" escape hatch)  # WK-180
+var wk180_fringe_frac: float = 0.60            # where the grass blades end in body_std.png, as a fraction of the drawn strip height  # WK-180
+var wk180_daisy_min_w: float = 400.0           # platforms narrower than this get no daisies  # WK-180
+var wk180_daisy_px_per: float = 320.0          # one daisy (cluster) per this many px of platform width  # WK-180
+var wk180_daisy_max: int = 8                   # daisy clusters per platform cap  # WK-180
+var wk180_daisy_end_inset: float = 70.0        # px the daisy span stays in from each platform end  # WK-180
+var wk180_daisy_jitter: float = 0.35           # stratified jitter, +- fraction of a cell (never metronome spacing)  # WK-180
+var wk180_daisy_h_min: float = 18.0            # daisy height, world px (min)  # WK-180
+var wk180_daisy_h_max: float = 22.0            # daisy height, world px (max)  # WK-180
+var wk180_daisy_base_off: float = 3.0          # px the daisy stem base sits below fringe_bottom  # WK-180
+var wk180_daisy_buddy_chance: float = 0.35     # chance a daisy gets a smaller buddy beside it  # WK-180
+var wk180_daisy_buddy_dx_min: float = 14.0     # buddy x offset, px (min)  # WK-180
+var wk180_daisy_buddy_dx_max: float = 20.0     # buddy x offset, px (max)  # WK-180
+var wk180_daisy_buddy_scale: float = 0.8       # buddy height vs its daisy  # WK-180
+var wk180_daisy_tuck_px: float = 4.0           # daisy top may tuck at most this far under the mat's bottom edge  # WK-180
+var wk180_decal_min_h: float = 14.0            # a decal shrunk below this height (to fit under the mat) is skipped  # WK-180
+var wk180_daisy_lip_clear: float = 60.0        # no daisy within this many px of a suppressed (void-lip) end  # WK-180
+var wk180_tuft_min_w: float = 160.0            # platforms narrower than this get no end tufts  # WK-180
+var wk180_tuft_h_min: float = 34.0             # end tuft height, world px (min)  # WK-180
+var wk180_tuft_h_max: float = 40.0             # end tuft height, world px (max)  # WK-180
+var wk180_tuft_base_off: float = 6.0           # px the tuft stem base sits below fringe_bottom  # WK-180
+var wk180_tuft_inset: float = 8.0              # tuft x = side * (w/2 + BODY_BLEED_SIDE - this): straddles the body's side outline  # WK-180
+var wk180_decal_max_rise: float = 8.0          # R0: no decal pixel above mat_top + this (tufts are clamped / shrunk to fit)  # WK-180
