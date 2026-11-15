@@ -885,3 +885,11 @@ var sports_pip_cpu_gap: int = 6                # px between a sports CPU tag's N
 var pip_card_gap: float = 6.0                  # px a living pip / ghost tag keeps from a HUD corner card  # WK-146
 var pip_bubble_gap: float = 6.0                # px a living pip keeps from an off-screen bubble's rim  # WK-147
 var pip_avoid_hysteresis_px: float = 12.0      # px the top side must clear by before a card/bubble-flipped pip flips back up  # WK-146
+
+# --- WK-60 / WK-60b arena / court / circuit select: focused-card preview region (UX4-12 / UX4-25). Read by src/ui/ArenaSelect.gd.  # WK-60
+var arena_preview_swap_time: float = 0.16       # s the preview art + name pop takes when focus moves to another card  # WK-60
+var arena_preview_art_pop: float = 0.92         # scale the preview art pops up from on a focus move (1 = no pop)  # WK-60
+var arena_preview_rays_alpha: float = 0.45      # alpha of the slow-turning warm rays behind the preview art  # WK-60
+var arena_preview_rays_spin: float = 5.0        # deg/s the rays turn (0 = still)  # WK-60
+var arena_preview_locked_tint: Color = Color(0.55, 0.53, 0.58, 1.0)  # preview art modulate while a LOCKED card is focused  # WK-60
+var arena_select_card_size: Vector2 = Vector2(400, 300)  # px shelf card size under the preview (was 460x340 with no preview)  # WK-60

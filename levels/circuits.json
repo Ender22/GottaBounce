@@ -4,24 +4,28 @@
 	"circuits": {
 		"meadow_mile": {
 			"display_name": "MEADOW MILE",
+			"tagline": "Sunny floating hills. The place to learn the bounce.",
 			"difficulty": 1,
 			"_comment": "20-arena ordered on-ramp (brawl_arena_expansion_2026-07-19.md). 4 originals + 16 new grass floating-island arenas in a mild->wild curated arc; a first-to-10 session (~10-15 rounds) never repeats.",
 			"levels": ["grassy_expanse", "islands_void", "the_cliff", "twin_chasms", "meadow_first_hop", "clover_steps", "sunny_shoulders", "three_meadows", "daisy_ring", "long_meadow", "hill_and_dale", "bluff_line", "two_hills", "meadow_spine", "stepping_bloom", "windmill_meadow", "hay_bales", "high_pasture", "river_split", "meadow_carousel"]
 		},
 		"scrapworks": {
 			"display_name": "THE SCRAPWORKS",
+			"tagline": "Bumpers, drums, then the first hammers. Watch your step.",
 			"difficulty": 2,
 			"_comment": "20-arena ordered industrial arc (brawl_arena_expansion_2026-07-19.md): hazards introduced one family at a time (bumper -> drum -> non-lethal swing -> first lethal hammer/crusher -> carts).",
 			"levels": ["bumper_gauntlet", "drop_chamber", "wrecking_yard", "the_ascent", "scrap_flats", "girder_gap", "bolt_yard", "pinball_pit", "single_swing", "gantry_climb", "conveyor_run", "scrap_atoll", "first_hammer", "press_gate", "swing_alley", "hammer_and_swing", "crusher_row", "wrecking_towers", "moving_yard", "scrap_crusher_drum"]
 		},
 		"high_wire": {
 			"display_name": "THE HIGH WIRE",
+			"tagline": "Thin ridges and tall spires. The fall is the danger.",
 			"difficulty": 3,
 			"_comment": "18-arena ordered exposure arc (brawl_arena_expansion_2026-07-19.md): ridges/spires/radial/vertical, hazard-light — the fall is the danger. Capped at 18 (geometry-only variety saturates).",
 			"levels": ["atoll", "the_spine", "spires", "sky_stones", "catwalk", "wire_walk", "perch_line", "high_atoll", "stagger_spires", "zenith", "the_gauntlet_ridge", "twin_towers", "deep_spires", "pendulum_heights", "crosswind_pillars", "needle_ridge", "sky_ladder_brawl", "the_summit"]
 		},
 		"the_foundry": {
 			"display_name": "THE FOUNDRY",
+			"tagline": "Presses, molten pours and floors that crack.",
 			"difficulty": 3,
 			"draw_count": 12,
 			"draw_mode": "shuffle",
@@ -47,6 +51,7 @@
 		},
 		"mayhem_mile": {
 			"display_name": "MAYHEM MILE",
+			"tagline": "Mines, gravity wells, carts. Everything at once.",
 			"difficulty": 4,
 			"draw_count": 14,
 			"draw_mode": "shuffle",

@@ -9,8 +9,16 @@ extends MenuScreen
 ## NOTE (deviation, flagged): every pool level's JSON `theme` is "grass", so tinting cards to the
 ## theme colour would make identical green tiles. Per-arena accents come from a spread palette;
 ## baked thumbs/crests drop into the art slot when they exist (existence-guarded).
+##
+## WK-60b (UX4-12, the Mario Kart cup-select bar): the TOP half is a PREVIEW of the focused card — big framed key
+## art (circuit / trials crest; the mode painting + a small court-map inset for courts; a fan of every circuit crest
+## for RANDOM ROTATION), its name, a difficulty / size line in words ("EASY · 20 ARENAS"), a one-line hook, and
+## rule / roster / status chips (LOCKED with the unlock condition, CLEARED for won Brawl circuits). The ONE shelf
+## sits in the lower half. WK-60: one shelf pattern in all three variants (no "WAYS TO PLAY" label, no bare "i / n"
+## counter; the preview kicker says "CIRCUIT 2 OF 5"), and the footer never offers A on a LOCKED card.
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
+const ToyKit := preload("res://src/ui/ToyKit.gd")
 const CIRCUITS_PATH := "res://levels/circuits.json"
 const COURTS_PATH := "res://levels/sports_courts.json"
 # Baked wide arena thumbnails (frontend_visual_polish.md §3b), produced offline by
@@ -52,10 +60,24 @@ var _sports := false   # SPORTS flow: one COURTS shelf instead of circuits/arena
 var _trials := false   # TRIALS flow (owner 2026-07-16): one CIRCUITS shelf of course sets
 
 const COURSE_SETS_PATH := "res://levels/course_sets.json"
+const GO_WORD_BRAWL := "FIGHT!"
 const GO_WORD_SPORTS := "PLAY!"   # WK-117: court-select confirm word (brawl keeps FIGHT!)
 const GO_WORD_TRIALS := "GO!"     # WK-117 / WK-43: trials circuit-select confirm word
 
-const RANDOM := {"path": "", "name": "RANDOM ROTATION", "tag": "A new peak every round.",
+# WK-60b: difficulty / tier spelled out in words (UX4-12: "EASY · 20 ARENAS", not bare stars).
+const DIFF_WORDS := {1: "EASY", 2: "MEDIUM", 3: "HARD", 4: "WILD"}
+const TIER_WORDS := {1: "CALM", 2: "TRICKY", 3: "RISKY", 4: "WILD", 5: "CHAOS"}
+const HAZARD_WORDS := {"spinning_hammer": "SPINNING HAMMER", "bomb": "LANDMINES", "crusher": "CRUSHER"}
+const HAZARD_SHORT := {"spinning_hammer": "HAMMER", "bomb": "MINES", "crusher": "CRUSHER"}
+# WK-60b: hero art for a COURT preview until WK-65's painted court cards land (the baked court thumbs are the dark
+# stadium strip, which UX4-12 bans at hero size; it rides along as a small "court map" inset instead).
+const LOCKED_CHIP := Color("#ddd6ea")   # WK-60b preview LOCKED pill fill (pale lilac = the locked-card tint family)
+const COURT_HERO := {"soccer": "res://assets/ui/modes/mode_sports.png", "dropshot": "res://assets/ui/modes/mode_dropshot.png"}
+
+# WK-60 (R-20): "A new peak every round." read like a typo. RANDOM_ALL plays the classic arena pool (ARENAS below
+# mirrors PartyMatch.LEVEL_POOL) as a shuffle bag.
+const RANDOM := {"path": "", "name": "RANDOM ROTATION", "tag": "%d ARENAS, SHUFFLED",
+	"hook": "Every classic arena in one shuffled bag. A surprise every round.",
 	"color": Color("#ff5fa8"), "glyph": "?", "random": true}
 
 const ARENAS := [
@@ -77,11 +99,32 @@ const ARENAS := [
 @onready var _shelf_a: Control = $ShelfA
 @onready var _shelf_b: Control = $ShelfB
 @onready var _back: Button = $Header/BackBtn
+# WK-60b preview region (scenes/ui/ArenaSelect.tscn "Preview")
+@onready var _preview: Control = $Preview
+@onready var _pv_grad: TextureRect = $Preview/Row/ArtFrame/Grad
+@onready var _pv_rays: TextureRect = $Preview/Row/ArtFrame/Rays
+@onready var _pv_art: TextureRect = $Preview/Row/ArtFrame/Art
+@onready var _pv_fan: Control = $Preview/Row/ArtFrame/Fan
+@onready var _pv_inset: Control = $Preview/Row/ArtFrame/Inset
+@onready var _pv_map: TextureRect = $Preview/Row/ArtFrame/Inset/Map
+@onready var _pv_veil: Control = $Preview/Row/ArtFrame/Veil
+@onready var _pv_kicker: Label = $Preview/Row/Info/Kicker
+@onready var _pv_name: Label = $Preview/Row/Info/Name
+@onready var _pv_desc: Label = $Preview/Row/Info/Desc
+@onready var _pv_hook: Label = $Preview/Row/Info/Hook
+@onready var _pv_rule: PanelContainer = $Preview/Row/Info/Chips/RuleChip
+@onready var _pv_roster: PanelContainer = $Preview/Row/Info/Chips/RosterChip
+@onready var _pv_status: PanelContainer = $Preview/Row/Info/Chips/StatusChip
+@onready var _pv_status_icon: Control = $Preview/Row/Info/Chips/StatusChip/Row/Icon
+@onready var _pv_status_label: Label = $Preview/Row/Info/Chips/StatusChip/Row/Label
 
 var _a_cards: Array[Button] = []
 var _b_cards: Array[Button] = []
 var _a_idx := 0   # remembered focus per shelf (§3.5 up/down restores it)
 var _b_idx := 0
+var _circuit_ids: Array[String] = []   # brawl circuits in circuits.json order (RANDOM's crest fan)
+var _hints_key := ""                   # WK-60: footer hint set currently shown (rebuild only on change)
+var _pop_tween: Tween
 
 # ------------------------------------------------------------------ data loading (unchanged logic)
 ## Load levels/circuits.json into an ordered Array of card-data dicts (marked "circuit": true).
@@ -109,29 +152,41 @@ func _load_circuit_cards() -> Array:
 		var draw_count: int = int(ed.get("draw_count", 0))
 		var pool: Array = ed.get("pool", [])
 		var levels: Array = ed.get("levels", [])
-		var count: int = draw_count if (draw_count > 0 and pool.size() > 0) else levels.size()
+		var shuffled: bool = draw_count > 0 and pool.size() > 0
+		var count: int = draw_count if shuffled else levels.size()
 		var unlocked: bool = Settings.is_circuit_unlocked(str(cid))
+		var cleared: bool = Settings.circuits_cleared.has(str(cid))
+		_circuit_ids.append(str(cid))
+		var lock: Dictionary = {} if unlocked else _lock_hint(str(cid))
 		out.append({
 			"circuit_id": str(cid),
 			"name": display,
-			"tag": "" if unlocked else _lock_hint(str(cid)),
+			"tag": str(lock.get("short", "")),
+			"lock_footer": str(lock.get("footer", "")),
+			"hook": str(ed.get("tagline", "")),
 			"difficulty": diff,
 			"arena_count": count,
+			"pool_size": pool.size() if shuffled else levels.size(),
+			"shuffled": shuffled,
 			"color": CIRCUIT_COLORS.get(str(cid), MenuFX.ACCENT_PINK),
 			"circuit": true,
 			"locked": not unlocked,
+			"cleared": cleared and unlocked,
 		})
 	return out
 
 ## Phrase the unlock condition for a locked circuit card (v6 §4.3): the pity path once the
 ## predecessor has been played at least once, else the mastery (win) hint.
-func _lock_hint(cid: String) -> String:
+## WK-60: {"short": card / preview chip line, "footer": the footer prompt that replaces "A FIGHT!" (UX4-12)}.
+func _lock_hint(cid: String) -> Dictionary:
 	var pred := Settings.unlock_predecessor(cid)
 	var pred_name := str(_circuit_display.get(pred, pred)).to_upper()
 	var remaining := Settings.pity_matches_remaining(cid)
 	if remaining < Settings.UNLOCK_PITY_MATCHES and remaining > 0:
-		return "%d MORE MATCH%s TO UNLOCK" % [remaining, "" if remaining == 1 else "ES"]
-	return "WIN %s TO UNLOCK" % pred_name
+		var es := "" if remaining == 1 else "ES"
+		return {"short": "%d MORE MATCH%s" % [remaining, es],
+			"footer": "LOCKED · play %s %d more time%s" % [pred_name, remaining, "" if remaining == 1 else "s"]}
+	return {"short": "WIN %s" % pred_name, "footer": "LOCKED · win %s" % pred_name}
 
 ## Art for a card, or null (falls back to the themed gradient plate). RANDOM gets the shuffle
 ## collage; an arena gets its bake; a circuit gets its crest emblem (when the asset lands).
@@ -172,10 +227,9 @@ func _ready() -> void:
 	_rewire_cross()
 	# WK-117 (SP-16) + WK-43 copy half: the confirm prompt speaks the mode's language (sports PLAY!, trials GO!);
 	# BRAWL keeps the scene's "A FIGHT!".
-	if _sports or _trials:
-		var hb := get_node_or_null("Footer/HintBox")
-		if hb != null and hb.has_method("set_hints"):
-			hb.call("set_hints", PackedStringArray(["A|%s" % (GO_WORD_SPORTS if _sports else GO_WORD_TRIALS), "B|Back", "< >|Choose"]))
+	# WK-60: the footer follows focus (a LOCKED card swaps A for the unlock condition), see _update_footer.
+	_update_footer({})
+	_start_rays()
 	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger).
 	# BRAWL only: the celebration is a circuit moment and consuming the flag here would eat it.
 	if not _sports and not _trials:
@@ -187,15 +241,14 @@ func _build_brawl() -> void:
 	var title := get_node_or_null("Header/Title")
 	if title is Label:
 		(title as Label).text = "CHOOSE BATTLEGROUND"
-	# ONE centered shelf (matches the sports/trials layout); no arena pool shelf.
+	# ONE shelf in the lower half (WK-60b; the .tscn places it under the preview); no arena pool shelf.
 	_shelf_b.visible = false
-	_shelf_a.offset_top = 326.0
-	_shelf_a.offset_bottom = 761.0
 	# circuits in circuits.json order, then RANDOM ROTATION last.
 	var shelf_a_data: Array = _load_circuit_cards()
-	shelf_a_data.append(RANDOM)
-	(_shelf_a as Object).call("set_label", "WAYS TO PLAY")
-	(_shelf_a as Object).call("set_separation", 36)
+	var rnd: Dictionary = RANDOM.duplicate()
+	rnd["tag"] = str(RANDOM["tag"]) % ARENAS.size()
+	shelf_a_data.append(rnd)
+	_setup_shelf("CIRCUITS")
 	for a in shelf_a_data:
 		_a_cards.append(_make_card(a, _shelf_a, 0))
 	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
@@ -213,12 +266,8 @@ func _build_sports() -> void:
 	if title is Label:
 		(title as Label).text = "PICK YOUR COURT"
 	_shelf_b.visible = false
-	# center the lone shelf in the content band (150..938, shelf band is 435 tall — §3.8)
-	_shelf_a.offset_top = 326.0
-	_shelf_a.offset_bottom = 761.0
 	var courts := _load_court_cards()
-	(_shelf_a as Object).call("set_label", "COURTS  %d" % courts.size())
-	(_shelf_a as Object).call("set_separation", 36)
+	_setup_shelf("COURTS")
 	for a in courts:
 		_a_cards.append(_make_card(a, _shelf_a, 0))
 	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
@@ -234,16 +283,25 @@ func _build_trials() -> void:
 	if title is Label:
 		(title as Label).text = "PICK YOUR CIRCUIT"
 	_shelf_b.visible = false
-	_shelf_a.offset_top = 326.0
-	_shelf_a.offset_bottom = 761.0
 	var sets := _load_trials_cards()
-	(_shelf_a as Object).call("set_label", "CIRCUITS  %d" % sets.size())
-	(_shelf_a as Object).call("set_separation", 36)
+	_setup_shelf("CIRCUITS")
 	for a in sets:
 		_a_cards.append(_make_card(a, _shelf_a, 0))
 	(_shelf_a as Object).call("set_counter", 0, _a_cards.size())
 	_shelf_a.connect("wheel_moved", _on_wheel.bind(0))
 	_wire_rail(_a_cards)
+
+## WK-60 (UX4-25): ONE shelf pattern for all three variants. The screen title already names what the shelf holds
+## and the preview kicker says where you are ("CIRCUIT 2 OF 5"), so the shelf's own label and bare "i / n" counter
+## (R-20: "WAYS TO PLAY" / "1 / 6" read oddly; "COURTS 8" vs "CIRCUITS 6" disagreed) are hidden the same way
+## everywhere. The label text is still set so a future multi-shelf layout reads consistently.
+func _setup_shelf(label: String) -> void:
+	(_shelf_a as Object).call("set_label", label)
+	(_shelf_a as Object).call("set_separation", 36)
+	for n in ["ShelfLabel", "Counter"]:
+		var c := _shelf_a.get_node_or_null(n)
+		if c is CanvasItem:
+			(c as CanvasItem).visible = false
 
 ## Load levels/course_sets.json into an ordered Array of card-data dicts (marked "trials_set": true).
 ## Returns [] on any failure (BACK-only screen, never crashes; TrialsMode's proof-course fallback
@@ -275,7 +333,8 @@ func _load_trials_cards() -> Array:
 		out.append({
 			"set_id": str(sid),
 			"name": str(ed.get("display_name", sid)),
-			"tag": str(ed.get("tagline", "")),
+			"tag": "",   # WK-60b: the tagline moved to the preview hook; the card keeps name + stars + count
+			"hook": str(ed.get("tagline", "")),
 			"color": Color(str(ed.get("color", "#4aa8ff"))),
 			"trials_set": true,
 			"difficulty": n,
@@ -314,11 +373,18 @@ func _load_court_cards() -> Array:
 			continue
 		var tier: int = int(cd.get("tier", 1))
 		var unlocked: bool = Settings.is_court_unlocked(cid)
+		var lock: Dictionary = {} if unlocked else _court_lock_hint(str(cd.get("unlock", "always")))
+		# WK-60b: the card's second line is the court in words (UX4-64: the lower half used to be blank)
+		var line := "%s · %s" % [str(TIER_WORDS.get(tier, "")), _hazard_words(str(cd.get("hazard", "")))]
 		out.append({
 			"court_id": cid,
 			"path": str(cd.get("path", "")),
 			"name": str(cd.get("display_name", cid)),
-			"tag": "" if unlocked else _court_lock_hint(str(cd.get("unlock", "always"))),
+			"tag": line if unlocked else str(lock.get("short", "LOCKED")),
+			"desc": line,
+			"lock_footer": str(lock.get("footer", "")),
+			"hook": str(cd.get("blurb", "")),
+			"sport": court_sport,
 			"tier": tier,
 			"color": TIER_COLORS.get(tier, MenuFX.ACCENT_PINK),
 			"court": true,
@@ -336,22 +402,38 @@ func _load_court_cards() -> Array:
 	return sorted_out
 
 ## Phrase a court's unlock rule for the locked-card hint band (v8 §4.3 gates, human words):
-## "circuit:<id>" -> WIN <NAME> CIRCUIT · "sports_matches:N" -> PLAY N SPORTS MATCHES ·
+## "circuit:<id>" -> WIN <NAME> · "sports_matches:N" -> PLAY N SPORTS MATCHES ·
 ## "sports_wins:N" -> WIN N SPORTS MATCHES. Unknown rule -> generic (Settings treats it as open anyway).
-func _court_lock_hint(rule: String) -> String:
+## WK-60: {"short": card / preview chip line, "footer": the footer prompt that replaces "A PLAY!"}.
+func _court_lock_hint(rule: String) -> Dictionary:
 	var kind := rule.get_slice(":", 0)
 	var arg := rule.get_slice(":", 1) if rule.contains(":") else ""
 	match kind:
 		"circuit":
-			return "WIN %s CIRCUIT" % _circuit_name(arg).to_upper()
+			var cn := _circuit_name(arg).to_upper()
+			return {"short": "WIN %s" % cn, "footer": "LOCKED · win the BRAWL circuit %s" % cn}
 		"sports_matches":
 			var n := maxi(1, int(arg))
-			return "PLAY %d SPORTS MATCH%s" % [n, "" if n == 1 else "ES"]
+			var es := "" if n == 1 else "ES"
+			return {"short": "PLAY %d SPORTS MATCH%s" % [n, es], "footer": "LOCKED · play %d sports match%s" % [n, es.to_lower()]}
 		"sports_wins":
 			var nw := maxi(1, int(arg))
-			return "WIN %d SPORTS MATCH%s" % [nw, "" if nw == 1 else "ES"]
+			var es2 := "" if nw == 1 else "ES"
+			return {"short": "WIN %d SPORTS MATCH%s" % [nw, es2], "footer": "LOCKED · win %d sports match%s" % [nw, es2.to_lower()]}
 		_:
-			return "LOCKED"
+			return {"short": "LOCKED", "footer": "LOCKED"}
+
+## WK-60b: a court's hazard field in words ("" -> NO HAZARDS; one -> its full name; several -> short names joined).
+func _hazard_words(h: String) -> String:
+	if h == "":
+		return "NO HAZARDS"
+	var parts := h.split("+", false)
+	if parts.size() == 1:
+		return str(HAZARD_WORDS.get(parts[0], parts[0].to_upper().replace("_", " ")))
+	var words := PackedStringArray()
+	for p in parts:
+		words.append(str(HAZARD_SHORT.get(p, p.to_upper().replace("_", " "))))
+	return " + ".join(words)
 
 ## Circuit display name for hint phrasing (lazy-loads circuits.json once; sports flow never runs
 ## _load_circuit_cards which normally fills _circuit_display).
@@ -371,9 +453,12 @@ func _circuit_name(cid: String) -> String:
 func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 	var big := shelf_id == 0
 	var card: Button = CARD.instantiate()
-	card.custom_minimum_size = SHELF_A_CARD if big else SHELF_B_CARD
+	# WK-60b: the shelf sits under the preview now, so its cards are a size down (Tuning.arena_select_card_size)
+	card.custom_minimum_size = Tuning.arena_select_card_size if big else SHELF_B_CARD
 	(shelf as Object).call("add_card", card)
-	var thumb := _thumb_for(a)
+	# WK-60 (R-20 / UX4-35): the RANDOM card no longer wears the old dark three-screenshot strip (_random.png); it
+	# takes the rainbow plate + spinning "?" until WK-65 paints a RANDOM ROTATION card.
+	var thumb: Texture2D = null if bool(a.get("random", false)) else _thumb_for(a)
 	card.set_card({
 		"name": a["name"], "tag": a.get("tag", ""), "color": a["color"],
 		"glyph": a.get("glyph", ""), "art": thumb,
@@ -386,12 +471,14 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 			(art as TextureRect).stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	# fixed name band so 1- and 2-line names align card-to-card (§3.3): Shelf A 100px / Shelf B 80px
 	# (inner Labels min height; the strip's own padding tops it up).
+	# WK-60b: every shelf card is name + ONE line (stars + count / the court in words / the unlock condition), so
+	# one fixed band height lines every art plate up.
 	var labels := card.get_node_or_null("Content/VBox/NameStrip/Labels")
 	if labels is Control:
-		(labels as Control).custom_minimum_size = Vector2(0, 92 if big else 64)
+		(labels as Control).custom_minimum_size = Vector2(0, 78 if big else 64)
 	var nm := card.get_node_or_null("Content/VBox/NameStrip/Labels/NameLabel")
 	if nm is Label:
-		(nm as Label).add_theme_font_size_override("font_size", 40 if big else 34)
+		(nm as Label).add_theme_font_size_override("font_size", 36 if big else 34)
 	var tag := card.get_node_or_null("Content/VBox/NameStrip/Labels/TagLabel")
 	if tag is Label:
 		(tag as Label).add_theme_font_size_override("font_size", 28)   # WK-18 couch floor (CC-8.1)
@@ -399,6 +486,9 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 	if bool(a.get("circuit", false)) and not bool(a.get("locked", false)):
 		(card as Object).call("set_star_row", int(a.get("difficulty", 1)), 3,
 			"%d ARENAS" % int(a.get("arena_count", 0)))
+	# WK-60b (UX4-25): a WON Brawl circuit shows it on the card (gold CLEARED chip, top-left of the art plate)
+	if bool(a.get("cleared", false)) and card.has_method("set_badge"):
+		card.set_badge("CLEARED", ToyKit.GOLD.darkened(0.25))
 	# SPORTS court: tier badge chip, top-left of the art plate (§3.8; hidden slot on non-court cards)
 	if bool(a.get("court", false)) and card.has_method("set_badge"):
 		card.set_badge("TIER %d" % int(a.get("tier", 1)),
@@ -471,6 +561,181 @@ func _on_card_focus(card: Button) -> void:
 	(_shelf_b as Object).call("set_shelf_focused", shelf_id == 1)
 	(_shelf_a if shelf_id == 0 else _shelf_b).call("scroll_to", card)
 	_rewire_cross()
+	var a: Dictionary = card.get_meta("arena", {})
+	_show_preview(a, idx)
+	_update_footer(a)
+
+# ------------------------------------------------------------------ WK-60b preview region
+## Fill the top-half preview from the focused card's data: framed key art, kicker, name, words line, hook, chips.
+func _show_preview(a: Dictionary, idx: int) -> void:
+	var accent: Color = a.get("color", MenuFX.ACCENT_PINK)
+	var locked := bool(a.get("locked", false))
+	_pv_grad.texture = _plate_gradient(accent)
+	# --- art: crest / mode painting / RANDOM's crest fan
+	var is_random := bool(a.get("random", false))
+	var is_court := bool(a.get("court", false))
+	var art: Texture2D = null
+	if is_court:
+		art = _load_tex(str(COURT_HERO.get(str(a.get("sport", "soccer")), COURT_HERO["soccer"])))
+	elif not is_random:
+		art = _thumb_for(a)   # circuit / trials crest (painted, reuse-only per WK-60b)
+	_pv_art.texture = art
+	_pv_art.visible = art != null and not is_random
+	_pv_fan.visible = is_random
+	if is_random:
+		_fill_fan()
+	var map: Texture2D = _thumb_for(a) if is_court else null
+	_pv_map.texture = map
+	_pv_inset.visible = map != null
+	var tint: Color = Tuning.arena_preview_locked_tint if locked else Color.WHITE
+	for n in [_pv_art, _pv_fan, _pv_inset, _pv_grad]:
+		(n as CanvasItem).modulate = tint
+	_pv_rays.self_modulate = tint   # modulate.a carries Tuning.arena_preview_rays_alpha
+	_pv_veil.visible = locked
+	# --- text
+	var total := _a_cards.size()
+	if bool(a.get("circuit", false)):
+		total = _circuit_ids.size()
+	_pv_kicker.text = _kicker(a, idx, total)
+	_pv_name.text = str(a.get("name", "")).to_upper()
+	_pv_desc.text = _desc_line(a)
+	_pv_hook.text = str(a.get("hook", ""))
+	_fill_chips(a, accent)
+	_pop_art()
+
+func _kicker(a: Dictionary, idx: int, total: int) -> String:
+	if bool(a.get("random", false)):
+		return "WILDCARD"
+	if bool(a.get("court", false)):
+		return "COURT %d OF %d" % [idx + 1, total]
+	return "CIRCUIT %d OF %d" % [idx + 1, total]
+
+## The difficulty / size line in WORDS (UX4-12): "EASY  ·  20 ARENAS", "HARD  ·  12 OF 16 ARENAS, SHUFFLED",
+## "CALM  ·  NO HAZARDS", "MEDIUM  ·  8 COURSES".
+func _desc_line(a: Dictionary) -> String:
+	if bool(a.get("random", false)):
+		return "SURPRISE  ·  %d ARENAS, SHUFFLED" % ARENAS.size()
+	if bool(a.get("court", false)):
+		return str(a.get("desc", "")).replace(" · ", "  ·  ")
+	var diff: int = clampi(int(a.get("difficulty", 1)), 1, 4)
+	if bool(a.get("trials_set", false)):
+		diff = clampi(diff, 1, 3)   # same 3-star scale the card shows
+		return "%s  ·  %d COURSES" % [str(DIFF_WORDS[diff]), int(a.get("arena_count", 0))]
+	if bool(a.get("shuffled", false)):
+		return "%s  ·  %d OF %d ARENAS, SHUFFLED" % [str(DIFF_WORDS[diff]), int(a.get("arena_count", 0)),
+			int(a.get("pool_size", 0))]
+	return "%s  ·  %d ARENAS" % [str(DIFF_WORDS[diff]), int(a.get("arena_count", 0))]
+
+## Rule chip (accent fill), roster chip (cream pill) and status chip (LOCKED choco / CLEARED gold).
+func _fill_chips(a: Dictionary, accent: Color) -> void:
+	var cfg: MatchConfig = GameConfig.match_config
+	var humans: int = cfg.human_count if cfg != null else 1
+	var bots: int = cfg.bot_count if cfg != null else 0
+	var roster := "%d PLAYER%s" % [humans, "" if humans == 1 else "S"]
+	if bots > 0:
+		roster += " + %d CPU%s" % [bots, "" if bots == 1 else "s"]
+	var rule := ""
+	if _sports:
+		# DROPSHOT scores POINTS (SportsMode.goal_word "POINT!"); ROCKETBALL scores GOALS
+		var sport := SportsMode.sport_for_mode(cfg.mode_id) if cfg != null else ""
+		rule = "FIRST TO %d %s" % [Tuning.sports_goal_target, "POINTS" if sport == "dropshot" else "GOALS"]
+		var seats := humans + bots
+		var side := int(seats / 2.0)
+		roster = ("%dV%d  ·  " % [side, side] if seats >= 2 else "") + roster
+	elif _trials:
+		rule = "FINISH EVERY COURSE"
+		roster = "SOLO" if humans <= 1 else "CO-OP  ·  %d PLAYERS" % humans
+	else:
+		rule = "FIRST TO %d KOs" % (cfg.kills_to_win if cfg != null else 10)
+	(_pv_rule.get_node("Label") as Label).text = rule
+	ToyKit.fill_panel(_pv_rule, accent.darkened(0.12))
+	(_pv_roster.get_node("Label") as Label).text = roster
+	var locked := bool(a.get("locked", false))
+	var cleared := bool(a.get("cleared", false))
+	_pv_roster.visible = not locked   # the unlock condition needs the room more than the roster does
+	_pv_status.visible = locked or cleared
+	# LOCKED = a pale lilac pill with chocolate type (the padlock glyph is drawn chocolate + cream, so it needs a light
+	# fill); CLEARED = the gold chip with white type + the green tick.
+	_pv_status.remove_theme_stylebox_override("panel")
+	_pv_status_label.remove_theme_color_override("font_color")
+	if locked:
+		_pv_status.theme_type_variation = &"ToyPill"
+		_pv_status_label.theme_type_variation = &"TextDark"
+		_pv_status_icon.call("setup", "lock")
+		_pv_status_label.text = "LOCKED  ·  %s" % str(a.get("tag", ""))
+		ToyKit.fill_panel(_pv_status, LOCKED_CHIP)
+	elif cleared:
+		_pv_status.theme_type_variation = &"ToyChip"
+		_pv_status_label.theme_type_variation = &"ToyChipLabel"
+		_pv_status_icon.call("setup", "check")
+		_pv_status_label.text = "CLEARED"
+		ToyKit.fill_panel(_pv_status, ToyKit.GOLD.darkened(0.25))
+
+## RANDOM ROTATION's hero: a fan of every circuit crest (reuse-only stand-in for WK-65's painted RANDOM card).
+func _fill_fan() -> void:
+	var crests: Array[Texture2D] = []
+	for cid in _circuit_ids:
+		var t := _load_tex("%s/crest_%s.png" % [CREST_DIR, cid])
+		if t != null:
+			crests.append(t)
+	for i in range(5):
+		var tr := _pv_fan.get_node_or_null("Crest%d" % i) as TextureRect
+		if tr == null:
+			continue
+		tr.texture = crests[i % crests.size()] if not crests.is_empty() else null
+		tr.visible = tr.texture != null
+
+## Focus moved: a short pop on the art so the change reads (Tuning.arena_preview_*).
+func _pop_art() -> void:
+	if _pop_tween != null and _pop_tween.is_valid():
+		_pop_tween.kill()
+	var tgt: Control = _pv_fan if _pv_fan.visible else _pv_art
+	tgt.pivot_offset = tgt.size * 0.5
+	var dur: float = maxf(0.01, Tuning.arena_preview_swap_time)
+	tgt.scale = Vector2.ONE * Tuning.arena_preview_art_pop
+	_pv_name.modulate.a = 0.35
+	_pop_tween = create_tween().set_parallel(true)
+	_pop_tween.tween_property(tgt, "scale", Vector2.ONE, dur).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_pop_tween.tween_property(_pv_name, "modulate:a", 1.0, dur)
+
+func _start_rays() -> void:
+	_pv_rays.modulate.a = Tuning.arena_preview_rays_alpha
+	if Tuning.arena_preview_rays_spin <= 0.0:
+		return
+	var t := _pv_rays.create_tween().set_loops()
+	t.tween_property(_pv_rays, "rotation", TAU, 360.0 / Tuning.arena_preview_rays_spin).from(0.0)
+
+func _plate_gradient(c: Color) -> GradientTexture2D:
+	var grad := Gradient.new()
+	grad.set_color(0, c.lightened(0.18))
+	grad.set_color(1, c.darkened(0.38))
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill_from = Vector2(0.5, 0.0)
+	gt.fill_to = Vector2(0.5, 1.0)
+	gt.width = 64
+	gt.height = 64
+	return gt
+
+func _load_tex(path: String) -> Texture2D:
+	if path != "" and ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+## WK-60 (UX4-12 / CC-1.7): the footer names what A really does on the focused card. A LOCKED card shows the unlock
+## condition with a padlock instead of "A FIGHT!" (pressing is refused there). Rebuilt only when the set changes.
+func _update_footer(a: Dictionary) -> void:
+	var hb := get_node_or_null("Footer/HintBox")
+	if hb == null or not hb.has_method("set_hints"):
+		return
+	var first := "A|%s" % (GO_WORD_SPORTS if _sports else (GO_WORD_TRIALS if _trials else GO_WORD_BRAWL))
+	if bool(a.get("locked", false)):
+		# text only: no A glyph (A is refused here), and the padlock glyph is chocolate-on-scrim invisible
+		first = "|%s" % str(a.get("lock_footer", "LOCKED"))
+	if first == _hints_key:
+		return
+	_hints_key = first
+	hb.call("set_hints", PackedStringArray([first, "B|Back", "< >|Choose"]))
 
 ## Edge press feedback + mouse wheel on a hovered card. Key/pad events reach the focused card's
 ## gui_input before viewport focus-nav; wheel events are swallowed by the Button so they're
@@ -596,6 +861,13 @@ func activate(c: Control) -> void:
 ## After the shared entry stagger, fire the one-shot unlock celebration if one is pending (v6 §4.3).
 func enter() -> void:
 	super.enter()
+	# WK-60b: the preview drops in with the header (it is content, so it stays under the header/footer bands)
+	var rest := _preview.position
+	_preview.position = rest + Vector2(0, -24)
+	_preview.modulate.a = 0.0
+	var tp := _preview.create_tween().set_parallel(true)
+	tp.tween_property(_preview, "position", rest, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.06)
+	tp.tween_property(_preview, "modulate:a", 1.0, 0.22).set_delay(0.06)
 	if _pending_celebrate != "":
 		_play_unlock_celebration(_pending_celebrate)
 		_pending_celebrate = ""

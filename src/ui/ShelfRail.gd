@@ -22,6 +22,7 @@ const SCROLL_TIME := 0.26      # §3.6 scroll-to-focused: QUINT/OUT glide, retar
 var _scroll_tween: Tween
 var _nudge_tween: Tween
 var _rail_rest_x := RAIL_INSET   # rail X the scroll tween is heading to (rest between nudges)
+var _placed := false             # WK-60b: has scroll_to placed the rail once yet
 
 func _ready() -> void:
 	_idle_bob(_chev_l)
@@ -56,9 +57,16 @@ func scroll_to(card: Control, instant := false) -> void:
 	var target: float = SCREEN_W * 0.5 - (card.position.x + card.custom_minimum_size.x * 0.5)
 	var min_x: float = minf(RAIL_INSET, SCREEN_W - RAIL_INSET - rail_w)
 	target = clampf(target, min_x, RAIL_INSET)
+	# WK-60b: a rail shorter than the band (DROPSHOT's 3 courts) sits centred under the preview, not hard-left
+	if rail_w < SCREEN_W - 2.0 * RAIL_INSET:
+		target = (SCREEN_W - rail_w) * 0.5
 	_rail_rest_x = target
 	if _scroll_tween != null and _scroll_tween.is_valid():
 		_scroll_tween.kill()
+	# WK-60b: the first placement snaps (no whole-rail slide on screen entry / focus restore)
+	if not _placed:
+		instant = true
+		_placed = true
 	if instant:
 		_rail.position.x = target
 	else:

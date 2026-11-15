@@ -139,3 +139,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   pre-arm behaviour, raise the arm knob at runtime via eval or read the gate's `_open_msec` / `_arm_msec` vs now.
 - Piping `run_game.ps1` into `| tail` (or any pipe) hangs the shell: Godot inherits the launcher's stdout and keeps it open.
   Redirect to a file or don't pipe.
+- **WK-60: PadGlyph "lock" is drawn chocolate shackle + cream body, so it vanishes on a chocolate chip or the dark footer scrim**
+  (it rendered as a tiny cream bar). Put it on a light fill (cream / pale lilac pill) or leave it out. Same family as "check".
+- **WK-60: WASD is NOT bound to `ui_*`** (ui_right = Right arrow, D-pad right, stick only). Shell screens that ride Godot focus nav
+  (ArenaSelect, ModeSelect, Title) ignore WASD; only screens with their own move_* handling (lobby, Stepper/Toy*, MenuInputGate)
+  honour CC-2.1's "arrows and WASD". Fix belongs in the action map / InputRouter, not per screen.
+- **WK-60: crest_trials_orbit / crest_trials_varied shipped with OPAQUE dark backgrounds** (the other 10 crests were keyed). Cards crop
+  them so nobody noticed; at hero size (ArenaSelect preview, TrialsVictory) they showed a dark rectangle. Keyed with
+  `python tools/art.py keyout IN OUT --tol 45`; a game launch does NOT reimport a changed PNG, run the `--editor --quit` pass first.
