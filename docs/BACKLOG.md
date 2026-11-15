@@ -2945,7 +2945,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   "missing bumper_post.png" warning is wrong (file exists; horizontal bumpers always use the placeholder strip).
 - WK-46 note: stop menu auto-repeat from wrapping (a held D-pad on a 3-row panel lands back on the start row).
 
-### [ ] WK-180 [P3][S] Grass decal art exists but isn't wired (art-director call)
+### [x] WK-180 [P3][S] Grass decal art exists but isn't wired (art-director call) — d89f7fc
 - Source: WK-179. ArenaRenderer looks for assets/world/grass/decal_*.png but the art is at assets/world/grass/decals/{tuft_a,tuft_b,flower_white}.png.
   Wiring it changes every grass platform's look -> art-director brief/grade first. Same call: give horizontal bumpers real art (today a grey strip).
   Also: the CIRCUIT UNLOCKED banner text overlaps the arena preview panel's chips.
@@ -2953,3 +2953,9 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 ### [x] WK-181 [P2][S] A chain of eliminations within 0.5 s of each other revives EVERYONE in the chain into sudden death — 4f5e429
 - Source: WK-169b batch (T.A0.201.json, meadow_spine: all four goats revived; 7 of 240 forced stages). Sudden death should only revive
   the last two (owner SD rule). Check PartyMatch's double-KO window chaining.
+
+### [ ] WK-182 [P3][S] Square bumpers draw as "stacked donuts"; meadow corner tufts on wide-void arenas (art-director call)
+- Source: WK-180 wiring. Bumpers with h >= w are treated as posts; at ~120x120 they draw two caps with no pearls (the_box, pinball_pit,
+  bumper_gauntlet, hay_bales, singularity, bumper_mines, s3_hazard_striker, dropshot 90x100 floor corners). bumper_block would hang ~5 px
+  past a 120x120 collider; 90x100 doesn't fit -> decide: a square bumper sprite, or draw block art scaled to fit.
+- three_meadows / two_hills corners get end tufts because the void-lip rule (pit_void_rendering §6.3) never fires on one wide void band.
