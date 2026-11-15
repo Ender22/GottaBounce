@@ -2393,3 +2393,7 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 ### [x] WK-137 [P2][S] Trials fall triggers the Brawl "FIRST BLOOD!" announcer — 1f5b64d
 - Source: WK-85a builder (2P lesson 4, goat teleported into a gap -> "FIRST BLOOD!"). May be an artefact of the teleport; check a
   real fall in 2P Flight School. Brawl callouts (FIRST BLOOD / TWO LEFT) should never fire in Trials or sports.
+
+### [ ] WK-149 [P3][S] Horizontal TV safe area for corner chips
+- Source: lobby ui-ux verdict (docs/audit/2026-11-15_ux_lobby_verdict.md). Corner chips (BACK chip, mode chip) sit at x ~50 / ~1870;
+  clamp to x >= 96 and <= 1824 in `MenuScreen._fit_safe_area` (~8 lines; per-chip clamp, the vertical fit moves the whole band).
