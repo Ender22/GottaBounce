@@ -15,8 +15,8 @@ Uncommitted PARTIAL work in the tree, by lane (agent transcripts are saved; resu
 - WK-34 review fixes + WK-35 panel kit B (lane U, port 9104) — assets/ui/theme.tres, scenes/ui/{MatchHUD,ScoreScreen,
   SportsHUD,SportsVictory,TrialsHUD,VictoryScreen}.tscn, src/ui/{MenuFX,OptionsScreen,ScoreScreen,SportsHUD,
   SportsVictory,TrialsHUD,VictoryScreen}.gd, new src/ui/ToyKit.gd — agent a19fec0d5fc7e4508.
-- WK-66a sports net art (lane V) — assets/world/sports/ (new), tools/art.py (chroma key), assets/CATALOG.md —
-  agent a467d6184da9237d6.
+- WK-66a net ART committed 9e91e3c; NEXT: net draw-code build (ArenaRenderer/SportsMode, brief docs/briefs/sports_nets_2026-11-15.md;
+  goal 3-slice cap_frac 0.13 mouth_h+31, Dropshot frame cap_frac 0.23 at 80 wpx) once a Godot slot is free.
 - WK-135 standable-bumpers spec (doc only, docs/specs/wk135_*) — agent af926bde2ee0bc6f7.
 Keep-awake script died with the session: restart `scratchpad/keepawake.ps1` (background) before rendered timing work.
 CONCURRENCY CAP from now on: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
