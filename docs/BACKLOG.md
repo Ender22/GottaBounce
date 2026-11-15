@@ -1941,7 +1941,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - WK-CD2 gap #4: still "a dark stadium in a flat letterbox, and SUNSET BEACH has no beach". The letterbox half is WK-122 (S, pull first).
 - Status: open
 
-### [ ] WK-83 [P2][S] Lobby: "who are we waiting on" nudge + title-safe layout
+### [x] WK-83 [P2][S] Lobby: "who are we waiting on" nudge + title-safe layout — 6e57111
 - Source: ui-ux-designer lobby review L7 + L9 · Area: menus · Owner: gameplay-programmer (lobby builder) · Deps: none
 - Evidence: L9 code-verified 2026-11-14 — HerdLobby.tscn Header/BackBtn offset_top 22, Footer offset_bottom 1066 (1080 space). L7 is a missing cue (spec).
 - Do: (L7) a READY player pressing A/Start before the banner nudges every still-PICKING panel (8 px, 0.12 s) and flashes its
@@ -1974,7 +1974,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   next to P2/P3; empty-lobby auto-join still works; a device that is already seated is not duplicated.
 - Status: done bbe6996. UX4 rendered re-check: the confirming device is auto-seated as P1 (CC-4.8).
 
-### [ ] WK-138 [P2][S] Lobby prompts tell the truth: footer of always-true verbs, one hold-B exit chip, no LOCK IN on a taken goat (UX4-05 + UX4-03 + UX4-17)
+### [x] WK-138 [P2][S] Lobby prompts tell the truth: footer of always-true verbs, one hold-B exit chip, no LOCK IN on a taken goat (UX4-05 + UX4-03 + UX4-17) — 6e57111
 - Area: menus · Owner: ui-ux-designer (+ gameplay-programmer, lobby builder) · Source: ui-ux-designer UX4 2026-11-15 (UX4-05 P2, UX4-03 P2,
   UX4-17 P3; one root cause: lobby prompts that are not true for the player reading them, CC-1.7)
 - Evidence:
