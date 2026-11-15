@@ -2965,3 +2965,15 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   bumper_gauntlet, hay_bales, singularity, bumper_mines, s3_hazard_striker, dropshot 90x100 floor corners). bumper_block would hang ~5 px
   past a 120x120 collider; 90x100 doesn't fit -> decide: a square bumper sprite, or draw block art scaled to fit.
 - three_meadows / two_hills corners get end tufts because the void-lip rule (pit_void_rendering §6.3) never fires on one wide void band.
+
+### [ ] WK-183 [P2][S] Rocketball / sports show no per-player fuel gauge (owner: fuel must be readable; WK-175 WR is taught by the gauge)
+- Source: docs/audit/2026-11-16_wk175_rendered.md F1. Team scores only; nobody can see their tank in sports, so "walls refuel once"
+  (and the ball refuel, WK-135) is invisible. ui-ux-designer call: slim per-player gauge on the sports HUD, or a carried mini-gauge
+  under each goat, plus the refuel ding. Ship alongside / before WK-175 WR goes ON. Lane: MatchHUD / sports HUD.
+
+### [ ] WK-184 [P3][S] Rocketball goal-mouth camp: out-of-fuel goat sits on the lower goal post top and floor-dribbles 15-35 fuel forever
+- Source: wk175_rendered F2. The post top classes as FLOOR (always pays). Evidence for deferred WK-175b floor-dribble gate; designer to
+  decide (exclude goal-post tops from FLOOR pay, or accept). OFF is worse (pinned 100), so it doesn't block WR.
+
+### [ ] WK-185 [P3][S] Bumper Gauntlet opening: two bots bonk the right face of the posts 5-7x in ~0.45 s every stage start
+- Source: wk175_rendered F3 (identical OFF/WR; costs ~15 fuel under WR). Bot motion-health bucket with WK-168 — spawn-route lean.
