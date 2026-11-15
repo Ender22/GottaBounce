@@ -1312,7 +1312,7 @@ first. Its re-judge list is in the WK-CD5 entry.
 - **Re-rank #9:** mostly delivered. WASD menu nav came in WK-151 5521929; device-true prompts in WK-29 9eb3c60 and WK-138 6e57111. The Q/E shelf
   paging is unverified. WK-160 runs this Accept, then closes it or files the gap.
 
-### [ ] WK-31 [P1][M] HUD card shows danger: damage-level state, labelled fuel, stocks when LIVES > 1
+### [x] WK-31 [P1][M] HUD card shows danger: damage-level state, labelled fuel, stocks when LIVES > 1 — b131ac6
 - Sources: R-06 (damage/lives half) · **OWNER-RULED**: no persistent KO score on cards (see Deferred)
 - Area: HUD · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-08
 - Accept (rendered): eval damage_level 0/1/2 on P1 -> card shows three distinct states; fuel bar has an icon; LIVES 3 shows 3 pips.
