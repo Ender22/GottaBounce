@@ -514,7 +514,7 @@ another simulated pass has lower value than a real session, so CD6 is scoped to 
 - **Re-rank #9: Next-10 #3.** WK-131's A/B is done, so the only gates left are lane S (after WK-108b commits) and the headless queue: its A/B runs
   after WK-135 phase 3's, so one sports variable moves at a time. The hit-stop garnish stays BLOCKED (GPU).
 
-### [ ] WK-110 [P2][M] Sports tension: MATCH POINT / GOLDEN GOAL banners + GOALS rule stepper (SP-08)
+### [x] WK-110 [P2][M] Sports tension: MATCH POINT / GOLDEN GOAL banners + GOALS rule stepper (SP-08) — 1d09784
 - Area: sports | menus · Owner: game-designer + gameplay-programmer + ui-ux-designer · Source: WK-98 SP-08
 - Evidence: M3 went 3-5 -> 6-5 through an 82 s rally at 5-5 with nothing on screen; the brawl MATCH POINT path (WK-41) is kill-driven
   and never fires in sports; RULES has only FORMAT + CPU SKILL (`tools/out/sports/09_rules.png`); `Tuning.sports_goal_target = 6`
