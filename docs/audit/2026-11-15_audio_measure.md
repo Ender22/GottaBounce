@@ -246,3 +246,85 @@ Record one Dropshot run (same seed 7) and one Brawl MEADOW MILE run with KOs, th
 | WK-79b-9 | S-2 brighter ball touch (promote impact_generic_light) | P2 / S | sound-designer |
 | WK-79b-10 | R9 music duck under payoffs | P3 / S | gameplay-programmer |
 | WK-79b-11 | R11 game-time rate-limit clock; R12 balloon_pop trim; S-5 hazard_shoved cue | P3 / S | gameplay-programmer |
+
+---
+
+## 2026-11-15 (later): WK-79b verification. Recorded after the mix landed (eb22764)
+
+Sound-designer. Three Movie Maker recordings, 40 s of combat each, seed 7, 4 x L3 bots, run one at a time. `audio.wav`
+was kept automatically: T-1 works, and both extraction paths were also checked bit-exact offline. The measurement
+script is `tools/out/wk/WK-79a_scripts/measure_run.py <run dir> <repo>`, plus `loopband.py` / `cuefit.py` for the
+checks below.
+
+| Run | Mode / arena | Notes |
+|---|---|---|
+| `tools/out/rec/WK-79b_brawl_meadow` | Brawl, MEADOW MILE circuit (Long Meadow; CD4-01 shuffle) | 21 supers, 22 smashes, 6 KOs (all ring-outs), 3 bleats, 28 aim windows |
+| `tools/out/rec/WK-79b_rocketball` | Rocketball, Sports Court | 2 goals, 5 supers, gates open x3 |
+| `tools/out/rec/WK-79b_dropshot_beach` | Dropshot, Dropshot Beach (**like-for-like** with WK-108b: same mode, arena and seed) | 2 points, 2 supers, 1 hole fall |
+| ~~`tools/out/rec/WK-79b_dropshot`~~ | INVALID. `-Arena dropshot_beach` resolved to the missing `res://levels/dropshot_beach.json` and fell back to Sports Court (a near-copy of the Rocketball run). Sports arenas need the full `res://levels/sports/...` path | |
+
+### Before / after
+
+"Before" is WK-108b (Dropshot Beach), re-measured with the same script.
+
+| Metric | Before (Dropshot) | After Dropshot (like-for-like) | After Brawl | After Rocketball | Expected (WK-79b) | Verdict |
+|---|---|---|---|---|---|---|
+| Integrated loudness | -14.2 LUFS | **-17.1** | **-17.0** | **-16.7** | -16 to -19 | PASS. No Music-bus change needed |
+| Loudness range | 2.8 LU | 2.6 | 2.9 | 2.3 | >= 5 | FAIL, but the target was unrealistic: over a 50 s window the mix follows the music, and the gameplay tracks measure LRA 3.4 / 5.8 / 1.8 / 2.0 LU over their full length. Use event rise instead (below) |
+| True peak | -1.1 dBTP | **-3.7** | -1.9 | -2.2 | <= -1.2 | PASS |
+| 10 ms blocks >= -2 dBFS (clusters) | 17 (8 in COUNTDOWN) | **0** | 2 (both COMBAT, 0 COUNTDOWN) | 0 | 0 in COUNTDOWN | PASS |
+| Thrust share of combat sound | -3.3 dB (thrust gain -4.8) | **-9.4** (gain -14.5) | -17.4 (gain -22.7; bots boost only 26-42 % of air time) | -9.9 (gain -14.9) | <= -8 | PASS |
+| Thrust in STAGE_END / COUNTDOWN | -8.5 dB | -23.1 (fit noise floor) | countdowns: per-band correlation about 0 above 1 kHz (-30 to -68 dB) | -23.3 (floor) | silent | PASS: the R3 frozen gate works |
+| Music share of combat sound | -8.5 dB | **-4.0** | -5.0 | -4.1 | more audible | PASS (12 % -> 40 % of the energy) |
+| 0.5-2 kHz, 0-0.6 s after a super | +0.4 dB (worst -3.5) | +1.0 (worst +0.3) | +2.7 (n=21) | +2.0 | rises | PASS: the slam crack layer reads |
+| 0.5-2 kHz, super tail (0.6-2.5 s vs before) | **-3.5 dB (worst -6.4)** | +0.6 (worst 0.0) | -0.1 (worst -3.8) | +0.6 | no drop | PASS: the super no longer pumps the bus |
+| 20-60 Hz share, 2.5 s after a super | -2.1 dB | **-12.8** | -15.6 | -12.4 | <= -12 | PASS |
+| Combat 20-60 Hz share / centroid | -8.3 dB / 734 Hz | -13.1 / 872 Hz | -14.0 / 838 Hz | -13.2 / 946 Hz | — | less rumble, brighter |
+| Bounce band (1.0-1.6 kHz), p90 margin | +4.0 dB | **+6.1** | +6.5 | +5.6 | >= +6 | PASS (Rocketball 0.4 dB short) |
+| Point / goal rise over the 2 s bed | +5.2 LU | **+3.7** | (stage end +1.7) | +3.4 | >= +6 | **FAIL, worse** |
+| KO rise | — | +3.7 (n=1, hole fall) | **+2.8** (n=6, range +1.1..+4.0) | — | >= +6 (Brawl predicted +8) | **FAIL** |
+| GO rise | +1.5 LU | +1.0 | +3.9 | +1.0 | >= +6 | FAIL (see caveat) |
+| Super rise | +0.9 LU | +3.3 | +1.9 (n=21) | +1.6 | — | better, still small |
+
+Caveat on the rise metric: the 2 s bed before a GO or countdown in stages 2+ is the previous point's celebration. In
+Brawl, a KO's bed includes the smash or super that caused it. So GO and countdown rises understate how they read.
+KO and goal rises are fair.
+
+### Two things learned while measuring
+
+1. **The full-band loop fit under-reads the thrust after R7.** The new 40 Hz 24 dB/oct high-pass shifts the phase of
+   the loop's 60-500 Hz content (correlation goes NEGATIVE, -0.15 to -0.23), so a full-band projection read the thrust
+   about 8-10 dB too low (-22 to -23 dB). Per-band fits put it where designed: -14.4 to -16 dB in 0.5-5 kHz, i.e.
+   -12 dB minus about 2.5 dB of compression. `measure_run.py` now fits on 0.5-2 kHz only. WK-108b reads the same either
+   way (-4.8 vs -4.3).
+2. **The remaining fail is the SFX-bus compressor flattening the payoffs.** Calibration with the countdown beep: -4 dB
+   played reads -3.8/-5.0 dB before and -8.0/-9.5 dB after, as designed (makeup gone; about 4-5 dB of compression on a
+   cue 5 dB over threshold). The Brawl KO pop (`death` at +1 dB, pitch-searched fit of its first 0.35 s at all 5
+   clean KOs) reads **-2.5 to -6.4 dB, so the compressor takes 3.5-7.4 dB (median about 5) off the KO**. The point
+   stinger also lost the 4 dB makeup net (sax stayed at +4), so its absolute level fell more than the bed did: rise
+   +5.2 -> +3.7. Threshold -10 dB at 2.5:1 on the whole SFX bus means every payoff loud enough to matter is
+   compressed against the bed. There is now 1.9-3.7 dB of true-peak headroom to spend.
+
+### Visual check (looked at)
+
+`tools/out/wk/WK-79b_spectrum_brawl_meadow.png`, `WK-79b_spectrum_rocketball.png`, `WK-79b_spectrum_dropshot_beach.png`:
+- No solid sub blocks after supers, and no darkening of the highs (compare `WK-79a_spectrum_super.png`).
+- Bounce pings (1-1.5 kHz dashes), goal sax stairs + crowd, the gate whistle (2.5-3.5 kHz double stripes 3.5 s after
+  each GO) and the Dropshot hole-fall slide whistle (18.6 s) all read.
+- New prominence: in Brawl the super_aim rising sweep (250 Hz -> 1 kHz) is now the most visible repeated feature. 28 aim
+  windows of about 0.6 s means a wind-up is sounding for roughly 38 % of combat. Not wrong by the numbers, but it needs
+  ears, or a trim to -4/-5 dB if a listener finds it nagging.
+
+### Next changes (WK-79c, NOT applied; outside this pass's brief)
+
+| # | Pri/Size | Change | Expected effect |
+|---|---|---|---|
+| C1 | P1/S | `default_bus_layout.tres` SFX compressor `threshold` -10 -> **-6 dB**, `ratio` 2.5 -> **2.0** (attack 2 ms / release 150 ms unchanged) | about +2.5-4 dB back on KO, goal and super onsets vs the bed. The limiter (-1.5) still guards; measured TP headroom is 1.9-3.7 dB |
+| C2 | P1/S | `AudioManager.gd:582` goal sax `volume_db` +4 -> **+7** (file peak -10 dBFS -> -3 pre-compressor) | restores the 4 dB the makeup removal took from the stinger. Point/goal rise back to >= +6 LU (with C1) |
+| C3 | P2/S | `_on_combat_started` `go` 0 -> **+3** (file peak -4.9 -> -1.9) | GO currently reads like the countdown beeps |
+| C4 | P3/S | `SUPER_AIM_DB` -2 -> -4 only if a listener reports the Brawl wind-up as nagging (38 % duty) | — |
+| C5 | P3/S | the R4 trims still pending outside AudioManager: `Cannon.gd:120` -2 -> -10, `KeyDoor.gd:80` -8 -> -16, `HerdLobby.gd:776` -12 -> -20 | super-sound reuses match the new super level |
+| C6 | P3/S | `tools/record_match.ps1`: resolve bare sports arena names (`dropshot_beach` -> `res://levels/sports/dropshot_beach.json`) or fail loudly instead of falling back to Sports Court | prevents a silent wrong-arena recording like `WK-79b_dropshot` |
+
+Accept for C1-C3: re-run the same three recordings. KO rise (Brawl) >= +5 LU, point/goal rise >= +6 LU, TP <= -1.2 dBTP,
+integrated still -16 to -19 LUFS, 0 COUNTDOWN ceiling hits.
