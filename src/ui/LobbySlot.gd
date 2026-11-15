@@ -22,6 +22,12 @@ const PILL_MIN_W := 140.0
 const PILL_CHEV_ROOM := 64.0   # both chevrons (24 px each + gaps) inside the pill
 const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smash / MK8), not see-through glass
 
+# WK-143 (UX4-20, WK-14 grammar "only the focused thing is green"): RULES value pills are neutral cream with chocolate
+# type; only the focused row's pill turns the focus green (white type, chocolate outline) with its chevrons. Both
+# styles are authored in LobbySlot.tscn (sub-resources "pill" / "pill_focus").
+@export var pill_idle_style: StyleBox
+@export var pill_focus_style: StyleBox
+
 @onready var _plate: Panel = $Plate
 @onready var _header: Control = $Header
 @onready var _badge: Panel = $Header/PBadge
@@ -35,6 +41,7 @@ const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smas
 @onready var _chev_l: Control = $BustWell/ChevL
 @onready var _chev_r: Control = $BustWell/ChevR
 @onready var _taken: Label = $TakenChip
+@onready var _flash: Label = $FlashChip   # WK-145 (UX4-19): "P3 HAS THE RULES" sits under the name bar, never on the READY! stamp
 @onready var _banner: Panel = $NameBanner
 @onready var _name: Label = $NameBanner/Name
 @onready var _blurb: Label = $Blurb
@@ -125,6 +132,7 @@ func set_sports_layout(on: bool) -> void:
 ## motion (bust falls out, plate darkens).
 func show_empty(kb_free: bool, animate: bool) -> void:
 	_clear_disc()
+	_hide_flash()   # WK-145
 	_joined = false
 	_ready_on = false
 	_device_key = ""
@@ -328,18 +336,29 @@ func set_taken_text(text: String) -> void:
 	if _joined and not _ready_on:
 		_set_status_picking()
 
-## A short-lived chip in the TakenChip style ("P1 HAS THE RULES", 1.2 s), then the real taken state returns.
+## A short-lived chip in the TakenChip style ("P1 HAS THE RULES", 1.2 s). WK-145 (UX4-19): its own node anchored just
+## below the name bar (over the blurb for the 1.2 s), so it never covers the presser's READY! stamp or TAKEN chip.
 func flash_chip(text: String, secs: float) -> void:
 	_flash_gen += 1
 	var gen := _flash_gen
-	_taken.text = text
-	_taken.visible = true
-	_taken.pivot_offset = _taken.size * 0.5
-	MenuFX.value_pop(_taken, 1.12)
+	_flash.text = text
+	_flash.visible = not _on_back
+	# centred on the blurb band (the blurb steps aside for the 1.2 s, so no half-covered words peek out); in SPORTS
+	# the blurb sits lower, under the team ribbon, so the chip never covers the RED / BLUE ribbon either
+	_flash.position.y = (_blurb.offset_top + _blurb.offset_bottom) * 0.5 - _flash.size.y * 0.5
+	_flash.pivot_offset = _flash.size * 0.5
+	_blurb.modulate.a = 0.0 if _flash.visible else 1.0
+	MenuFX.value_pop(_flash, 1.12)
 	get_tree().create_timer(secs).timeout.connect(func() -> void:
 		if gen != _flash_gen or not is_instance_valid(self):
 			return
-		set_taken_text(_taken_text))
+		_flash.visible = false
+		_blurb.modulate.a = 1.0)
+
+func _hide_flash() -> void:
+	_flash_gen += 1
+	_flash.visible = false
+	_blurb.modulate.a = 1.0
 
 ## PICKING <-> READY (E.10 lock / un-ready motion). WK-81 F7: READY fades the carousel chevrons out —
 ## the locked panel looks finished; un-ready fades them back.
@@ -465,6 +484,7 @@ func waiting_flash() -> void:
 ## keyboard is not seated (it can take over too). The lobby owns the timer and calls set_disc_remaining().
 func show_disconnected(kb_free: bool) -> void:
 	disconnected = true
+	_hide_flash()   # WK-145
 	_ready_on = false
 	_kill(_flip_tw)
 	_kill(_idle)
@@ -560,12 +580,6 @@ func show_rules(data: Dictionary) -> void:
 		_layout_row(row, n >= 6)
 		if n >= 6:
 			row.position.y = ROW6_Y0 + ROW6_PITCH * i
-		var ps := StyleBoxFlat.new()
-		ps.bg_color = _color
-		ps.border_color = CHOCO
-		ps.set_border_width_all(4)
-		ps.set_corner_radius_all(30)
-		(row.get_node("Pill") as Panel).add_theme_stylebox_override("panel", ps)
 	refresh_rules(data, -1, 0)
 	_flip(true)
 
@@ -587,6 +601,7 @@ func refresh_rules(data: Dictionary, changed: int, dir: int) -> void:
 		sb.set_border_width_all(6 if on else 0)
 		sb.set_corner_radius_all(16)
 		row.add_theme_stylebox_override("panel", sb)
+		_style_pill(row, on)   # WK-143: cream pill, green only on the focused row
 		(row.get_node("Pill/ChevL") as Control).visible = on and not locked
 		(row.get_node("Pill/ChevR") as Control).visible = on and not locked
 		(row.get_node("Pill/Lock") as Control).visible = locked
@@ -605,6 +620,18 @@ func refresh_rules(data: Dictionary, changed: int, dir: int) -> void:
 			if dir != 0:
 				(row.get_node("Pill/ChevR" if dir > 0 else "Pill/ChevL") as Object).call("nudge")
 	_rules_focus = focus
+
+## WK-143: idle pill = cream + chocolate type (a value, not a button); focused pill = focus green + white type with the
+## chocolate outline, so exactly one green pill is on the card and it moves with focus.
+func _style_pill(row: Panel, on: bool) -> void:
+	var pill: Panel = row.get_node("Pill")
+	var val: Label = pill.get_node("Value")
+	var st: StyleBox = pill_focus_style if on else pill_idle_style
+	if st != null:
+		pill.add_theme_stylebox_override("panel", st)
+	val.add_theme_color_override("font_color", Color.WHITE if on else CHOCO)
+	val.add_theme_color_override("font_outline_color", CHOCO)
+	val.add_theme_constant_override("outline_size", 6 if on else 0)
 
 ## WK-37: 6-row compact layout (true) or the authored 72 px rows (false). Title stays 28 px; value text 32 / 40 px.
 func _layout_row(row: Panel, compact: bool) -> void:
@@ -675,6 +702,8 @@ func _flip(to_back: bool) -> void:
 
 func _set_face(back: bool) -> void:
 	_on_back = back
+	if back:
+		_hide_flash()   # WK-145
 	_rules_face.visible = back
 	for n in [_well, _banner, _blurb, _flair_row, _status, _dev_name, _dev_icon]:
 		(n as Control).visible = not back and _joined

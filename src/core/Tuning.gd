@@ -853,3 +853,12 @@ var end_btn_unfocused_alpha: float = 1.0      # modulate alpha of unfocused end-
 var sports_victory_scrim_alpha: float = 0.7   # SportsVictory chocolate scrim alpha (Brawl's 0.55 left dark courts' goats readable)  # WK-139
 var sports_victory_win_tint_alpha: float = 0.28   # winning team's non-MVP rows: team-colour well tint  # WK-139
 var sports_victory_lose_tint_alpha: float = 0.14  # losing team's rows: lighter team-colour well tint (was untinted)  # WK-139
+
+# --- WK-145 lobby nits: unlock-card flair icon (UX4-26). Read by src/ui/FlairSwatch.gd (HerdLobby unlock card).  # WK-145
+var unlock_icon_sky: Color = Color("#3A2F5B")  # the icon disc's backdrop: twilight sky, so the glowing flair (streak / flame / pop / banner) pops on it  # WK-145
+var unlock_icon_goat_px: float = 66.0         # px the tiny goat wearing the flair is drawn at inside the 128 px disc  # WK-145
+# --- WK-149 horizontal TV safe area for header corner chips. Read by src/ui/MenuScreen.gd (_fit_safe_area).  # WK-149
+var tv_safe_margin_x: float = 0.05            # share of screen WIDTH kept clear left + right: corner chips x >= 96, <= 1824 at 1920  # WK-149
+# --- WK-141 controls legend: first frame + sports legend out of the ball's band (UX4-10/11). Read by src/ui/ControlsLegend.gd.  # WK-141
+var sports_legend_touch_alpha: float = 0.4    # sports legend alpha after the first live ball touch (removed at the first goal)  # WK-141
+var sports_legend_touch_fade: float = 0.3     # s the dip to sports_legend_touch_alpha takes  # WK-141

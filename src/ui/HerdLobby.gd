@@ -75,6 +75,7 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _unlock_card: Control = $UnlockCard
 @onready var _unlock_panel: PanelContainer = $UnlockCard/Center/Card
 @onready var _unlock_icon: Panel = $UnlockCard/Center/Card/Row/Icon
+@onready var _unlock_swatch: Control = $UnlockCard/Center/Card/Row/Icon/Swatch   # WK-145: the flair itself, on a tiny goat
 @onready var _unlock_name: Label = $UnlockCard/Center/Card/Row/Text/Name
 @onready var _unlock_owner: Label = $UnlockCard/Center/Card/Row/Text/Owner
 @onready var _f_join: Control = $Footer/HintRow/GJoin/Glyph
@@ -1591,11 +1592,14 @@ func _play_flair_celebration(fid: String) -> void:
 		EventBus.match_won.emit(0)   # reuse the win fanfare sting (presentation only)
 		_unlock_name.text = display
 		_unlock_owner.text = "THE HERD'S %d KOs EARNED IT  ·  EVERY PLAYER CAN WEAR IT" % int(item.get("threshold", 0))
+		# WK-145 (UX4-26): the disc shows the flair itself, worn by a tiny goat (P1's, or the first seated goat), over
+		# a twilight sky (Tuning.unlock_icon_sky) so the glowing streak / flame / pop / ribbon reads; the generic star is gone.
 		var base: StyleBox = _unlock_icon.get_theme_stylebox("panel")
 		if base is StyleBoxFlat:
 			var sb: StyleBoxFlat = (base as StyleBoxFlat).duplicate()
-			sb.bg_color = _flair_swatch(item)
+			sb.bg_color = Tuning.unlock_icon_sky
 			_unlock_icon.add_theme_stylebox_override("panel", sb)
+		(_unlock_swatch as Object).call("setup", item, _portrait(_unlock_goat()))
 		ToyKit.fill_panel(_unlock_panel, ToyKit.CREAM)   # opaque: the plate's 0.97 alpha let the title ghost through
 		_unlock_card.visible = true
 		_unlock_card.modulate.a = 1.0
@@ -1610,18 +1614,9 @@ func _play_flair_celebration(fid: String) -> void:
 			_unlock_card.visible = false
 			_unlock_card.position.y = rest_y))
 
-## WK-52: the icon disc's fill = the flair's own colour (streak head / flame + KO-pop mid stop); titles and the
-## rainbow streak read gold.
-func _flair_swatch(item: Dictionary) -> Color:
-	var params: Dictionary = item.get("params", {}) as Dictionary
-	var rgb: Array = []
-	match str(item.get("channel", "")):
-		"streak":
-			rgb = params.get("head", []) as Array
-		"flame", "kopop":
-			var stops: Array = params.get("stops", []) as Array
-			if stops.size() > 1:
-				rgb = stops[1] as Array
-	if rgb.size() >= 3:
-		return Color(float(rgb[0]), float(rgb[1]), float(rgb[2]))
-	return ToyKit.GOLD
+## WK-145: whose goat models the new flair on the unlock card: the first seated slot's goat, else the first goat.
+func _unlock_goat() -> int:
+	for s in slots:
+		if s["state"] != S_EMPTY:
+			return int(s["goat"])
+	return 0

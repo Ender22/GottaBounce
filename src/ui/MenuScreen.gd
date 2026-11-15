@@ -175,12 +175,33 @@ func _fit_safe_area() -> void:
 		if top < m:
 			h.offset_top += m - top
 			h.offset_bottom += m - top
+		_fit_corner_chips(h)   # WK-149
 	var f := footer_node()
 	if f != null and f.visible:
 		var bot: float = _ink_span(f).y
 		if bot > size.y - m and bot < size.y + 200.0:
 			f.offset_top -= bot - (size.y - m)
 			f.offset_bottom -= bot - (size.y - m)
+
+## WK-149 (lobby ux verdict follow-up, TV overscan): the header's CORNER chips (BACK, the mode chip) sit inside the
+## action-safe band horizontally too (Tuning.tv_safe_margin_x of the width: x 96..1824 at 1920). Per chip, not the
+## whole band: the vertical fit moves the band, but a corner chip only moves sideways. Labels and anything wider
+## than half the screen (the centred title) are not corner chips and stay put. Idempotent on re-entry.
+func _fit_corner_chips(band: Control) -> void:
+	var mx: float = size.x * Tuning.tv_safe_margin_x
+	for c in band.get_children():
+		var cc := c as Control
+		if cc == null or not cc.visible or cc is Label or cc.size.x > size.x * 0.5:
+			continue
+		var x0: float = band.position.x + cc.position.x
+		var d := 0.0
+		if x0 < mx:
+			d = mx - x0
+		elif x0 + cc.size.x > size.x - mx:
+			d = (size.x - mx) - (x0 + cc.size.x)
+		if d != 0.0:
+			cc.offset_left += d
+			cc.offset_right += d
 
 ## Vertical span (top, bottom) in this screen's space of what `band`'s visible direct children draw.
 func _ink_span(band: Control) -> Vector2:

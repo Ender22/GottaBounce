@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="5_glyph"]
 [ext_resource type="Script" path="res://src/ui/Backdrop.gd" id="6_backdrop"]
 [ext_resource type="Script" path="res://src/ui/Chevron.gd" id="7_chev"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/star_full.png" id="8_star"]
+[ext_resource type="Script" path="res://src/ui/FlairSwatch.gd" id="8_swatch"]
 
 [sub_resource type="StyleBoxFlat" id="chip_cream"]
 content_margin_left = 22.0
@@ -744,21 +744,15 @@ size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"ToyDisc"
 
-[node name="Star" type="TextureRect" parent="UnlockCard/Center/Card/Row/Icon"]
+[node name="Swatch" type="Control" parent="UnlockCard/Center/Card/Row/Icon"]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -40.0
-offset_top = -40.0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("8_star")
-expand_mode = 1
-stretch_mode = 5
+script = ExtResource("8_swatch")
 
 [node name="Text" type="VBoxContainer" parent="UnlockCard/Center/Card/Row"]
 layout_mode = 2

@@ -28,13 +28,16 @@ const VERBS := {
 }
 const DEFAULT_VERBS := ["move", "fly", "super", "powerup", "pause"]
 ## WK-113 (SP-22): in sports the super does two jobs; the chip says both (a smash on a rival clears the keeper).
-const SPORTS_SUPER_LABEL := "SUPER-SMASH THE BALL (POWER SHOT) OR A RIVAL (CLEAR THEM)"
+## WK-141 (UX4-10): short enough that the sports strip fits ONE row (was the 54-char "SUPER-SMASH THE BALL (POWER
+## SHOT) OR A RIVAL (CLEAR THEM)", which forced a second row deep into the court).
+const SPORTS_SUPER_LABEL := "SUPER-SMASH BALL OR RIVAL"
 
 @onready var _strip: HBoxContainer = $Root/Strip
 @onready var _strip2: HBoxContainer = $Root/Strip2   # WK-29: overflow row (mixed-couch twin glyphs widen the chips)
 @onready var _goal_row: HBoxContainer = $Root/GoalRow
 @onready var _goal_chip: PanelContainer = $Root/GoalRow/GoalChip
 @onready var _goal_label: Label = $Root/GoalRow/GoalChip/GoalLabel
+@onready var _root: Control = $Root   # WK-141: held transparent until the rows are laid out
 
 var _combat := false
 var _fade_t := -1.0
@@ -44,6 +47,10 @@ var _move_chip: PanelContainer = null
 var _super_chip: PanelContainer = null   # WK-29: the widest chip, moved to Strip2 when one row overflows
 
 var _goal_offsets := Vector2.ZERO   # WK-29: the scene's GoalRow offset_top/bottom (a bottom-dock overflow lifts it)
+var _sports := false                # WK-141: this present() is the top-docked sports legend
+var _ball_hooked: Object = null     # WK-141: the sports ball whose first live touch dims the legend
+var _touch_dimmed := false
+var _gen := 0                       # WK-141: present() generation (a REMATCH re-present cancels a pending layout)
 
 func _ready() -> void:
 	visible = false
@@ -52,6 +59,11 @@ func _ready() -> void:
 ## verbs: GameMode.legend_verbs() ids in display order. goal: one-line rule for the gold chip ("" = no chip).
 func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 	visible = true
+	_gen += 1
+	var gen := _gen
+	# WK-141 (UX4-11): nothing shows until the rows are fitted. The chips are added at full size this frame and only
+	# measured next frame, so the one-row strip used to flash over the corner HUD cards before WK-29 reflowed it.
+	_root.modulate.a = 0.0
 	_combat = false
 	_dying = false
 	_fade_t = -1.0
@@ -59,6 +71,11 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 	_strip2.modulate.a = 1.0
 	_goal_row.modulate.a = 1.0
 	var sports: bool = _is_sports()   # WK-113
+	_sports = sports
+	_touch_dimmed = false
+	_ball_hooked = null
+	if sports and not EventBus.goal_scored.is_connected(_on_goal_scored):
+		EventBus.goal_scored.connect(_on_goal_scored)   # WK-141: the first goal removes the legend
 	for c in _strip.get_children():
 		c.queue_free()
 	for c in _strip2.get_children():
@@ -99,9 +116,16 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 		_dock_top()   # WK-113
 	# staggered left->right pop-in (house stagger 0.12); the goal chip lands first — the WHY before the HOW
 	await get_tree().process_frame
-	if not visible:
+	if not visible or gen != _gen:
 		return
 	_fit_rows(sports)   # WK-29
+	# WK-141: every chip starts the pop at alpha 0 BEFORE the layer is revealed, so the first visible frame is
+	# already the final layout (nothing pops in at full size and then reflows)
+	if _goal_row.visible:
+		_goal_chip.modulate.a = 0.0
+	for c in _chip_nodes:
+		(c["panel"] as Control).modulate.a = 0.0
+	_root.modulate.a = 1.0
 	var pops: Array = []
 	if _goal_row.visible:
 		pops.append(_goal_chip)
@@ -176,6 +200,8 @@ func on_combat_started() -> void:
 func _process(delta: float) -> void:
 	if not visible or _dying:
 		return
+	if _sports and not _touch_dimmed:
+		_hook_ball()   # WK-141
 	# press-bounce: the strip answers the buttons it teaches
 	for c in _chip_nodes:
 		var act: String = c["action"]
@@ -196,6 +222,33 @@ func _bounce_chip(p: PanelContainer) -> void:
 	var tw := create_tween()
 	tw.tween_property(p, "scale", Vector2(0.88, 0.88), 0.06)
 	tw.tween_property(p, "scale", Vector2.ONE, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## WK-141 (UX4-10): the sports legend sits in the court's top band, where the ball flies. The first live touch dims
+## it to Tuning.sports_legend_touch_alpha (still readable, no longer a wall); the first goal removes it. The ball
+## re-spawns every kickoff, so the hook re-finds it by group ("sports_ball") instead of holding a reference.
+func _hook_ball() -> void:
+	if _ball_hooked != null and is_instance_valid(_ball_hooked):
+		return
+	var b: Node = get_tree().get_first_node_in_group("sports_ball")
+	if b == null or not b.has_signal("touched"):
+		return
+	_ball_hooked = b
+	b.connect("touched", _on_ball_touched, CONNECT_ONE_SHOT)
+
+func _on_ball_touched(_p: Variant = null, _is_power: Variant = null) -> void:
+	if _touch_dimmed or _dying or not visible:
+		return
+	_touch_dimmed = true
+	var tw := create_tween()
+	tw.tween_property(_root, "modulate:a", Tuning.sports_legend_touch_alpha, Tuning.sports_legend_touch_fade)
+
+func _on_goal_scored(_team: Variant = null, _scorer: Variant = null, _own: Variant = null) -> void:
+	if _sports and visible and not _dying:
+		_fade_out()
+
+## eval-readable (QA): the legend's effective alpha (layer x rows).
+func shown_alpha() -> float:
+	return _root.modulate.a * _strip.modulate.a if visible else 0.0
 
 func _fade_out() -> void:
 	_dying = true

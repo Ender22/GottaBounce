@@ -1,9 +1,17 @@
-[gd_scene load_steps=12 format=3 uid="uid://lobbyslot0001"]
+[gd_scene load_steps=15 format=3 uid="uid://lobbyslot0001"]
 
 [ext_resource type="Script" path="res://src/ui/LobbySlot.gd" id="1_slot"]
 [ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="2_glyph"]
 [ext_resource type="Script" path="res://src/ui/Chevron.gd" id="3_chev"]
 [ext_resource type="Shader" path="res://assets/shaders/flat_tint.gdshader" id="4_tint"]
+[ext_resource type="FontFile" uid="uid://ddt1gwlfsoby1" path="res://assets/fonts/fredoka/Fredoka-Variable.ttf" id="5_fredoka"]
+
+[sub_resource type="FontVariation" id="flair_condensed"]
+base_font = ExtResource("5_fredoka")
+variation_opentype = {
+2003072104: 88,
+2003265652: 600
+}
 
 [sub_resource type="StyleBoxFlat" id="plate"]
 bg_color = Color(1, 0.968627, 0.921569, 0.92)
@@ -120,7 +128,19 @@ shadow_offset = Vector2(0, 4)
 skew = Vector2(0.18, 0)
 
 [sub_resource type="StyleBoxFlat" id="pill"]
-bg_color = Color(1, 0.372549, 0.658824, 1)
+bg_color = Color(1, 0.968627, 0.921569, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+
+[sub_resource type="StyleBoxFlat" id="pill_focus"]
+bg_color = Color(0.329412, 0.788235, 0.290196, 1)
 border_width_left = 4
 border_width_top = 4
 border_width_right = 4
@@ -168,6 +188,8 @@ offset_right = 420.0
 offset_bottom = 530.0
 mouse_filter = 2
 script = ExtResource("1_slot")
+pill_idle_style = SubResource("pill")
+pill_focus_style = SubResource("pill_focus")
 
 [node name="Plate" type="Panel" parent="."]
 layout_mode = 1
@@ -367,23 +389,25 @@ offset_bottom = 474.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("row")
 
-[node name="FlairIcon" type="Control" parent="FlairRow"]
+[node name="FlairCaption" type="Label" parent="FlairRow"]
+theme_type_variation = &"TextDark"
 layout_mode = 0
-offset_left = 12.0
-offset_top = 8.0
-offset_right = 48.0
-offset_bottom = 44.0
-mouse_filter = 2
-script = ExtResource("2_glyph")
-glyph = "star"
+offset_left = 14.0
+offset_right = 90.0
+offset_bottom = 52.0
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.72)
+theme_override_font_sizes/font_size = 28
+text = "FLAIR"
+vertical_alignment = 1
 
 [node name="FlairValue" type="Label" parent="FlairRow"]
 theme_type_variation = &"BodyDark"
 layout_mode = 0
-offset_left = 56.0
+offset_left = 92.0
 offset_right = 324.0
 offset_bottom = 52.0
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_fonts/font = SubResource("flair_condensed")
 theme_override_font_sizes/font_size = 28
 text = "NONE"
 horizontal_alignment = 1
@@ -476,6 +500,21 @@ text = "TAKEN BY P2"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="FlashChip" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 50.0
+offset_top = 358.0
+offset_right = 370.0
+offset_bottom = 404.0
+pivot_offset = Vector2(160, 23)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("taken")
+text = "P1 HAS THE RULES"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="RulesFace" type="Control" parent="."]
 visible = false
 layout_mode = 1
@@ -558,9 +597,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 6
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 40
 text = "MIX"
 horizontal_alignment = 1
@@ -636,9 +675,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 6
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 40
 text = "MIX"
 horizontal_alignment = 1
@@ -714,9 +753,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 6
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 40
 text = "MIX"
 horizontal_alignment = 1
@@ -792,9 +831,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 6
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 40
 text = "MIX"
 horizontal_alignment = 1
@@ -870,9 +909,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 6
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 40
 text = "MIX"
 horizontal_alignment = 1
@@ -949,9 +988,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
-theme_override_constants/outline_size = 6
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 40
 text = "MIX"
 horizontal_alignment = 1
