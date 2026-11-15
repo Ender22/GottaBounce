@@ -2,6 +2,13 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-116 PRESSURE NETS RULING (director, docs/audit/2026-11-15_wk116_ab.md): ship ON at the pre-registered fallback
+  (step 2 = +75 %): rally time beyond 30 s -40.4 % (90 % CI -7.29..-0.05 s), rallies >= 45 s 0.92 -> 0.32 %, 0 over 60 s; defaults (+50 %)
+  missed (-28.6 %, CI crosses 0); t1 = 35 s does nothing. The over-fix guard's 'median moves > 0.5 s' clause is ruled NOISE: the rule is
+  inert before 27 s (0 early events / 1303 rallies; distribution test on < 27 s rallies shows no difference), same seeds don't replay
+  identically, and two arms running identical code below 40 s differ by 0.92 s. Guardrails pass (restart 2.667 s, gates, 0 pocket leaks
+  on 8 courts). Flip happens after a rendered +75 % check (MAX PRESSURE banner vs the taller CENTER mouth) + SQUASH_TOL fix for the ball.
+
 - **2026-11-15** CD4-01 SESSION DECKS (director, CD4 biggest problem): each Brawl circuit keeps a per-session arena deck (survives
   REMATCH / RESTART / quit-to-menu; resets on app restart). Ordered circuits shuffle their authored MILD and WILD halves separately and
   alternate them; the session's first deck opens on authored arena 1; no back-to-back repeats; RANDOM ROTATION is a persistent bag;
