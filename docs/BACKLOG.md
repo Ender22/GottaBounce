@@ -20,151 +20,164 @@ Standard: `docs/COUCH_CONVENTIONS.md` (CC-x.y). Procedure: `docs/WEEKEND_LOOP.md
 
 Legend: `[ ]` open · `[~]` attempted · `[x]` done · `[>]` merged into another item · Size S = one pass, 1-2 files · M = one full slice · L = split it.
 
-## In flight (do NOT reassign)
-- **Lane P, in progress:** WK-135 bumper build (gameplay-programmer, 3 phases per `docs/specs/wk135_bumper_min_bounce_2026-11-15.md`, in a
-  SCRATCH COPY that applies to the repo at the end; port 9105). Phase 3 turns the WK-128 (b) refund gates ON and adds the sports
-  ball-touch refund (WK-135c). It also closes WK-133 and WK-134 (merged, see their entries). It holds the headless slot (Singularity batch).
-- **Lane D, ready, waiting for the headless slot:** WK-20d rung R1 (spawn spread) variants are built (`tools/out/wk/wk20d_r1/levels/*.json`,
-  `wk20d_r1_spawns.py gen|check`; not in `levels/`). Next: QA baseline repro (spec §8.4 step 0) + B0 vs R1 batch the moment WK-135 frees the
-  headless slot. Rungs R2-R4 are `Player.gd` code and wait for WK-135 to commit.
-- **Lane S, waiting:** WK-131 KICKOFF GATES build (spec f5709c7) waits for WK-135 to commit (`SportsMode.gd` hooks, spec §8). The art-director
-  is writing the gate visual brief (`docs/briefs/kickoff_gate_2026-11-15.md`, uncommitted draft; design work, no Godot slot).
-- **UI lanes U and L: free.** The next UI batch is at the top of the Next 10 / UI batch table below.
-- **Environment (2026-11-15): both GPUs are in an error state, so the game renders in SOFTWARE (~37-52 fps) until the owner reboots.**
-  Visuals, screenshots, WK-93 recordings and game-time counters (`phase_log.tick_s`, `round_stats`) are valid. Wall-clock perf, frame
-  time and feel-timing numbers are NOT. Items that need them are marked **BLOCKED (GPU)**: WK-90, WK-101 (and WK-109's hit-stop garnish
-  behind WK-90). Perf work stays blocked. A/B arms must all run in the same session, so the environment is identical across arms. Do not
-  compare a new arm to CD3's absolute numbers.
+## In flight (do NOT reassign) — as of re-rank #9 (2026-11-15, after WK-CD4)
+- **All 3 Godot slots and the headless slot are taken.** Nothing new starts in Godot until one of these finishes; design, spec and art
+  work below runs outside the cap.
+  1. **Lane D: WK-153 (CD4-01 + CD4-02) builder.** It rotates the MEADOW MILE start on REMATCH / the next play of a circuit, and adds the
+     Islands Void sky drop. It holds `PartyMatch.gd` (circuit sequencing), `levels/circuits.json`, Brawl `levels/*.json` and `ArenaRenderer.gd`
+     until it commits.
+  2. **Lane S: WK-108b sports bots round 2** (gameplay-programmer). It holds `InputBot.gd`, `SportsMode.gd` and its own `Tuning.gd` block. They are
+     uncommitted in the working tree right now: never `git add` them from another lane. Its 32-run batch is next in the headless queue.
+  3. **Lane P: WK-135 phase-2 A/B batch** (`wk135_no_pin` true vs false). It **holds the headless slot.** The same agent continues with phase 3 (Next-10 #1).
+- **Environment (unchanged since 02:00 2026-11-15): both GPUs are in an error state, so the game renders in SOFTWARE** (~26-52 fps). Visuals,
+  screenshots, WK-93 recordings and game-time counters (`phase_log.tick_s`, `round_stats`, ball clock) are valid. Wall-clock perf, frame time
+  and feel timing are NOT. **BLOCKED (GPU):** WK-90, WK-101 (and WK-109's hit-stop garnish). All arms of an A/B run in the same session.
 - **Shared-file map (who owns a hot file until their item commits):**
-  - Held by **WK-135 (lane P) until it commits:** `Player.gd`, `InputBot.gd`, `BounceResolver.gd`, `SportsMode.gd` (S1/S3 ball-touch
-    refund), `PartyMatch.gd` (§8 per-stage telemetry), plus its own `Tuning.gd` block. Anything else that touches these files either says
-    "after WK-135" or builds in a scratch copy and lands with staged hunks (`python tools/stage_hunks.py`).
-  - After WK-135: `Player.gd` -> lane P (WK-136, then WK-20d's R2-R4 code rungs behind OFF flags, then WK-20e). `SportsMode.gd` and
-    `InputBot.gd` -> lane S (WK-131a, then WK-108b; later WK-127b, WK-110, WK-112). `PartyMatch.gd` -> free (WK-28b hook if needed, WK-53c).
-  - **Lane U (pause / options / end screens / legend):** `PauseMenu.gd/.tscn`, `OptionsScreen.gd` + `Options.tscn`, new `ControlsScreen`,
-    `VictoryScreen.gd/.tscn`, `SportsVictory.gd/.tscn`, `MainMenu.gd/.tscn`, `TrialsHUD.gd`, `ControlsLegend.gd`: WK-33, WK-139, WK-140, then
-    WK-28b, WK-44, WK-141, WK-142.
-  - **Lane L (lobby):** `HerdLobby.gd/.tscn`, `LobbySlot.gd/.tscn`, `InputRouter.gd`, `MenuScreen.gd` (shared header/footer), `Stepper.gd`:
-    WK-28a, then WK-138 + WK-83, then WK-143, WK-145. `MenuScreen.gd` also lays out Options: land WK-83's hunk when WK-33 is not mid-edit
-    on `Options.tscn`, and re-shoot Options.
-  - **Lane M (select screens):** `ArenaSelect.gd/.tscn`, `ShelfRail.gd`, `MenuCard.gd`: WK-60, then WK-60b.
-  - **Lane H (HUD):** `PlayerPip.gd`/`PlayerPips.gd` -> WK-119 (free now). `PlayerCard.gd`, `MatchHUD.gd`, `SportsHUD.gd` -> WK-99, WK-31,
-    WK-146 in one pass after WK-135 + WK-136 settle the fuel economy.
-  - `Ball.gd`: lane S's measurement chain (WK-109). WK-135 reads it but does not edit it (spec §6 E10).
-  - Brawl level JSON (`levels/<arena>.json`, `levels/circuits.json`): lane D (WK-20d measures in a scratch copy; WK-20e writes the kept R1
-    spawns / R5 runways into `levels/`).
-  - `Ghost*.gd`, `ghost*.gdshader`: free (lane G finished with WK-37f).
-  - `Tuning.gd` and `EventBus.gd`: every lane appends to them. Put your constants or signals in their own block, and commit only your
-    hunks (`python tools/stage_hunks.py`, lesson dbc09c9).
-- **Concurrency cap (WEEKEND_LOOP):** at most **3 agents running Godot at once**, and at most **1 headless batch with at most 2
-  processes**. Code-only, design-only and art-generation work doesn't count. **Headless queue:** WK-135's Singularity batch (running) ->
-  WK-20d QA repro + B0/R1 -> WK-131's A/B (after WK-135 commits) -> WK-108b's 32-run batch. Never two batches at once.
+  - **Lane D (WK-153, in flight):** `PartyMatch.gd`, `levels/circuits.json`, Brawl `levels/*.json`, `ArenaRenderer.gd`. After it commits:
+    WK-20d R5/R6 (level JSON) and WK-152 (`PartyMatch.gd` camera start).
+  - **Lane S (WK-108b, in flight):** `InputBot.gd`, `SportsMode.gd`. After it commits: WK-109 (`Ball.gd`), then WK-116's build (if ruled),
+    WK-110, WK-127b (`InputBot.gd`).
+  - **Lane P (WK-135):** `Player.gd`, `BounceResolver.gd`, its own `Tuning.gd` block. Phase 3's sports ball-touch refund (135c) edits
+    `SportsMode.gd`: that hunk lands after WK-108b commits, or as staged hunks (`python tools/stage_hunks.py`). Phase 3 must not touch
+    `PartyMatch.gd` while WK-153 holds it.
+  - **Lane U (padlock / gate / legend readability):** `SuperLockBadge.gd/.tscn`, `LivingCues.gd`, `KickoffGate.gd`, `KickoffGatePop.gd`,
+    `ControlsLegend.gd`. Order: WK-154 + WK-155, then WK-156. WK-155's "GOALS OPEN!" call also lives in `SportsMode.gd`: that hunk waits for
+    WK-108b, or uses staged hunks.
+  - **Lane H (HUD):** `PlayerCard.gd/.tscn`, `MatchHUD.gd`, `SportsHUD.gd`: WK-31, then WK-99. `PlayerPips.gd` is shared with WK-156 and
+    WK-157(d), so coordinate on it.
+  - **Lane L (lobby) / M (select) / G (ghosts): free.** The P3 nits WK-157 and WK-158 use them.
+  - `Tuning.gd` and `EventBus.gd`: every lane appends to them. Keep your constants or signals in your own block, and commit only your hunks.
+- **Concurrency cap (WEEKEND_LOOP):** at most **3 agents running Godot**, and at most **1 headless batch with at most 2 processes**. Code-only,
+  design-only, art-generation and offline audio analysis don't count. A WK-93 recording run counts while it runs.
+- **Headless queue (one batch at a time):**
+  1. WK-135 phase-2 A/B (running)
+  2. WK-108b's 32-run batch
+  3. WK-135 phase-3 A/B. The same batch re-runs WK-131's Accept on the merged build (spec §5.1) plus the 1v1 sanity run.
+  4. WK-109's A/B
+  5. WK-20d R5/R6
+  6. WK-116, only if its ruling picks a rule arm
 - **Ports (WK-130):** one rendered game per agent, each on its own port (9101+). Never use no-arg `stop_game.ps1` or `run_game.ps1 -KillAll`
   while other lanes are running.
-- **Measurement validity:** count game time only (`phase_log.tick_s` / `round_stats`), never wall clock across a screenshot burst (one
-  1080p `gbplay screenshot` stalls the game ~1.25 s, CD2-05; UX4 harness caveat (b): a screenshot mid-hold can complete a hold action).
-  Judge motion from WK-93 recordings. Perf and timing numbers additionally need the display awake and a SOLO window (no other rendered
-  game) on a working GPU; right now none of those numbers can be taken (see Environment).
+- **Measurement validity:** count game time only, never wall clock across a screenshot burst (a 1080p `gbplay screenshot` stalls the game
+  ~1.25 s). Judge motion from WK-93 recordings.
 
-## Next 10 (producer re-rank 2026-11-15 #8: after the UX4 front-end review; pacing + sports measurement wait on WK-135, the UI lanes run now)
-**Done since re-rank #7** (all headings ticked with hashes, all in "Done (recent)"; UX4 rendered-re-checked the ones marked UX4):
-- WK-66b Trials gold goal cage (19d924a)
-- WK-13 + WK-42 (b2ac978, UX4)
-- WK-14 + WK-40 + WK-38 + WK-39 (ab11c61, UX4)
-- WK-120 + WK-125 (bbe6996, UX4)
-- WK-85a (2702dc0), WK-85 (5ea164e)
-- WK-117 + WK-52 + WK-113 (5a74fa8; UX4: WK-52 passes, WK-113 still crosses the court in live play -> WK-141)
-- WK-66c (334b45f)
-- WK-29 (9eb3c60, UX4)
-- WK-137 + WK-37f (1f5b64d)
-- Specs: WK-20d (9c05fa1), WK-131 (f5709c7). Audit: UX4 (c305199).
+## Next 10 (producer re-rank 2026-11-15 #9: after WK-CD4. Front end, sports and Trials SHIP; Brawl is the remaining FIX; no P0/P1 found)
+**Done since re-rank #8.** All headings are ticked with hashes and listed in "Done (recent)". WK-CD4 means the item was re-checked rendered in the CD4 pass.
+- WK-33 CONTROLS screen + WK-139 end-screen kit + WK-140 quit dialog: 7cb2f9f (WK-CD4: end screens, one kit)
+- WK-28a lobby disconnect grace + WK-138 honest lobby prompts + WK-83 nudge / safe area: 6e57111. WK-138 fixes: 89aeb8e. Lobby verdict: e5f47e7
+- WK-28b in-match disconnect overlay: ece86c2. **No ui-ux verdict yet**, so WK-160 checks it.
+- WK-143 RULES pills + WK-145 lobby nits + WK-149 horizontal safe area + WK-141 legend first frame: a1904ba. WK-141's sports legend now
+  hides goats at kickoff; that follow-up is WK-156.
+- WK-142 Trials celebration + WK-44 Options grid / shake / rumble + WK-144 QUIT TO MENU destination: 2e406dc (WK-CD4: CIRCUIT CLEAR!, quit lands on mode select)
+- WK-119 sports team tags + WK-146 HUD collisions + WK-147 Trials one goal surface: 225c9a5 (WK-CD4: team read, UX4-23 fixed)
+- WK-60 select copy + WK-60b preview panel: 614f456 (WK-CD4: "the strongest screens in the flow")
+- WK-150 tag avoidance + WK-148 first-frame cover: b8be06d. WK-148b camera snap, which replaces the cover: 95d4723
+- WK-151 WASD menu navigation: 5521929
+- WK-65 painted court cards + RANDOM crest + Dropshot card: art cc9036f, wiring e6d7483 (WK-CD4). The locked-card blur is filed as WK-65b.
+- WK-131 KICKOFF GATES: 10c5c6a (a), 3c35d59 (3.5 s). A/B: kickoff goals 32.4 % -> 2.8 %, rally 10.4 s. WK-CD4: 0/18 within 4 s at 3.5 s.
+  Residue: the merged-build re-run and the 1v1 sanity run ride WK-135 phase 3's batch. CPU supporter home 33 % feeds WK-108b.
+- WK-135 phases 1-2: 8eec92e, 742c37d. Phase 3 is still open (Next-10 #1).
+- WK-136 near-empty re-light: d23d2a4. WK-CD4 did not judge its feel, so it carries to WK-CD5.
+- WK-20d ladder ruling: e09d727 (R1/R3 dropped, R4 not adopted, R2 adopted). Rung switches: d23d2a4, baefff0.
+- WK-20e R2 spawn truce + Meadow Carousel soft-lock fix: 4282309. WK-CD4: opening self-KOs 0, human self-KO 23 %.
+- WK-CD4 cold playthrough: 469b93e.
 
-**Closed or merged this pass:** UX4-01 -> WK-33 (+ WK-44 Options half), UX4-02 -> WK-28, UX4-04 -> WK-83, UX4-09 -> WK-119, UX4-12 -> WK-60
-+ WK-65, UX4-15 -> WK-45, UX4-16 -> WK-44, UX4-17 -> WK-138, UX4-21 -> WK-139 rider, UX4-25 -> WK-60/60b. UX4-03's redesign is NOT adopted (it
-would re-open lobby review L8, fixed by WK-82 under a director decision); its real defect, the lying prompt, is in WK-138. Stale "Status: open"
-lines on 25 done items corrected to their hashes.
+**Filed this pass (from WK-CD4):**
+- WK-153 = CD4-01 + CD4-02, **in progress**
+- WK-154 = CD4-04 (raised to P1/S)
+- WK-155 = CD4-05
+- WK-156 = CD4-06
+- WK-157 = CD4-07 a + d
+- WK-158 = CD4-07 b + c + e
+- WK-159 = CD4-08
+- WK-160 is a QA re-check sweep (stale-entry rule): WK-19, WK-30, WK-28b
+- WK-CD5 is the next recurring cold playthrough
 
-**Filed this pass:** WK-138 lobby prompts (P2/S), WK-139 end-screen kit + Trials HUD hide (P2/S), WK-140 title quit dialog (P2/S), WK-141
-legend first frame + sports legend (P2/S), WK-142 Trials end celebration (P2/M), WK-143 RULES pills (P2/S), WK-60b select-screen preview layout
-(P2/M, split from WK-60), WK-144 QUIT TO MENU destination (P3/S), WK-145 lobby nits (P3/S), WK-146 ghost HUD collisions (P3/S), WK-147 Trials
-HUD duplicate goal (P3/S), WK-148 sports first-frame wipe (P3/S, re-shoot first).
-
-**Re-sized / re-ranked:** WK-131 S -> M (spec's own size note; split (a) rule + gate + A/B, (b) SFX + RULES line). WK-20d flagged L-sized by its
-ladder (R1 data now; R2-R4 code after WK-135). WK-119 raised P3 -> P2 (UX4-09; the CPU tag vanishing after kickoff is a WK-10 regression).
-WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, both pullable now that WK-29 is done.
+**Merged / re-scoped / re-ranked:**
+- **CD4-03 -> WK-20d** (R5/R6). WK-20d drops **P1 -> P2**: CD4 says the short stages are mostly credited KOs ("the game working").
+  **Mis-scope flag:** its T1 target (overall median >= 12 s) doesn't fit the data. The CD4 median is bimodal by circuit position (stages 1-5 run
+  14-43 s, the void back half 4.5-14 s), and the WK-20d headless baseline already sits at 11 s. Re-base the target per arena class before
+  building anything. Also measure R5/R6 after WK-153 lands, because rotation changes which arenas a session plays.
+- **CD4-09 (own goals 13/46)** is a watch line in WK-108b, not an item. QA-131-2 (CPU supporter home at the gate open, 33 % vs a 50 % bar) also
+  joins WK-108b.
+- **CD4 closing note (audio never heard, 4 passes running) -> WK-79**, raised **P3 -> P2** and split:
+  - 79a: measure now. LUFS, true peak and spectrum on a recorded match mix. It has no dependency.
+  - 79b: mix fixes, after WK-45.
+- **WK-19 and WK-30** are probably delivered by 2e406dc / 5521929 / 9eb3c60. They are not closed on that evidence: WK-160 re-checks them.
+- **WK-131** is closed. Its owed rendered Accept is covered by CD4's rendered run at 3.5 s (0/18). The merged-build re-run rides WK-135 phase 3.
+- **WK-116** moves to its rule step. The WK-131 A/B found an 83.8 s LONG HAUL rally and 63.9 s / 51.8 s on CENTER, so it does not close as
+  Won't do.
+- **Stale statuses:** 22 "Status: open" lines on done items were corrected to their hashes (WK-119, 131, 20e, 28, 33, 136, 44, 60, 60b, 65, 83,
+  138-148).
 
 **Ranking logic:**
-- No P0 is open.
-- **#1-#3 unchanged in priority, but all three wait on WK-135** (`Player.gd`, `SportsMode.gd`, the headless slot). WK-20d's R1 is first in the
-  headless queue because it is ready and data-only. Brawl pacing stays #1: CD3's biggest problem, the default mode.
-- **The UI lanes are free, so P1 front-end items fill the two spare Godot slots.** UX4's verdict is "FIX, close to SHIP"; its top gaps are no
-  CONTROLS screen anywhere (WK-33) and a lobby that wipes a pick on a cable wiggle (WK-28a). Both are P1 (a couch group notices and complains)
-  and neither touches a WK-135 file. WK-33 and the lobby half of WK-28 edit disjoint files, so they run in parallel.
-- **Cheap P2 couch fixes next, by impact per cost:** WK-138 + WK-83 (lying lobby prompts + title-safe; one lobby pass) and WK-139 (end screens
-  read as disabled, Trials end shows the HUD). Each is S and the lobby/end screens are seen every session.
-- **Sports:** WK-131, WK-108b, WK-109 stay in the 10 (owner lean). The sports-readability pass (WK-119 + WK-141) is first on deck and borrows a
-  UI slot as soon as one frees.
-- Rank is priority order. **Lane** is concurrency: different lanes edit disjoint files; same-lane items run in order.
+- **No P0 is open.** The front end, sports and Trials passed CD4.
+- **What remains:**
+  - **Brawl's default face.** WK-153, in flight, is the CD's #1. Then WK-154, the spawn padlock: the truce is right, but a third of newcomer
+    super presses hit an unexplained lock. Then WK-20d R5/R6.
+  - **Owner-lean sports depth:** WK-108b (in flight), WK-109, WK-116.
+  - **The economy close-out:** WK-135 phase 3.
+- **P1 before P2. Within a band, impact per cost.**
+  - WK-135 phase 3 is #1. It is P1, it closes INV-11 / WK-128 (b), and its agent already holds the slot.
+  - WK-154 is P1/S. It pairs with WK-155 as one "padlock + ring" visual language, which is CD4's suggestion #3.
+  - WK-109 is P1/S, in the owner's fun mode, and is gated only by lane S.
+  - WK-31 is P1/M. The HUD danger state has been missing since CD1, and its files are free.
+- **Cheap verification next (WK-160).** One read-only QA pass may close two P1 entries.
+- **WK-79a costs almost nothing.** It rides a recording someone is already making.
+- **Depth over width.** No new mode, court or circuit is in the 10. WK-115 (new courts) and Team Brawl (WK-62/63) stay below the polish.
+- Rank is priority order. **Lane** is concurrency: different lanes edit disjoint files, and items in the same lane run in order.
 
-| # | Item | Size | Lane | Owner | Files it edits | Can start |
-|---|------|------|------|-------|----------------|-----------|
-| 1 | WK-20d Brawl pacing ladder (spec 9c05fa1): R1 spawn spread A/B vs same-session B0 on MEADOW MILE; then R2-R4 code rungs. Targets: median stage 12-20 s, human self-KO 12-25 %, first death >= 4 s | P1/M (L-flag) | D | game-designer + qa-playtester (HumanSim3) | R1: none in the repo (scratch copy); R2-R4: `Player.gd` + Brawl GameMode seam, OFF flags (lane P, after WK-135 + WK-136); writes `docs/audit/` + DECISIONS | R1 **when WK-135 frees the headless slot**; R2-R4 after WK-135 commits |
-| 2 | WK-131a KICKOFF GATES: rule + gate drawn per brief + A/B (spec §5) + DECISIONS. (b) SFX + RULES line follows | P1/M | S | game-designer -> gameplay-programmer (+ art-director grade) | `SportsMode.gd` (§8 hooks), new gate entity script, own `Tuning.gd` block | **after WK-135 commits**; headless A/B after WK-20d R1 |
-| 3 | WK-136 near-empty re-light delivers >= ~0.1 s of thrust (CD3-04a) | P1/S | P | gameplay-programmer | `Tuning.gd` (WK-128 block) and/or `Player.gd` | **after WK-135** (same fuel ledger) |
-| 4 | WK-33 CONTROLS screen from Pause and Options (UX4-01) | P1/M | U | ui-ux-designer | new `ControlsScreen.tscn/.gd`, `PauseMenu.gd/.tscn`, `OptionsScreen.gd` + `Options.tscn` | **now** |
-| 5 | WK-28a lobby disconnect: DISCONNECTED slot keeps goat/colour, 10 s RECONNECT ring, takeover (UX4-02); WK-28b in-match overlay later in lane U | P1/M (28a S/M) | L | gameplay-programmer + ui-ux-designer | `InputRouter.gd` (signal), `HerdLobby.gd`, `LobbySlot.gd/.tscn` | **now** |
-| 6 | WK-108b Sports bots round 2 + CD3-03 (no CPU own goal decides a match) | P1/M | S | gameplay-programmer | `InputBot.gd`, `SportsMode.gd`, own `Tuning.gd` block | after WK-131 in lane S |
-| 7 | WK-20e Ship the kept WK-20d stack | P1/S-M | D or P | level-designer (JSON) / gameplay-programmer (flags ON) | R1/R5: `levels/*.json` (lane D); R2-R4: flip flags in `Tuning.gd` (lane P) | after the WK-20d ruling |
-| 8 | WK-109 Power shot dynamic range (cap/floor half; hit-stop garnish BLOCKED (GPU)) | P1/S | S (measurement chain) | game-designer -> gameplay-programmer | `Ball.gd` (+ a `Tuning.gd` block) | after WK-131's A/B; never measures alongside WK-108b |
-| 9 | WK-138 + WK-83 lobby prompts tell the truth + title-safe header/footer on every MenuScreen + "who are we waiting on" nudge (UX4-05/03/17/04) | P2/S+S | L | ui-ux-designer + gameplay-programmer | `HerdLobby.gd/.tscn`, `LobbySlot.gd`, `MenuScreen.gd`, (`HintStrip.gd`) | after WK-28a (same lane) |
-| 10 | WK-139 end screens: one button kit + A/B glyph footer; Trials end hides the HUD (UX4-06/07; UX4-21 rider) | P2/S | U | ui-ux-designer | `VictoryScreen.gd/.tscn`, `SportsVictory.gd/.tscn`, `TrialsHUD.gd` | after WK-33 in lane U (disjoint files: may take a third slot if one is free) |
+| # | Item | P/Size | Lane | Owner | Files it edits | Can start |
+|---|------|--------|------|-------|----------------|-----------|
+| — | **IN FLIGHT:** WK-153 (CD4-01+02) circuit continues on REMATCH + Islands Void sky drop | P2/M | D | gameplay-programmer + level-designer / art | `PartyMatch.gd`, `levels/circuits.json`, Brawl `levels/*.json`, `ArenaRenderer.gd` | running |
+| — | **IN FLIGHT:** WK-108b sports bots round 2 (+ QA-131-2 supporter home, CD4-09 watch) | P1/M | S | gameplay-programmer | `InputBot.gd`, `SportsMode.gd`, own `Tuning.gd` block | running; 32-run batch after the WK-135 p2 A/B |
+| — | **IN FLIGHT:** WK-135 phase-2 A/B batch | (P1/M) | P | gameplay-programmer / qa | none (scratch) | running, holds the headless slot |
+| 1 | WK-135 phase 3: WK-128 (b) refund gates ON + 135c sports ball-touch refuel. Closes WK-133 / WK-134 | P1/M | P | gameplay-programmer (+ game-designer reads the A/B) | `Player.gd`, `BounceResolver.gd`, `Tuning.gd` (WK-128/135 blocks); `SportsMode.gd` 135c hunk | **Build when its A/B batch ends** (same agent and slot). The `SportsMode.gd` hunk goes in after WK-108b commits, or staged. Its batch is #3 in the headless queue |
+| 2 | WK-154 spawn padlock gets the draining ring, + WK-155 kickoff-gate cues (GOALS OPEN! at full alpha, badge above goats, contrasting pole). One "padlock + ring" slice | P1/S + P2/S | U | ui-ux-designer + gameplay-programmer | `SuperLockBadge.gd/.tscn`, `LivingCues.gd`, `KickoffGate.gd`, `KickoffGatePop.gd`, `ControlsLegend.gd` (+ the `SportsMode.gd` call hunk) | **Next free Godot slot** (whichever of WK-153 / WK-108b finishes first) |
+| 3 | WK-109 power shot dynamic range: cap/floor half, A/B + DECISIONS | P1/S | S | game-designer -> gameplay-programmer | `Ball.gd` + a mode-owned `Tuning.gd` block | Code after WK-108b commits (lane S). Its A/B is #4 in the headless queue: after WK-135 p3, so one sports variable at a time |
+| 4 | WK-31 HUD card shows danger: damage-level state, labelled fuel, stocks when LIVES > 1 | P1/M | H | ui-ux-designer + gameplay-programmer | `PlayerCard.gd/.tscn`, `MatchHUD.gd` | Files free now. Next free slot after #2 |
+| 5 | WK-160 QA re-check sweep: WK-19 rumble call log, WK-30 keyboard parity, WK-28b ui-ux verdict (no build) | P2/S | Q (read-only) | qa-playtester + ui-ux-designer | none | Any free slot. Short; may close two P1 entries |
+| 6 | WK-79a audio numbers: LUFS, true peak and spectrum per mode from a recorded mix. Files fails as items | P2/S | A | sound-designer | report + an analysis script under `tools/` | **Now.** Ask WK-153's WK-93 recording to keep its `movie.avi` (Godot's AVI Movie Maker carries the mix as PCM), or take a 60 s recording in the next free slot. The analysis is outside the cap |
+| 7 | WK-20d R5 margins / R6 catch shelves on the back-half void arenas (CD4-03). Re-base T1 first | P2/M | D | game-designer -> level-designer + qa-playtester (HumanSim4) | Brawl `levels/*.json` (void arenas); `docs/audit/` + DECISIONS | **Design now** (no Godot): target per arena class, arena list, pre-registered predictions. JSON + batch after WK-153 commits, at #5 in the headless queue |
+| 8 | WK-116 rally long tail: rule step (pressure goal-mouth growth / springier floor / LONG HAUL bumpers), then build | P2/S (design) -> M (build) | S | game-designer -> gameplay-programmer | design: `docs/specs/`; build: `SportsMode.gd` / court JSON | **Design now** (outside the cap). Build after WK-109 in lane S |
+| 9 | WK-156 Rocketball stage-1 legend hides goats at kickoff | P2/S | U | ui-ux-designer | `ControlsLegend.gd` (+ `PlayerPips.gd` z-order) | After WK-154/155 in lane U |
+| 10 | WK-152 Brawl/Trials stage start: snap to the computed framing instead of zoom-in-then-ease (owner camera area: before/after recording + DECISIONS) | P3/S | D | gameplay-programmer | `PartyMatch.gd` | After WK-153 commits |
 
-**UI batch (the two free lanes, in order; this is what the next UI agents pull):**
-| Lane | Order | Item | Files |
-|------|-------|------|-------|
-| U | 1 | WK-33 CONTROLS screen (P1/M) | new `scenes/ui/ControlsScreen.tscn` + `src/ui/ControlsScreen.gd`; `PauseMenu.gd/.tscn`; `OptionsScreen.gd` + `Options.tscn`; reads `PadGlyph.gd` / `ControlsLegend.gd` |
-| U | 2 | WK-139 end-screen kit + Trials HUD hide (P2/S) | `VictoryScreen.gd/.tscn`, `SportsVictory.gd/.tscn`, `TrialsHUD.gd` |
-| U | 3 | WK-140 title quit dialog (P2/S, filler with WK-139) | `MainMenu.gd/.tscn` |
-| L | 1 | WK-28a lobby disconnect (P1, S/M) | `InputRouter.gd` (signal only), `HerdLobby.gd`, `LobbySlot.gd/.tscn` |
-| L | 2 | WK-138 + WK-83 lobby prompts + safe area + nudge (P2/S+S) | `HerdLobby.gd/.tscn`, `LobbySlot.gd`, `MenuScreen.gd`, `HintStrip.gd` |
-- Each needs a ui-ux-designer Ship verdict vs COUCH_CONVENTIONS and keyboard + >= 2 simulated pad ids (WEEKEND_LOOP step 2).
-- **Slot handover:** when WK-135 frees the headless slot, lane D's R1 batch needs a Godot slot: lane L yields at its next commit boundary
-  (lane U keeps WK-33). When WK-135 commits, lane P continues with WK-136 in its own slot and lane S (WK-131a) takes the next UI slot to free.
+**Outside the cap (any time):**
+- **WK-65b:** MINEFIELD court-card re-roll (art pipeline, `tools/court_badge_compose.py`). Its rendered check is a 1-minute shelf shot in any
+  free slot.
+- **WK-20d R5/R6 design and WK-116's ruling:** game-designer.
+- **WK-79a analysis:** sound-designer.
+- **WK-153's sky-drop art,** if a new painting is needed.
 
 **Concurrency plan (cap: 3 Godot agents, 1 headless batch of <= 2 processes):**
-- **Slot 1:** lane P: WK-135 (running, holds the headless slot), then WK-136, then WK-20d R2-R4 code, then WK-20e flags.
-- **Slot 2:** lane U: WK-33 -> WK-139 -> WK-140.
-- **Slot 3:** lane L: WK-28a -> WK-138 + WK-83, until lane D's R1 batch or lane S's WK-131a needs it (see handover).
-- **Headless:** WK-135 Singularity -> WK-20d repro + B0/R1 -> WK-131 A/B -> WK-108b. Never two batches at once.
-- **Outside the cap:** WK-131 gate brief (art-director, writing), WK-65 court cards + painted RANDOM ROTATION card (art generation), WK-142's
-  "herd celebrates" panel brief, WK-45 sample sourcing (sound-designer).
-- **Next cold playthrough:** WK-CD4 after ~6 more deliverables, or right after WK-20e lands, whichever comes first. It must re-judge Brawl
-  pacing with the same 3-device HumanSim route on MEADOW MILE, the WK-131 kickoff number, the nets (CD3 predates WK-66a; WK-66c's Dropshot
-  tape contingency is still unjudged), WK-136's re-light feel, the WK-135 refund feel, and the UX4 "not assessed" CC-10.2 mash-arming check.
+- **Slot A (lane P):** WK-135 p2 A/B (running) -> WK-135 p3 build -> p3 A/B (headless).
+- **Slot B (lane S):** WK-108b (running) -> WK-109 -> WK-116 build (if ruled) -> WK-110.
+- **Slot C (lane D):** WK-153 (running) -> WK-20d R5/R6 JSON -> WK-152.
+- **UI work borrows the first slot to free:** WK-154 + WK-155, then WK-31, WK-160 and WK-156. If slot C frees before WK-20d's design is ready, it
+  takes WK-154 + WK-155 first, and lane D resumes at the next commit boundary.
+
+**Next cold playthrough: WK-CD5.** It runs after ~6 more deliverables, or right after WK-135 p3 + WK-153 + WK-154 land, whichever comes
+first. Its re-judge list is in the WK-CD5 entry.
 
 **On deck (11+, in order; lane in brackets):**
-1. ~~WK-119~~ done 225c9a5 — + WK-141 sports readability: team-outlined tags + CPU pip that stays; legend first frame + sports legend out of the ball's band
-   (P2/S+S) [H `PlayerPip.gd`/`PlayerPips.gd` + U `ControlsLegend.gd`; free now, takes the first spare slot]
-2. ~~WK-60~~ done 614f456 — select-screen prompt/copy: LOCKED card says "A FIGHT!" (P2/S), then WK-60b preview-region layout (P2/M) [M `ArenaSelect.gd/.tscn`]
-3. WK-28b in-match disconnect overlay (S/M) [U after WK-33: `PauseMenu.gd`; `PartyMatch.gd` hook only after WK-135]
-4. ~~WK-143~~ done a1904ba — RULES value pills neutral (P2/S) [L or `Stepper.gd`]
-5. ~~WK-142~~ done 2e406dc — Trials end celebration + NEXT CIRCUIT default (P2/M, art brief first) [U after WK-139]
-6. ~~WK-44~~ done 2e406dc — Options rebuild: grid, SCREEN SHAKE, footer "A Toggle"; RUMBLE after WK-19 (M) [U after WK-33]
-7. WK-99 fuel super-ready notch + CD3-04b, then WK-31 HUD danger + stocks, with WK-146 (M+M+S) [H after WK-135 + WK-136]
-8. WK-110 MATCH POINT / GOLDEN GOAL (M) [S after WK-108b]
-9. WK-127b the_ascent hopping (S) [S after WK-108b]
-10. WK-116 rally tail (measurement only, rides WK-131's post-rule run)
-11. WK-45 distinct UI sounds (S; samples now, `HerdLobby.gd` call sites after lane L's pass)
-12. ~~WK-65~~ done e6d7483 — court cards + RANDOM ROTATION card + Dropshot mode card (M, art generation)
-13. WK-112 sports hazards stun (S) [S] · WK-114 court unlock gates (S, JSON)
-14. WK-54 per-player legend (S) [U, after WK-141: `ControlsLegend.gd`]
-15. WK-19 rumble per pad (S; unblocks WK-44's RUMBLE row)
-16. WK-46 menu nav repeat on title/mode/arena (M; UX4 did not assess it)
-17. WK-123b HOME parking (S, unverified; 2P QA check first) · WK-129 super-only crates (S) · WK-103 pendulum follow-ups (S)
-18. WK-32a hero decision (S)
-19. P3 UX4 set: WK-144 QUIT TO MENU -> mode select, WK-145 lobby nits, WK-147 Trials HUD one goal, WK-148 sports first-frame wipe (re-shoot first)
-20. WK-57 arena scorecard tool (M)
-21. BLOCKED (GPU): WK-90 hit-stop re-measure (then WK-109's hit-stop garnish); WK-101 stage-load spike
+1. WK-99 fuel super-ready notch + CD3-04b billed-chunk flash (M) [H after WK-31]
+2. WK-110 MATCH POINT / GOLDEN GOAL banners + GOALS stepper (M) [S after WK-109; sports tension, owner lean]
+3. WK-157 mixed-couch lobby footer glyphs + Sports Victory tag (P3/S) [L + `SportsVictory.gd`]
+4. WK-158 Trials nits: FLIGHT SCHOOL card crop, objective panel jump, end-screen goat overlap (P3/S) [M / `TrialsHUD.gd` / `TrialsVictory.gd`]
+5. WK-159 Trials ball stays in the cage on SOLVED! (P3/S) [`TrialsMode.gd` / `GoalZone.gd`]
+6. WK-127b the_ascent hopping (S) [S after WK-108b]
+7. WK-45 distinct UI sounds (S; then WK-79b mix fixes)
+8. WK-112 sports hazards stun (S) [S] · WK-114 sports courts unlock from sports play (S, JSON)
+9. WK-54 per-player legend (S) [U after WK-156]
+10. WK-46 menu nav repeat on held D-pad/stick (M)
+11. WK-65b MINEFIELD card re-roll (P3/S, art; can run any time outside the cap)
+12. WK-123b HOME parking (S, unverified; 2P QA check first) · WK-129 super-only crates (S) · WK-103 pendulum follow-ups (S)
+13. WK-32a hero decision (S)
+14. WK-48 dry-tank sputter · WK-49 powerup name pop · WK-50 supercharge feedback · WK-51 super contact reads as THE hit (S/S/S/M, Brawl juice)
+15. WK-57 arena scorecard tool (M). It would also feed WK-20d's per-arena-class target
+16. WK-53c taunts on ScoreScreen + bleat on fire (S)
+17. BLOCKED (GPU): WK-90 hit-stop re-measure (then WK-109's hit-stop garnish); WK-101 stage-load spike
 
 ---
 
@@ -489,6 +502,8 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   game time (touch-speed histograms), which is valid under software rendering, and `Ball.gd` is free (WK-135 reads it, doesn't edit it).
   The hit-stop garnish waits for WK-90, which is BLOCKED (GPU); it is not part of this pass's Accept. Lane S's measurement chain: after
   WK-131's A/B, and never measured at the same time as WK-108b. Files: `Ball.gd` + a mode-owned constants block (no `Juice.gd`).
+- **Re-rank #9: Next-10 #3.** WK-131's A/B is done, so the only gates left are lane S (after WK-108b commits) and the headless queue: its A/B runs
+  after WK-135 phase 3's, so one sports variable moves at a time. The hit-stop garnish stays BLOCKED (GPU).
 
 ### [ ] WK-110 [P2][M] Sports tension: MATCH POINT / GOLDEN GOAL banners + GOALS rule stepper (SP-08)
 - Area: sports | menus · Owner: game-designer + gameplay-programmer + ui-ux-designer · Source: WK-98 SP-08
@@ -571,6 +586,14 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - WK-CD3 (re-rank #7): **Dropshot watch cleared**: median 9.2 s polled / 9.8 s phase (range 3.6-25.7 s, 2v2), far under the ~20 s act
   line. CENTER PITCH median 5.7-7.0 s (short, not long: that is CD3-05, now in WK-131). CD3 took **no LONG HAUL sample**, so this stays
   open for one measurement: take it in WK-131's post-rule run, then close as Won't do or rule.
+- **Re-rank #9: rule step (Next-10 #8).** The WK-131 A/B's LONG HAUL sample (§ "WK-116", `tools/out/wk/WK-131_ab_summary.json`) breaks the
+  Accept:
+  - LONG HAUL at gates T 3.0: median 9.6 s, max **83.8 s** (113 touches).
+  - CENTER: 63.9 s (A1b) and 51.8 s (A3).
+  - The medians are in band. **It does not close as Won't do.**
+  - Next: a game-designer ruling (design now, outside the cap) between pressure goal-mouth growth after 30 s without a goal, a springier
+    sports floor, and LONG HAUL mid-field bumpers. Then a DECISIONS entry, then a build in lane S after WK-109.
+  - Dropshot stays cleared (WK-131 A/B Dropshot check PASS).
 
 ### [x] WK-117 [P3][S] Sports words, not brawl words: "KICK OFF!" / "SERVE!" / "PLAY!" (SP-16) — 5a74fa8
 - Area: sports | menus · Owner: ui-ux-designer · Source: WK-98 SP-16
@@ -601,7 +624,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   needed, after WK-135 or staged hunks).
 - Accept: 2H+2CPU Rocketball screenshot 10 s into play (and one after a goal) shows team-outlined tags on all four and a CPU pip on both
   bots, team-coloured, sized like the P# pips.
-- Status: open (on deck, top sports-readability item; pairs with WK-141's sports-legend half)
+- Status: **done 225c9a5** (WK-CD4 re-checked). Corrected at re-rank #9; superseded note: open (on deck, top sports-readability item; pairs with WK-141's sports-legend half)
 
 ### [x] WK-120 [P2][S] Sports FORMAT defaults to 2V2 when 2+ humans join; optional "PARTY PICK" ribbon on Dropshot (SP-21) — bbe6996
 - Area: sports | menus · Owner: ui-ux-designer · Source: WK-98 SP-21
@@ -665,7 +688,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   - Goal -> GO restart still ≤ 2.8 s (now 2.67 s, WK-124).
   - PROTECT list unchanged.
   - A WK-93 recording of 3 kickoffs, looked at.
-- Status: open. **GO (re-rank #7).** WK-CD3 §4 (CD3-02): with human-style seats, 5 of 19 goals (26 %, round-clock lower bound) or 3 of
+- Status: **done 3c35d59** (WK-CD4 rendered at 3.5 s: 0/18). Corrected at re-rank #9; superseded note: open. **GO (re-rank #7).** WK-CD3 §4 (CD3-02): with human-style seats, 5 of 19 goals (26 %, round-clock lower bound) or 3 of
   19 (16 %, whole-COMBAT upper bound) came within 4 s of GO, and every one was scored by a human seat or a human's team, so bot pathing is
   not the cause. Both bounds are above the 10 % line, so step 1 is done and step 2 starts. CD3 also measured the restart at 2.67 s on all 26
   restarts (PROTECT met).
@@ -890,6 +913,20 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Status: done ee892a5. Verdict FIX, close to SHIP (front end SHIP, sports SHIP-adjacent, Flight School SHIP, ghosts deliver). Biggest
   gap: Brawl pacing on MEADOW MILE. CD3-01..09 triaged at re-rank #7 (see the Coverage index). Next: WK-CD4.
 
+### [x] WK-CD4 [P1][M] Creative-director cold playthrough #4 (recurring) — 469b93e
+- Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank #9 · Doc: `docs/audit/2026-11-15_cd4_playthrough.md`
+- Ran on a pinned snapshot at eedaa65. The 3.5 s gate time (3c35d59) landed after the pin, so CD4 approximated it with a runtime knob, without
+  3c35d59's GoalZone latch tweak.
+- Status: done 469b93e.
+  - **Verdict:** front end, sports and Trials SHIP. Brawl is a FIX. No P0 / P1.
+  - **Brawl vs CD3:** human self-KO 33-49 % -> 23 %; opening self-KOs 0; first death 2.8 -> 4.2 s; median stage 8.4 -> 10.1 s (12 s not met);
+    super 65 % of credited KOs.
+  - **Rocketball at 3.5 s:** 0/18 goals within 4 s of GO; rally median 10.2 s.
+  - **Biggest problem:** the fixed MEADOW MILE order and the Islands Void lawn -> WK-153.
+  - CD4-01..09 were triaged at re-rank #9 (Coverage index).
+  - **Not judged** (carried to WK-CD5): audio by ear, WK-136 re-light feel, WK-135 refund feel, Dropshot beyond the lobby + WK-66c tape,
+    CC-10.2, WK-28b.
+
 ### [x] WK-82 [P1][S] Lobby hold-B exits only from a B press that changed nothing; 6 px ring — 4d5d356
 - Source: ui-ux-designer lobby review L8 (docs/audit/2026-11-14_lobby_review.md); producer code re-check 2026-11-14
 - Area: menus · Owner: gameplay-programmer · Deps: none
@@ -1007,6 +1044,8 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept: eval-log `start_joy_vibration` calls during 10 smashes in a 2-pad match: only the victim's/attacker's device id appears.
   (Rumble can't be seen; the call log is the evidence.) Options toggle lands in WK-44.
 - Status: open
+- **Re-rank #9:** probably delivered by WK-44 (2e406dc: "all rumble routed per player through InputRouter"). Not closed on the commit message:
+  WK-160 runs this Accept's call-log check, then closes it or files the gap.
 
 ### [x] WK-20a [P1][M] Who wins and why: measure the +25 % knockback side effects AND the self-KO −1 rule, then game-designer rulings (no code change) — 2721c7c
 - Sources: D-18, R-07 (early KOs), DECISIONS 2026-07-19 watch item · split from WK-20 (producer 2026-11-14: measure before building)
@@ -1064,7 +1103,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   the banner and ScoreScreen. Screens: `tools/out/wk/WK-20c_rules_off_1080p.png` and `_on_1080p.png`. Pacing and the CPU share went to
   WK-127 (done) and are re-judged in WK-CD3 (1).
 
-### [ ] WK-20d [P1][M] Brawl pacing on MEADOW MILE: a one-variable ladder for stage length and the human self-KO share (CD3-01)
+### [ ] WK-20d [P2][M] Brawl pacing on MEADOW MILE: a one-variable ladder for stage length and the human self-KO share (CD3-01)
 - Area: brawl (pacing) · Owner: game-designer (+ qa-playtester driving HumanSim seats) · Source: creative-director WK-CD3 CD3-01
   (`docs/audit/2026-11-15_cd3_playthrough.md` §1, "the single biggest remaining problem")
 - Evidence (27 stages, bill ON, 3 HumanSim seats + CPU L2, MEADOW MILE, default rules; `tools/out/cd3/m1/stats.json`, `m2/stats.json`,
@@ -1109,6 +1148,21 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   - **R2-R4 are code** (`Player.gd`, Brawl GameMode seam, behind OFF flags): they wait for WK-135 to release `Player.gd`, and then share
     lane P with WK-136. **Mis-scope flag:** with four rungs x 80 stages plus three code rungs, this is L-sized. Treat it as R1 (data, now)
     + R2-R4 (code, after WK-135); WK-20e still ships the kept stack. Re-size only if R1 alone meets the targets (then R2-R4 are skipped).
+- **Re-rank #9 (after WK-CD4): P1 -> P2. What remains is R5 margins / R6 catch shelves (CD4-03 merged here).**
+  - Ruled rungs (e09d727, `docs/audit/2026-11-15_wk20d_r1.md`): R1 dropped, R3 dropped, R4 not adopted, R2 spawn truce adopted and shipped in
+    WK-20e 4282309.
+  - CD4 measured the result on the real build: human self-KO 23 % (target met), opening self-KOs 0, first death 4.2 s, median stage 10.1 s
+    (target missed), super 65 %. CD4: the short back-half stages are mostly credited KOs, "the game working", so this is no longer P1.
+  - **Mis-scope flag: re-base T1 before building.** The overall-median target (>= 12 s) doesn't fit:
+    - CD4's stage lengths are bimodal by circuit position (stages 1-5 14-43 s; void back half 4.5-14 s: Clover Steps, Three Meadows, Daisy
+      Ring, Long Meadow, Hill and Dale, Two Hills);
+    - the headless baseline already sits at 11 s;
+    - WK-153 (rotation) changes which arenas a session plays.
+    - The game-designer sets a per-arena-class target (e.g. void-arena median) and pre-registers the R5/R6 predictions, before any JSON.
+  - Order: design now (no Godot) -> R5 margins (JSON, S) -> R6 shelves (geometry, M; only if R5 misses). JSON lands after WK-153 commits (same
+    level files). The batch is #5 in the headless queue. Measure with HumanSim4 seats (`tools/out/wk/CD4_data/HumanSim4.gd.txt`) and a same-session
+    baseline. **Do not touch the spawn truce.**
+  - Status: open, Next-10 #7, lane D.
 
 ### [x] WK-20e [P1][S] (conditional on WK-20d) Ship the ruled pacing lever — 4282309
 - Area: brawl · Owner: level-designer (blast margin, JSON) or gameplay-programmer (missed-super floor, `Player.gd` + `Tuning.gd`)
@@ -1118,7 +1172,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept: re-run the WK-20d arm on the real build (HumanSim, same session as a baseline): the numbers hold within noise; rendered
   screenshots of each changed arena show the camera still frames everyone (owner camera rules); DECISIONS entry in the same commit.
   If the lever turns out bigger than S, split it here first.
-- Status: open (waits for the WK-20d ruling)
+- Status: **done 4282309** (WK-CD4: opening self-KOs 0). Corrected at re-rank #9; superseded note: open (waits for the WK-20d ruling)
 
 ### [~] WK-20b [P1][S] (conditional on WK-20a) Gate sting/escalation/hitstun at Lv0 on the pre-multiplier impulse — attempted: WON'T DO per WK-20a ruling (DECISIONS 2026-11-14): outcome-neutral
 - Sources: D-18 · **OWNER-RULED**: `dmg_launch_mult` array and hitstun triad constants do NOT change; only the impulse fed to the
@@ -1239,7 +1293,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   - **WK-28b match half (S/M, lane U):** auto-pause overlay in the lost player's colour, RESUME WITHOUT P#, takeover; connect toasts.
     Files: `PauseMenu.gd/.tscn` (+ `InputRouter.gd`). If it needs a `PartyMatch.gd` hook, after WK-135 or staged hunks. After WK-33
     (same `PauseMenu.gd`).
-- Status: open. Next-10 #5 (re-rank #8): WK-28a first.
+- Status: **done ece86c2** (28a 6e57111; 28b ui-ux verdict -> WK-160). Corrected at re-rank #9; superseded note: open. Next-10 #5 (re-rank #8): WK-28a first.
 
 ### [x] WK-29 [P1][M] One device-aware glyph component (pad circles/pills, key caps) used everywhere — 9eb3c60
 - Sources: C-23, R-23, C-11 (glyph half), CC-1.6/1.7, lobby review L12 (ModeSelect/ArenaSelect 10a/11a: old key caps + ASCII "< >" beside the lobby's glyph chips)
@@ -1255,6 +1309,8 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept (rendered): ModeSelect/ArenaSelect/Options fully navigable with WASD only; Q/E page the shelf; every footer prompt
   works on keyboard.
 - Status: open
+- **Re-rank #9:** mostly delivered. WASD menu nav came in WK-151 5521929; device-true prompts in WK-29 9eb3c60 and WK-138 6e57111. The Q/E shelf
+  paging is unverified. WK-160 runs this Accept, then closes it or files the gap.
 
 ### [ ] WK-31 [P1][M] HUD card shows danger: damage-level state, labelled fuel, stocks when LIVES > 1
 - Sources: R-06 (damage/lives half) · **OWNER-RULED**: no persistent KO score on cards (see Deferred)
@@ -1264,6 +1320,8 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - WK-CD2 gap #5: the HUD card still shows only fuel, no stocks, no danger level. The M follow-up to WK-18 (done 2aa8f87).
 - Status: open. On deck #3 after re-rank #6. Its files (`PlayerCard.tscn`, `MatchHUD.gd`) are disjoint from WK-34, so it can open its own
   lane the moment one is free.
+- **Re-rank #9: Next-10 #4, lane H.** WK-136 is done, and WK-135 phase 3 changes only the refund side, not what this card shows, so it no longer
+  waits. WK-99 (super-ready notch + CD3-04b) follows in the same lane.
 
 ### [ ] WK-32 [P1][M] Make the goat pick real: wire CharacterProfiles OR declare cosmetic and rewrite blurbs
 - Sources: D-10, C-16 (roster half), R-14 (roster half) · feel-adjacent: re-run the v2 feel-delta battery if wired
@@ -1285,7 +1343,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   The Options CONTROLS entry is this item's, not WK-44's (WK-44 keeps RUMBLE / SCREEN SHAKE / grid).
 - Accept (rendered): Pause -> CONTROLS and Options -> CONTROLS open the same scene; shows "hold X to aim, release to fire",
   B returns one level; pad and keyboard glyph variants screenshotted.
-- Status: open. Next-10 #4 (re-rank #8), lane U, first in the UI batch.
+- Status: **done 7cb2f9f**. Corrected at re-rank #9; superseded note: open. Next-10 #4 (re-rank #8), lane U, first in the UI batch.
 
 ### [x] WK-34 [P1][M] Toybox panel kit A: Pause, in-match Options, ScoreScreen — 8051d4f
 - Sources: R-11, R-22 (pause BACK overlaps P1 card, v0.1 overlaps P4)
@@ -1499,7 +1557,13 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Status: open. Next-10 #4 after re-rank #7, lane S, after WK-131. Files `InputBot.gd` + `SportsMode.gd`: both are held by WK-135 until it
   commits. Diagnosis can start any time; code lands after WK-135. Its 32-run batch queues behind WK-135's batch for the headless slot.
   Never measure at the same time as WK-109 (one sports variable at a time).
-
+- **Re-rank #9:** IN PROGRESS (lane S; `InputBot.gd`, `SportsMode.gd`, `Tuning.gd` dirty in the tree). It runs after the WK-131 A/B and on the 3.5 s
+  gates. Two additions:
+  - **QA-131-2** (`docs/audit/2026-11-15_wk131_ab.md` §6 guardrail, DECISIONS 2026-11-15): the CPU supporter is within 300 px of its own mouth
+    at the gate open in only 33 % of kickoffs (bar 50 %). Add it to the batch Accept.
+  - **CD4-09 watch:** 13 of 46 CD4 goals were own goals, but only 1 was a CPU's. Most came from the 8-direction keyboard seat. No action
+    unless WK-CD5 or this batch shows more than 25 % own goals overall; the CPU own-goal Accept above stands.
+  - Its 32-run batch is #2 in the headless queue.
 
 ### [ ] WK-127b [P2][S] Bot stuck 1.4x after WK-127: hopping on the_ascent's top trampoline chasing targets below
 - Source: WK-127 (tools/out/wk/WK-127_measure.json). Bots that used to die in the sky lid now brake and hop in place on
@@ -1579,7 +1643,14 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Files: `BounceResolver.gd`, `Player.gd`, `InputBot.gd`, `SportsMode.gd`, `PartyMatch.gd`, `Tuning.gd` (no level JSON).
 - Status: in-progress (lane P, gameplay-programmer, scratch copy, port 9105). It holds the files above until it commits (see In flight).
   WK-CD4 re-judges the refund side's feel (CD3 G3/G5 ran with the gates OFF).
-
+- **Re-rank #9:** phases 1-2 are done (8eec92e, 742c37d). The phase-2 A/B batch is running and holds the headless slot.
+  - **Phase 3 = Next-10 #1:** WK-128 (b) refund gates ON + 135c sports ball-touch refuel. Lane P, same agent.
+  - `SportsMode.gd` is held by WK-108b, so the 135c hunk lands after WK-108b commits, or as staged hunks.
+  - Don't touch `PartyMatch.gd` while WK-153 holds it.
+  - **Accept addition:** phase 3's batch also re-runs WK-131's Accept on the merged build (spec §5.1: kickoff goals within 4 s <= 10 %, rally
+    median 8-20 s, restart <= 2.8 s) plus the 1v1 sanity run, which the WK-131 A/B still owed.
+  - Close WK-133 / WK-134 with phase 3's hash once §9 A/B pass.
+  - WK-CD5 judges the refund feel.
 
 ### [x] WK-136 [P1][S] A near-empty re-light always delivers at least ~0.1 s of thrust (WK-128 regression, CD3-04a) — d23d2a4
 - Area: brawl | trials (fuel feel) · Owner: gameplay-programmer (+ game-designer: invariant #14) · Source: creative-director WK-CD3
@@ -1595,7 +1666,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Files: `Tuning.gd` (WK-128 block) and/or `Player.gd`. Lane P, after WK-135, which owns the same fuel ledger and changes the refund side.
 - Accept: CD3's relight tracker (HumanSim) on the real build: 0 billed re-lights under 12 thrust ticks (0.1 s at 120 tps); the TapPilot
   A/B from CD3 (`tools/out/cd3/tap_ab.json`) still shows tapping costing more than holding; Flight School tut_02/03 feather still fails.
-- Status: open. Next-10 #3, lane P after WK-135.
+- Status: **done d23d2a4** (feel not judged by WK-CD4 -> WK-CD5). Corrected at re-rank #9; superseded note: open. Next-10 #3, lane P after WK-135.
 
 ### [x] WK-66b [P1][M] TRIALS goal zones still draw the old code grid — 19d924a
 - Source: WK-66a art grade (docs/audit/2026-11-15_wk66a_artgrade.md follow-up 2). Ten TRIALS courses use `goal_zone` with free-standing
@@ -1743,7 +1814,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   every row, including the FULLSCREEN toggle (should read **A** Toggle there; `UX4_08`). Rows use a yellow-ring focus while buttons
   use a green fill: acceptable as a widget-class rule, but write it into the menu-system note so it is deliberate. The CONTROLS entry
   itself ships with WK-33.
-- Status: open. Deps: WK-19 for RUMBLE only; the grid / SCREEN SHAKE / footer half can ship first. Lane U after WK-33 (`OptionsScreen.gd`).
+- Status: **done 2e406dc**. Corrected at re-rank #9; superseded note: open. Deps: WK-19 for RUMBLE only; the grid / SCREEN SHAKE / footer half can ship first. Lane U after WK-33 (`OptionsScreen.gd`).
 
 ### [ ] WK-45 [P2][S] Distinct UI sounds (move/confirm/back/deny/join x4/ready/all-ready/hold-tick)
 - Sources: C-22, CC-9.1, lobby review L4 (lobby uses re-pitched powerup/super/click placeholders)
@@ -1869,7 +1940,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Re-scoped (re-rank #8): this item is the S copy/prompt/header pass. The "no dead half-screen" layout fix (Mario Kart cup-select
   preview region) moved to **WK-60b** (M); this Accept's "no dead half-screen" clause moves with it.
 - Files: `ArenaSelect.gd` + `scenes/ui/ArenaSelect.tscn` (+ `HintStrip.gd` for the locked prompt).
-- Status: open (UI lane, on deck; pairs with WK-60b in the same files).
+- Status: **done 614f456** (WK-CD4 re-checked). Corrected at re-rank #9; superseded note: open (UI lane, on deck; pairs with WK-60b in the same files).
 
 ### [x] WK-60b [P2][M] Arena / court / circuit select: focused-card preview region in the top half (split from WK-60, UX4-12) — 614f456
 - Area: menus · Owner: ui-ux-designer (+ art-director for key-art crops) · Source: ui-ux-designer UX4-12 (layout half) + UX4-25 (crest
@@ -1884,7 +1955,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Deps: WK-60 (same files, do first). Art is reuse-only for Brawl/Trials; court previews improve again after WK-65.
 - Accept (rendered 1080p, all three modes): no band of the screen above ~20 % height is empty; locked + cleared states visible; ui-ux
   Ship verdict.
-- Status: open (UI lane, on deck after WK-60). Scope-check: polish of an existing screen, no new flow (WK-61 stage-pick stays separate).
+- Status: **done 614f456** (WK-CD4 re-checked). Corrected at re-rank #9; superseded note: open (UI lane, on deck after WK-60). Scope-check: polish of an existing screen, no new flow (WK-61 stage-pick stays separate).
 
 ### [ ] WK-61 [P2][M] Pick a single stage inside a circuit (circuits stay as playlists)
 - Sources: R-20 (stage-pick half) · run `scope-check` first (adds a flow)
@@ -1924,7 +1995,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   (`tools/out/cd3/rb_04_court.png`).
 - UX4-12 (art half, merged re-rank #8): court select still dark-stadium thumbnails with blank lower halves (`tools/out/ux/UX4_64`);
   the Brawl RANDOM ROTATION card uses the old dark screenshot strip (`UX4_35`). Add a painted RANDOM ROTATION card to this art batch.
-- Status: open (kept P2 by WK-98 §4; on deck). Art generation runs outside the Godot cap.
+- Status: **done e6d7483** (art cc9036f; WK-CD4 re-checked). Corrected at re-rank #9; superseded note: open (kept P2 by WK-98 §4; on deck). Art generation runs outside the Godot cap.
 
 ### [x] WK-66a [P1][M] Nets read as nets: Dropshot net panel (DOME's moving net visible) + Rocketball goal net sprite (WK-98 SP-13) — 2bd049c
 - Area: art | sports · Owner: art pipeline + art-director (grade) + level-designer · Source: WK-98 SP-13, split out of WK-66 and raised
@@ -1960,7 +2031,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   `MenuScreen` header/footer layout (chip top >= 54, footer bottom <= 1026) so every screen inherits it. Accept widens to all
   MenuScreen screens.
 - Files: `MenuScreen.gd` (shared: ModeSelect, ArenaSelect, Options) + `HerdLobby.tscn` / `HerdLobby.gd` (nudge).
-- Status: open. Rides with WK-138 as one lobby pass (lane L). The `MenuScreen.gd` hunk must not land while WK-33 is mid-edit on
+- Status: **done 6e57111**. Corrected at re-rank #9; superseded note: open. Rides with WK-138 as one lobby pass (lane L). The `MenuScreen.gd` hunk must not land while WK-33 is mid-edit on
   `Options.tscn`; re-screenshot Options after.
 
 ### [ ] WK-84 [P2][S] READY banner polish (the flattest element at the screen's peak moment)
@@ -2005,7 +2076,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept (rendered 1080p, keyboard-only, pad-only, mixed): footer shows <= 4 verbs, no key with two meanings, exactly one exit prompt; with
   nobody READY no GO! anywhere; a seated READY player holding B 2 s still only un-readies (WK-82 Accept unchanged); a taken goat shows TAKEN;
   ui-ux Ship verdict.
-- Status: open. UI lane (lane L), with WK-83 as one lobby pass, after WK-28a (same `HerdLobby.gd`).
+- Status: **done 6e57111** (fixes 89aeb8e). Corrected at re-rank #9; superseded note: open. UI lane (lane L), with WK-83 as one lobby pass, after WK-28a (same `HerdLobby.gd`).
 
 ### [x] WK-139 [P2][S] End screens share one button kit + an A/B glyph footer; Trials end hides the HUD (UX4-06 + UX4-07) — 7cb2f9f
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4 2026-11-15 (UX4-06, UX4-07; UX4-21 rides along)
@@ -2023,7 +2094,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   (read-only here).
 - Accept (rendered): Brawl / Sports / Trials end screens side by side: identical button kit, no translucent grey, glyph footer on all three;
   Trials end shows no HUD cards or objective panel; WK-11 arm gate unchanged; ui-ux Ship verdict.
-- Status: open. UI lane (lane U), disjoint from WK-33's and the lobby's files: can run in parallel with either.
+- Status: **done 7cb2f9f** (WK-CD4 re-checked). Corrected at re-rank #9; superseded note: open. UI lane (lane U), disjoint from WK-33's and the lobby's files: can run in parallel with either.
 
 ### [x] WK-140 [P2][S] Title quit dialog: last navy panel -> opaque cream ToyPanel with glyph hints (UX4-14) — 7cb2f9f
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4-14 2026-11-15
@@ -2032,7 +2103,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Do: `ToyKit.fill_panel(p, ToyKit.CREAM)` opaque, red QUIT, green STAY (keeps STAY default focus, CC-6.1), A/B glyph hints inside the card.
 - Files: `MainMenu.gd` + `scenes/ui/MainMenu.tscn`.
 - Accept (rendered): quit dialog is cream, opaque (nothing shows through), opens on STAY; ui-ux Ship.
-- Status: open. UI lane filler: tiny, disjoint files; pair with WK-139 (same kit work).
+- Status: **done 7cb2f9f**. Corrected at re-rank #9; superseded note: open. UI lane filler: tiny, disjoint files; pair with WK-139 (same kit work).
 
 ### [x] WK-141 [P2][S] Controls legend: lay out before the first visible frame; sports legend shorter and out of the ball's band (UX4-11 + UX4-10) — a1904ba
 - Area: HUD | sports · Owner: ui-ux-designer · Source: ui-ux-designer UX4 2026-11-15 (UX4-11; UX4-10 is a fix to WK-113, done 5a74fa8)
@@ -2047,7 +2118,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   (read; append a signal only in its own block if none exists). No `SportsMode.gd` edit.
 - Accept (rendered): a 10-frame burst from arena confirm shows no single-row legend frame; a Rocketball frame 3 s after the first touch shows
   the legend faded or docked out of the court; the SUPER line fits one row.
-- Status: open. UI lane (HUD files); pairs with WK-119 for the sports-readability pass.
+- Status: **done a1904ba** (sports goat overlap -> WK-156). Corrected at re-rank #9; superseded note: open. UI lane (HUD files); pairs with WK-119 for the sports-readability pass.
 
 ### [x] WK-142 [P2][M] Trials end is a celebration, and its default focus is the next circuit (UX4-08) — 2e406dc
 - Area: trials | menus | art · Owner: ui-ux-designer + art-director (panel art) · Source: ui-ux-designer UX4-08 2026-11-15
@@ -2061,7 +2132,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Deps: WK-139 (same `VictoryScreen.gd`; the kit first). Scope-check: deepens an existing screen, adds one button, no new flow: DO.
 - Accept (rendered): clearing Flight School lands on NEXT CIRCUIT focused; A starts its first course with the same players; the screen shows the
   goats, name and crest; ui-ux + art-director Ship.
-- Status: open (on deck after WK-139)
+- Status: **done 2e406dc** (WK-CD4 re-checked). Corrected at re-rank #9; superseded note: open (on deck after WK-139)
 
 ### [x] WK-143 [P2][S] RULES panel: neutral value pills, green only on the focused row (UX4-20) — a1904ba
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4-20 2026-11-15 (WK-14 focus grammar)
@@ -2070,7 +2141,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Do: cream value pills with chocolate text; the focused row gets the yellow ring plus a green pill with ◀ ▶.
 - Files: `Stepper.gd` + `scenes/ui/Stepper.tscn` (RULES rows; check the Options sliders/toggles that share it).
 - Accept (rendered): RULES panel open on pad: exactly one green pill; moving focus moves it; ui-ux Ship.
-- Status: open. UI lane filler; disjoint from the lobby pass unless the pills are drawn in `LobbySlot.gd` (then same lane, after WK-138).
+- Status: **done a1904ba**. Corrected at re-rank #9; superseded note: open. UI lane filler; disjoint from the lobby pass unless the pills are drawn in `LobbySlot.gd` (then same lane, after WK-138).
 
 ---
 
@@ -2129,10 +2200,23 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   WK-123. It stays P3 (widening, new content, depth-first). Revisit at WK-CD3 once Flight School teaches the super.
 - Accept: 4 courses complete via injected human-style input; rendered screenshots.
 
-### [ ] WK-79 [P3][S] Audio mix pass (loudness numbers, menu vs hit weight)
-- Sources: R-33 · Owner: sound-designer · Deps: WK-45
-- **BLOCKED (partial):** the subjective "does it sound good" judgment needs a human ear; do the numeric loudness/headroom part only.
-- Accept: per-bus loudness report; no SFX clipping; music ducks under KO stings (eval bus levels).
+### [ ] WK-79 [P2][S] Audio numbers first: LUFS / true-peak / spectrum on a recorded match mix (79a), then the mix pass (79b)
+- Sources: R-33; WK-CD4 closing note (four creative-director passes in a row couldn't hear the game) · Owner: sound-designer
+- **Re-rank #9: raised P3 -> P2 and split.** The studio has no ears, so turn "sounds fine?" into numbers before anything is called shipped.
+- **79a (now, no deps):**
+  - Source: a Brawl (MEADOW MILE, 4 goats) and a Rocketball WK-93 recording with audio. Godot's AVI Movie Maker writes the mix into `movie.avi`
+    as PCM (PNG mode writes a WAV beside the frames). Keep the AVI instead of sweeping it.
+  - Cheapest path: ask WK-153's recording to keep its `movie.avi`. Otherwise one 60 s recording in a free slot.
+  - Offline report (Python / ffmpeg, outside the cap):
+    - integrated LUFS and loudness range per mode;
+    - true peak (WK-121 bar: <= -1 dBFS);
+    - per-event loudness vs the bed for bleat, gate whistle, dry click, KO sting, smash, bounce;
+    - a spectral masking check (do bounces bury the whistle and the dry click?);
+    - music ducking under KO stings.
+  - Each fail is filed as an S item.
+- **79b (after WK-45 + 79a):** fix what 79a flags. The subjective "does it sound good" stays BLOCKED (human ear).
+- Accept (79a): report in `docs/audit/` with the numbers and the recording names. Every measured event lands within its target, or is filed.
+- Status: open. Next-10 #6.
 
 ### [ ] WK-101 [P3][M] BLOCKED (GPU) Residual stage-load spike (62-72 ms) at STAGE_INTRO
 - Area: perf · Owner: gameplay-programmer · Source: performance-analyst docs/audit/2026-11-14_perf_wk91.md rec 4
@@ -2160,7 +2244,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Files: `PauseMenu.gd` (l.250/255 `change_scene_to_file(ShellRoot)`), `VictoryScreen.gd`, `SportsVictory.gd`, `ShellRoot.gd` (entry screen arg).
 - Deps: after WK-33 / WK-28b (`PauseMenu.gd`) and WK-139 (victory files), or staged hunks.
 - Accept (rendered): QUIT TO MENU from pause and from all three end screens shows mode select with an empty lobby next entry; title QUIT path unchanged.
-- Status: open
+- Status: **done 2e406dc** (WK-CD4 re-checked). Corrected at re-rank #9; superseded note: open
 
 ### [x] WK-145 [P3][S] Lobby nits: FLAIR caption, RULES-owner chip placement, unlock-card icon (UX4-18 + UX4-19 + UX4-26) — a1904ba
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4 2026-11-15
@@ -2170,7 +2254,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   swatch (or a tiny goat wearing it).
 - Files: `LobbySlot.gd/.tscn`, `HerdLobby.gd` (unlock card).
 - Accept (rendered): the three frames re-shot with the fixes; ui-ux Ship.
-- Status: open. Lane L after WK-138 (same files).
+- Status: **done a1904ba**. Corrected at re-rank #9; superseded note: open. Lane L after WK-138 (same files).
 
 ### [x] WK-146 [P3][S] Ghost / sudden-death HUD collisions: SHH badge over card names, edge-clamped ghost tag on a HUD card (UX4-23) — 225c9a5
 - Area: HUD | brawl (ghosts) · Owner: ui-ux-designer (+ gameplay-programmer) · Source: ui-ux-designer UX4-23 2026-11-15
@@ -2180,7 +2264,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Files: `GhostCardBadge.tscn` / `PlayerCard.gd`, `PlayerPip.gd` (clamp). WK-99/WK-31 also wait on `PlayerCard.gd`: one HUD pass when the fuel
   economy settles.
 - Accept (rendered): ghost stage with 2 ghosts near the corners: no badge over a name, no tag over a card.
-- Status: open
+- Status: **done 225c9a5** (WK-CD4: UX4-23 fixed). Corrected at re-rank #9; superseded note: open
 
 ### [x] WK-147 [P3][S] Trials HUD: one goal surface, not two; off-screen bubble avoids the P1 pip (UX4-24) — 225c9a5
 - Area: trials | HUD · Owner: ui-ux-designer · Source: ui-ux-designer UX4-24 2026-11-15
@@ -2189,7 +2273,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Do: the top panel keeps the hint; the chip goes once the panel is up. Bubbles avoid pips/cards.
 - Files: `TrialsHUD.gd/.tscn`, `EdgeIndicators.gd`. After WK-139 (`TrialsHUD.gd` visibility hunk) or staged hunks.
 - Accept (rendered): a Flight School course frame shows one instruction; a 3P off-screen frame shows no bubble over a pip.
-- Status: open
+- Status: **done 225c9a5**. Corrected at re-rank #9; superseded note: open
 
 ### [x] WK-148 [P3][S] First frame of a sports match: hold a wipe until the court camera settles (UX4-27) — b8be06d
 - Area: sports | camera · Owner: gameplay-programmer (+ ui-ux-designer) · Source: ui-ux-designer UX4-27 2026-11-15
@@ -2198,7 +2282,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   (`docs/feedback/owner_2026-07-10_camera_rules.md`): do not change camera framing or zoom rules here; only hide the pre-settle frames.
 - Files: the shell/stage transition layer (not the camera script); `SportsMode.gd` only if the settle signal must come from there (after WK-135).
 - Accept (rendered): a 10-frame burst from court confirm shows wipe -> settled court, no zoomed frame; WK-93 recording of one kickoff, looked at.
-- Status: open (unverified beyond one burst; re-shoot once before building)
+- Status: **done b8be06d** (superseded by WK-148b 95d4723). Corrected at re-rank #9; superseded note: open (unverified beyond one burst; re-shoot once before building)
 
 ### [x] WK-37f [P3][S] Ghosts never hide behind terrain (CD3-08) — 1f5b64d
 - Area: brawl (ghosts) · Owner: gameplay-programmer (+ art-director glance) · Source: creative-director WK-CD3 CD3-08
@@ -2301,6 +2385,22 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - WK-137 Brawl-only callouts · WK-37f ghosts never rest in terrain (0 of 732 frames) — 1f5b64d
 - WK-131 spec (KICKOFF GATES, A/B plan, SportsMode hooks) — f5709c7 (spec only; build open)
 - UX4 front-end review (FIX, close to SHIP; UX4-01..27 triaged at re-rank #8) — c305199
+- WK-33 CONTROLS screen · WK-139 end-screen kit · WK-140 cream quit dialog — 7cb2f9f (WK-CD4 re-checked the end screens)
+- WK-28a lobby disconnect grace · WK-138 honest lobby prompts · WK-83 nudge + safe area — 6e57111 (WK-138 fixes 89aeb8e; lobby verdict e5f47e7)
+- WK-143 RULES pills · WK-145 lobby nits · WK-149 horizontal safe area · WK-141 legend first frame — a1904ba
+- WK-142 Trials celebration · WK-44 Options grid / shake / rumble · WK-144 quit lands on mode select — 2e406dc (WK-CD4 re-checked 142, 144)
+- WK-119 sports team tags · WK-146 ghost HUD collisions · WK-147 Trials one goal surface — 225c9a5 (WK-CD4 re-checked 119, 146)
+- WK-60 select copy · WK-60b preview panel — 614f456 (WK-CD4: the strongest screens in the flow)
+- WK-150 tag avoidance · WK-148 first-frame cover — b8be06d · WK-148b sports camera start snap — 95d4723
+- WK-151 WASD menu navigation — 5521929
+- WK-28b in-match disconnect overlay + toasts — ece86c2 (ui-ux verdict pending -> WK-160)
+- WK-136 near-empty re-light >= 0.105 s — d23d2a4 (feel judged at WK-CD5)
+- WK-65 painted court cards + RANDOM crest + Dropshot card — art cc9036f, wiring e6d7483 (WK-CD4; follow-up WK-65b)
+- WK-135 phases 1-2 (bumper kick floor; face classes, liveness valve, BR-135) — 8eec92e, 742c37d (phase 3 open)
+- WK-20d ladder ruling (R2 adopted; R1/R3/R4 not) — e09d727 · WK-20e R2 spawn truce + Meadow Carousel soft-lock fix — 4282309 (WK-CD4:
+  opening self-KOs 0, human self-KO 23 %)
+- WK-131 KICKOFF GATES — 10c5c6a, opened at 3.5 s 3c35d59 (A/B 32.4 % -> 2.8 %, rally 10.4 s; ruling 941a12a; WK-CD4 0/18)
+- WK-CD4 creative-director cold playthrough #4 (front end / sports / Trials SHIP; Brawl FIX; CD4-01..09 triaged at re-rank #9) — 469b93e
 
 ## Deferred / Cut (this weekend) — every finding not covered by an item above
 - **UX4-03's proposed redesign (arm hold-B on every press, act on release)** — NOT adopted (re-rank #8): it would re-open lobby review L8
@@ -2347,6 +2447,12 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - **WK-CD2 CD2-05 (a 1080p `gbplay screenshot` stalls the game ~1.25 s)** — a tooling lesson, not a game item (director 2026-11-14).
   Recorded in this file's "Measurement validity" note; the director adds it to WEEKEND_LESSONS beside the existing `save_png` ~900 ms
   note. The optional `gbplay screenshot --half` flag is not filed; file it only if a QA pass is blocked by the stall.
+- **CD4-09 (sports own goals 13/46)** — watch, no item (re-rank #9): 1 was a CPU's; most came from the 8-direction keyboard seat and the driver.
+  The threshold (> 25 % overall at WK-CD5 or in WK-108b's batch) is recorded in WK-108b.
+- **CD4 interstitial 4.8 s/stage (~32 % of a Brawl at the median stage)** — no item. The score screen is owner-ruled (2026-07-16), and WK-21/41
+  already set the budget. A longer living fight (WK-20d R5/R6) is the lever, not a shorter interstitial.
+- **CD4 "Brawl: Duck Game-short rounds with a TowerFall-length score card"** — covered by WK-153 (variety) + WK-20d (stage length). Re-judged at
+  WK-CD5.
 
 ## Coverage index (source -> item)
 C-01 01 · C-02 01 (usage in 05-07) · C-03 05,06 · C-04 05,06,04 · C-05 03,04 · C-06 01,09,11 · C-07 28 · C-08 08 · C-09 10 ·
@@ -2396,6 +2502,14 @@ Specs since re-rank #7: WK-20d 9c05fa1 (ladder; flagged L-sized, treated as R1 n
 Builder follow-ups since re-rank #6: WK-66a -> 66b, 66c · WK-53b/WK-26 -> 53c · WK-128 -> 135 (spec; absorbs 133, 134, 128b)
 Builder follow-ups since re-rank #5: WK-123 -> 123b, 128 (+ 95f merged in), 129 · WK-108 -> 108b (bots), 131 (kickoff rule, CD2-03 carry-over) ·
 WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38 re-scope note
+WK-CD4 (2026-11-15_cd4_playthrough.md, triaged re-rank #9): CD4-01 153 · CD4-02 153 · CD4-03 20d (R5/R6; P1 -> P2) · CD4-04 154 (raised
+P1) · CD4-05 155 · CD4-06 156 · CD4-07 (a)(d) 157, (b)(c)(e) 158 · CD4-08 159 · CD4-09 Deferred (watch, in 108b) · closing note (audio) 79
+(raised P2, split 79a/79b) · re-confirmed: 131, 20e, 37f, 13, 42/139, 60/65, 144, 142, 119/150, 146 · not judged -> WK-CD5
+WK-131 A/B (2026-11-15_wk131_ab.md): verdict -> 131 (3.5 s, 3c35d59) · QA-131-2 supporter home -> 108b · WK-116 sample -> 116 (rule step) ·
+owed merged-build re-run + 1v1 -> 135 phase 3 Accept
+WK-20d R1-R4 (2026-11-15_wk20d_r1.md, ruling e09d727): R2 -> 20e (done) · R1/R3/R4 not adopted · protocol fixes (T1/G2 re-base) -> 20d
+re-rank #9 note · Meadow Carousel soft-lock -> 20e (done)
+Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 
 ### [x] WK-137 [P2][S] Trials fall triggers the Brawl "FIRST BLOOD!" announcer — 1f5b64d
 - Source: WK-85a builder (2P lesson 4, goat teleported into a gap -> "FIRST BLOOD!"). May be an artefact of the teleport; check a
@@ -2423,8 +2537,157 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 - Source: WK-65 blind 480 read (`tools/out/wk/WK-65_40_rb_shelf_480_blind_B.png`): both locked Tier-3 cards are dim and brownish under the
   LOCKED banner; the hazards are too small at 480 px, so colour does all the work (measured dE76 17.3 < 20). Fix: re-roll the MINEFIELD
   interior in a clearly different hue (e.g. cool dusk teal/purple) via tools/court_badge_compose.py, and/or lighten the locked dim.
+- **Re-rank #9:** on deck. The art re-roll runs outside the Godot cap; the rendered check is one shelf shot in any free slot.
 
 ### [ ] WK-152 [P3][S] Brawl/Trials stage start zooms in then eases out over ~15 frames (camera)
 - Source: WK-148b probe: Brawl/Trials start at CAM_MAX_ZOOM 0.92 and ease to ~0.66-0.78. Sports now snaps (95d4723). BLOCKED-ish: camera
   framing is an owner-rules area (docs/feedback/owner_2026-07-10_camera_rules.md) — a start snap to the computed framing is likely
   harmless, but get a recording-based before/after and log a DECISIONS entry before changing it.
+- **Re-rank #9: Next-10 #10, lane D after WK-153** (which holds `PartyMatch.gd`). It needs a before/after WK-93 recording plus a DECISIONS entry
+  (owner camera rules).
+
+## Re-rank #9 filings (WK-CD4, `docs/audit/2026-11-15_cd4_playthrough.md`)
+
+### [ ] WK-153 [P2][M] (CD4-01 + CD4-02) MEADOW MILE continues where the last match stopped; Islands Void's kill zone reads as sky, not lawn
+- Area: brawl (circuits, art)
+- Owner: gameplay-programmer (sequencing) + level-designer / art pipeline (sky drop)
+- Source: creative-director WK-CD4 CD4-01 + CD4-02. CD4 called this the "biggest remaining problem". It is the CD's named fantasy gap, so it
+  jumps to the top of P2.
+- Evidence:
+  - **Fixed order.** CD4 m1 and m2 (`tools/out/wk/CD4_data/m1.json`, `m2.json`) played the identical sequence from Grassy Expanse, and the
+    recording also opened there. A first-to-10 uses ~13 stages, so the wild tail of the arc never appears: stepping_bloom, windmill_meadow,
+    hay_bales, high_pasture and the carousel.
+  - **Islands Void.** `tools/out/wk/CD4_15_padlock_0/2`, plus recording frames `CD4_42_rec_islands_f800.jpg` / `CD4_43_rec_islands_f905.jpg`:
+    - the bottom ~40 % of the screen is flat mint;
+    - bushes and fences float between the decks;
+    - 8 of 13 human self-KOs were void falls.
+- Impact: every Brawl session on the default card. It decides whether a group plays a third match, and it is the source of "I fell on the
+  grass and died".
+- Do:
+  - (a) REMATCH, and the next play of a circuit in the same session, continue from the arena after the last one played, wrapping at 20. The
+    very first match of a session still opens on Grassy Expanse, so the legend lands on the gentle arena.
+  - (b) Apply the WK-85a sky drop (mist -> deep sky + a cloud bank) to Brawl void arenas, starting with Islands Void. Skip or anchor the
+    floating meadow props, as Trials does. Look at the other MEADOW MILE void arenas rendered.
+- Files: `PartyMatch.gd` (circuit sequencing), `levels/circuits.json`, Brawl `levels/*.json`, `ArenaRenderer.gd`.
+- Accept:
+  - A logged run of match 1 + REMATCH + a new match from mode select: the REMATCH starts at arena N+1, and a fresh session starts on Grassy Expanse.
+  - Rendered stills of Islands Void, and of every other void arena touched, show sky below the decks and no floating props.
+  - A blind read or art-director grade gives "falling = into the sky".
+  - Framing is unchanged (owner camera rules).
+- Mis-scope watch: (a) is S and (b) is M. If more than Islands Void + 2 arenas need new art, ship (a) + Islands Void and split the rest into
+  a follow-up.
+- Status: **in-progress** (builder, lane D; re-rank #9). It holds the files above until it commits.
+
+### [ ] WK-154 [P1][S] Spawn padlock gets the goal gate's draining ring: say "how long", not just "locked" (CD4-04)
+- Area: brawl (HUD) · Owner: ui-ux-designer + gameplay-programmer
+- Source: WK-CD4 CD4-04. CD4 filed it P2. The producer raised it to P1: it is missing feedback on a core verb (SUPER), on about a third of
+  newcomer super presses, in the default mode.
+- Evidence:
+  - `tools/out/wk/CD4_15_padlock_0..2`.
+  - 55 of 174 HumanSim4 super attempts were truce-dropped (`CD4_data`, `sim_stats.locked_presses`).
+  - The legend and HUD never mention the truce.
+- Impact: "my super doesn't work sometimes", in the first 1.3 s of every Brawl stage.
+- Do:
+  - Give `SuperLockBadge` a draining ring in the kickoff gate's visual language: padlock + ring = opens when the ring empties.
+  - Optionally, a stronger spawn blink at wide zoom.
+  - No new text.
+  - **Do not touch the truce rule** (WK-20d ruling e09d727). It is why opening self-KOs went to 0.
+- Files: `SuperLockBadge.gd/.tscn`, `LivingCues.gd`.
+- Accept:
+  - Rendered stills at ~0 / 0.65 / 1.3 s after GO show the ring draining to empty as the lock lifts.
+  - A 480 px couch-squint read.
+  - ui-ux Ship.
+  - A WK-93 recording frame of a locked press, with ring + dry click (the click verified by `AudioManager.last_sfx`).
+- Status: open. Next-10 #2, lane U, one slice with WK-155.
+
+### [ ] WK-155 [P2][S] Kickoff-gate cues stay visible when they matter: GOALS OPEN! at full alpha, badge above goats, pole contrasts the trim (CD4-05)
+- Area: sports (readability) · Owner: ui-ux-designer (+ art-director for (c)) · Source: WK-CD4 CD4-05
+- Evidence:
+  - (a) `CD4_21_kick_3`: "GOALS OPEN!" swaps into the stage-1 rule strip after it has faded to ~25 %. On later kickoffs only the whistle marks
+    the open.
+  - (b) `CD4_40`: CPU ZIGGY and its tag cover its own padlock and ring.
+  - (c) The striped pole reads as goal trim (yellow/white on yellow).
+- Do:
+  - (a) A word burst at full alpha at the open on every kickoff (or un-fade the strip for the call).
+  - (b) Draw the badge above goats and tags, or move it to the top of the mouth.
+  - (c) Only if the art lane touches it: red/white stripes.
+- Files: `KickoffGate.gd`, `KickoffGatePop.gd`, `ControlsLegend.gd`. The call site in `SportsMode.gd` is held by WK-108b: land that hunk after
+  it commits, or as staged hunks.
+- Accept:
+  - Stills at the open on stage 1 and on a later kickoff show a full-alpha call.
+  - With a keeper parked in the mouth, the badge stays visible.
+  - ui-ux Ship.
+  - PROTECT: the 2.667 s restart and the 3.5 s gate time are unchanged.
+- Status: open. It rides WK-154 (lane U).
+
+### [ ] WK-156 [P2][S] Rocketball stage-1 legend hides goats at kickoff (CD4-06; UX4-10 relocated, not solved)
+- Area: sports (HUD) · Owner: ui-ux-designer · Source: WK-CD4 CD4-06
+- Evidence: `CD4_40`. P3 flew into the top-docked legend and is hidden behind the SUPER-SMASH chip and the rule strip. The legend only dims after
+  the first touch (WK-141), and the kickoff toss sends goats straight up into that band.
+- Do: draw goats and tags above the legend, or drop the legend to its dimmed alpha whenever a goat overlaps it.
+- Files: `ControlsLegend.gd` (+ `PlayerPips.gd` z-order; lane H shares it, so coordinate).
+- Accept: stills of 3 stage-1 kickoffs with a goat in the legend band: goat and tag fully readable. ui-ux Ship.
+- Status: open. Lane U, after WK-154/155.
+
+### [ ] WK-157 [P3][S] Mixed-couch lobby footer glyphs + a live P1 tag over the Sports Victory panel (CD4-07 a + d)
+- Area: menus · Owner: ui-ux-designer · Source: WK-CD4 CD4-07
+- (a) Mixed-couch glyphs (CC-1.6). With a keyboard player seated:
+  - the Brawl and sports lobby footers show pad glyphs only (`CD4_03`, `CD4_19`);
+  - arena select shows "A / ENTER" (`CD4_05`).
+  - Apply the rule consistently. The per-panel prompts are already correct.
+- (d) A live P1 tag peeks over the top edge of the Sports Victory stats panel (`CD4_22`).
+- Files: `HerdLobby.gd` / `MenuScreen.gd` footer; `SportsVictory.gd` or `PlayerPips.gd` visibility.
+- Accept: a lobby footer with a keyboard and a pad seated shows both glyph sets; a Sports Victory still shows no tag over the panel; ui-ux Ship.
+- Status: open (on deck).
+
+### [ ] WK-158 [P3][S] Trials nits: FLIGHT SCHOOL card crop, objective panel jump, in-world goat behind the celebration goat (CD4-07 b, c, e)
+- Area: trials / menus · Owner: ui-ux-designer · Source: WK-CD4 CD4-07
+- (b) The FLIGHT SCHOOL shelf card crops the goat to a pink blob at the top edge (`CD4_29`).
+- (c) The objective panel jumps from screen centre to the top-left mid-course (`CD4_35` -> `CD4_36_trgoal_3`).
+- (e) Trials end: the in-world goat sits right behind the celebration goat (`CD4_38`). Dim the world more, or hide the players.
+- Files: the card crop (`MenuCard.gd` / `ShelfRail.gd`, or the crest PNG), `TrialsHUD.gd`, `TrialsVictory.gd`.
+- Accept: three rendered stills, each fixed. ui-ux Ship.
+- Status: open (on deck).
+
+### [ ] WK-159 [P3][S] Trials ball ricochets back out of the goal cage after SOLVED! (CD4-08)
+- Area: trials · Owner: gameplay-programmer · Source: WK-CD4 CD4-08
+- Evidence: `CD4_36_trgoal_3`. SOLVED! fires while the ball is already flying back over the cage top.
+- Do: damp the ball inside the cage on solve, as the sports goal does, so the net "catches" it.
+- Files: `TrialsMode.gd` or `GoalZone.gd`, whichever owns the solve. `GoalZone.gd` was last touched by WK-131 (3c35d59): keep its sports latch.
+- Accept: 3 rendered GOAL RUSH goals where the ball stays in the cage, plus a WK-93 recording of one.
+- Status: open (on deck).
+
+### [ ] WK-160 [P2][S] QA re-check sweep: WK-19 rumble routing, WK-30 keyboard parity, WK-28b ui-ux verdict (no build)
+- Area: menus / input · Owner: qa-playtester + ui-ux-designer · Source: producer re-rank #9 (stale-entry rule)
+- Why:
+  - WK-44 (2e406dc) says "all rumble routed per player through InputRouter". That is WK-19's scope.
+  - WK-151 (5521929) added WASD menu nav, and WK-29 / WK-138 made prompts device-true. That is most of WK-30.
+  - WK-28b (ece86c2) shipped without a ui-ux verdict (STATUS).
+  - None of the three is closed on a builder's word.
+- Do:
+  1. WK-19 Accept: eval-log `start_joy_vibration` during 10 smashes in a 2-pad match. Only the victim's and attacker's devices may appear.
+  2. WK-30 Accept: ModeSelect, ArenaSelect and Options navigable with WASD only; Q/E page the shelves; every footer prompt works on keyboard.
+  3. WK-28b: a ui-ux Ship/Fix verdict on the DISCONNECTED overlay, RESUME WITHOUT and the toasts (keyboard + 2 simulated pads; disconnect via gbplay).
+- Accept: each sub-check either closes its entry (hash + `tools/out/wk/WK-160_*` evidence) or files the remaining gap as a new S item.
+- Files: none (read-only).
+- Status: open. Next-10 #5.
+
+### [ ] WK-CD5 [P1][M] Creative-director cold playthrough #5 (recurring)
+- Source: WEEKEND_LOOP step 6 · Owner: creative-director, then producer re-rank #10 · Area: all
+- When: after ~6 more deliverables, or right after WK-135 p3 + WK-153 + WK-154 land, whichever comes first.
+- How: a pinned snapshot (`git archive <hash>`), its own port, and the same 3-device HumanSim route as CD3 and CD4, so the numbers compare.
+- Re-judge:
+  1. **Brawl on the default path after WK-153.**
+     - Does REMATCH reach new arenas?
+     - Does Islands Void read as sky?
+     - Stage-length distribution by circuit position, against CD4: median 10.1 s, bimodal.
+     - Human self-KO share (CD4 23 %).
+     - Super share (CD4 65 %).
+  2. **WK-154 padlock ring:** do locked presses still read as "my super is broken"?
+  3. **WK-135 phase 3 refund feel,** in Brawl and sports, plus **WK-136 re-light feel.** CD4 judged neither.
+  4. **Kickoff after WK-155:** is GOALS OPEN! visible? Is the badge covered? Sports own-goal share (CD4-09 watch: act above 25 %).
+  5. **Dropshot beyond the lobby,** including WK-66c's tape contingency. Never judged.
+  6. **Not yet assessed by any pass:** CC-10.2 arming under mashing; WK-28b in-match disconnect, if WK-160 hasn't covered it.
+  7. **Audio:** read WK-79a's numbers, since the pass still can't listen.
+- Accept: a findings doc in `docs/audit/` with every finding mapped to a WK id, then producer re-rank #10.
+- Status: open (trigger above).
