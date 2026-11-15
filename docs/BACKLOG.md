@@ -1110,7 +1110,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
     lane P with WK-136. **Mis-scope flag:** with four rungs x 80 stages plus three code rungs, this is L-sized. Treat it as R1 (data, now)
     + R2-R4 (code, after WK-135); WK-20e still ships the kept stack. Re-size only if R1 alone meets the targets (then R2-R4 are skipped).
 
-### [ ] WK-20e [P1][S] (conditional on WK-20d) Ship the ruled pacing lever
+### [x] WK-20e [P1][S] (conditional on WK-20d) Ship the ruled pacing lever — 4282309
 - Area: brawl · Owner: level-designer (blast margin, JSON) or gameplay-programmer (missed-super floor, `Player.gd` + `Tuning.gd`)
 - Source: WK-20d ruling · Deps: WK-20d; for the `Player.gd` lever, after WK-135 and WK-136 (lane P)
 - Files: blast margin -> `levels/islands_void.json`, `twin_chasms.json`, `hill_and_dale.json` (lane D). Missed-super floor -> `Player.gd`
