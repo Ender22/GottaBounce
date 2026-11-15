@@ -583,7 +583,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Accept: 2H+2CPU Rocketball screenshot 10 s into play shows a CPU pip on both bots, team-coloured, sized like the P# pips.
 - Status: open
 
-### [ ] WK-120 [P2][S] Sports FORMAT defaults to 2V2 when 2+ humans join; optional "PARTY PICK" ribbon on Dropshot (SP-21)
+### [x] WK-120 [P2][S] Sports FORMAT defaults to 2V2 when 2+ humans join; optional "PARTY PICK" ribbon on Dropshot (SP-21) — bbe6996
 - Area: sports | menus · Owner: ui-ux-designer · Source: WK-98 SP-21
 - Evidence: Dropshot rallies stayed 6-22 s with 9-26 touches and no kickoff lottery across M4/M5 + 2 recordings (best rally quality in
   the game); 2v2 with friends vs CPUs is the most social format (WK-98 §2.7).
@@ -1869,7 +1869,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Accept (rendered 1080p): banner capture beside the review's 18b; ui-ux Ship verdict.
 - Status: open
 
-### [ ] WK-125 [P2][S] Lobby auto-joins the device that confirmed the mode, even when other players carried over
+### [x] WK-125 [P2][S] Lobby auto-joins the device that confirmed the mode, even when other players carried over — bbe6996
 - Area: menus · Owner: gameplay-programmer (lobby builder) · Source: creative-director WK-CD2 (CD2-04, CD rated P3; producer P2: it is the
   owner's own complaint surface, "2 users using 2 controllers totally cant select their character")
 - Evidence: from an empty lobby the confirming pad becomes P1 automatically. After P1 backed out of the Rocketball lobby (P2, P3 still joined)
