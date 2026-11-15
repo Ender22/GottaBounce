@@ -67,7 +67,11 @@
       "y": 830,
       "w": 700,
       "h": 620,
-      "team": 0
+      "team": 0,
+      "style": "trials",
+      "mouth": "left",
+      "net_back_x": 3300,
+      "net_bottom_y": 1090
     }
   ]
 }

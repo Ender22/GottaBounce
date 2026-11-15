@@ -37,6 +37,12 @@ const DROP_POST_C_SRC := 123.5       # post centre offset from the frame centre 
 const GOAL_CAP_FRAC := 0.13          # elbows / caps end at ~11 % top and bottom
 const GOAL_TUBE_C_SRC := 91.0        # top/bottom tube centre row, from the image top/bottom edge
 const GOAL_BACK_C_SRC := 76.0        # back tube centre column, from the image left edge
+# WK-66b horizontal extension cut (measured: top band rows 20-190 and bottom band rows 1515-1704 stay within a mean
+# 1.0/255 of column 340 over x 227-436 / 231-440; the cut sits strictly inside both, clear of the gloss-streak ends)
+const GOAL_MID_L_SRC := 240.0        # middle (plain tube run) column starts here
+const GOAL_MID_R_SRC := 430.0        # ... and ends here; right of it = mouth caps
+const TRIALS_SCALE := 0.25           # WK-66b: trials frames are never uniform-scaled (4 src px per wpx, like a 170 wpx Rocketball frame)
+const Z_TRIALS_GLOW := -3
 const MAX_RIPPLES := 4
 const Z_DROPSHOT := 4
 const Z_DOME_GLOW := 6
@@ -72,6 +78,12 @@ var _bulge_dir: Vector2 = Vector2.LEFT
 var _flash_t: float = -1.0
 var _was_scored: bool = false
 var _team_col: Color = Color.WHITE
+# WK-66b trials goal (kind "goal" + _trials): gold, no front veil, idle breathing, solved glow
+var _trials: bool = false
+var _idle_t: float = 0.0
+var _glow: Sprite2D
+var _glow_in: float = -1.0           # >= 0 after the score: fade-in clock of the solved glow
+var _glow_clock: float = 0.0
 var _frame_rect_local: Rect2 = Rect2()   # GOAL: frame bounds (near-miss contact filter)
 # DROPSHOT geometry (local, origin = collider centre)
 var _cw: float = 30.0
@@ -275,6 +287,167 @@ func _tag_goal_colliders() -> void:
 				body.set_meta("net_fx", self)
 			break
 
+# ============================================================== TRIALS GOAL (WK-66b)
+
+## WK-66b (docs/briefs/trials_goal_2026-11-15.md): the Rocketball cage in objective gold for a Trials ball goal of
+## ANY size. WORLD display edges: `mouth_x` = mouth plane (cap outer edge), `back_x` = back tube centre line, or the
+## wall face it tucks behind when `back_snapped`; `top_y` / `bottom_y` = top / bottom tube centre lines. The frame is
+## a 9-slice at a fixed scale (TRIALS_SCALE): the vertical 3-slice per column (as Rocketball) plus horizontally TILED
+## middle columns, so tubes, elbows and caps keep one world size from Top Corner to Long Ball. Mesh over a dark
+## chocolate pocket shade; no front veil. Shares the ripple / bulge / flash / near-miss code with setup_goal.
+func setup_trials_goal(gz: Node, mouth_x: float, back_x: float, back_snapped: bool, top_y: float, bottom_y: float,
+		mouth_dir: float) -> void:
+	kind = "goal"
+	_trials = true
+	zone = gz
+	_team_col = Tuning.trials_goal_color
+	var origin: Vector2 = (gz as Node2D).global_position
+	var md: float = 1.0 if mouth_dir >= 0.0 else -1.0
+	var s: float = TRIALS_SCALE
+	var src: Vector2 = GOAL_FRAME_TEX.get_size()
+	var outer_mouth: float = mouth_x + md * Tuning.trials_goal_mouth_bleed - origin.x
+	var outer_back: float
+	if back_snapped:
+		outer_back = back_x - md * Tuning.goal_frame_back_tuck - origin.x
+	else:
+		outer_back = back_x - md * GOAL_BACK_C_SRC * s - origin.x
+	var frame_w: float = absf(outer_mouth - outer_back)
+	var top_l: float = top_y - origin.y
+	var bot_l: float = bottom_y - origin.y
+	var frame_h: float = (bot_l - top_l) + 2.0 * GOAL_TUBE_C_SRC * s
+	var cx: float = (outer_back + outer_mouth) * 0.5
+	var cy: float = (top_l + bot_l) * 0.5
+	_frame_rect_local = Rect2(minf(outer_back, outer_mouth), cy - frame_h * 0.5, frame_w, frame_h)
+	var back_c: float = outer_back + md * GOAL_BACK_C_SRC * s
+	var mx: float = mouth_x - origin.x
+	_interior = Rect2(minf(back_c, mx), top_l, absf(mx - back_c), bot_l - top_l)
+	_bulge_dir = Vector2(-md, 0.0)
+
+	var gold: Color = Tuning.trials_goal_color
+	var mesh_col: Color = gold.lerp(Color.WHITE, Tuning.trials_goal_mesh_white_mix)
+	mesh_col.a = Tuning.trials_goal_mesh_alpha
+	var shade: Color = Color(Tuning.trials_goal_shade_color, Tuning.trials_goal_shade_alpha)
+	_mesh_mat = _make_mesh_mat(shade, 0.0)
+	_mesh = _make_quad(_mesh_mat, Z_GOAL_MESH)
+	_mesh.modulate = mesh_col
+	add_child(_mesh)
+
+	_frame_mat = ShaderMaterial.new()
+	_frame_mat.shader = FRAME_SHADER
+	_frame_mat.set_shader_parameter("tint_mode", 1)
+	_frame = _build_goal_9slice(frame_w, frame_h, s, src)
+	_frame.position = Vector2(cx, cy)
+	if md < 0.0:
+		_frame.scale = Vector2(-1.0, 1.0)   # mouth left: the WHOLE assembled frame is mirrored, never single tiles
+	_frame.z_as_relative = false
+	_frame.z_index = Z_GOAL_FRAME
+	_frame.modulate = gold
+	_apply_frame_mat(_frame)
+	add_child(_frame)
+
+	# solved glow: additive puff behind the cage, shown after the score (alpha breathes, never scale)
+	_glow = Sprite2D.new()
+	_glow.texture = PUFF_TEX
+	var add_mat := CanvasItemMaterial.new()
+	add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_glow.material = add_mat
+	_glow.z_as_relative = false
+	_glow.z_index = Z_TRIALS_GLOW
+	_glow.position = Vector2(cx, cy)
+	_glow.scale = Vector2(frame_w + Tuning.trials_goal_glow_pad, frame_h + Tuning.trials_goal_glow_pad) / PUFF_TEX.get_size()
+	_glow.modulate = Color(Tuning.trials_goal_glow_color, 0.0)
+	_glow.visible = false
+	add_child(_glow)
+	_idle_t = randf() * Tuning.trials_goal_idle_period   # nets on screen together don't breathe in lockstep
+	_tag_goal_colliders.call_deferred()
+
+## WK-66b 9-slice of goal_frame.png at fixed scale `s`: three source columns (back tube + elbows | plain tube run |
+## mouth caps), each cut vertically like ThreeSlice (caps at GOAL_CAP_FRAC uniform, back-tube middle tiled). The
+## middle column is tiled horizontally with one shared correction factor in ThreeSlice's 0.85-1.20 band (a tile is
+## added rather than exceeding it; a run shorter than one comfortable tile is CROPPED from the quiet middle). The
+## correction is an x-only scale on a horizontally uniform strip, so tube thickness never changes.
+func _build_goal_9slice(frame_w: float, frame_h: float, s: float, src: Vector2) -> Node2D:
+	var root := Node2D.new()
+	var segs: Array = _vsegments(src.y, frame_h, s, GOAL_CAP_FRAC)
+	var lw: float = GOAL_MID_L_SRC * s
+	var rw: float = (src.x - GOAL_MID_R_SRC) * s
+	var tile_src: float = GOAL_MID_R_SRC - GOAL_MID_L_SRC
+	var tile: float = tile_src * s
+	var left_x: float = -frame_w * 0.5
+	var overlap: float = 1.0              # the run tucks 1 wpx under each end column (no hairline at the joins)
+	var span: float = frame_w - lw - rw + 2.0 * overlap
+	if span > 0.5:
+		var pos: float = left_x + lw - overlap
+		var n: int = maxi(1, roundi(span / tile))
+		var k: float = span / (float(n) * tile)
+		if k > ThreeSlice.CORR_MAX:
+			n += 1
+			k = span / (float(n) * tile)
+		if k >= ThreeSlice.CORR_MIN and k <= ThreeSlice.CORR_MAX:
+			for i in range(n):
+				_add_column(root, GOAL_MID_L_SRC, tile_src, segs, s, pos, k)
+				pos += tile * k
+		else:
+			var rem_src: float = span / s
+			_add_column(root, GOAL_MID_L_SRC + (tile_src - rem_src) * 0.5, rem_src, segs, s, pos, 1.0)
+	# end columns last so they draw over the run's cut edges
+	_add_column(root, 0.0, GOAL_MID_L_SRC, segs, s, left_x, 1.0)
+	_add_column(root, GOAL_MID_R_SRC, src.x - GOAL_MID_R_SRC, segs, s, frame_w * 0.5 - rw, 1.0)
+	for c in root.get_children():
+		(c as Node2D).position.y -= frame_h * 0.5
+	return root
+
+## ThreeSlice's vertical segment plan (same rules: caps uniform at `s`, middle tiled with a 0.85-1.20 correction,
+## cropped when too short), reused per 9-slice column. Returns [{ off, len, k, pos }] in source / world px.
+func _vsegments(src_h: float, target_h: float, s: float, cap_frac: float) -> Array:
+	var cap_src: float = src_h * cap_frac
+	var cap_len: float = cap_src * s
+	var tiles: Array = []
+	var caps: Array = []
+	if target_h <= 2.0 * cap_len + 0.5:
+		var half_src: float = (target_h * 0.5) / s
+		caps.append({ "off": 0.0, "len": half_src, "k": 1.0, "pos": 0.0 })
+		caps.append({ "off": src_h - half_src, "len": half_src, "k": 1.0, "pos": target_h * 0.5 })
+		return caps
+	caps.append({ "off": 0.0, "len": cap_src, "k": 1.0, "pos": 0.0 })
+	caps.append({ "off": src_h - cap_src, "len": cap_src, "k": 1.0, "pos": target_h - cap_len })
+	var center_src: float = src_h - 2.0 * cap_src
+	var tile: float = center_src * s
+	var ov: float = minf(2.0, cap_len * 0.25)
+	var span: float = (target_h - 2.0 * cap_len) + 2.0 * ov
+	var pos: float = cap_len - ov
+	var n: int = maxi(1, roundi(span / tile))
+	var k: float = span / (float(n) * tile)
+	if k > ThreeSlice.CORR_MAX:
+		n += 1
+		k = span / (float(n) * tile)
+	if k >= ThreeSlice.CORR_MIN and k <= ThreeSlice.CORR_MAX:
+		for i in range(n):
+			tiles.append({ "off": cap_src, "len": center_src, "k": k, "pos": pos })
+			pos += tile * k
+	else:
+		var n_full: int = int(span / tile)
+		for i in range(n_full):
+			tiles.append({ "off": cap_src, "len": center_src, "k": 1.0, "pos": pos })
+			pos += tile
+		var rem: float = span - float(n_full) * tile
+		if rem > 0.5:
+			var rem_src: float = rem / s
+			tiles.append({ "off": cap_src + (center_src - rem_src) * 0.5, "len": rem_src, "k": 1.0, "pos": pos })
+	return tiles + caps
+
+## One 9-slice column: source x-range [x0, x0 + w_src) cut by `segs`, its left edge at local x `left`, x-correction `kx`.
+func _add_column(root: Node2D, x0: float, w_src: float, segs: Array, s: float, left: float, kx: float) -> void:
+	for seg in segs:
+		var sp := Sprite2D.new()
+		sp.texture = GOAL_FRAME_TEX
+		sp.centered = false
+		sp.region_enabled = true
+		sp.region_rect = Rect2(x0, float(seg["off"]), w_src, float(seg["len"]))
+		sp.position = Vector2(left, float(seg["pos"]))
+		sp.scale = Vector2(s * kx, s * float(seg["k"]))
+		root.add_child(sp)
+
 # ============================================================== shared
 
 func _make_mesh_mat(veil: Color, pin_x: float) -> ShaderMaterial:
@@ -443,8 +616,9 @@ func _tick_goal(delta: float) -> void:
 		var bu := Vector4(_bulge_c.x, _bulge_c.y, amp, Tuning.goal_bulge_radius * 0.5)
 		_mesh_mat.set_shader_parameter("bulge", bu)
 		_mesh_mat.set_shader_parameter("bulge_dir", _bulge_dir)
-		_front_mat.set_shader_parameter("bulge", bu)
-		_front_mat.set_shader_parameter("bulge_dir", _bulge_dir)
+		if _front_mat != null:
+			_front_mat.set_shader_parameter("bulge", bu)
+			_front_mat.set_shader_parameter("bulge_dir", _bulge_dir)
 	if _flash_t >= 0.0:
 		_flash_t += delta
 		var hold: float = Tuning.goal_flash_hold
@@ -452,3 +626,26 @@ func _tick_goal(delta: float) -> void:
 		_frame.modulate = Color.WHITE.lerp(_team_col, k)
 		if k >= 1.0:
 			_flash_t = -1.0
+	if _trials:
+		_tick_trials(delta, sc)
+
+## WK-66b: idle "the net breathes" ripple until the score, then the solved glow fades in and breathes (alpha only).
+func _tick_trials(delta: float, sc: bool) -> void:
+	if not sc and _glow_in < 0.0:
+		_idle_t += delta
+		if _idle_t >= Tuning.trials_goal_idle_period:
+			_idle_t = 0.0
+			var y: float = randf_range(_interior.position.y + _interior.size.y * 0.2, _interior.end.y - _interior.size.y * 0.2)
+			_ripples.append({ "y": y, "age": 0.0, "amp": Tuning.trials_goal_idle_amp * _bulge_dir.x })
+			while _ripples.size() > MAX_RIPPLES:
+				_ripples.pop_front()
+	if sc and _glow_in < 0.0:
+		_glow_in = 0.0
+		_glow.visible = true
+	if _glow_in >= 0.0:
+		_glow_in += delta
+		_glow_clock += delta
+		var fade: float = clampf(_glow_in / maxf(Tuning.trials_goal_glow_fade_in, 0.001), 0.0, 1.0)
+		var br: float = 0.5 + 0.5 * sin(_glow_clock * TAU * Tuning.trials_goal_glow_hz)
+		_glow.modulate = Color(Tuning.trials_goal_glow_color,
+			lerpf(Tuning.trials_goal_glow_a_min, Tuning.trials_goal_glow_a_max, br) * fade)

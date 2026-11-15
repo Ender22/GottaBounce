@@ -764,3 +764,22 @@ var living_word_alpha: float = 1.0            # the living "BAAA!" puff draws at
 var super_aim_target_corridor: float = 140.0  # wpx: a goat whose centre is this close to the aim ray is "targeted"  # WK-26
 var super_aim_target_range: float = 1400.0    # wpx: ... and at most this far ahead of the aimer along it  # WK-26
 var super_aim_target_keep: float = 1.25       # the marked goat keeps its "!" out to this x corridor / range (no strobing)  # WK-26
+
+# --- WK-66b TRIALS ball goals (docs/briefs/trials_goal_2026-11-15.md sections 3, 5, 6). Display only: the trigger  # WK-66b
+# rect, scoring and colliders are untouched. The gold cage reuses the WK-66a goal kit (SportsNetArt.setup_trials_goal).  # WK-66b
+var trials_goal_color: Color = Color("#FFB21E")        # frame gold (gradient-map target) + confetti layer 0  # WK-66b
+var trials_goal_mesh_white_mix: float = 0.55           # mesh = lerp(gold, white, this) ~ #FFDC9A  # WK-66b
+var trials_goal_mesh_alpha: float = 0.95               # WK-66b
+var trials_goal_shade_color: Color = Color("#3B241B")  # pocket shade (mesh hole veil), chocolate not navy  # WK-66b
+var trials_goal_shade_alpha: float = 0.16              # lever L2: 0.24 for presence on huge goals  # WK-66b
+var trials_goal_snap_max: float = 80.0                 # DOC value: max platform-face gap a display edge may snap across (level-designer rule)  # WK-66b
+var trials_goal_floor_sink: float = 10.0               # DOC value: net_bottom_y = floor top - this (tube rests on the turf)  # WK-66b
+var trials_goal_mouth_bleed: float = 0.0               # mouth cap outer edge vs the mouth plane (Rocketball uses 8; 0 keeps caps off a pit edge)  # WK-66b
+var trials_goal_glow_color: Color = Color("#FFD86B")   # solved glow (additive puff behind the cage)  # WK-66b
+var trials_goal_glow_a_min: float = 0.35               # WK-66b
+var trials_goal_glow_a_max: float = 0.50               # WK-66b
+var trials_goal_glow_hz: float = 1.0                   # alpha breathing rate (never scale)  # WK-66b
+var trials_goal_glow_fade_in: float = 0.2              # s  # WK-66b
+var trials_goal_glow_pad: float = 120.0                # glow = frame size + this, both axes  # WK-66b
+var trials_goal_idle_period: float = 2.6               # s between idle "the net breathes" ripples (attract cue)  # WK-66b
+var trials_goal_idle_amp: float = 3.0                  # wpx idle ripple amplitude (mesh only)  # WK-66b

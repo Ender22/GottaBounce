@@ -43,6 +43,10 @@ const NET_ART := preload("res://src/systems/SportsNetArt.gd")   # WK-66a
 var net_mouth_x: float = NAN   # WK-66a
 var net_back_x: float = NAN    # WK-66a
 var _net_art: Node2D = null    # WK-66a
+# WK-66b (docs/briefs/trials_goal_2026-11-15.md): TRIALS ball goals draw the gold cage. Optional display-only top /
+# bottom tube lines (the snapped roof / crossbar face, or floor top - sink); the trigger rect never changes.  # WK-66b
+var net_top_y: float = NAN     # WK-66b
+var net_bottom_y: float = NAN  # WK-66b
 
 func setup_from_json(o: Dictionary) -> void:
 	w = float(o.get("w", 200.0))
@@ -55,6 +59,10 @@ func setup_from_json(o: Dictionary) -> void:
 		net_mouth_x = float(o["net_mouth_x"])   # WK-66a
 	if o.has("net_back_x"):   # WK-66a
 		net_back_x = float(o["net_back_x"])   # WK-66a
+	if o.has("net_top_y"):   # WK-66b
+		net_top_y = float(o["net_top_y"])   # WK-66b
+	if o.has("net_bottom_y"):   # WK-66b
+		net_bottom_y = float(o["net_bottom_y"])   # WK-66b
 
 func _ready() -> void:
 	add_to_group("goal_zone")
@@ -73,15 +81,20 @@ func _ready() -> void:
 		EventBus.combat_ended.connect(_on_combat_ended)
 	_build_net_art()   # WK-66a
 
-## WK-66a: the Rocketball cage (side-view goal mounted in the wall gap). Only left/right mouths get art; a
-## hidden concede strip (DROPSHOT floor) or an up/down mouth draws nothing. Opt-in: the zone needs net_mouth_x
-## and/or net_back_x. A missing one defaults (mouth plane 20 px inside the zone's mouth-side edge; net depth
-## Tuning.goal_net_depth_default).
+## WK-66a: the Rocketball cage (side-view goal mounted in the wall gap): a non-trials zone WITH net data
+## (net_mouth_x and/or net_back_x; a missing one defaults: mouth plane 20 px inside the zone's mouth-side edge, net
+## depth Tuning.goal_net_depth_default). WK-66b: `style: "trials"` OR any visible zone without net data gets the
+## TRIALS gold cage at its display edges (default = the zone edges). A hidden concede strip draws nothing. There is no
+## other draw path: the old rect / grid / pulse / green-flood _draw is deleted (unreachable by construction).
 func _build_net_art() -> void:   # WK-66a
-	if style == "hidden" or (is_nan(net_mouth_x) and is_nan(net_back_x)):
-		return   # no net data -> legacy draw (TRIALS goals)
+	if style == "hidden":
+		return
 	var md: float = _mouth_dir().x
 	if absf(md) < 0.5:
+		push_warning("GoalZone: up/down mouth has no cage art yet (WK-66b section 3a) - nothing drawn")
+		return
+	if style == "trials" or (is_nan(net_mouth_x) and is_nan(net_back_x)):   # WK-66b
+		_build_trials_net_art(md)
 		return
 	var mx: float = net_mouth_x
 	if is_nan(mx):
@@ -93,6 +106,20 @@ func _build_net_art() -> void:   # WK-66a
 	_net_art.name = "NetArt"
 	add_child(_net_art)
 	_net_art.call("setup_goal", self, h, mx, bx, md, _team_color())
+
+## WK-66b: the trials cage. Display edges default to the zone edges; a JSON net_back_x is a wall face the back tube
+## tucks behind (the brief's snap rule, written by the level-designer, never auto-detected).
+func _build_trials_net_art(md: float) -> void:   # WK-66b
+	var gp: Vector2 = global_position
+	var mx: float = net_mouth_x if not is_nan(net_mouth_x) else gp.x + md * w * 0.5
+	var snapped: bool = not is_nan(net_back_x)
+	var bx: float = net_back_x if snapped else gp.x - md * w * 0.5
+	var ty: float = net_top_y if not is_nan(net_top_y) else gp.y - h * 0.5
+	var by: float = net_bottom_y if not is_nan(net_bottom_y) else gp.y + h * 0.5
+	_net_art = NET_ART.new()
+	_net_art.name = "NetArt"
+	add_child(_net_art)
+	_net_art.call("setup_trials_goal", self, mx, bx, snapped, ty, by, md)
 
 func _on_combat_started() -> void:
 	_live = true
@@ -139,6 +166,10 @@ func _score_burst(at: Vector2) -> void:
 		return
 	var out := _mouth_dir()
 	var scoring_col: Color = TEAM_COLORS[(1 - team) % TEAM_COLORS.size()]
+	var sparkle_col: Color = GOLD
+	if style == "trials":   # WK-66b: no teams in Trials -> objective gold + white (out of the explicit mouth)
+		scoring_col = Tuning.trials_goal_color
+		sparkle_col = Color.WHITE
 	for layer in range(2):
 		var p := CPUParticles2D.new()
 		p.global_position = at
@@ -157,7 +188,7 @@ func _score_burst(at: Vector2) -> void:
 		p.scale_amount_min = 6.0 if layer == 0 else 4.0
 		p.scale_amount_max = 12.0 if layer == 0 else 8.0
 		var grad := Gradient.new()
-		var c0: Color = scoring_col if layer == 0 else GOLD
+		var c0: Color = scoring_col if layer == 0 else sparkle_col   # WK-66b (was GOLD)
 		# white-hot birth so the additive burst punches through the HUD's team-color flash
 		grad.add_point(0.25, Color(c0.r, c0.g, c0.b, 1.0))
 		grad.set_color(0, Color(1.0, 1.0, 0.95, 1.0))
@@ -171,35 +202,5 @@ func _score_burst(at: Vector2) -> void:
 		host.get_tree().create_timer(1.6).timeout.connect(p.queue_free)
 
 # ------------------------------------------------------------------ display (goal mouth / net)
-# WK-66a: a goal_zone with net data (net_mouth_x / net_back_x: the Rocketball courts) draws the SportsNetArt
-# cage instead (child "NetArt"; score reaction = its bulge + white frame flash off the `scored` latch). Goals
-# WITHOUT net data (the TRIALS s3_/t_ courses: free-standing, up to 700x620, mouth not against a wall) keep
-# this legacy draw unchanged until they get their own cage layout (out of WK-66a scope).
-func _draw() -> void:
-	if style == "hidden" or _net_art != null:   # WK-66a
-		return   # DROPSHOT concede strip: invisible (the broken floor tile is the visible mouth)
-	var col := _team_color()
-	var dark := Color(0.10, 0.08, 0.07, 0.95)
-	var pulse := 1.0 + 0.05 * sin(_t * 3.5)
-	var hw := w * 0.5 * pulse
-	var hh := h * 0.5
-	var rect := Rect2(Vector2(-hw, -hh), Vector2(2.0 * hw, 2.0 * hh))
-	# scored: bright green flood behind the net
-	if scored:
-		var glow: float = 0.35 + 0.35 * _flash
-		draw_rect(rect.grow(28.0), Color(0.30, 0.95, 0.50, glow), true)
-	# faint team-colored fill so the mouth reads as a goal at pitch zoom
-	draw_rect(rect, Color(col.r, col.g, col.b, 0.16), true)
-	# dark backing frame then a bright team-colored rim
-	draw_rect(rect, dark, false, 14.0)
-	draw_rect(rect, col, false, 8.0)
-	# a simple net grid (readable "goal")
-	var net := Color(col.r, col.g, col.b, 0.45)
-	var cols := 4
-	for i in range(1, cols):
-		var x := -hw + 2.0 * hw * float(i) / float(cols)
-		draw_line(Vector2(x, -hh), Vector2(x, hh), net, 3.0)
-	var rows := 6
-	for j in range(1, rows):
-		var y := -hh + 2.0 * hh * float(j) / float(rows)
-		draw_line(Vector2(-hw, y), Vector2(hw, y), net, 3.0)
+# WK-66b: GoalZone draws nothing itself. Every visible goal is a SportsNetArt child ("NetArt"): the Rocketball cage
+# (WK-66a) or the Trials gold cage (WK-66b). The legacy rect / line-grid / width-pulse / green-flood _draw was deleted.

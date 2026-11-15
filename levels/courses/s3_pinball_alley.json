@@ -88,7 +88,12 @@
       "y": 950,
       "w": 550,
       "h": 300,
-      "team": 0
+      "team": 0,
+      "style": "trials",
+      "mouth": "left",
+      "net_back_x": 2320,
+      "net_top_y": 720,
+      "net_bottom_y": 1090
     }
   ]
 }

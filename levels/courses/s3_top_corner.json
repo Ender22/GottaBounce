@@ -60,7 +60,10 @@
       "y": 520,
       "w": 320,
       "h": 320,
-      "team": 0
+      "team": 0,
+      "style": "trials",
+      "mouth": "left",
+      "net_back_x": 1900
     }
   ]
 }

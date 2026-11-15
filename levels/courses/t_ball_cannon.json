@@ -72,7 +72,9 @@
       "y": 620,
       "w": 420,
       "h": 560,
-      "team": 0
+      "team": 0,
+      "style": "trials",
+      "mouth": "left"
     }
   ]
 }
