@@ -639,7 +639,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Status: done 540f863. Goal -> GO is now 2.67 s game time: a sports-only 1.2 s freeze and a fixed 0.4 s pop-in window. The goal banner
   rides over the reset and stays readable for 1.6 s. The PROTECT-list restart line is met again. WK-CD3 re-checks it in game time.
 
-### [ ] WK-131 [P1][M] Rocketball kickoff goals ≤ 10 % with human-style seats: a kickoff RULE, not bot pathing (CD2-03 carry-over)
+### [x] WK-131 [P1][M] Rocketball kickoff goals ≤ 10 % with human-style seats: a kickoff RULE, not bot pathing (CD2-03 carry-over) — 3c35d59
 - **WK-131a BUILT 10c5c6a** (gates ON by default, rule 1). Remaining: the human-seat A/B (gates vs LIVE BALL vs formation, 40 goals/arm)
   when the batch slot frees; blind-read notes: the white hit-flash ghosts the padlock for 2-3 frames; at 480 px the bar is thin (art-director).
 - Area: sports (rules) · Owner: game-designer (A/B + DECISIONS entry) -> gameplay-programmer
