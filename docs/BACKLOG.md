@@ -914,7 +914,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   every brawl level JSON has `backdrop_painting`; spot-render 5 previously-bare arenas.
 - Status: done 4ba5d88. WK-CD1: "better than described" — meadow sky on Grassy Expanse (`tools/out/cd1/12_launch_3.png`).
 
-### [ ] WK-13 [P1][S] Mode select: BRAWL default focus, equal card heights, player-count chips
+### [x] WK-13 [P1][S] Mode select: BRAWL default focus, equal card heights, player-count chips — b2ac978
 - Sources: R-18, D-29, C-35 · **OWNER-RULED**: card ORDER is owner-set (TRIALS, BRAWL, …) — keep it, change focus only
 - Area: menus · Owner: ui-ux-designer · Deps: none
 - Evidence: tools/out/cd_audit/03_modeselect.png; WK-CD1 2026-11-14: still defaults to TRIALS (carried over unchanged); WK-CD2: still TRIALS;
@@ -1650,7 +1650,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Accept (rendered): pad focus never lands on a back button on ModeSelect/ArenaSelect/Options; mouse click on the chip goes back.
 - Status: open
 
-### [ ] WK-42 [P2][S] Victory screen: hide combat HUD, consistent button copy/size, readable CPU name
+### [x] WK-42 [P2][S] Victory screen: hide combat HUD, consistent button copy/size, readable CPU name — b2ac978
 - Sources: R-28
 - Area: menus · Owner: ui-ux-designer · Deps: WK-14
 - Evidence: tools/out/cd_audit/25_victory_settled.png
