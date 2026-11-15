@@ -27,6 +27,7 @@ extends Node
 ##   rumble(key, weak, strong, dur)      vibrate exactly one device (no-op for "kb" / ""; WK-44: off when Options RUMBLE is off)
 ##   rumble_player(player, ...)          WK-44: vibrate the device driving that human Player (bots: no-op)
 ##   simulate_device_lost(key) / simulate_device_found(key)   QA hooks — same code path as a real unplug
+##   $DeviceWatch (WK-28b)               child node: in-match DisconnectOverlay + connect / disconnect toasts
 ##   cursor_shown / cursor_allowed()     WK-39 mouse-cursor policy (CC-2.4 / CC-12.2), see "cursor" below
 
 signal device_lost(key: String)
@@ -66,6 +67,12 @@ func _ready() -> void:
 	get_tree().root.window_input.connect(_note)
 	get_tree().root.window_input.connect(_cursor_note)   # WK-39: once per event (NOT also from _input — motion accumulates)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	# WK-28b: what a hot-plug MEANS on screen (in-match disconnect overlay, connect toasts) lives in DeviceWatch, a
+	# child node loaded by path (autoload gotcha: no class refs). Added first so it hears device_lost before any
+	# scene does (the lobby's own handler leaves the join registry).
+	var watch: Node = load("res://src/ui/DeviceWatch.gd").new()
+	watch.name = "DeviceWatch"
+	add_child(watch)
 
 func _input(e: InputEvent) -> void:
 	_note(e)

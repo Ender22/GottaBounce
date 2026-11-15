@@ -919,3 +919,13 @@ var pip_tag_claim_alpha: float = 0.25          # a living tag fainter than this 
 # a speed pump. Future #15 (phase 2): bumper_min_rebound_height (48) < refund_rearm_min_px (spec 60).  # WK-135
 var bumper_min_rebound_height: float = 48.0   # px kick floor on every bumper face (= min_bounce_height, own constant). 0 = OFF  # WK-135
 var bumper_min_rebound_floor: float = 250.0   # px/s absolute kick floor for weak / zero fields (= soft_bump_min)  # WK-135
+
+# --- WK-28b in-match controller disconnect (CC-3.4) + connect / disconnect toasts. Read by src/ui/DeviceWatch.gd,  # WK-28b
+# src/ui/DisconnectOverlay.gd and src/ui/DeviceToast.gd.  # WK-28b
+var disconnect_cpu_level: int = 3             # bot level a seat plays at after RESUME WITHOUT P# when the match's CPU difficulty is MIXED (else that difficulty)  # WK-28b
+var disconnect_input_arm: float = 0.45        # s after the overlay opens before any press counts (a mashed boost A can't take over / start a hold)  # WK-28b
+var disconnect_pop_time: float = 0.18         # s the overlay's drop-pop takes  # WK-28b
+var disconnect_portrait_tint: Color = Color(0.50, 0.48, 0.48, 1.0)  # lost player's portrait modulate while their pad is gone (white again once it is back)  # WK-28b
+var device_toast_hold: float = 2.6            # s a connect / disconnect toast stays fully shown  # WK-28b
+var device_toast_fade: float = 0.22           # s a toast takes to drop in / fade out  # WK-28b
+var device_toast_max: int = 3                 # toasts stacked at once (the oldest leaves early)  # WK-28b

@@ -1,0 +1,319 @@
+[gd_scene load_steps=8 format=3 uid="uid://disconnectovl1"]
+
+[ext_resource type="Script" path="res://src/ui/DisconnectOverlay.gd" id="1_disc"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HoldButton.tscn" id="4_hold"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="5_glyph"]
+
+[sub_resource type="StyleBoxFlat" id="disc_chip"]
+bg_color = Color(1, 0.294118, 0.227451, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 6
+shadow_offset = Vector2(0, 5)
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 2.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="back_chip"]
+bg_color = Color(0.329412, 0.788235, 0.290196, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 6
+shadow_offset = Vector2(0, 5)
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 2.0
+content_margin_bottom = 4.0
+
+[node name="DisconnectOverlay" type="CanvasLayer"]
+layer = 22
+process_mode = 3
+script = ExtResource("1_disc")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="Scrim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.141176, 0.0823529, 0.0588235, 0.62)
+
+[node name="Menu" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Root/Menu"]
+custom_minimum_size = Vector2(820, 0)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"ToyPanel"
+
+[node name="VBox" type="VBoxContainer" parent="Root/Menu/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="OwnerBand" type="PanelContainer" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRibbon"
+
+[node name="Header" type="HBoxContainer" parent="Root/Menu/Panel/VBox/OwnerBand"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="Medallion" type="Control" parent="Root/Menu/Panel/VBox/OwnerBand/Header"]
+custom_minimum_size = Vector2(124, 124)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Disc" type="Panel" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Medallion"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -18.0
+offset_right = 8.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"ToyDisc"
+
+[node name="Portrait" type="TextureRect" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Medallion"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -6.0
+offset_top = -22.0
+offset_right = 6.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="OwnerPill" type="PanelContainer" parent="Root/Menu/Panel/VBox/OwnerBand/Header"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ToyPill"
+
+[node name="OwnerLabel" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header/OwnerPill"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.372549, 0.658824, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 58
+text = "P2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Words" type="VBoxContainer" parent="Root/Menu/Panel/VBox/OwnerBand/Header"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Controller" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Words"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 40
+text = "CONTROLLER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DiscChip" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Words"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("disc_chip")
+text = "DISCONNECTED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BackChip" type="Label" parent="Root/Menu/Panel/VBox/OwnerBand/Header/Words"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("back_chip")
+text = "IS BACK!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Status" type="Label" parent="Root/Menu/Panel/VBox"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 38
+text = "PLUG IT BACK IN"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ResumeRow" type="HBoxContainer" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Glyph" type="Control" parent="Root/Menu/Panel/VBox/ResumeRow"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "A"
+
+[node name="Text" type="Label" parent="Root/Menu/Panel/VBox/ResumeRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "ON P2'S CONTROLLER TO PLAY ON"
+vertical_alignment = 1
+
+[node name="TakeRow" type="HBoxContainer" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Glyph" type="Control" parent="Root/Menu/Panel/VBox/TakeRow"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "A"
+
+[node name="Slash" type="Label" parent="Root/Menu/Panel/VBox/TakeRow"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "/"
+vertical_alignment = 1
+
+[node name="Glyph2" type="Control" parent="Root/Menu/Panel/VBox/TakeRow"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ENTER"
+
+[node name="Text" type="Label" parent="Root/Menu/Panel/VBox/TakeRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "ON ANOTHER CONTROLLER TO TAKE OVER"
+vertical_alignment = 1
+
+[node name="Also" type="Label" parent="Root/Menu/Panel/VBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.87, 0.2, 0.15, 1)
+theme_override_font_sizes/font_size = 28
+text = "P3 IS DISCONNECTED TOO"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Rule" type="Panel" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRule"
+
+[node name="Buttons" type="VBoxContainer" parent="Root/Menu/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="WithoutBtn" parent="Root/Menu/Panel/VBox/Buttons" instance=ExtResource("4_hold")]
+custom_minimum_size = Vector2(640, 84)
+layout_mode = 2
+text = "RESUME WITHOUT P2"
+
+[node name="WithoutNote" type="Label" parent="Root/Menu/Panel/VBox/Buttons"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.72)
+theme_override_font_sizes/font_size = 28
+text = "P2'S GOAT PLAYS ON AS A CPU"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="QuitBtn" parent="Root/Menu/Panel/VBox/Buttons" instance=ExtResource("4_hold")]
+custom_minimum_size = Vector2(640, 80)
+layout_mode = 2
+text = "QUIT TO MENU"
+
+[node name="Rule2" type="Panel" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRule"
+
+[node name="HintBox" type="HBoxContainer" parent="Root/Menu/Panel/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+script = ExtResource("3_hint")
+hints = PackedStringArray("A|Hold to confirm")
+dark_text = true
+device_ctx = "menu"

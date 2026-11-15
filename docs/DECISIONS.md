@@ -2,6 +2,10 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-15** WK-28b IN-MATCH DISCONNECT (director): a pad dropping mid-match pauses with a DISCONNECTED overlay; the same pad
+  or any free device reclaims the seat; RESUME WITHOUT is hold-to-confirm and turns the seat into a CPU (keeps goat/colour/P#) rather
+  than leaving an idle goat (free KOs / a 2v2 team a player short). Restart/rematch with the pad still gone = CPU seat + toast.
+
 - **2026-11-15** WK-128 SHIPPED BILL-ONLY (3e1a5b0, director): the boost "relight bill" is ON (re-light within 0.20 s
   of release pays up to 20% of a hold's cost) -> fuel-tapping/feathering is dead (tut_02/03 feather + all 6 pulse cadences fail).
   Refund gates (spec part b) are built but OFF until WK-135 (bumper min rebound + gravity-sorted refunds) lands. Accepted cost:

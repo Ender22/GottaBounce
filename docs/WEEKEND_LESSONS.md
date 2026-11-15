@@ -164,3 +164,8 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   A fresh copy from the repo silently runs the default course instead (every probe gives the same wrong result, super lines
   "fail"). Add the probe sets after copying.
 - WK127Rec writes its brawl json incrementally: summarising before the job ends reports "incomplete_files" and short stage counts.
+- **WK-28b: hot-plug meaning lives in `InputRouter/DeviceWatch`** (child node created in InputRouter._ready, so it hears device_lost BEFORE
+  any scene, e.g. before the lobby leaves the join registry). In-match it opens `DisconnectOverlay` as a LATER child of the match than the
+  PauseMenu: `_input` runs last-child-first, so the overlay decides every key/pad event before the (suspended) pause menu or PartyMatch's
+  pause action. QA: `InputRouter.get_node('DeviceWatch')` has `overlay`, `cpu_seats`, `_gone`, `log_lines`, `toast.shown_log`. A pad
+  "lost" and never re-found stays in `_gone` until it presses something; a RESTART/REMATCH then starts its seat as a CPU (by design).

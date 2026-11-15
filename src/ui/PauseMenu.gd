@@ -53,6 +53,9 @@ var _owner_key := ""
 var _owner_color := NEUTRAL
 # QA readouts (eval): who the header says paused, and what fired.
 var owner_label := 0                 # P# shown in the header (0 = no owner pill)
+var suspended := false               # WK-28b: a DisconnectOverlay is on top (set_suspended)
+var _lost_owner_key := ""            # WK-28b: the owner's pad while it is disconnected ("" = owner not lost)
+var _focus_before: Control = null    # WK-28b: focus to restore when un-suspended
 var last_action := ""                # "resume" / "restart" / "setup" / "quit" / "options" / "controls"
 
 func setup(m, owner_key: String = "") -> void:
@@ -69,16 +72,46 @@ func setup(m, owner_key: String = "") -> void:
 		match_ref.set_match_overlays_hidden(true)
 
 ## Owner's pad died mid-pause → release ownership so the menu can't become a dead end. Router signal, so
-## InputRouter.simulate_device_lost() exercises the same path. TODO(C-07): DisconnectOverlay replaces this.
+## InputRouter.simulate_device_lost() exercises the same path. WK-28b: DeviceWatch also opens the DisconnectOverlay on
+## top (this menu is suspended under it); the header turns neutral "PAUSED" while the owner is gone, and
+## on_seat_rebound() hands ownership to whichever device then drives the owner's seat.
 func _on_device_lost(key: String) -> void:
 	if key == _owner_key:
+		_lost_owner_key = key   # WK-28b
 		_owner_key = ""
-		_refresh_hints()
+		_apply_owner()
+
+## WK-28b: the DisconnectOverlay gave the lost owner's seat a device again (the same pad, or a take-over).
+func on_seat_rebound(old_key: String, new_key: String) -> void:
+	if _lost_owner_key == "" or old_key != _lost_owner_key:
+		return
+	_lost_owner_key = ""
+	_owner_key = new_key
+	if InputRouter.is_pad(_owner_key) and not InputRouter.device_lost.is_connected(_on_device_lost):
+		InputRouter.device_lost.connect(_on_device_lost)
+	_apply_owner()
+
+## WK-28b: a DisconnectOverlay sits on top. Suspended = hidden and inert (no owner gate, no resume); un-suspending
+## restores the focus it had, so the pauser finds their menu exactly as they left it.
+func set_suspended(on: bool) -> void:
+	if on == suspended:
+		return
+	suspended = on
+	visible = not on
+	if on:
+		var f := get_viewport().gui_get_focus_owner()
+		_focus_before = f if f != null and is_ancestor_of(f) else null
+		if f != null and is_ancestor_of(f):
+			f.release_focus()
+	else:
+		var back: Control = _focus_before if _focus_before != null and is_instance_valid(_focus_before) else _resume
+		_focus_before = null
+		call_deferred("_grab", back)
 
 ## Pause-owner gate (CC-1.5). _input runs before GUI focus navigation, so marking a non-owner event
 ## handled here stops it moving focus, pressing / holding buttons, or resuming. Mouse is never gated.
 func _input(e: InputEvent) -> void:
-	if _owner_key == "":
+	if suspended or _owner_key == "":   # WK-28b: the DisconnectOverlay on top decides every event
 		return
 	var k: String = InputRouter.device_key(e)
 	if k != "" and k != _owner_key:
@@ -108,7 +141,8 @@ func _ready() -> void:
 
 func _apply_owner() -> void:
 	var info: Dictionary = {}
-	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("pause_owner_info"):
+	# WK-28b (audit L6): while the owner's pad is disconnected the header is plain "PAUSED", not the P1 fallback
+	if match_ref != null and is_instance_valid(match_ref) and match_ref.has_method("pause_owner_info") and not (_owner_key == "" and _lost_owner_key != ""):
 		info = match_ref.pause_owner_info(_owner_key)
 	owner_label = int(info.get("label", 0))
 	_owner_color = info.get("color", NEUTRAL)
@@ -308,7 +342,7 @@ func _close_controls() -> void:
 	call_deferred("_grab", _controls_btn)
 
 func _unhandled_input(e: InputEvent) -> void:
-	if e.is_echo():
+	if e.is_echo() or suspended:   # WK-28b
 		return
 	if _controls != null:
 		# the ControlsScreen owns B/Esc (back one level); Start (or P) resumes straight from it
