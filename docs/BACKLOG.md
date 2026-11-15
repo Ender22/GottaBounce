@@ -155,7 +155,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 9. WK-127b the_ascent hopping (S) [S after WK-108b]
 10. WK-116 rally tail (measurement only, rides WK-131's post-rule run)
 11. WK-45 distinct UI sounds (S; samples now, `HerdLobby.gd` call sites after lane L's pass)
-12. WK-65 court cards + RANDOM ROTATION card + Dropshot mode card (M, art generation)
+12. ~~WK-65~~ done e6d7483 — court cards + RANDOM ROTATION card + Dropshot mode card (M, art generation)
 13. WK-112 sports hazards stun (S) [S] · WK-114 court unlock gates (S, JSON)
 14. WK-54 per-player legend (S) [U, after WK-141: `ControlsLegend.gd`]
 15. WK-19 rumble per pad (S; unblocks WK-44's RUMBLE row)
@@ -1908,7 +1908,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept: SURVIVOR -> survivor with 0 KOs gets +1 (eval); KO RACE byte-identical over a 10-stage parity run.
 - Status: open
 
-### [ ] WK-65 [P2][M] Painted court-select cards (Rocketball + Dropshot, 11 courts)
+### [x] WK-65 [P2][M] Painted court-select cards (Rocketball + Dropshot, 11 courts) — e6d7483
 - Sources: R-15 (cards half) · art generation
 - Area: art/sports · Owner: art pipeline + art-director · Deps: none
 - Evidence: tools/out/cd_audit/44_rocketball_courts.png, 50_dropshot_4s.png; WK-98 §4: all 8 Rocketball thumbs are the same dark
