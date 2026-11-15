@@ -66,3 +66,5 @@ Rendered by `python tools/audio/render_ko_sting.py` (numpy/scipy + ffmpeg, deter
 | File | Derived from | How | Use (AudioManager key) |
 |---|---|---|---|
 | `ko_sting.ogg` | `crunch.mp3` (owner library, see above) + `assets/placeholder/newplatformer/Sounds/sfx_disappear.ogg` and `sfx_throw.ogg` (Kenney **New Platformer Pack 1.1**, CC0 1.0, https://kenney.nl/assets/new-platformer-pack; pack `License.txt` in `assets/placeholder/newplatformer/`) | crack = crunch x1.12, 160 Hz HPF, 0-0.10 s then faded, peaks limited 8 dB; vanish = sfx_disappear + sfx_throw (-9 dB), +4 dB gain ramp to 0.3 s, tanh drive 2.0, -2.5 dB under the crack; 120 Hz HPF, cosine fade 0.38-0.55 s, limited, peak -1.2 dBFS; 0.55 s mono 44.1 kHz Vorbis q6 | `ko_sting` — WK-163 brawl KO attack layer over the `death` pop (Stingers bus) |
+
+- `slam_tight.ogg` (WK-165, 2026-11-15): `slam.mp3` with its 0.12 s leading silence trimmed (`ffmpeg -af atrim=start=0.12,asetpts=PTS-STARTPTS -c:a libvorbis -q:a 6`). Same source/licence as slam.mp3.

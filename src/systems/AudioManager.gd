@@ -19,7 +19,7 @@ const SFX := {
 	# and at ~19 bounces/s on Singularity those tails held 7-14 of the 14 voices)
 	"bounce":            ["res://assets/sfx/spring_short.ogg", "res://assets/sfx/balloon_pop.mp3"],
 	"smash":             ["res://assets/sfx/impact1.mp3", "res://assets/sfx/impact2.mp3", "res://assets/sfx/impact3.mp3"],
-	"smash_heavy":       ["res://assets/sfx/slam.mp3"],
+	"smash_heavy":       ["res://assets/sfx/slam_tight.ogg"],
 	"super_fire":        ["res://assets/sfx/explosion_boss.mp3"],   # owner pick 2026-07-18 (was combo_bigRoar)
 	"death":             ["res://assets/sfx/mm_quickdie.mp3"],
 	# WK-163: 0.55 s hard broadband crack + falling "vanish" sweep layered OVER the KO pop (mm_quickdie fades in over 0.4 s and
@@ -94,7 +94,7 @@ const SFX := {
 	"pressure_ka":       ["res://assets/sfx/kenney_impactWood_medium_000.ogg", "res://assets/sfx/kenney_impactWood_medium_001.ogg"],
 	"pressure_chunk":    ["res://assets/sfx/kenney_impactPunch_heavy_000.ogg", "res://assets/sfx/kenney_impactPunch_heavy_002.ogg",
 	                      "res://assets/sfx/kenney_impactPunch_heavy_004.ogg"],
-	"pressure_slam":     ["res://assets/sfx/slam.mp3"],
+	"pressure_slam":     ["res://assets/sfx/slam_tight.ogg"],
 	"pressure_ooh":      ["res://assets/sfx/rewardCheer.mp3"],
 }
 
@@ -539,7 +539,7 @@ func _on_super_boosted(_player) -> void:
 	# read < 2 LU on a TV. Rumble tail down to -10 (peaks under the WK-79c -6 dB compressor threshold) + an interim mid "crack" layer
 	# from the owner's slam.mp3 pitched down (distinct from smash_heavy at 1.0) until a real crack is sourced (audit S-1).
 	play_sfx("super_fire", {"volume_db": -10.0, "pitch_var": 0.08})
-	play_sfx("super_fire", {"path": "res://assets/sfx/slam.mp3", "volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.05})   # WK-79c (was -3): 17/20 supers hit the limiter
+	play_sfx("super_fire", {"path": "res://assets/sfx/slam_tight.ogg", "volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.05})   # WK-79c (was -3): 17/20 supers hit the limiter
 
 func _on_exploded(_center, _radius) -> void:
 	play_sfx("explode", {"volume_db": 0.0})
