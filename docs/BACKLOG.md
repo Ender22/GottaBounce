@@ -2737,3 +2737,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   with every pad lost; "P3 is disconnected too" not in P3's colour; "controller connected" toast covers lobby portraits; takeover line
   says "another controller" when offering the keyboard.
 - Feel: pads buzz on nearly every bounce (395 bounce vs 16 smash buzzes for one pad) — raise the bounce-rumble speed threshold.
+
+### [ ] WK-167 [P2][S] Bots never spend their last ~3.9 fuel (WK-136 relight reserve) and fall with it
+- Source: docs/audit/2026-11-16_wk135_p3_ab.md: 56 of 106 bot self-KOs died holding ~3.9 fuel in both arms — the WK-136 billed-relight
+  reserve (0.105 s thrust). InputBot's recovery math likely treats < super_min / < some threshold as empty. Make recovery spend it.

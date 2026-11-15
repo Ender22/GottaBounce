@@ -965,7 +965,7 @@ var bot_pin_turn_mult: float = 3.0            # x bot_flight_turn_rate while tha
 # INVARIANT #17: sports_touch_fuel / sports_touch_fuel_cd (20 / 1.0 = 20 fuel/s) < normal_boost_drain() (28.6): the ball  # WK-135
 #       source can't be farmed; the only "farm" is hitting the ball, which is the game. Invariant #2 holds: one touch re-arms a super.  # WK-135
 var refund_gates_on: bool = false             # OFF until the phase-3 A/B (director). MASTER: WK-128 (b) gates at the spec values. false = every contact pays (pre-phase-3)  # WK-135
-var sports_touch_refuel: bool = false         # OFF until the phase-3 A/B (director). S1 switch: ball touches refuel in Sports. false (or sports_touch_fuel 0) = OFF  # WK-135
+var sports_touch_refuel: bool = true          # ON (phase-3 A/B: human starved share 0.27 -> 0.14; gates stay OFF). S1 switch: ball touches refuel in Sports. false (or sports_touch_fuel 0) = OFF  # WK-135
 var sports_touch_fuel: float = 20.0           # S1 fuel per accepted live touch (= one trampoline bounce). 0 = OFF  # WK-135
 var sports_touch_fuel_cd: float = 1.0         # S1 s per player between paying touches (caps the source at 20/s < drain 28.6). Inv. #17  # WK-135
 

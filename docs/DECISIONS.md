@@ -2,6 +2,12 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-135 PHASE-3 RULING (docs/audit/2026-11-16_wk135_p3_ab.md): refund gates stay OFF (KO/min 0.77x, median +24 %,
+  self-KO +6.7 pp, Bumper Gauntlet 1/33 -> 13/35 bot empty-tank falls; neither fallback rescues them) -> retune later with the bot
+  refuel brain + re-arm frac + the carousel deck fix. SPORTS BALL REFUEL ON (gates OFF): human-seat starved share 0.27 -> 0.14, goals
+  1.22x n.s., own goals -8.8 pp; all-bot goals 0.72x (p 0.08, one court) is a watch item. Measured on the nets-OFF build; the WK-109
+  A/B baseline arm (nets ON + ball ON) re-checks sports goals and the human-seat rally median (7.2-7.9 s vs the 8-20 s band).
+
 - **2026-11-16** WK-116 PRESSURE NETS RULING (director, docs/audit/2026-11-15_wk116_ab.md): ship ON at the pre-registered fallback
   (step 2 = +75 %): rally time beyond 30 s -40.4 % (90 % CI -7.29..-0.05 s), rallies >= 45 s 0.92 -> 0.32 %, 0 over 60 s; defaults (+50 %)
   missed (-28.6 %, CI crosses 0); t1 = 35 s does nothing. The over-fix guard's 'median moves > 0.5 s' clause is ruled NOISE: the rule is
