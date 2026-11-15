@@ -2957,7 +2957,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 - Source: WK-169b batch (T.A0.201.json, meadow_spine: all four goats revived; 7 of 240 forced stages). Sudden death should only revive
   the last two (owner SD rule). Check PartyMatch's double-KO window chaining.
 
-### [ ] WK-182 [P3][S] Square bumpers draw as "stacked donuts"; meadow corner tufts on wide-void arenas (art-director call)
+### [x] WK-182 [P3][S] Square bumpers draw as "stacked donuts"; meadow corner tufts on wide-void arenas (art-director call) — bcaba08
 - Source: WK-180 wiring. Bumpers with h >= w are treated as posts; at ~120x120 they draw two caps with no pearls (the_box, pinball_pit,
   bumper_gauntlet, hay_bales, singularity, bumper_mines, s3_hazard_striker, dropshot 90x100 floor corners). bumper_block would hang ~5 px
   past a 120x120 collider; 90x100 doesn't fit -> decide: a square bumper sprite, or draw block art scaled to fit.
