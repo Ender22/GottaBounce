@@ -48,6 +48,10 @@ const MAX_FIGHTERS := 4
 ## WK-37 (docs/specs/wk37a_ghost_goats_2026-11-14.md): Ghosts.ON (default) / BAA_ONLY / OFF. Sports/Trials ignore it
 ## (they never eliminate). RULES row "GHOSTS" on the Herd Lobby panel back; remembered per mode like the other rules.
 @export var ghosts: int = Ghosts.ON
+## WK-116 (docs/specs/wk116_long_rally_2026-11-15.md §5): Rocketball RULES row "PRESSURE NETS" ON (1, default) / OFF (0).
+## Long rallies widen both goal mouths. Only soccer courts read it, and only while Tuning.sports_pressure_rule != 0 (the
+## studio master switch / A/B knob). Remembered per mode like the other rules.
+@export var pressure_nets: int = 1   # WK-116
 
 ## Most bots allowed alongside `humans` humans (BOTS stepper max / lobby CPU tray max).
 static func max_bots_for(humans: int) -> int:

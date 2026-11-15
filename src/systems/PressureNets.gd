@@ -22,7 +22,12 @@ extends Node2D
 ## court JSON "pressure_max_grow_px" caps the total growth.
 
 const CHOCO := Color("#3B241B")
-const SQUASH_TOL := 12.0                 # px of penetration a fast ball / goat contact normally shows (measured 3 px) is not a squash
+const SQUASH_TOL := 12.0                 # px of penetration a goat contact normally shows (measured 3 px) is not a squash
+## WK-116: the BALL needs its own tolerance. Hard shots overlap a post face 22-28 px on first contact (A/B M4: 35 entries, all ball,
+## 0 goats) because it can travel a whole tick (speed cap 2400 px/s = 20 px/tick at 120 Hz) into the face before the solver pushes
+## it out. The posts only move vertically AWAY from the mouth, so a real crush would put the ball centre into the post; count the
+## ball only past SQUASH_TOL + SQUASH_BALL_TICKS ticks of travel at its live cap (2400 -> 42 px overlap, centre < 18 px from the face).
+const SQUASH_BALL_TICKS := 1.5           # WK-116
 
 var rule: int = 1
 var step: int = -1                       # -1 inert, 0 anticipation, 1 PRESSURE!, 2 MAX PRESSURE!
@@ -30,7 +35,7 @@ var step_t: Array = [-1.0, -1.0, -1.0]  # ball clock of the warn / step 1 / step
 var over: bool = false                   # a goal latched (or the rule disabled itself): nothing changes any more
 var disabled_reason: String = ""         # set when a court's mouths could not be mapped (the rule stays off, symmetric)
 var leak_ticks: int = 0                  # QA (G3): body centres behind a mouth plane but outside the live mouth band
-var squash_ticks: int = 0                # QA (M4): body centre DEEP inside a moved post (> SQUASH_TOL px: a crush, not contact)
+var squash_ticks: int = 0                # QA (M4): body centre DEEP inside a moved post (goat > SQUASH_TOL px, ball > _ball_squash_tol: a crush, not contact)  # WK-116
 var log_lines: Array = []                # QA
 
 var _runner = null
@@ -390,7 +395,7 @@ func _probe() -> void:
 	for b in get_tree().get_nodes_in_group("sports_ball"):
 		if is_instance_valid(b):
 			var br: Variant = b.get("radius")
-			bodies.append([b, float(br) if br != null else 60.0])
+			bodies.append([b, float(br) if br != null else 60.0, _ball_squash_tol(b)])   # WK-116
 	for m in _mouths:
 		var top: float = float(m["top0"]) - float(m["cur_up"])
 		var bottom: float = float(m["bottom0"]) + float(m["cur_down"])
@@ -404,6 +409,7 @@ func _probe() -> void:
 		for e in bodies:
 			var pos: Vector2 = (e[0] as Node2D).global_position
 			var r: float = float(e[1])
+			var tol: float = float(e[2]) if (e as Array).size() > 2 else SQUASH_TOL   # WK-116: goats SQUASH_TOL, the ball its own
 			if (pos.x - mx) * md < -1.0 and (pos.y < top - 1.0 or pos.y > bottom + 1.0):
 				leak_ticks += 1
 				if leak_ticks <= 20:
@@ -411,10 +417,21 @@ func _probe() -> void:
 			for pr2 in posts:
 				var rr: Rect2 = pr2
 				var q := Vector2(clampf(pos.x, rr.position.x, rr.end.x), clampf(pos.y, rr.position.y, rr.end.y))
-				if q.distance_to(pos) < r - SQUASH_TOL:
+				if q.distance_to(pos) < r - tol:   # WK-116
 					squash_ticks += 1
 					if squash_ticks <= 20:
 						log_lines.append("squash: %s at %s" % [(e[0] as Node).name, pos])
+
+## WK-116: squash tolerance for a sports ball = SQUASH_TOL + SQUASH_BALL_TICKS ticks of travel at its live speed cap (the WK-109
+## power window raises the cap, so read it live; never below max_speed).
+func _ball_squash_tol(b: Node) -> float:
+	var cap: float = 2400.0
+	var ms: Variant = b.get("max_speed")
+	if ms != null:
+		cap = float(ms)
+	if b.has_method("_wk109_cap"):
+		cap = maxf(cap, float(b.call("_wk109_cap")))
+	return SQUASH_TOL + SQUASH_BALL_TICKS * cap / float(Engine.physics_ticks_per_second)
 
 # ------------------------------------------------------------------ feedback (spec §5)
 

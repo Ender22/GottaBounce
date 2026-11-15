@@ -482,7 +482,7 @@ func waiting_flash() -> void:
 ## out, a red DISCONNECTED chip sits over it, and the bottom of the panel counts the grace window down
 ## ("PLUG IT BACK IN · 9") with a draining ring on the takeover glyph. `kb_free` adds the ENTER key cap when the
 ## keyboard is not seated (it can take over too). The lobby owns the timer and calls set_disc_remaining().
-func show_disconnected(kb_free: bool) -> void:
+func show_disconnected(kb_free: bool, animate: bool = true) -> void:
 	disconnected = true
 	_hide_flash()   # WK-145
 	_ready_on = false
@@ -597,8 +597,9 @@ func show_rules(data: Dictionary) -> void:
 		if i >= n:
 			continue
 		# BRAWL x5 rows (72 tall) from y=72, 78 apart -> last ends at 456, above the footer (462); WK-20c added
-		# SELF-KO -1. SPORTS x2 keep the old 94 pitch, centred in the band (y = 174, 268).
-		row.position.y = (ROW_Y0 + ROW_PITCH * i) if n > 2 else (174.0 + 94.0 * i)
+		# SELF-KO -1. SPORTS x2 keep the old 94 pitch, centred in the band (y = 174, 268); WK-116 Rocketball x3 (PRESSURE
+		# NETS) keeps it too, centred on the same line (y = 127, 221, 315 -> last ends at 387).
+		row.position.y = (ROW_Y0 + ROW_PITCH * i) if n > 3 else (257.0 - (94.0 * float(n - 1) + 72.0) * 0.5 + 94.0 * i)   # WK-116
 		_layout_row(row, n >= 6)
 		if n >= 6:
 			row.position.y = ROW6_Y0 + ROW6_PITCH * i

@@ -1183,12 +1183,12 @@ var wk161_dump_max: int = 24                  # WK-161 per-bot per-stage episode
 # INVARIANTS (spec §6): t1 - warn > sports_gate_open_s (3.5): pressure and gates never overlap (runtime also holds pressure until  # WK-116
 # every gate is open); t2 > t1; the grown mouth's bottom edge stays above the court's floor-bouncer apex centre (floor top -  # WK-116
 # apex_body_r - the floor tier's bounce height, measured per court at runtime; growth below it moves to the top edge).  # WK-116
-var sports_pressure_rule: int = 0             # 0 = OFF (exactly today's game: no node is ever made), 1 = PRESSURE NETS. The A/B decides  # WK-116
+var sports_pressure_rule: int = 1             # 0 = OFF (exactly today's game: no node is ever made), 1 = PRESSURE NETS (ON: DECISIONS 2026-11-16 A/B ruling)  # WK-116
 var sports_pressure_t1_s: float = 30.0        # s of live ball with no goal -> STEP 1 "PRESSURE!" (mouths x (1 + grow1))  # WK-116
 var sports_pressure_t2_s: float = 40.0        # s -> STEP 2 "MAX PRESSURE!" (mouths x (1 + grow2)) + the crowd clap-chant until the goal  # WK-116
 var sports_pressure_warn_s: float = 3.0       # s of anticipation before t1 (trim pulse + crowd swell; no geometry change)  # WK-116
 var sports_pressure_grow1_frac: float = 0.25  # mouth height growth at step 1 (CENTER 300 -> 375 px)  # WK-116
-var sports_pressure_grow2_frac: float = 0.50  # mouth height growth at step 2 (CENTER 300 -> 450 px). Pre-registered A/B step: 0.75  # WK-116
+var sports_pressure_grow2_frac: float = 0.75  # mouth height growth at step 2 (CENTER 300 -> 525 px, bottom clamped at the apex). A/B: +50 % missed, +75 % shipped  # WK-116
 var sports_pressure_slide_s: float = 0.30     # s the posts take to retract (ease-out); colliders move with the art  # WK-116
 var sports_pressure_back_margin: float = 100.0   # wpx the back post spans past each mouth edge (WK-122: the 60 px slot stays sealed)  # WK-116
 var sports_pressure_min_post_px: float = 80.0    # wpx: a post never retracts shorter than this (it slides into the ceiling / floor)  # WK-116
@@ -1294,7 +1294,6 @@ var wk109_trail_len_s: float = 0.06           # s of travel the streak covers (l
 var wk109_trail_fade_s: float = 0.1           # s the streak fades when it switches off on its own (a blunting touch kills it on the frame)  # WK-109
 var wk109_power_duck_db: float = -3.0         # dB SFX-bed duck under the power cue (KO duck is -4 for 0.3 s)  # WK-109
 var wk109_power_duck_s: float = 0.15          # s the power duck holds  # WK-109
-
 # --- WK-166 disconnect follow-ups (docs/audit/2026-11-16_wk160_recheck.md). Read by src/systems/Juice.gd (bounce  # WK-166
 # rumble) and src/ui/DeviceToast.gd (lobby toast placement).  # WK-166
 var wk166_bounce_rumble_min_speed: float = 1100.0   # px/s launch a bounce needs before it rumbles the bouncer's pad (was 310 = t > 0.25 of 1240; idle floor bounces launch 758-929)  # WK-166

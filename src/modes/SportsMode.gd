@@ -101,6 +101,7 @@ var _wk135_fuel_t: Dictionary = {}     # WK-135 S1: player instance id -> ball c
 const PRESSURE_SCRIPT := preload("res://src/systems/PressureNets.gd")   # WK-116
 var _pressure: Node = null             # WK-116: this stage's PressureNets (null when the rule is off / not soccer)
 var _pressure_override: float = -1.0   # WK-116: court JSON "pressure_max_grow_px" (-1 = Tuning fractions only)
+var _pressure_rules_on: bool = true    # WK-116: the lobby RULES row "PRESSURE NETS" (MatchConfig.pressure_nets; a null config = ON)
 
 # --- SPORT VARIANT (owner 2026-07-18 item 5, DROPSHOT) ---
 # The court JSON declares its sport via a top-level "sport" field ("soccer" default | "dropshot").
@@ -288,6 +289,7 @@ func configure(runner, config: MatchConfig) -> void:
 	_sport = _read_sport(_arena_path)
 	_kickoff = _read_kickoff(_arena_path) if _sport == "soccer" else {}
 	_pressure_override = _read_pressure_override(_arena_path) if _sport == "soccer" else -1.0   # WK-116
+	_pressure_rules_on = config == null or int(config.pressure_nets) != 0   # WK-116: RULES "PRESSURE NETS" ON / OFF
 	_team_scores = [0, 0]
 	_last_scoring_team = -1
 	_last_scored_stage = -1
@@ -900,10 +902,14 @@ func _latched_ball_t(runner, fallback: float) -> float:
 
 # ------------------------------------------------------------------ WK-116 PRESSURE NETS (spec §4 / §10.1)
 
-## on_stage_ready: one PressureNets per soccer stage while Tuning.sports_pressure_rule != 0 (latched per stage, like the gates).
+## on_stage_ready: one PressureNets per soccer stage while Tuning.sports_pressure_rule != 0 and the RULES row is ON (latched
+## per stage, like the gates).
+func _pressure_on() -> bool:   # WK-116
+	return _sport == "soccer" and int(Tuning.sports_pressure_rule) != 0 and _pressure_rules_on
+
 func _spawn_pressure(runner) -> void:
 	_pressure = null
-	if _sport != "soccer" or int(Tuning.sports_pressure_rule) == 0 or not is_instance_valid(_ball):
+	if not _pressure_on() or not is_instance_valid(_ball):   # WK-116
 		return
 	var pn: Node2D = PRESSURE_SCRIPT.new() as Node2D
 	pn.name = "PressureNets"

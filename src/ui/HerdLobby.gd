@@ -299,6 +299,7 @@ func _load_rules() -> void:
 	cfg.bot_difficulty = int(r.get("bot_difficulty", 0))
 	if _mode == "sports":
 		_sports_total = int(r.get("sports_total", 0))
+		cfg.pressure_nets = int(r.get("pressure_nets", 1))   # WK-116: PRESSURE NETS default ON (Dropshot never reads it)
 	else:
 		_cpu_pref = int(r.get("cpus", 3))
 		cfg.kills_to_win = int(r.get("kills_to_win", 10))
@@ -309,7 +310,10 @@ func _load_rules() -> void:
 func _current_rules() -> Dictionary:
 	var cfg: MatchConfig = GameConfig.match_config
 	if _mode == "sports":
-		return {"sports_total": _sports_total, "bot_difficulty": cfg.bot_difficulty}
+		var sr: Dictionary = {"sports_total": _sports_total, "bot_difficulty": cfg.bot_difficulty}
+		if _pressure_row_mode():
+			sr["pressure_nets"] = cfg.pressure_nets   # WK-116
+		return sr
 	return {"cpus": _cpu_pref, "bot_difficulty": cfg.bot_difficulty, "kills_to_win": cfg.kills_to_win,
 		"lives_per_player": cfg.lives_per_player, "self_ko_penalty": cfg.self_ko_penalty, "ghosts": cfg.ghosts}
 
@@ -1172,6 +1176,9 @@ func _open_rules(key: String, si: int) -> void:
 			{"title": "FORMAT", "labels": ["1V1", "2V2"], "vals": [2, 4], "field": "sports_total"},
 			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty"},
 		]
+		if _pressure_row_mode():
+			# WK-116 (spec §5, shipped 2026-11-16): long rallies widen both goal mouths. Rocketball only; default ON.
+			_rules_defs.append({"title": "PRESSURE NETS", "labels": ["ON", "OFF"], "vals": [1, 0], "field": "pressure_nets"})
 	_rules_owner = key
 	_rules_slot = si
 	_rules_row_i = 0
@@ -1231,6 +1238,7 @@ func _apply_rules(r: Dictionary) -> void:
 	cfg.bot_difficulty = int(r.get("bot_difficulty", cfg.bot_difficulty))
 	if _mode == "sports":
 		_sports_total = int(r.get("sports_total", _sports_total))
+		cfg.pressure_nets = int(r.get("pressure_nets", cfg.pressure_nets))   # WK-116
 	else:
 		_cpu_pref = int(r.get("cpus", _cpu_pref))
 		cfg.kills_to_win = int(r.get("kills_to_win", cfg.kills_to_win))
@@ -1300,6 +1308,12 @@ func _deny_rules_taken(key: String) -> void:
 	if si >= 0:
 		(_slot_views[si] as Object).call("deny")
 		(_slot_views[si] as Object).call("flash_chip", "P%d HAS THE RULES" % (_rules_slot + 1), 1.2)
+
+## WK-116: the PRESSURE NETS row exists for the soccer sport only (Rocketball + the legacy mixed "sports" card), and only
+## while the studio master switch Tuning.sports_pressure_rule is on (rule 0 = no row: there would be nothing to toggle).
+func _pressure_row_mode() -> bool:
+	var cfg: MatchConfig = GameConfig.match_config
+	return _mode == "sports" and cfg != null and SportsMode.sport_for_mode(cfg.mode_id) != "dropshot" 		and int(Tuning.sports_pressure_rule) != 0
 
 func _mode_icon() -> Texture2D:
 	var cfg: MatchConfig = GameConfig.match_config
@@ -1421,6 +1435,8 @@ func _refresh_rules_bar() -> void:
 		# WK-117 / CD3-09: Dropshot scores POINTS, not goals (SportsMode.goal_word "POINT!").
 		var unit: String = "POINTS" if SportsMode.sport_for_mode(cfg.mode_id) == "dropshot" else "GOALS"
 		_rules_text.text = "%s  ·  FIRST TO %d %s  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", Tuning.sports_goal_target, unit, skill]
+		if _pressure_row_mode() and cfg.pressure_nets == 0:
+			_rules_text.text += "  ·  NO PRESSURE NETS"   # WK-116: only the non-default rule shows (like NO GHOSTS)
 
 ## Banner (E.5): valid roster -> "READY TO FIGHT!" slides in from the left (TRANS_BACK) and breathes;
 ## BRAWL 1 human + 0 CPUs -> the amber hint instead. Never both, never a silent dead end.

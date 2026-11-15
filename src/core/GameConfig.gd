@@ -78,6 +78,8 @@ func rules_for(key: String) -> Dictionary:
 	var d: Dictionary = {"bot_difficulty": 0}
 	if sports:
 		d["sports_total"] = 0   # WK-120: 0 = AUTO (1 human -> 1V1, 2+ -> 2V2); 2 / 4 = a FORMAT the players set
+		if key != "dropshot":
+			d["pressure_nets"] = 1   # WK-116: RULES "PRESSURE NETS" ON by default (soccer courts only)
 	else:
 		d["cpus"] = 3
 		d["kills_to_win"] = 10
