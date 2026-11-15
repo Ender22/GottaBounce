@@ -14,7 +14,9 @@ extends MenuScreen
 ## art (circuit / trials crest; the mode painting + a small court-map inset for courts; a fan of every circuit crest
 ## for RANDOM ROTATION), its name, a difficulty / size line in words ("EASY · 20 ARENAS"), a one-line hook, and
 ## rule / roster / status chips (LOCKED with the unlock condition, CLEARED for won Brawl circuits). The ONE shelf
-## sits in the lower half. WK-60: one shelf pattern in all three variants (no "WAYS TO PLAY" label, no bare "i / n"
+## sits in the lower half. WK-65: courts show their own painted badge (card: zoomed onto the interior; preview: the whole
+## badge, no map inset) and RANDOM ROTATION its painted crest; the mode painting + inset and the crest fan are now only the
+## existence-guarded fallbacks. WK-60: one shelf pattern in all three variants (no "WAYS TO PLAY" label, no bare "i / n"
 ## counter; the preview kicker says "CIRCUIT 2 OF 5"), and the footer never offers A on a LOCKED card.
 
 const CARD := preload("res://scenes/ui/MenuCard.tscn")
@@ -28,6 +30,11 @@ const THUMB_DIR := "res://assets/ui/thumbs"
 # Circuit crest emblems (frontend_ui_audit §3.7). Existence-guarded: missing crest -> the themed
 # gradient plate + circuit name (the audit's sanctioned fallback).
 const CREST_DIR := "res://assets/ui/circuits"
+# WK-65: painted court badges (1280x800, shared toy-stadium frame; docs/briefs/court_cards_2026-11-15.md). Loaded +
+# existence-guarded; a missing badge falls back to the ThumbBaker bake under THUMB_DIR (card) / the mode painting (preview).
+const COURT_BADGE_DIR := "res://assets/ui/courts"
+# WK-65 (UX4-12): the painted Brawl RANDOM ROTATION crest (gold-shield crest family). Missing -> rainbow plate + "?" / crest fan.
+const RANDOM_CREST := "res://assets/ui/circuits/crest_random.png"
 
 const SHELF_A_CARD := Vector2(460, 340)   # §3.3 Shelf A: ways to play
 const SHELF_B_CARD := Vector2(380, 280)   # §3.3 Shelf B: single arenas
@@ -69,7 +76,7 @@ const DIFF_WORDS := {1: "EASY", 2: "MEDIUM", 3: "HARD", 4: "WILD"}
 const TIER_WORDS := {1: "CALM", 2: "TRICKY", 3: "RISKY", 4: "WILD", 5: "CHAOS"}
 const HAZARD_WORDS := {"spinning_hammer": "SPINNING HAMMER", "bomb": "LANDMINES", "crusher": "CRUSHER"}
 const HAZARD_SHORT := {"spinning_hammer": "HAMMER", "bomb": "MINES", "crusher": "CRUSHER"}
-# WK-60b: hero art for a COURT preview until WK-65's painted court cards land (the baked court thumbs are the dark
+# WK-60b: hero art for a COURT preview when its WK-65 painted badge is missing (the baked court thumbs are the dark
 # stadium strip, which UX4-12 bans at hero size; it rides along as a small "court map" inset instead).
 const LOCKED_CHIP := Color("#ddd6ea")   # WK-60b preview LOCKED pill fill (pale lilac = the locked-card tint family)
 const COURT_HERO := {"soccer": "res://assets/ui/modes/mode_sports.png", "dropshot": "res://assets/ui/modes/mode_dropshot.png"}
@@ -195,19 +202,47 @@ func _thumb_for(a: Dictionary) -> Texture2D:
 	if bool(a.get("court", false)):
 		# court: court_<id> namespace (ThumbBaker bakes courts under it — the court id "minefield"
 		# collides with the brawl arena of the same name). Missing -> gradient plate.
+		# WK-65: the painted badge first, then the bake (do NOT write painted art into THUMB_DIR: a re-bake clobbers it).
+		var badge := _court_badge(a)
+		if badge != null:
+			return badge
 		path = "%s/court_%s.png" % [THUMB_DIR, str(a.get("court_id", ""))]
 	elif bool(a.get("circuit", false)):
 		path = "%s/crest_%s.png" % [CREST_DIR, str(a.get("circuit_id", ""))]
 	elif bool(a.get("trials_set", false)):
 		path = "%s/crest_trials_%s.png" % [CREST_DIR, str(a.get("set_id", ""))]
+	elif bool(a.get("random", false)):
+		# WK-65: the painted RANDOM ROTATION crest. The old _random.png bake (dark three-screenshot strip) is banned
+		# by UX4-35, so a missing crest returns null (rainbow plate + spinning "?" / the crest fan).
+		path = RANDOM_CREST
 	else:
-		var id := "_random" if bool(a.get("random", false)) else str(a.get("path", "")).get_file().get_basename()
+		var id := str(a.get("path", "")).get_file().get_basename()
 		if id == "":
 			return null
 		path = "%s/%s.png" % [THUMB_DIR, id]
 	if ResourceLoader.exists(path):
 		return load(path) as Texture2D
 	return null
+
+## WK-65: a court's painted badge (assets/ui/courts/court_<id>.png), or null.
+func _court_badge(a: Dictionary) -> Texture2D:
+	return _load_tex("%s/court_%s.png" % [COURT_BADGE_DIR, str(a.get("court_id", ""))])
+
+## WK-65: the shelf card's view of a court badge. The frame's opening came out ~2.13:1 (brief planned 1.90), so a plain
+## cover crop shows a cut-off top rim + the bottom rim around a small interior. Tuning.court_card_zoom crops toward the
+## badge centre first (an AtlasTexture region; the card's COVERED stretch then trims it to the slot), so the slot lands
+## on the painted interior + thin red / blue side rims, as the brief's §2 table intends. 1.0 = the plain cover crop.
+func _court_card_tex(badge: Texture2D) -> Texture2D:
+	var z: float = Tuning.court_card_zoom
+	if z <= 1.0:
+		return badge
+	var full := Vector2(badge.get_width(), badge.get_height())
+	var sz := full / z
+	var at := AtlasTexture.new()
+	at.atlas = badge
+	at.region = Rect2((full - sz) * 0.5 + Vector2(0.0, Tuning.court_card_dy * full.y), sz)
+	at.filter_clip = true
+	return at
 
 # ------------------------------------------------------------------ build
 func _ready() -> void:
@@ -456,9 +491,12 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 	# WK-60b: the shelf sits under the preview now, so its cards are a size down (Tuning.arena_select_card_size)
 	card.custom_minimum_size = Tuning.arena_select_card_size if big else SHELF_B_CARD
 	(shelf as Object).call("add_card", card)
-	# WK-60 (R-20 / UX4-35): the RANDOM card no longer wears the old dark three-screenshot strip (_random.png); it
-	# takes the rainbow plate + spinning "?" until WK-65 paints a RANDOM ROTATION card.
-	var thumb: Texture2D = null if bool(a.get("random", false)) else _thumb_for(a)
+	# WK-60 (R-20 / UX4-35): the RANDOM card no longer wears the old dark three-screenshot strip (_random.png).
+	# WK-65: it wears the painted RANDOM ROTATION crest (via _thumb_for); rainbow plate + spinning "?" if that is missing.
+	# A court card shows its painted badge zoomed onto the interior (_court_card_tex).
+	var thumb: Texture2D = _thumb_for(a)
+	if thumb != null and bool(a.get("court", false)) and _court_badge(a) != null:
+		thumb = _court_card_tex(thumb)
 	card.set_card({
 		"name": a["name"], "tag": a.get("tag", ""), "color": a["color"],
 		"glyph": a.get("glyph", ""), "art": thumb,
@@ -508,7 +546,7 @@ func _make_card(a: Dictionary, shelf: Control, shelf_id: int) -> Button:
 	card.gui_input.connect(_on_card_gui.bind(card))
 	if bool(a.get("locked", false)) and card.has_method("set_locked"):
 		card.set_locked(true)
-	# RANDOM: shuffle collage (baked as _random.png); if missing, rainbow + spinning "?" fallback.
+	# RANDOM: the painted crest (WK-65); if missing, rainbow + spinning "?" fallback.
 	if bool(a.get("random", false)) and thumb == null:
 		card.set_plate_rainbow()
 		_spin_glyph(card)
@@ -571,20 +609,25 @@ func _show_preview(a: Dictionary, idx: int) -> void:
 	var accent: Color = a.get("color", MenuFX.ACCENT_PINK)
 	var locked := bool(a.get("locked", false))
 	_pv_grad.texture = _plate_gradient(accent)
-	# --- art: crest / mode painting / RANDOM's crest fan
+	# --- art: crest / court badge / RANDOM crest (WK-65); fallbacks: mode painting + map inset / RANDOM's crest fan
 	var is_random := bool(a.get("random", false))
 	var is_court := bool(a.get("court", false))
 	var art: Texture2D = null
+	var badge: Texture2D = _court_badge(a) if is_court else null
 	if is_court:
-		art = _load_tex(str(COURT_HERO.get(str(a.get("sport", "soccer")), COURT_HERO["soccer"])))
-	elif not is_random:
-		art = _thumb_for(a)   # circuit / trials crest (painted, reuse-only per WK-60b)
+		# WK-65: the court's own painted badge; the mode painting only when the badge is missing
+		art = badge if badge != null else _load_tex(str(COURT_HERO.get(str(a.get("sport", "soccer")), COURT_HERO["soccer"])))
+	else:
+		art = _thumb_for(a)   # circuit / trials crest; RANDOM -> crest_random.png (WK-65)
+	var use_fan := is_random and art == null   # crest fan = the RANDOM fallback only
 	_pv_art.texture = art
-	_pv_art.visible = art != null and not is_random
-	_pv_fan.visible = is_random
-	if is_random:
+	_pv_art.visible = art != null and not use_fan
+	_pv_fan.visible = use_fan
+	if use_fan:
 		_fill_fan()
-	var map: Texture2D = _thumb_for(a) if is_court else null
+	# WK-65 (brief §7): the dark court-map inset only rides along the mode-painting fallback. Over a painted badge it
+	# would cover the badge's lower right and bring back the dark strip UX4-12 banned.
+	var map: Texture2D = _thumb_for(a) if is_court and badge == null else null
 	_pv_map.texture = map
 	_pv_inset.visible = map != null
 	var tint: Color = Tuning.arena_preview_locked_tint if locked else Color.WHITE
@@ -671,7 +714,7 @@ func _fill_chips(a: Dictionary, accent: Color) -> void:
 		_pv_status_label.text = "CLEARED"
 		ToyKit.fill_panel(_pv_status, ToyKit.GOLD.darkened(0.25))
 
-## RANDOM ROTATION's hero: a fan of every circuit crest (reuse-only stand-in for WK-65's painted RANDOM card).
+## RANDOM ROTATION's fallback hero when crest_random.png is missing (WK-65): a fan of every circuit crest.
 func _fill_fan() -> void:
 	var crests: Array[Texture2D] = []
 	for cid in _circuit_ids:

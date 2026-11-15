@@ -989,3 +989,10 @@ var sports_gate_scroll_max: float = 2.5       # stripe periods/s the barber-pole
 var sports_gate_drop_in: bool = true          # the pole drops out of the top socket at stage intro (visual only)  # WK-131
 var sports_gate_drop_time: float = 0.15       # s the drop-in takes  # WK-131
 var sports_gate_pop_wpx: float = 34.0         # wpx cap height of the "NOT YET!" pop  # WK-131
+
+# --- WK-65 painted court cards (docs/briefs/court_cards_2026-11-15.md §7). The 1280x800 badges' frame opening came out  # WK-65
+# ~2.13:1 (the brief planned ~1.90), so the card's plain cover crop shows a cut-off top rim and the bottom rim around a small  # WK-65
+# interior. ArenaSelect._court_card_tex crops toward the badge centre by this factor before the card's COVERED stretch, so  # WK-65
+# the ~352x160 art slot lands on the painted interior plus thin red / blue side rims. The preview always shows the whole badge.  # WK-65
+var court_card_zoom: float = 1.16             # x crop toward the badge centre on court shelf cards (1.0 = plain cover crop)  # WK-65
+var court_card_dy: float = 0.0                # fraction of badge height the card crop shifts down (+) / up (-) after the zoom  # WK-65
