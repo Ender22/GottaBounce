@@ -9,6 +9,8 @@ extends Control
 ## optional `avoid` Callable returning Array[Rect2] (canvas px) of things to keep clear (GhostDirector.living_screen_rects).
 ## It picks the first free slot around the source (above, above-left/right, sides, below), re-checks every frame (goats
 ## move fast) and glides to a new slot instead of jumping. No avoid callable = the old fixed "above" placement.
+## WK-37e: an optional `block` Callable (Array[Rect2]) is a HARD keep-out (the HUD centre banner): slots that touch it
+## lose to any slot that doesn't, and if every slot touches it the word hides that frame instead of printing on the banner.
 
 const WOBBLE_DEG := 8.0
 const WOBBLE_HZ := 6.0
@@ -31,12 +33,18 @@ var _slot := 0
 var _offset := Vector2(0, -ABOVE_PX)   # current (gliding) offset
 var _placed := false
 var overlap_frames := 0     # QA: frames the bubble overlapped an avoid rect (should stay 0 when a free slot exists)
+var source_idx := -1        # WK-37e: the bleater's player index (GhostDirector.word_active)
+var _block: Callable = Callable()
+var blocked_frames := 0     # QA: frames hidden because every slot touched a block rect (the banner)
 
-func present(source: Node2D, cam, color: Color, alpha: float, avoid: Callable = Callable()) -> void:
+func present(source: Node2D, cam, color: Color, alpha: float, avoid: Callable = Callable(), block: Callable = Callable()) -> void:
 	_cam = cam
 	_world = source.global_position
 	_alpha = alpha
 	_avoid = avoid
+	_block = block
+	var si: Variant = source.get("idx")
+	source_idx = int(si) if si != null else -1
 	_burst.self_modulate = color
 	modulate.a = alpha
 	_place(0.0)
@@ -72,13 +80,15 @@ func _place(delta: float) -> void:
 	var src: Vector2 = _source_screen()
 	var rise := Vector2(0.0, -_rise())
 	var rects: Array = _avoid.call() if _avoid.is_valid() else []
-	if not rects.is_empty():
+	var blocks: Array = _block.call() if _block.is_valid() else []
+	if not rects.is_empty() or not blocks.is_empty():
 		var cur: Vector2 = _clamp_screen(src + (SLOTS[_slot] as Vector2) + rise)
-		if _overlap(cur, rects) > 0.0:
+		if _overlap(cur, rects) + _overlap(cur, blocks) > 0.0:
 			var best := _slot
 			var best_a := INF
 			for k in range(SLOTS.size()):
-				var a: float = _overlap(_clamp_screen(src + (SLOTS[k] as Vector2) + rise), rects)
+				var c: Vector2 = _clamp_screen(src + (SLOTS[k] as Vector2) + rise)
+				var a: float = _overlap(c, rects) + _overlap(c, blocks) * 1.0e6   # a banner touch loses to anything
 				if a < best_a - 0.5:
 					best_a = a
 					best = k
@@ -95,9 +105,15 @@ func _place(delta: float) -> void:
 	if not rects.is_empty() and _overlap(sp, rects) > 0.0:
 		overlap_frames += 1
 	position = sp.round()
+	var on_banner: bool = not blocks.is_empty() and _overlap(sp, blocks) > 0.0
+	if on_banner:
+		blocked_frames += 1
+	visible = not on_banner   # WK-37e FIX 4: never print a ghost word on the centre banner
 
 func _process(delta: float) -> void:
-	var d: float = delta / maxf(Engine.time_scale, 0.05)
+	# WK-37e: cap the un-scaled step (same as GhostGoat): delta / a near-zero time_scale (KO slow-mo / hit-stop under a
+	# fixed-step recorder) aged the word 0.7 s in a frame or two — the bubble vanished early in the WK-93 recordings.
+	var d: float = minf(delta / maxf(Engine.time_scale, 0.05), Tuning.ghost_max_vis_step)
 	_t += d
 	var life: float = maxf(Tuning.ghost_word_life, 0.05)
 	_place(d)

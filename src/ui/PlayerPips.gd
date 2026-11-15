@@ -24,6 +24,7 @@ var _shown: Array = []          # was the pip's goat alive+visible last frame (e
 var _hold: Array = []           # s of full-alpha hold left (+ the fade tail), humans only
 var _ghost_mode: Array = []     # WK-37d: pip currently dressed as a ghost tag (scale / z / sub-font)
 var _ghost_flip: Array = []     # WK-37d: ghost tag hangs below its ghost (hysteresis: kept while it stays clear)
+var _ghost_tag_rects: Array = [] # WK-37e: ghost tags already placed THIS frame (later tags keep clear of them)
 
 func setup(match_ref) -> void:
 	_match = match_ref
@@ -95,6 +96,7 @@ func _process(delta: float) -> void:
 	# WK-35 / CD2-06: the STAGE_END banner ("P1 +1 · P2 +1 · P1 SURVIVED") owns its rect — a surviving goat's pip that
 	# would sit on it is hidden (WK-41 one-overlay-at-a-time; the pip comes back once the banner pops out).
 	var banner: Rect2 = _banner_rect() if active and st == "STAGE_END" else Rect2()
+	_ghost_tag_rects.clear()
 	for i in range(_pips.size()):
 		var pip = _pips[i]
 		var p = _owners[i]
@@ -182,16 +184,25 @@ func _set_ghost_mode(i: int, pip, on: bool) -> void:
 	var tw = pip.get("_pop_tw")
 	if tw != null and (tw as Tween).is_valid():
 		(tw as Tween).kill()
+	# WK-37e (art grade 2026-11-15 FIX 1): a ghost tag is ALWAYS the human tag style — goat-colour fill, cream theme type +
+	# outline, chocolate pointer, NAME only. The CPU dark plate + "CPU" line made a dead bot the most-labelled thing on
+	# screen (and chocolate = alive/touchable, brief §0). Undress re-runs the normal setup, so the living CPU intro pip is
+	# byte-for-byte unchanged. The CPU line is hidden on ghosts, so no sub-font bump is needed (label 30 x 0.9333 = 28 px).
+	var cpu: bool = not _match.is_human_player(i)
+	var label := pip.get_node("Tab/Box/Label") as Label
+	(pip.get_node("Tab") as Control).remove_theme_stylebox_override("panel")
+	label.remove_theme_color_override("font_color")
+	sub.add_theme_font_size_override("font_size", 28)
 	if on:
+		pip.setup(_match.player_name(i), _match.player_color(i), false, "")
 		pip.z_index = -1
 		pip.scale = Vector2.ONE * Tuning.ghost_pip_scale
-		sub.add_theme_font_size_override("font_size", int(ceil(28.0 / maxf(Tuning.ghost_pip_scale, 0.01) - 0.01)))
 		pip.modulate.a = 0.0
 		_ghost_flip[i] = false
 	else:
+		pip.setup(_match.player_name(i), _match.player_color(i), cpu, "CPU" if cpu else "")
 		pip.z_index = 0
 		pip.scale = Vector2.ONE
-		sub.add_theme_font_size_override("font_size", 28)
 	pip.call_deferred("_layout")
 
 ## Living goats' keep-out rects in screen px: body (+ horns / flame) and the head zone where their own pip sits.
@@ -229,7 +240,7 @@ func _place_ghost_pip(i: int, pip, g, cam_center: Vector2, z: float, vp: Vector2
 	below.x = above.x
 	var r_up := Rect2(above.x - w * 0.5, above.y - h, w, h)
 	var r_dn := Rect2(below.x - w * 0.5, below.y, w, h)
-	var rects: Array = _living_rects(cam_center, z, vp)
+	var rects: Array = _living_rects(cam_center, z, vp) + _ghost_tag_rects   # WK-37e FIX 3: tags never stack
 	var o_up: float = _overlap_area(r_up, rects) if above.y - h >= TOP_MARGIN else INF
 	var o_dn: float = _overlap_area(r_dn, rects) if below.y + h <= vp.y - TOP_MARGIN else INF
 	# hysteresis: keep the current side while it is clear; otherwise take the clear side; otherwise the lesser overlap,
@@ -249,6 +260,13 @@ func _place_ghost_pip(i: int, pip, g, cam_center: Vector2, z: float, vp: Vector2
 	if bn.has_area() and bn.intersects(r_dn if flip else r_up):
 		pip.visible = false
 		return
+	# WK-37e FIX 2: while this ghost's own "BAAA!" word is up, its tag fades out (the owner-tinted burst carries identity
+	# for its 0.7 s) and fades back with the same step when the word ends — no double text through the bubble.
+	var gd = _match.get("_ghost_dir")
+	if gd != null and is_instance_valid(gd) and gd.has_method("word_active") and gd.word_active(i):
+		a = 0.0
+	if a > 0.0:
+		_ghost_tag_rects.append(r_dn if flip else r_up)   # FIX 3: later tags keep clear (a faded tag claims no room)
 	pip.set_flipped(flip)
 	pip.position = (below if flip else above).round()
 	pip.modulate.a = move_toward(pip.modulate.a if pip.visible else 0.0, a, 0.08)

@@ -683,7 +683,7 @@ func _try_bleat(g) -> void:
 	row["bleats"] = int(row.get("bleats", 0)) + 1
 	var w = WORD_SCENE.instantiate()
 	_ui.add_child(w)
-	w.present(g, runner._camera, g.color, Tuning.ghost_word_alpha, living_screen_rects)
+	w.present(g, runner._camera, g.color, Tuning.ghost_word_alpha, living_screen_rects, banner_screen_rects)
 	# WK-53a: AudioManager listens and plays the ghost-variant bleat sample (assets/sfx/bleat_ghost_<hero>.ogg).
 	EventBus.bleated.emit(int(g.idx), true)
 
@@ -703,6 +703,24 @@ func living_screen_rects() -> Array:
 		var h: float = (float(rad) if rad != null else 44.0) * z * 1.35 + 10.0   # body + horns/flame, + a little air
 		out.append(Rect2(sp - Vector2(h, h), Vector2(h, h) * 2.0))
 	return out
+
+## WK-37e FIX 4: the HUD centre banner ("TWO LEFT!", the stage-end line) as a HARD keep-out for ghost "BAAA!" words —
+## the same CD2-06 / WK-41 one-overlay rule the ghost tags follow (lane U's PlayerPips._banner_rect, read-only).
+func banner_screen_rects() -> Array:
+	var pips = runner.get("_pips") if runner != null else null
+	if pips == null or not is_instance_valid(pips) or not pips.has_method("_banner_rect"):
+		return []
+	var r: Rect2 = pips._banner_rect()
+	return [r] if r.has_area() else []
+
+## WK-37e FIX 2: is player i's ghost "BAAA!" word on screen right now (PlayerPips fades that ghost's tag meanwhile)?
+func word_active(i: int) -> bool:
+	if _ui == null or not is_instance_valid(_ui):
+		return false
+	for c in _ui.get_children():
+		if "source_idx" in c and int(c.source_idx) == i and not c.is_queued_for_deletion():
+			return true
+	return false
 
 # ------------------------------------------------------------------ HUD + legend
 
