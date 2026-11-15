@@ -2706,3 +2706,9 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - Source: CD4-02 blind read (`tools/out/wk/CD4-01_blind_480.png`): "drop / falling looks fatal" PASS, but the dense cloud band sits flush
   under the platforms and "a new player could take it for a soft floor". Tune the WK-85a knobs (Tuning "# WK-85a": cloud bank offset /
   alpha / density) so the bank sits lower or thinner and the open sky gap under the platforms is visible. Applies to Trials + Islands Void.
+
+### [ ] WK-163 [P2][M] Stinger bus for KO / goal / match-win (bypass the SFX compressor) + punchier KO sting
+- Source: docs/audit/2026-11-15_audio_measure.md (WK-79c section). KO rise stuck at +3.3 LU (target +6): mm_quickdie.mp3 is quiet and
+  spread over 2 s; more gain just hits the shared compressor/limiter. Do: (1) a Stingers bus (own light limiter, no SFX compressor) for
+  KO / goal / match win; (2) source a 0.3-0.6 s broadband KO sting layer (CC0); (3) optional 0.3 s duck of background SFX on KO.
+  Also a listener call: WK-116 crowd chant may dominate the end of long rallies (-4 vs -6 dB).
