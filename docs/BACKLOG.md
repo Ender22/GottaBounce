@@ -2977,3 +2977,6 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 
 ### [ ] WK-185 [P3][S] Bumper Gauntlet opening: two bots bonk the right face of the posts 5-7x in ~0.45 s every stage start
 - Source: wk175_rendered F3 (identical OFF/WR; costs ~15 fuel under WR). Bot motion-health bucket with WK-168 — spawn-route lean.
+
+### [ ] WK-186 [P3][S] Sports name tags should avoid other goats' fuel arcs (tag placement treats each arc band ~+28 px below a goat as occupied)
+- Source: docs/audit/2026-11-16_wk183_ux.md fix 6b (ZIGGY's tag sat on BUTCH's arc, ds_live_1). Own-arc clearance (6a) is in WK-183.
