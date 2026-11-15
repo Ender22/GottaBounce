@@ -1560,6 +1560,9 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 
 
 ### [ ] WK-135 [P1][M] Bumpers are standable (bodies come to rest on them — INV-11 violation, WK-128 spec finding E17)
+- **Phase 1 DONE 8eec92e** (bumper kick floor 48 px; 0 rest episodes; bumper-arena self-KO +5.9 pp to watch). Phases 2-3 (face
+  classes + liveness valve, refund gates ON, ball-touch refuel via grant_fuel, bot pin-breaker BR-135 — recording shows a bot buzzing a
+  pillar bumper 1.7 s) remain: rebuild from the spec (old scratch copy deleted).
 - Source: WK-128 build (tools/out/wk/WK-128_*). Bodies rest on bumper tops (move <0.01 px/s); resting contact repeats
   every tick. With refund gates ON this hard-locked stages (0-fuel bot pinned on Singularity's bumper core forever); it
   is also the root of WK-133 (bots pinned to the core) and the surface_bounced flood (WK-134). Fix: minimum bounce
