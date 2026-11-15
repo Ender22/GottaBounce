@@ -65,6 +65,9 @@ const SFX := {
 	"bleat_ghost_ziggy": ["res://assets/sfx/bleat_ghost_ziggy.ogg"],
 	"bleat_ghost_pogo":  ["res://assets/sfx/bleat_ghost_pogo.ogg"],
 	"bleat_ghost_puff":  ["res://assets/sfx/bleat_ghost_puff.ogg"],
+	# --- WK-26 super-aim wind-up: the owner's lower.mp3 slide whistle, tonal part reversed + stretched to the 2 s fuse
+	# (a rising 250 Hz -> 1.2 kHz "fweeeep" that tops out at the auto-fire). Provenance in assets/sfx/LICENSES.md. ---
+	"super_aim":         ["res://assets/sfx/super_aim.ogg"],
 }
 
 # --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
@@ -113,7 +116,7 @@ const FILLER_SFX := {"bounce": true}
 # Per-sound voice caps: past the cap the sound recycles its OWN oldest voice. "countdown" doubles as the Bomb.gd
 # telegraph beep (4 -> 14 Hz, 0.22-0.32 s each): Everything Yard fired 556 in 89 s and held the pool at 14/14 for
 # 85 of 1574 samples. The match 3-2-1 (1 Hz) never reaches the cap.
-const SFX_VOICE_CAP := {"countdown": 3}
+const SFX_VOICE_CAP := {"countdown": 3, "super_aim": 3}   # WK-26: <= 3 wind-ups at once (a 4th recycles the oldest)
 const THRUST_ON_DB := -7.0
 const THRUST_OFF_DB := -60.0
 const THRUST_FADE := 10.0        # db/sec toward target
@@ -142,6 +145,12 @@ var bleats_seen := 0             # WK-53: every EventBus.bleated received
 var bleats_heard := 0            # bleats that produced a sound (rest = rate limit / voice cap / pool full)
 var bleat_log: Array = []        # last 32 heard: {ms, idx, ghost, key, pitch} (QA via gbplay eval)
 var _bleat_hist := {}            # "idx:ghost" -> [ms of recent heard bleats] (per-player rate limit)
+# WK-26 super-aim wind-up: one voice per aiming goat, faded out the moment its aim ends (fire / cancel / KO / freeze).
+const SUPER_AIM_DB := -8.0       # under super_fire (-2) and a smash; clearly over the thrust loop and the music bed
+const SUPER_AIM_FADE := 0.05     # s fade-out when the aim ends (no click; the blast / smash covers it anyway)
+var super_aims_seen := 0         # QA: every EventBus.super_aim_started received
+var super_aims_heard := 0        # QA: wind-ups that got a voice
+var _aim_voices := {}            # player instance id -> {"p": Player, "v": AudioStreamPlayer, "tag": String, "fade": bool}
 
 # --- SPORTS mix / rate-limit (WK-105). Touch loudness rides the |delta-v| the touch gave the ball. ---
 # Measured (2v2 L3 bots, 77 touches): |delta-v| min 342 / median 2237 / max 3872 — a touch that REVERSES
@@ -211,7 +220,8 @@ func _ready() -> void:
 	EventBus.ball_struck.connect(_on_ball_struck)       # WK-105 sports ball touch
 	EventBus.goal_scored.connect(_on_goal_scored)       # WK-105 goal/point stinger (WK-106 signal)
 	EventBus.drop_tile_hit.connect(_on_drop_tile_hit)   # WK-121 Dropshot tile crack / break
-	EventBus.bleated.connect(_on_bleated)               # WK-53 ghost bleat (+ living taunt once WK-128 lands)
+	EventBus.bleated.connect(_on_bleated)               # WK-53 ghost bleat + WK-53b living taunt (LivingCues emits)
+	EventBus.super_aim_started.connect(_on_super_aim_started)   # WK-26 super-aim wind-up
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -615,6 +625,53 @@ func _bleat_voice(idx: int) -> Dictionary:
 		return BLEAT_BY_SKIN[skin]
 	return {"hero": BLEAT_FALLBACK_ORDER[posmod(idx, BLEAT_FALLBACK_ORDER.size())], "pitch": 1.0, "db": 0.0}
 
+## WK-26: a goat entered super AIM -> the rising wind-up, held only while that aim lasts (_tick_aim_voices fades it).
+func _on_super_aim_started(player) -> void:
+	super_aims_seen += 1
+	if player == null or not is_instance_valid(player):
+		return
+	var id: int = player.get_instance_id()
+	_release_aim_voice(id)   # never two wind-ups for one goat
+	var tag := "super_aim:%d" % id
+	var before := sfx_fired
+	play_sfx("super_aim", {"volume_db": SUPER_AIM_DB, "pitch_var": 0.0, "tag": tag})
+	if sfx_fired == before:
+		return
+	for v in _pool:
+		if v.playing and str(v.get_meta("tag", "")) == tag:
+			_aim_voices[id] = {"p": player, "v": v, "tag": tag, "fade": false}
+			super_aims_heard += 1
+			break
+
+func _tick_aim_voices(delta: float) -> void:
+	if _aim_voices.is_empty():
+		return
+	var paused: bool = get_tree().paused
+	for id in _aim_voices.keys():
+		var e: Dictionary = _aim_voices[id]
+		var v: AudioStreamPlayer = e["v"]
+		if not v.playing or str(v.get_meta("tag", "")) != str(e["tag"]):
+			_aim_voices.erase(id)   # finished (the 2 s cap) or its voice was recycled
+			continue
+		var p = e["p"]
+		var holding: bool = is_instance_valid(p) and not p.is_dead() and p.is_super_aiming() 			and not bool(p.get("frozen")) and not paused
+		if holding and not bool(e["fade"]):
+			continue
+		e["fade"] = true
+		v.volume_db -= 40.0 * delta / SUPER_AIM_FADE
+		if v.volume_db <= SUPER_AIM_DB - 40.0:
+			_release_aim_voice(id)
+
+func _release_aim_voice(id: int) -> void:
+	if not _aim_voices.has(id):
+		return
+	var e: Dictionary = _aim_voices[id]
+	var v: AudioStreamPlayer = e["v"]
+	if v.playing and str(v.get_meta("tag", "")) == str(e["tag"]):
+		v.stop()
+		v.set_meta("tag", "")
+	_aim_voices.erase(id)
+
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()
 
@@ -631,6 +688,7 @@ func _out_of_court(victim) -> bool:
 # --------------------------------------------------------------------- thrust loop (read-only poll)
 
 func _process(delta: float) -> void:
+	_tick_aim_voices(delta)   # WK-26
 	var want := _any_boosting()
 	thrust_active = want
 	var target := THRUST_ON_DB if want else THRUST_OFF_DB

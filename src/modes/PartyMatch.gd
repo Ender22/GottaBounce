@@ -343,6 +343,14 @@ func _ready() -> void:
 	add_child(_ko_blast)
 	_ko_blast.setup(self)
 
+	# WK-53b / WK-26 living-goat cues: the taunt "BAAA!" (+ the bleated emit) and the "!" over a super's target.
+	# CanvasLayer 2 (with the ghost words); polls this runner read-only. Find it via get_node("LivingCues").
+	var living_cues = load("res://src/ui/LivingCues.gd").new()
+	living_cues.name = "LivingCues"
+	living_cues.layer = 2
+	add_child(living_cues)
+	living_cues.setup(self)
+
 	_start_match()
 
 ## Spawn one player from a mode spawn-plan descriptor (v1_frontend_shell §3.2):

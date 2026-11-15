@@ -57,3 +57,13 @@ signal goal_scored(team, scorer, own_goal)
 # Subscriber: AudioManager (WK-53a) plays the per-hero bleat sample (assets/sfx/bleat_<hero>.ogg / bleat_ghost_<hero>.ogg).
 # The "BAAA!" word puff is drawn by the emitter (GhostDirector._try_bleat for ghosts).
 signal bleated(player_idx, ghost)
+
+# --- WK-53b living-goat taunt --- a LIVING player pressed taunt (pad Y / keyboard J), raw edge, unthrottled.
+# Emitted by Player._physics_process; the presenter (src/ui/LivingCues.gd) rate-limits it (Tuning.ghost_bleat_*),
+# draws the full-alpha "BAAA!" word and emits bleated(idx, false) for AudioManager. Bots never set intent.taunt.
+signal living_taunt(player)
+
+# --- WK-26 super-aim telegraph (audit D-07) --- a player ENTERED the super AIM state (the dodge window opens).
+# Emitted once per aim by Player._physics_process. AudioManager plays the "super_aim" wind-up (stopped when the aim
+# ends); LivingCues polls is_super_aiming() / get_super_aim_dir() for the "!" over the targeted goat.
+signal super_aim_started(player)

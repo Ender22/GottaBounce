@@ -547,6 +547,7 @@ func _physics_process(delta: float) -> void:
 	_sb_lockout = maxf(0.0, _sb_lockout - delta)
 	_sb_buffer = maxf(0.0, _sb_buffer - delta)
 	var intent: InputIntent = provider.poll() if provider != null else InputIntent.new()
+	if intent.taunt and not _dead: EventBus.living_taunt.emit(self)   # WK-53b: LivingCues rate-limits + BAAA! + bleat
 	var stunned := _stun_timer > 0.0
 	var just_activated := intent.use_powerup
 	if stunned:
@@ -593,6 +594,7 @@ func _physics_process(delta: float) -> void:
 		_sb_aim_t = 0.0
 		_sb_aim_dir = aim_dir if aiming else Vector2.UP   # never steered = straight up (the funny default)
 		_sb_buffer = 0.0
+		EventBus.super_aim_started.emit(self)   # WK-26: wind-up sound + "!" over the target (audio/UI subscribe)
 		velocity *= Tuning.super_aim_velocity_keep   # NOT a brake (§1.3) — decay below is honest
 	if _sb_aiming:
 		_sb_aim_t += delta

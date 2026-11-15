@@ -755,3 +755,12 @@ var goal_hud_flash_in: float = 0.05           # s rise  # WK-66a
 var goal_hud_flash_hold: float = 0.05         # s hold (was 0.5)  # WK-66a
 var goal_hud_flash_out: float = 0.15          # s fade (total 0.25 s, was 0.9)  # WK-66a
 var dome_gap_pool_drop: float = 0.4           # pool centre this x its height BELOW the floor top (lands on the tiles, not the gap)  # WK-66a
+
+# WK-53b living-goat taunt (pad Y / keyboard J). Rate limit = the ghost numbers above (ghost_bleat_min_interval /
+# ghost_bleat_max_per_s, shared per D-15). Read by src/ui/LivingCues.gd.  # WK-53b
+var living_word_alpha: float = 1.0            # the living "BAAA!" puff draws at full alpha (ghosts: ghost_word_alpha)  # WK-53b
+
+# WK-26 super-aim target "!" (audit D-07). Read by src/ui/LivingCues.gd.  # WK-26
+var super_aim_target_corridor: float = 140.0  # wpx: a goat whose centre is this close to the aim ray is "targeted"  # WK-26
+var super_aim_target_range: float = 1400.0    # wpx: ... and at most this far ahead of the aimer along it  # WK-26
+var super_aim_target_keep: float = 1.25       # the marked goat keeps its "!" out to this x corridor / range (no strobing)  # WK-26
