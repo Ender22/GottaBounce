@@ -2402,7 +2402,7 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 - Source: WK-119 recording (`tools/out/wk/WK-119_rec_frames.png`, frame 148 ZIGGY over POGO). Four persistent, wider sports tags make
   overlaps more frequent; add mutual avoidance like WK-37e ghost tags (PlayerPips.gd).
 
-### [ ] WK-151 [P2][S] WASD doesn't move menu focus (ui_* bound to arrows / D-pad / stick only) — CC-2.1
+### [x] WK-151 [P2][S] WASD doesn't move menu focus (ui_* bound to arrows / D-pad / stick only) — CC-2.1 — 5521929
 - Source: WK-60 builder. Every screen using Godot focus navigation ignores WASD for keyboard players. Add W/A/S/D to ui_up/left/down/
   right in the action map (check gameplay WASD doesn't double-fire in menus via InputRouter) or route through InputRouter.
 
