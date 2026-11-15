@@ -786,3 +786,6 @@ var trials_goal_idle_amp: float = 3.0                  # wpx idle ripple amplitu
 
 # --- WK-39 mouse cursor policy (CC-2.4 / CC-12.2). Read by src/core/InputRouter.gd.  # WK-39
 var cursor_show_motion: float = 4.0           # px of real mouse motion (accumulated) before a hidden cursor comes back  # WK-39
+
+# --- WK-120 sports FORMAT auto default. Read by src/ui/HerdLobby.gd (_sports_format).  # WK-120
+var sports_auto_2v2_humans: int = 2           # joined humans at which an AUTO FORMAT (never set in RULES) reads 2V2  # WK-120

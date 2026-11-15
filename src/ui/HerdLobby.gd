@@ -88,7 +88,7 @@ var banner_up := false
 var hint_up := false
 var _mode := "brawl"          # "brawl" | "sports" | "trials"
 var _cpu_pref := 3            # BRAWL CPU preference; the tray shows cpus() = min(pref, 4 - humans)
-var _sports_total := 2        # SPORTS format seats: 2 = 1V1, 4 = 2V2
+var _sports_total := 0        # SPORTS FORMAT seats: 2 = 1V1, 4 = 2V2 (set in RULES); 0 = AUTO (WK-120, _sports_format)
 var _medals: Array = []
 var _flair_vals: Array = []   # "" (NONE), unlocked ids, "__locked" tease
 var _flair_labels: Array = []
@@ -191,7 +191,7 @@ func enter() -> void:
 
 ## Lobby memory (GameConfig.lobby, E.2): restore who is joined, on which device, with which goat. Coming
 ## FORWARD from ModeSelect un-readies everyone (new mode, new decision); coming BACK from ArenaSelect keeps
-## READY (CC-4.7). Then CC-4.8: if nobody is joined, auto-join the device that confirmed the mode card.
+## READY (CC-4.7). Then CC-4.8 / WK-125: auto-join the device that confirmed the mode card if it isn't seated.
 func _restore_lobby() -> void:
 	var forward := true
 	if shell != null and "nav_forward" in shell:
@@ -230,9 +230,11 @@ func _restore_lobby() -> void:
 			(_slot_views[i] as Object).call("set_ready", s["state"] == S_READY, false)
 			_push_flair_view(i)
 			(_slot_views[i] as Object).call("set_row", 0)
+	# WK-125: the confirming device joins whatever carried over (P2 + P3 still seated after P1 held B out and
+	# picked another mode) — lowest free slot, so P1's old seat. Never a duplicate, never a full-lobby deny.
 	var auto_key: String = GameConfig.lobby_autojoin_key
 	GameConfig.lobby_autojoin_key = ""
-	if _joined_count() == 0 and InputRouter.kind_of(auto_key) != "":
+	if InputRouter.kind_of(auto_key) != "" and _slot_of(auto_key) < 0 and _joined_count() < MAX_SLOTS:
 		_join(auto_key, false)
 
 func _persist() -> void:
@@ -252,7 +254,7 @@ func _load_rules() -> void:
 	var r: Dictionary = GameConfig.rules_for(_rules_key)
 	cfg.bot_difficulty = int(r.get("bot_difficulty", 0))
 	if _mode == "sports":
-		_sports_total = int(r.get("sports_total", 2))
+		_sports_total = int(r.get("sports_total", 0))
 	else:
 		_cpu_pref = int(r.get("cpus", 3))
 		cfg.kills_to_win = int(r.get("kills_to_win", 10))
@@ -312,9 +314,18 @@ func slot_team(i: int) -> int:
 		return -1
 	return _goat_team(int(slots[i]["goat"]))
 
-## Seats in the match: RULES FORMAT (2 = 1V1, 4 = 2V2); 3-4 joined humans force 2V2 (E.6).
+## The FORMAT in effect (2 = 1V1, 4 = 2V2). WK-120: until a player sets FORMAT in RULES (_sports_total 0 = AUTO)
+## it follows the couch: 2+ joined humans (Tuning.sports_auto_2v2_humans) -> 2V2 with a CPU each side, a lone
+## human -> 1V1. A FORMAT the players set for this mode (WK-07 memory) always wins.
+func _sports_format() -> int:
+	if _sports_total > 0:
+		return _sports_total
+	return 4 if _joined_count() >= Tuning.sports_auto_2v2_humans else 2
+
+## Seats in the match: the FORMAT; 3-4 joined humans force 2V2 (E.6).
 func _sports_seats_total() -> int:
-	return _sports_total if _joined_count() <= _sports_total else 4
+	var fmt: int = _sports_format()
+	return fmt if _joined_count() <= fmt else 4
 
 func _team_seats() -> int:
 	return _sports_seats_total() / 2
@@ -1084,7 +1095,7 @@ func _rule_def_values(def: Dictionary) -> Array:
 			labels.append(str(n))
 		return [vals, labels, cpus()]
 	if f == "sports_total":
-		return [def["vals"], def["labels"], _sports_total if _joined_count() <= 2 else 4]
+		return [def["vals"], def["labels"], _sports_seats_total()]
 	return [def["vals"], def["labels"], int(GameConfig.match_config.get(f))]
 
 func _rules_view_data() -> Dictionary:
@@ -1245,7 +1256,7 @@ func _refresh_rules_bar() -> void:
 		elif cfg.ghosts == MatchConfig.Ghosts.OFF:
 			_rules_text.text += "  ·  NO GHOSTS"
 	elif _mode == "sports":
-		var total: int = _sports_total if _joined_count() <= _sports_total else 4
+		var total: int = _sports_seats_total()
 		_rules_text.text = "%s  ·  FIRST TO %d GOALS  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", Tuning.sports_goal_target, skill]
 
 ## Banner (E.5): valid roster -> "READY TO FIGHT!" slides in from the left (TRANS_BACK) and breathes;

@@ -25,13 +25,15 @@ var resume_setup := false
 var lobby: Array = []
 ## WK-07 per-mode rule memory (CC-4.6 / R-26): mode key ("brawl", "rocketball", "dropshot", ...) -> rule
 ## dict. BRAWL {cpus, bot_difficulty, kills_to_win, lives_per_player, self_ko_penalty (WK-20c)}; SPORTS
-## {sports_total, bot_difficulty}.
+## {sports_total, bot_difficulty}. sports_total 0 = AUTO FORMAT (WK-120: follows the humans joined until a
+## player sets FORMAT in RULES; then the explicit 2 = 1V1 / 4 = 2V2 is remembered and wins).
 ## `cpus` is the CPU *preference* (the lobby shows min(pref, MAX_FIGHTERS - humans), so a full lobby stays
 ## full as humans come and go — WK-02). Survives QUIT TO TITLE on purpose (rules are a preference, the
 ## lobby is a session). A mode never reads another mode's entry, so Rocketball's 1 bot can't leak into Brawl.
 var mode_rules: Dictionary = {}
 ## CC-4.8: the device that confirmed the mode card (ModeSelect writes it); the lobby consumes it once
-## and auto-joins it as P1 if the lobby is empty.
+## and auto-joins it (lowest free slot, P1 in an empty lobby) unless it is already seated — WK-125: also
+## when other players carried over from the last lobby.
 var lobby_autojoin_key := ""
 
 func _ready() -> void:
@@ -66,7 +68,7 @@ func rules_for(key: String) -> Dictionary:
 	var sports: bool = key in ["sports", "rocketball", "dropshot"]
 	var d: Dictionary = {"bot_difficulty": 0}
 	if sports:
-		d["sports_total"] = 2
+		d["sports_total"] = 0   # WK-120: 0 = AUTO (1 human -> 1V1, 2+ -> 2V2); 2 / 4 = a FORMAT the players set
 	else:
 		d["cpus"] = 3
 		d["kills_to_win"] = 10
