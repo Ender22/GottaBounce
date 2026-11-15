@@ -27,6 +27,7 @@ const MATCH_BTN_MIN := Vector2(380, 90)   # WK-14/WK-42: fits the focused (prima
 const VICTORY_SCENE := preload("res://scenes/ui/SportsVictory.tscn")
 const VICTORY_DELAY := 0.9     # = PartyMatch.VICTORY_DELAY: the in-world winning-team frame breathes first
 const ToyKit := preload("res://src/ui/ToyKit.gd")
+const FUEL_ARC := preload("res://src/ui/SportsFuelArc.gd")   # WK-183 per-goat fuel arc
 
 var _runner   # PartyMatch (untyped so mode/state member access is dynamic — no runner class edit)
 var _center_tw: Tween
@@ -90,8 +91,27 @@ func _ready() -> void:
 		EventBus.goal_scored.connect(_on_goal_scored)
 
 # ------------------------------------------------------------------ runner-called HUD surface
-func setup(_players: Array, _colors: Array, _skins: Array) -> void:
-	pass   # SPORTS shows TEAM scores (polled), not per-player cards
+func setup(players: Array, _colors: Array, _skins: Array) -> void:
+	# SPORTS shows TEAM scores (polled), not per-player cards.
+	# WK-183: ...but every goat carries its own fuel arc (team colour, WK-99 super notch, refund tick) in the world.
+	if Tuning.wk183_arc_on:   # WK-183
+		for i in range(players.size()):   # WK-183
+			var p = players[i]   # WK-183
+			if p == null or not is_instance_valid(p) or p.get_node_or_null("WK183FuelArc") != null:   # WK-183
+				continue   # WK-183
+			var arc: Node2D = FUEL_ARC.new()   # WK-183
+			arc.setup(p, _runner if _runner != null else get_parent(), i)   # WK-183
+			arc.attach()   # WK-183: child of the goat, under its aim arrow
+
+## WK-183 QA readout (gbplay eval): every goat's fuel arc state.
+func fuel_arc_state() -> Array:   # WK-183
+	var out: Array = []   # WK-183
+	var ps: Variant = _runner.get("players") if _runner != null else null   # WK-183
+	if ps is Array:   # WK-183
+		for p in (ps as Array):   # WK-183
+			var arc = p.get_node_or_null("WK183FuelArc") if is_instance_valid(p) else null   # WK-183
+			out.append(arc.debug_state() if arc != null else {})   # WK-183
+	return out   # WK-183
 
 func reset_scores() -> void:
 	_dismiss_victory()   # WK-111: a REMATCH re-runs _start_match -> reset_scores

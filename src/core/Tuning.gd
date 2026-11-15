@@ -1624,3 +1624,33 @@ var showdown_holder_rim_mult: float = 1.5     # holder's rim width while a golde
 var showdown_holder_trail_rate: float = 8.0   # star sparkles / s from the holder while a golden tank runs  # WK-169c
 var showdown_frame_glint_s: float = 0.8       # s between glint sweeps on the HOLDER's gold card frame  # WK-169c
 var showdown_frame_fade_s: float = 0.2        # s the gold card frame fades out on exit (real time)  # WK-169c
+# --- WK-183 sports per-player fuel arc (WK-99 SP-14, the sports half). Read by src/ui/SportsFuelArc.gd (built per goat by  # WK-183
+# src/ui/SportsHUD.gd setup). A team-coloured arc hugs the LOWER half of each goat (screen-px widths, zoom-compensated), fills  # WK-183
+# left -> right through 6 o'clock, carries the WK-99 super-ready notch (same threshold + lit / unlit look + pop), pulses when low,  # WK-183
+# flashes the gained slice white on a refund, and fades out once full and steady. Drawn under the aim arrow, the ball and goal fronts.  # WK-183
+var wk183_arc_on: bool = true                 # false = no sports fuel arcs (the pre-WK-183 sports HUD)  # WK-183
+var wk183_span_deg: float = 130.0             # arc span, centred on 6 o'clock (65 deg each side; 150 ran up into the jetpack / arms)  # WK-183
+var wk183_radius_mult: float = 1.1            # arc centre-line radius = this x collider radius (the round body art is 1.1 x)  # WK-183
+var wk183_gap_px: float = 19.0                # SCREEN px between the body art and the arc centre-line (9 / 15 crossed the feet at sports zoom)  # WK-183
+var wk183_width_px: float = 9.0               # SCREEN px fill width (1080p reference; 7 read as a hairline at 3 m)  # WK-183
+var wk183_outline_px: float = 2.5             # SCREEN px chocolate outline on each side of the track  # WK-183
+var wk183_track_darken: float = 0.70          # empty part of the arc = the team colour darkened by this (flat chocolate vanished on the night courts; 0.62 read as a FULL arc)  # WK-183
+var wk183_track_alpha: float = 0.85           # alpha of that empty track  # WK-183
+var wk183_alpha: float = 1.0                  # arc alpha when shown  # WK-183
+var wk183_z: int = 0                          # z RELATIVE to the goat; the arc is slotted under its aim arrow, so the arrow, fuse / touch rings, other goats' bodies, the ball (40) and goal fronts (42) draw over it  # WK-183
+var wk183_full_hide: bool = true              # fade the arc out once the tank is full and steady (4 full arcs at kickoff = clutter)  # WK-183
+var wk183_full_hold_s: float = 0.9            # s a full arc stays up before fading (a refund that tops up still shows)  # WK-183
+var wk183_fade_in_s: float = 0.08             # s the arc takes to appear (fuel starts moving / a refund lands)  # WK-183
+var wk183_fade_out_s: float = 0.35            # s the arc takes to fade (full and steady / goat dies / stage ends)  # WK-183
+var wk183_aim_alpha: float = 0.0              # arc alpha while the goat super-aims (the fuse ring owns that read)  # WK-183
+var wk183_low_ratio: float = 0.25             # fuel ratio under which the arc pulses (= bubble_fuel_low, the WK-36 bubble ring)  # WK-183
+var wk183_low_hz: float = 2.5                 # low pulse rate (Hz)  # WK-183
+var wk183_low_rim_flash: float = 0.75         # low pulse: the chocolate outline band brightens toward cream by up to this (the empty gauge blinks; never the track, which would read full)  # WK-183
+var wk183_low_fill_white: float = 0.45        # low pulse: the fill brightens toward white by up to this (luminance, never hue)  # WK-183
+var wk183_tick_min: float = 1.0               # fuel a single frame must gain to count as a refund tick (drain never rises)  # WK-183
+var wk183_tick_s: float = 0.40                # s the refund tick takes (gained slice white -> team colour, width pop -> 1)  # WK-183
+var wk183_tick_min_deg: float = 10.0          # deg min span of the flashed slice (a small top-up must still read at 3 m)  # WK-183
+var wk183_tick_width_pop: float = 1.7         # x fill width at the tick's start  # WK-183
+var wk183_tick_glow: float = 0.55             # whole-arc brighten toward white at the tick's start  # WK-183
+var wk183_notch_deg: float = 5.0              # deg the super-ready notch spans along the arc  # WK-183
+var wk183_notch_overhang_px: float = 4.0      # SCREEN px a LIT notch pokes past the track on each side (unlit: inside the track)  # WK-183
