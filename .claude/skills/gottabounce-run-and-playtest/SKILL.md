@@ -41,9 +41,11 @@ Each agent picks its OWN port — **9100 + agent slot** (9101, 9102, ...) — an
 `run_game.ps1 -Port N`, `gbplay.py --port N`, `stop_game.ps1 -Port N`. Alternatively set env
 `GB_PORT=N` once in the shell: the game, `gbplay.py` and `run_game.ps1` all honour it.
 - Game side: autoload `src/dev/mcp_interaction_server.gd` reads user cmdline arg `--gb-port=N` (after
-  `--`), else env `GB_PORT`, else 9090. `--gb-port=0` / `GB_PORT=0` = **no server at all** (use for
-  headless batches; `record_match.ps1` always passes it). Live check: `eval "return McpInteractionServer.port"`.
-- Precedence: cmdline arg > env var > 9090. Invalid values warn and fall back to 9090.
+  `--`), else env `GB_PORT`, else **0 = no server** (WK-38, 2026-11-15: a plain launch / `PLAY GOTTABOUNCE.bat` runs
+  no automation server). `tools/run_game.ps1` ALWAYS passes `-- --gb-port=N` (9090 if no -Port/GB_PORT), so gbplay
+  still works through it. **Any script that starts Godot directly and wants gbplay must pass `-- --gb-port=N` itself.**
+  `--gb-port=0` = no server (headless batches; `record_match.ps1` passes it). Live check: `eval "return McpInteractionServer.port"`.
+- Precedence: cmdline arg > env var > off. Invalid (malformed) values warn and fall back to 9090.
 - Bare `run_game.ps1` / `gbplay.py` / `stop_game.ps1` (no port) still mean 9090 / kill-everything, so
   old command lines keep working — but in a multi-agent session ALWAYS pass your port.
 - Verify you are driving your own game: `gbplay.py --port N eval "return OS.get_process_id()"` must
@@ -245,7 +247,7 @@ per-player max speed, ringouts/suicides, kills.
 tunneling (physics bug); the void above it is legit Smash-style recovery space. Any nonzero
 `tunnel frames` is a finding.
 
-Notes: the headless run starts the automation server too (9090 by default) — append
+Notes: since WK-38 a headless run starts NO automation server unless given `--gb-port=N` — (old note:) append
 `--gb-port=0` after the mode/seconds (`-- botwar 60 --gb-port=0`; Playtest only reads the first two
 user args) or set `GB_PORT=0` so headless batches never bind a port. The harness self-quits after `<seconds>`. Its `ScriptProvider` advances by
 `1.0 / Engine.physics_ticks_per_second` (120 tps here) — the old 1/60 hardcode that ran scripts

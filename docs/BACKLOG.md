@@ -136,7 +136,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 7. WK-117 sports words + CD3-09 copy ("FIRST TO 6 POINTS" on Dropshot, no "A FIGHT!") (S) [U after WK-42; the kickoff word may need
    `SportsMode.gd`: stage hunks]
 8. WK-52 unlock toast becomes a banner card + CD3-07 (S) [L, after WK-120 + WK-125]
-9. WK-14 singular focus (S) [U]
+9. ~~WK-14~~ done ab11c61 — singular focus (S) [U]
 10. WK-37f ghosts never hide behind terrain (P3/S) [G]
 11. WK-113 sports legend off the floor (S)
 12. WK-112 sports hazards stun (S) [S]
@@ -923,7 +923,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   same height; chips read e.g. "2-4 VERSUS", "1-4 CO-OP", "1V1 / 2V2"; Trials has a "SOLO / CO-OP" sub-label.
 - Status: open. Next-10 #5, lane U (`ModeSelect.gd` + scene). Starts now.
 
-### [ ] WK-14 [P1][S] Focus is singular: style swaps on focus, no permanently "primary" button
+### [x] WK-14 [P1][S] Focus is singular: style swaps on focus, no permanently "primary" button — ab11c61
 - Sources: C-13, R-21, CC-5.1
 - Area: menus · Owner: ui-ux-designer · Deps: none
 - Evidence: tools/out/cd_audit/30_after_quit.png (QUIT focused, RESUME still green)
@@ -1628,7 +1628,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Accept: 3 LIVES-3 stages where `round_stats.kills` count equals the sum of credited + self-fall score events (eval log).
 - Status: wontfix (WK-20a step 0, ruling 3, fecb4a9). `round_stats` keeps multi-life kills; CD1 read it mid-stage.
 
-### [ ] WK-38 [P2][S] Gate the 9090 automation server behind `--gb-dev` AND update run_game.ps1 in the SAME commit; version label only on title + Options
+### [x] WK-38 [P2][S] Gate the 9090 automation server behind `--gb-dev` AND update run_game.ps1 in the SAME commit; version label only on title + Options — ab11c61
 - Sources: C-28, CC-12.1, CC-8.4 · **WARNING**: landing the gate without `run_game.ps1` passing `-- --gb-dev` breaks gbplay and every later rendered QA — one commit, verify both
 - Area: tooling · Owner: gameplay-programmer · Deps: none (do not interleave with a running QA session)
 - Accept: `PLAY GOTTABOUNCE.bat` run -> nothing listening on 9090 (`netstat`); `tools/run_game.ps1` -> "Interaction server UP on 9090"
@@ -1638,13 +1638,13 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   run_game" rule.
 - Status: open
 
-### [ ] WK-39 [P2][S] Hide the mouse cursor on pad/keyboard input and always in gameplay; hover focuses only after real motion
+### [x] WK-39 [P2][S] Hide the mouse cursor on pad/keyboard input and always in gameplay; hover focuses only after real motion — ab11c61
 - Sources: C-26, CC-2.4, CC-12.2
 - Area: menus · Owner: gameplay-programmer · Deps: WK-03
 - Accept (rendered): screenshot mid-match shows no cursor; resting cursor over a sliding-in screen does not steal pad focus.
 - Status: open
 
-### [ ] WK-40 [P2][S] "B BACK" is a glyph chip, not a focus stop; fix ModeSelect back wiring
+### [x] WK-40 [P2][S] "B BACK" is a glyph chip, not a focus stop; fix ModeSelect back wiring — ab11c61
 - Sources: C-24, CC-5.5, CC-5.2
 - Area: menus · Owner: ui-ux-designer · Deps: WK-29 (glyph)
 - Accept (rendered): pad focus never lands on a back button on ModeSelect/ArenaSelect/Options; mouse click on the chip goes back.

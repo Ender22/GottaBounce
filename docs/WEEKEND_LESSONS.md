@@ -107,3 +107,5 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   (1 = hidden) plus `InputRouter.cursor_shown`, not by looking at a PNG.
 - **Focus style swap resizes buttons unless their min size fits the PRIMARY style** (ShellBtnPrimary is 46 px vs 40 px, 18 px vs
   16 px margins = ~90 px tall). WK-14 rows use 380x90 and the title stack 420x92 so focus moves never jiggle the layout.
+- **WK-38 (ab11c61): the automation server is OFF by default.** Plain launches bind no port; run_game.ps1 passes
+  `-- --gb-port=N`. Harnesses that start Godot directly and want gbplay must pass `-- --gb-port=N` themselves.
