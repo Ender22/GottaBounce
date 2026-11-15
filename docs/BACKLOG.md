@@ -1284,7 +1284,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   WK-CD3 (1).
 
 
-### [ ] WK-128 [P1][S] Fuel exploits: fly-TAPPING keeps ~750 px/s at a fraction of the fuel; wall-touch refuel is infinite
+### [x] WK-128 [P1][S] Fuel exploits: fly-TAPPING keeps ~750 px/s at a fraction of the fuel; wall-touch refuel is infinite — 3e1a5b0
 - Source: WK-123 level-designer (scripted pilot). (a) Fuel drains only on frames fly is held, but tapping keeps ~750 px/s —
   a tapping pilot cleared Flight School 2 with 40-47% fuel left / lesson 3 with 31-38% (beats every fuel-limited Trials
   course). Fix: drain by thrust actually applied, or a minimum burn per press. (b) Pressing into a platform side while

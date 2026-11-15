@@ -2,6 +2,13 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-15** WK-128 SHIPPED BILL-ONLY (3e1a5b0, director): the boost "relight bill" is ON (re-light within 0.20 s
+  of release pays up to 20% of a hold's cost) -> fuel-tapping/feathering is dead (tut_02/03 feather + all 6 pulse cadences fail).
+  Refund gates (spec part b) are built but OFF until WK-135 (bumper min rebound + gravity-sorted refunds) lands. Accepted cost:
+  the scripted nav pilot rr_allpads (Refuel Ridge) now falls and t4_pads finishes with 11.7 vs 22.4 fuel; every course stays
+  beatable (PadHopper 2/5 on refuel_ridge). The creative director's "re-light feels like a dead button?" check runs in WK-CD3;
+  if it fails, lower boost_relight_bill_max first. Evidence tools/out/wk/WK-128_billonly_*.
+
 - **2026-11-14** GHOST GOATS SHIPPED (WK-37b, spec docs/specs/wk37a_ghost_goats_2026-11-14.md): eliminated Brawl players
   become ghosts by default (RULES: GHOSTS ON / BAA ONLY / OFF). Ghosts never earn credit; ghost-caused deaths are
   uncredited and cost nothing; puffs hush at match point and in sudden death; camera framing unchanged (owner rules).
