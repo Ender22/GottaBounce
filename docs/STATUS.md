@@ -4,17 +4,19 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-15 ~10:00) <<<**
-Committed since the freeze: WK-37d (b76d36f) + WK-37e (6c0d612) ghost tags; WK-128 relight bill ON / refund gates OFF (3e1a5b0);
-WK-66a sports nets (2bd049c); WK-53b living taunt + WK-26 super-aim wind-up + target "!" (4ca9472). In flight (SendMessage to resume):
-- WK-135 bumper build (3 phases; SCRATCH COPY, applies to repo at the end; port 9105) — agent a9403f95b2887d5dd.
-- WK-CD3 cold playthrough (port 9106) -> docs/audit/2026-11-15_cd3_playthrough.md — agent a72674c1962b636e4. Then producer re-rank #7.
-- WK-20d Brawl pacing: spec 9c05fa1. Rung 1 (spawn spread) variants READY (not in levels/; A/B copies them into a scratch copy):
-  tools/out/wk/wk20d_r1/levels/*.json + wk20d_r1_spawns.py gen|check (High Pasture min 600 px is the only <700 case).
-  NEXT: QA baseline repro + R1 A/B batch when the headless slot frees (WK-135 holds it); rungs 2-4 code after WK-135 commits.
-- Lane U (port 9104): WK-14 / WK-40 / WK-38 / WK-39 in progress — agent acec1feee5dd2a01f.
-GPU PROBLEM: both AMD adapters in error (RX 6700S disabled, iGPU failed-add) -> software rendering ~37 fps since the freeze.
-Visuals/recordings OK, perf/timing numbers invalid; WK-90 (hit-stop re-measure) waits for the owner to reboot / re-enable.
+**>>> RESUME HERE (2026-11-15 ~12:30) <<<**
+Today (all committed, see BACKLOG "Done since re-rank #7/#8"): WK-37d/e ghosts, WK-128 bill, WK-66a/b/c nets + gold trials goals,
+WK-53b/26 taunt + super-aim cue, WK-13/42/14/40/38/39/29 menus+glyphs, WK-120/125 lobby, WK-85/85a backdrops, WK-117/52/113 sports UI,
+WK-137 Brawl-only callouts, WK-37f ghosts out of terrain. Audits: CD3 (ee892a5), UX4 (c305199). Specs: WK-20d (9c05fa1), WK-131 (f5709c7)
++ gate brief (3a1f82a). Backlog re-rank #8 (3a0b1a8). In flight (SendMessage to resume):
+- WK-135 bumper build (SCRATCH COPY, merges into repo at the end; holds Player/InputBot/BounceResolver/SportsMode/PartyMatch + the
+  headless batch slot) — agent a9403f95b2887d5dd.
+- Lane U (port 9104): WK-33 controls screen, WK-139 end-screen kit, WK-140 quit dialog — agent ae2fe1dbe4dda3563.
+- Lane L (port 9108): WK-28a lobby disconnect grace, WK-138 + WK-83 lobby prompts/safe area — agent a117e4f03d8143687.
+- WK-131 padlock badge art (ChatGPT via Chrome, per docs/briefs/kickoff_gate_2026-11-15.md) — agent a255265beadf9188e.
+Queue after WK-135: WK-20d R1 spawn A/B (variants in tools/out/wk/wk20d_r1/), WK-131a build, WK-136, then WK-20d code rungs.
+GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
+WK-38: automation server is OFF unless --gb-port is passed (run_game.ps1 passes it).
 Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Keep-awake runs as a background task (scratchpad/keepawake.ps1).
 CONCURRENCY CAP: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
 
