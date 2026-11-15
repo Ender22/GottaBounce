@@ -101,7 +101,7 @@ That is 14 deliverables since WK-CD2. The loop's cadence is about one cold playt
 1. WK-109 power shot dynamic range (S) [T, after WK-90; `Ball.gd` + `Juice.gd`]
 2. WK-110 MATCH POINT / GOLDEN GOAL + GOALS stepper (M) [S, after WK-131; also touches the RULES panel]
 3. WK-31 HUD danger state + stocks (M) [`PlayerCard` / `MatchHUD`, which are disjoint from WK-34, so it can be its own lane]
-4. WK-35 panel kit B incl. sports scoreboard + CD2-06 (M) [U, after WK-34]
+4. ~~WK-35~~ done 9498e0f — panel kit B incl. sports scoreboard + CD2-06 (M) [U, after WK-34]
 5. WK-127b the_ascent top-tier hopping (S) [`InputBot`, after WK-108b]
 6. WK-85 Trials lesson 1 / Islands Void mint fill band (S) [V]
 7. WK-120 Sports FORMAT 2V2 default + WK-125 lobby auto-join (S + S, one lobby pass on `HerdLobby` / `LobbySlot`) [new lane L]
@@ -1149,7 +1149,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   (WK-18).
 - Status: open. Next-10 #7 after re-rank #6, lane U: PauseMenu, Options, ScoreScreen and `theme.tres`. No other lane edits these.
 
-### [ ] WK-35 [P1][M] Toybox panel kit B: Victory final score, Trials objective banner, Sports scoreboard
+### [x] WK-35 [P1][M] Toybox panel kit B: Victory final score, Trials objective banner, Sports scoreboard — 9498e0f
 - Sources: R-11, WK-98 SP-18 (merged)
 - Area: menus/art · Owner: ui-ux-designer · Deps: WK-34
 - SP-18: the sports score bug is ~210x80 px at 1080p and "TO 6" ~14 px tall (`tools/out/sports/07_rb_intro.png`), with no team names
