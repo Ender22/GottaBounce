@@ -59,11 +59,17 @@ func _ready() -> void:
 		card.set_meta("mode", m)
 		register(card, 1.14)
 		_cards.append(card)
-	register(_back, 1.05)
 	wire_row(_cards)
-	# Back is reachable last: right from the final card lands on Back, left from Back to last card
-	_cards[_cards.size() - 1].focus_neighbor_bottom = _cards[_cards.size() - 1].get_path_to(_back)
-	_back.focus_neighbor_top = _back.get_path_to(_cards[0])
+	# WK-40 (CC-5.5 / CC-5.2): BACK is a "B BACK" glyph chip — B / Esc go back, a mouse click on the chip goes back,
+	# and it is never a pad focus stop. Up / down on a card answer with a deny tick + shake (never silently dead).
+	_back.focus_mode = Control.FOCUS_NONE
+	_back.pressed.connect(func() -> void:
+		AudioManager.play_sfx("ui_click", {"pitch": 0.72, "pitch_var": 0.0, "volume_db": -4.0})
+		on_back())
+	for c in _cards:
+		c.focus_neighbor_top = c.get_path_to(c)
+		c.focus_neighbor_bottom = c.get_path_to(c)
+		c.gui_input.connect(_on_card_gui.bind(c))
 	_equalize_card_heights.call_deferred()
 
 ## WK-13 (R-18): every card's art plate is the same height. The plate expands into what the name strip leaves,
@@ -105,10 +111,13 @@ func accent_for(c: Control) -> Color:
 		return (c.get_meta("mode") as Dictionary).get("color", MenuFX.ACCENT_PINK)
 	return MenuFX.ACCENT_PINK
 
+## WK-40: a single row — up / down have nowhere to go, so they deny (CC-5.2 / CC-9.2: tick + shake).
+func _on_card_gui(e: InputEvent, c: Control) -> void:
+	if e.is_action_pressed("ui_up") or e.is_action_pressed("ui_down"):
+		AudioManager.play_sfx("ui_click", {"pitch": 0.55, "pitch_var": 0.0, "volume_db": -6.0})
+		MenuFX.reject_shake(c)
+
 func activate(c: Control) -> void:
-	if c == _back:
-		on_back()
-		return
 	var m: Dictionary = c.get_meta("mode", {})
 	if bool(m.get("soon", false)):
 		MenuFX.reject_shake(c)

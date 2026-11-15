@@ -12,7 +12,12 @@ var _busy_since: float = 0.0
 ## WK-130: port is per-instance so parallel agents can each drive their own game.
 ## Resolution order: user cmdline arg `--gb-port=N` (after `--`), then env var GB_PORT, then DEFAULT_PORT.
 ## N = 0 disables the server entirely (headless batches, Movie Maker recordings never bind a port).
-const DEFAULT_PORT: int = 9090
+## WK-38 (CC-12.1 / audit C-28): DEFAULT_PORT is 0, so a normal play session (`PLAY GOTTABOUNCE.bat`, an exported
+## build, a bare `godot --path .`) runs NO automation server. Our tools opt in: `tools/run_game.ps1` always passes
+## `-- --gb-port=N` (9090 unless -Port / GB_PORT say otherwise), and GB_PORT=N in the shell still works.
+## DEV_PORT is the port gbplay.py / run_game.ps1 use when nothing else is said.
+const DEFAULT_PORT: int = 0
+const DEV_PORT: int = 9090
 const PORT_ARG_PREFIX: String = "--gb-port="
 const BUSY_TIMEOUT: float = 30.0
 ## The port actually in use (0 = server disabled). Readable via eval: `return McpInteractionServer.port`.
@@ -25,7 +30,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	port = _resolve_port()
 	if port == 0:
-		print("McpInteractionServer: disabled (port 0)")
+		print("McpInteractionServer: off (no --gb-port / GB_PORT; tools/run_game.ps1 passes one)")
 		set_process(false)
 		return
 	_init_key_map()
@@ -55,8 +60,8 @@ func _parse_port(raw: String, source: String) -> int:
 		var n: int = t.to_int()
 		if n >= 0 and n <= 65535:
 			return n
-	push_warning("McpInteractionServer: invalid port '%s' from %s, using %d" % [raw, source, DEFAULT_PORT])
-	return DEFAULT_PORT
+	push_warning("McpInteractionServer: invalid port '%s' from %s, using %d" % [raw, source, DEV_PORT])
+	return DEV_PORT   # an explicit (if malformed) opt-in keeps the dev server reachable on the usual port
 
 
 func _process(_delta: float) -> void:

@@ -539,22 +539,25 @@ theme_override_constants/separation = 34
 alignment = 1
 
 [node name="BtnRematch" type="Button" parent="Root/Prompts"]
+custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
-theme_type_variation = &"ShellBtnPrimary"
-text = "  REMATCH  "
+theme_type_variation = &"ShellBtn"
+text = "REMATCH"
 
 [node name="BtnSetup" type="Button" parent="Root/Prompts"]
+custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
 theme_type_variation = &"ShellBtn"
-text = "  CHANGE SETUP  "
+text = "CHANGE SETUP"
 
 [node name="BtnQuit" type="Button" parent="Root/Prompts"]
+custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
 theme_type_variation = &"ShellBtn"
-text = "  QUIT TO MENU  "
+text = "QUIT TO MENU"

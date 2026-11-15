@@ -26,11 +26,13 @@ extends Node
 ##   joined_changed
 ##   rumble(key, weak, strong, dur)      vibrate exactly one device (no-op for "kb" / "")
 ##   simulate_device_lost(key) / simulate_device_found(key)   QA hooks — same code path as a real unplug
+##   cursor_shown / cursor_allowed()     WK-39 mouse-cursor policy (CC-2.4 / CC-12.2), see "cursor" below
 
 signal device_lost(key: String)
 signal device_found(key: String)
 signal last_device_changed(key: String)
 signal joined_changed()
+signal cursor_changed(shown: bool)   # WK-39
 
 const KB := "kb"
 const PAD_PREFIX := "pad:"
@@ -47,16 +49,69 @@ const RUMBLE_LOG_MAX := 32
 
 var _seen: PackedStringArray = PackedStringArray()   # first-seen order; a lost pad leaves, re-added on input
 
+## WK-39 (CC-2.4 / CC-12.2, audit C-26): the OS cursor is hidden by any keyboard / pad input, comes back only on
+## real mouse motion (> Tuning.cursor_show_motion px), and is ALWAYS hidden during live match play (any match
+## state but MATCH_END, while the tree is not paused). MenuScreen / PauseMenu hover-to-focus only acts while it
+## is shown, so a resting cursor under a sliding-in screen can't steal the pad's default focus.
+var cursor_shown := true
+var _motion_acc := 0.0
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS   # keep tracking while the tree is paused (PauseMenu)
 	# Window.window_input fires for EVERY event before scene propagation, so tracking is immune to any
 	# node's set_input_as_handled() (PauseMenu's owner gate eats non-owner events in _input). _input below
 	# is a belt-and-braces duplicate; _note() is idempotent.
 	get_tree().root.window_input.connect(_note)
+	get_tree().root.window_input.connect(_cursor_note)   # WK-39: once per event (NOT also from _input — motion accumulates)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 func _input(e: InputEvent) -> void:
 	_note(e)
+
+func _process(_dt: float) -> void:
+	# live match play: hidden no matter what the mouse does (it can't do anything there)
+	if cursor_shown and not cursor_allowed():
+		_set_cursor(false)
+
+# ---------------------------------------------------------------------------------------------- cursor
+
+## False during live match play (a PartyMatch scene in any state but MATCH_END, tree not paused). Menus, the
+## pause menu and the end screens allow the cursor. Duck-typed (no class refs from an autoload — CLAUDE.md).
+func cursor_allowed() -> bool:
+	if get_tree().paused:
+		return true
+	var sc := get_tree().current_scene
+	if sc == null or not sc.has_method("set_match_overlays_hidden"):
+		return true
+	var st: String = str(sc.get("state"))
+	return st == "MATCH_END"
+
+func _set_cursor(on: bool) -> void:
+	_motion_acc = 0.0
+	if on == cursor_shown and Input.mouse_mode == (Input.MOUSE_MODE_VISIBLE if on else Input.MOUSE_MODE_HIDDEN):
+		return
+	var changed := on != cursor_shown
+	cursor_shown = on
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if on else Input.MOUSE_MODE_HIDDEN
+	if changed:
+		cursor_changed.emit(on)
+
+func _cursor_note(e: InputEvent) -> void:
+	if e is InputEventMouseMotion:
+		if cursor_shown:
+			return
+		_motion_acc += (e as InputEventMouseMotion).relative.length()
+		if _motion_acc > Tuning.cursor_show_motion and cursor_allowed():
+			_set_cursor(true)
+	elif e is InputEventMouseButton:
+		if e.is_pressed() and not cursor_shown and cursor_allowed():
+			_set_cursor(true)
+	elif e is InputEventKey or e is InputEventJoypadButton:
+		if e.is_pressed() and cursor_shown:
+			_set_cursor(false)
+	elif e is InputEventJoypadMotion:
+		if cursor_shown and absf((e as InputEventJoypadMotion).axis_value) >= Tuning.input_activity_axis:
+			_set_cursor(false)
 
 # ---------------------------------------------------------------------------------------------- keys
 

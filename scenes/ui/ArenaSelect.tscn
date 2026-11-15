@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://arenaselect001"]
+[gd_scene load_steps=7 format=3 uid="uid://arenaselect001"]
 
 [ext_resource type="Script" path="res://src/ui/ArenaSelect.gd" id="1_arena"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ShelfRail.tscn" id="4_shelf"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ModeContextChip.tscn" id="5_chip"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="6_glyph"]
 
 [node name="ArenaSelect" type="Control"]
 layout_mode = 3
@@ -34,17 +35,42 @@ grow_horizontal = 2
 mouse_filter = 2
 
 [node name="BackBtn" type="Button" parent="Header"]
-custom_minimum_size = Vector2(180, 64)
+custom_minimum_size = Vector2(220, 66)
 layout_mode = 1
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 64.0
-offset_top = -32.0
-offset_right = 244.0
-offset_bottom = 32.0
-focus_mode = 2
+offset_top = -33.0
+offset_right = 284.0
+offset_bottom = 33.0
+focus_mode = 0
 theme_type_variation = &"ShellBtn"
-text = "< BACK"
+
+[node name="Row" type="HBoxContainer" parent="Header/BackBtn"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BackGlyph" type="Control" parent="Header/BackBtn/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("6_glyph")
+glyph = "B"
+
+[node name="BackLabel" type="Label" parent="Header/BackBtn/Row"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 36
+text = "BACK"
+vertical_alignment = 1
 
 [node name="Title" type="Label" parent="Header"]
 layout_mode = 1
@@ -130,18 +156,3 @@ script = ExtResource("3_hint")
 hints = PackedStringArray("A|FIGHT!", "B|Back", "< >|Choose")
 green_first = true
 
-[node name="Version" type="Label" parent="Footer"]
-layout_mode = 1
-anchor_left = 0.7
-anchor_top = 0.5
-anchor_right = 1.0
-anchor_bottom = 0.5
-offset_top = -24.0
-offset_right = -64.0
-offset_bottom = 24.0
-mouse_filter = 2
-modulate = Color(1, 1, 1, 0.6)
-theme_type_variation = &"Hint"
-text = "v0.1"
-horizontal_alignment = 2
-vertical_alignment = 1

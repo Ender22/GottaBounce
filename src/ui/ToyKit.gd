@@ -8,8 +8,8 @@ extends RefCounted
 ## with white type and a chocolate outline; a stage delta = a gold / red / cool-blue pill; on chocolate chips the
 ## goat colour may be the text itself (>= 3.9:1 there).
 ##
-## Also the two end screens' shared ceremony juice that used to be copy-pasted between them: the focus row pulse,
-## confetti bursts / drizzle, and the rays fallback glow.
+## Also the two end screens' shared ceremony juice that used to be copy-pasted between them: confetti bursts /
+## drizzle and the rays fallback glow (the focus row is FocusRow.gd, WK-14).
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const CREAM := Color(1.0, 0.968627, 0.921569)
@@ -59,26 +59,7 @@ static func delta_pill(pill: PanelContainer, label: Label, delta: int, oops: boo
 		label.add_theme_constant_override("outline_size", 0)
 	return true
 
-# ------------------------------------------------------------------ end-screen button row
-
-## The end screens' manual focus row (REMATCH / CHANGE SETUP / MENU): focused button springs to 1.12 and breathes,
-## the others settle and dim a touch. Kills `old_pulse`; returns the new looping pulse tween (owned by `host`).
-static func focus_row(host: Node, btns: Array, i: int, old_pulse: Tween) -> Tween:
-	if old_pulse != null and old_pulse.is_valid():
-		old_pulse.kill()
-	for j in range(btns.size()):
-		var b: Button = btns[j]
-		var focused: bool = j == i
-		b.modulate.a = 1.0 if focused else 0.85
-		var tw := host.create_tween()
-		tw.tween_property(b, "scale", Vector2(1.12, 1.12) if focused else Vector2.ONE, 0.12) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var fb: Button = btns[i]
-	var pulse := host.create_tween()
-	pulse.set_loops()
-	pulse.tween_property(fb, "scale", Vector2(1.075, 1.075), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	pulse.tween_property(fb, "scale", Vector2(1.12, 1.12), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	return pulse
+# WK-14: the end-screen focus row moved to src/ui/FocusRow.gd (one focus look for every shell button).
 
 # ------------------------------------------------------------------ confetti
 

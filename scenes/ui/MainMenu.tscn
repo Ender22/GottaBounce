@@ -43,11 +43,11 @@ custom_minimum_size = Vector2(420, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
-theme_type_variation = &"ShellBtnPrimary"
+theme_type_variation = &"ShellBtn"
 text = "PLAY"
 
 [node name="OptionsBtn" type="Button" parent="ButtonStack"]
-custom_minimum_size = Vector2(380, 76)
+custom_minimum_size = Vector2(420, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
@@ -55,7 +55,7 @@ theme_type_variation = &"ShellBtn"
 text = "OPTIONS"
 
 [node name="QuitBtn" type="Button" parent="ButtonStack"]
-custom_minimum_size = Vector2(380, 76)
+custom_minimum_size = Vector2(420, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
@@ -138,15 +138,15 @@ text = "QUIT GOTTABOUNCE?"
 horizontal_alignment = 1
 
 [node name="StayBtn" type="Button" parent="QuitDialog/Panel/VBox"]
-custom_minimum_size = Vector2(360, 84)
+custom_minimum_size = Vector2(360, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
-theme_type_variation = &"ShellBtnPrimary"
+theme_type_variation = &"ShellBtn"
 text = "STAY"
 
 [node name="QuitBtn" type="Button" parent="QuitDialog/Panel/VBox"]
-custom_minimum_size = Vector2(360, 76)
+custom_minimum_size = Vector2(360, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2

@@ -5,8 +5,8 @@
 #   powershell -File tools/run_game.ps1 -Port 9101
 #   python tools/gbplay.py --port 9101 screenshot tools/out/x.png
 #   powershell -File tools/stop_game.ps1 -Port 9101
-# -Port N   : the game's automation server listens on 127.0.0.1:N (passes "-- --gb-port=N").
-#             Default: env GB_PORT if set, else 9090. -Port 0 = no automation server at all.
+# -Port N   : the game's automation server listens on 127.0.0.1:N (always passes "-- --gb-port=N"; WK-38: a game
+#             launched WITHOUT it runs no server). Default: env GB_PORT if set, else 9090. -Port 0 = no server.
 # -KillAll  : OLD behaviour - force-kill EVERY Godot process first (other agents' games too). Off by default.
 # Without -KillAll nothing is killed; if something already listens on the port, the script refuses to launch.
 param(
@@ -60,8 +60,9 @@ $logName = if ($Port -eq 9090) { "gottabounce_run.log" } else { "gottabounce_run
 $logPath = Join-Path $env:TEMP $logName
 $argList = @("--path", "`"$proj`"", "--resolution", $Resolution, "--position", $Position)
 if ($Scene -ne "") { $argList += $Scene }
-# Only pass the user arg when it differs from the plain default, so a bare run is byte-identical to before.
-if ($Port -ne 9090 -or $PSBoundParameters.ContainsKey('Port') -or $env:GB_PORT) { $argList += @("--", "--gb-port=$Port") }
+# WK-38: ALWAYS pass the port. The game's automation server is OFF unless --gb-port / GB_PORT opt in (so the
+# owner's PLAY GOTTABOUNCE.bat and exported builds never listen on a TCP port); this script is the opt-in.
+$argList += @("--", "--gb-port=$Port")
 
 $proc = Start-Process -FilePath $godot -ArgumentList $argList -PassThru `
     -RedirectStandardOutput $logPath -RedirectStandardError "$logPath.err"

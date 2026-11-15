@@ -162,7 +162,11 @@ func _ready() -> void:
 		_build_trials()
 	else:
 		_build_brawl()
-	register(_back, 1.05)
+	# WK-40 (CC-5.5): BACK is a "B BACK" glyph chip, mouse-clickable, never a pad focus stop (B / Esc go back).
+	_back.focus_mode = Control.FOCUS_NONE
+	_back.pressed.connect(func() -> void:
+		AudioManager.play_sfx("ui_click", {"pitch": 0.72, "pitch_var": 0.0, "volume_db": -4.0})
+		on_back())
 	_rewire_cross()
 	# one-shot unlock celebration (consume the pending flag now; play it after the entry stagger).
 	# BRAWL only: the celebration is a circuit moment and consuming the flag here would eat it.
@@ -425,30 +429,25 @@ func _wire_rail(cards: Array[Button]) -> void:
 		c.focus_previous = c.get_path_to(lf)
 		c.focus_next = c.get_path_to(rt)
 
-## Up/down across shelves lands on each shelf's REMEMBERED card; Back is reachable above Shelf A
-## and below Shelf B. Re-run whenever a remembered index changes (cheap, <20 cards).
+## Up/down across shelves lands on the other shelf's REMEMBERED card (two shelves wrap: a short vertical list,
+## CC-5.2). WK-40: BACK is no longer in the chain — a single shelf points up/down at SELF and _on_card_gui answers
+## with a deny tick + shake. Re-run whenever a remembered index changes (cheap, <20 cards).
 func _rewire_cross() -> void:
 	if _a_cards.is_empty():
-		return   # data failed to load; BACK is the only focusable (never crash)
+		return   # data failed to load; B is the only way out (never crash)
 	if _b_cards.is_empty():
-		# single-shelf (SPORTS §3.8): up AND down from the shelf reach BACK
-		var mem: Control = _a_cards[_a_idx]
 		for c in _a_cards:
-			c.focus_neighbor_top = c.get_path_to(_back)
-			c.focus_neighbor_bottom = c.get_path_to(_back)
-		_back.focus_neighbor_bottom = _back.get_path_to(mem)
-		_back.focus_neighbor_top = _back.get_path_to(mem)
+			c.focus_neighbor_top = c.get_path_to(c)
+			c.focus_neighbor_bottom = c.get_path_to(c)
 		return
 	var a_mem: Control = _a_cards[_a_idx]
 	var b_mem: Control = _b_cards[_b_idx]
 	for c in _a_cards:
-		c.focus_neighbor_top = c.get_path_to(_back)
+		c.focus_neighbor_top = c.get_path_to(b_mem)
 		c.focus_neighbor_bottom = c.get_path_to(b_mem)
 	for c in _b_cards:
 		c.focus_neighbor_top = c.get_path_to(a_mem)
-		c.focus_neighbor_bottom = c.get_path_to(_back)
-	_back.focus_neighbor_bottom = _back.get_path_to(a_mem)
-	_back.focus_neighbor_top = _back.get_path_to(b_mem)
+		c.focus_neighbor_bottom = c.get_path_to(a_mem)
 
 func _on_card_focus(card: Button) -> void:
 	card.z_index = 1   # focused card raises above rail neighbours (§3.6)
@@ -472,7 +471,10 @@ func _on_card_gui(e: InputEvent, card: Button) -> void:
 	var shelf_id := int(card.get_meta("shelf", 0))
 	var cards: Array[Button] = _a_cards if shelf_id == 0 else _b_cards
 	var idx := int(card.get_meta("idx", 0))
-	if e.is_action_pressed("ui_left") and idx == 0:
+	if (e.is_action_pressed("ui_up") or e.is_action_pressed("ui_down")) and _b_cards.is_empty():
+		AudioManager.play_sfx("ui_click", {"pitch": 0.55, "pitch_var": 0.0, "volume_db": -6.0})   # WK-40: no shelf to go to
+		MenuFX.reject_shake(card)
+	elif e.is_action_pressed("ui_left") and idx == 0:
 		_edge_deny(shelf_id, -1)
 	elif e.is_action_pressed("ui_right") and idx == cards.size() - 1:
 		_edge_deny(shelf_id, 1)
@@ -531,7 +533,7 @@ func _page_jump(delta: int) -> void:
 # ------------------------------------------------------------------ MenuScreen hooks
 func first_focus() -> Control:
 	if _a_cards.is_empty():
-		return _back
+		return null   # WK-40: nothing focusable; B backs out
 	return _a_cards[0]   # RANDOM ROTATION (brawl) / first tier-1 court (sports)
 
 func stagger_items() -> Array:
@@ -547,9 +549,6 @@ func accent_for(c: Control) -> Color:
 	return MenuFX.ACCENT_PINK
 
 func activate(c: Control) -> void:
-	if c == _back:
-		on_back()
-		return
 	var a: Dictionary = c.get_meta("arena", {})
 	# locked circuit: no launch -- a denied buzz + a small shake, then bail (v6 §4.3)
 	if bool(a.get("locked", false)):

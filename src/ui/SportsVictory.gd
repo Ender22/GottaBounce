@@ -22,6 +22,7 @@ signal setup_pressed
 signal menu_pressed
 
 const ToyKit := preload("res://src/ui/ToyKit.gd")
+const FocusRow := preload("res://src/ui/FocusRow.gd")   # WK-14: one focus look (CC-5.1)
 const GOLD := Color("#ffd23f")
 const CREAM := Color(1.0, 0.97, 0.9)
 const ARM_TIME := 1.1          # s from present() to the prompt row fading in (VictoryScreen's beat)
@@ -491,7 +492,7 @@ func _arm() -> void:
 
 func _set_focus(i: int) -> void:
 	_focus = i
-	_pulse = ToyKit.focus_row(self, _btns, i, _pulse)
+	_pulse = FocusRow.row(self, _btns, i, _pulse)
 
 ## One activation per screen life: a second accept in the same frame (two pads) can't double-fire.
 func _activate(i: int) -> void:

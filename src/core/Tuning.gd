@@ -783,3 +783,6 @@ var trials_goal_glow_fade_in: float = 0.2              # s  # WK-66b
 var trials_goal_glow_pad: float = 120.0                # glow = frame size + this, both axes  # WK-66b
 var trials_goal_idle_period: float = 2.6               # s between idle "the net breathes" ripples (attract cue)  # WK-66b
 var trials_goal_idle_amp: float = 3.0                  # wpx idle ripple amplitude (mesh only)  # WK-66b
+
+# --- WK-39 mouse cursor policy (CC-2.4 / CC-12.2). Read by src/core/InputRouter.gd.  # WK-39
+var cursor_show_motion: float = 4.0           # px of real mouse motion (accumulated) before a hidden cursor comes back  # WK-39

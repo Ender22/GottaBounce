@@ -98,3 +98,12 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   pad-joined Brawl, `gbplay key LEFT/ENTER` on the Victory screen did nothing (correctly). Not a bug; join with the
   keyboard (title Enter -> mode Enter auto-joins kb) to test keyboard end-screen nav. Also: `eval` one-liners with
   `for x in y: a; return b` put the return INSIDE the loop; use real newlines in the eval string.
+- **InputRouter sees every event TWICE** (root `window_input` + its own `_input`, and they are different InputEvent objects,
+  so identity dedupe fails). Anything that ACCUMULATES (WK-39 mouse-motion threshold) must hang off one path only
+  (`window_input`). gbplay `raw {"command":"mouse_move","params":{x,y,relative_x,relative_y}}` drives it; `relative` is what counts.
+- **WK-38: the automation server is OFF by default now.** A game started without `-- --gb-port=N` (or `GB_PORT=N`) binds no port.
+  `tools/run_game.ps1` always passes it; anything that launches Godot directly AND wants gbplay must pass `-- --gb-port=N` itself.
+- **Viewport screenshots never contain the OS cursor**, so "no cursor in gameplay" is verified via `eval Input.mouse_mode`
+  (1 = hidden) plus `InputRouter.cursor_shown`, not by looking at a PNG.
+- **Focus style swap resizes buttons unless their min size fits the PRIMARY style** (ShellBtnPrimary is 46 px vs 40 px, 18 px vs
+  16 px margins = ~90 px tall). WK-14 rows use 380x90 and the title stack 420x92 so focus moves never jiggle the layout.

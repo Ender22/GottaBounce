@@ -182,7 +182,7 @@ func _reg(b: Button) -> void:
 		MenuFX.focus_out(b)
 		_style_focus(b, false))
 	b.mouse_entered.connect(func() -> void:
-		if not b.has_focus():
+		if InputRouter.cursor_shown and not b.has_focus():   # WK-39: hover focuses only with a shown cursor
 			b.grab_focus())
 	if not (b is HoldButton):
 		b.pressed.connect(_on_pressed.bind(b))

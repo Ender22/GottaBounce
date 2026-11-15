@@ -18,9 +18,10 @@ signal match_button_pressed(id)
 
 const POP_IN := 0.15
 const POP_OUT := 0.2
+const FocusRow := preload("res://src/ui/FocusRow.gd")
 const RED := Color("#ff4b6a")
 const BLUE := Color("#3fa9ff")
-const MATCH_BTN_MIN := Vector2(300, 84)
+const MATCH_BTN_MIN := Vector2(380, 90)   # WK-14/WK-42: fits the focused (primary, 46 px) label, so a focus move never resizes the row
 # WK-111 (SP-09): the sports end screen. show_match_end presents it (when the mode has match_stats) instead of the
 # old centre panel; it owns the REMATCH / CHANGE SETUP / QUIT row and its input from then on.
 const VICTORY_SCENE := preload("res://scenes/ui/SportsVictory.tscn")
@@ -275,8 +276,8 @@ func victory_screen():
 
 # ------------------------------------------------------------------ MATCH END button row (VictoryScreen bar)
 ## Build a real focusable button row inside the MatchPanel — the actionable end-state, NOT a caption.
-## specs = [{ "text": String, "id": StringName }, ...]; first button takes default focus + the primary
-## style, the LAST button is the safe menu_back target. Mirrors VictoryScreen's focus juice exactly.
+## specs = [{ "text": String, "id": StringName }, ...]; first button takes default focus (the primary
+## style follows focus, WK-14), the LAST button is the safe menu_back target. Mirrors VictoryScreen's focus juice exactly.
 ## PartyMatch calls this once, after its PROMPT_GUARD arm lock, and wires match_button_pressed.
 func show_match_buttons(specs: Array) -> void:
 	if _victory_on:
@@ -287,11 +288,11 @@ func show_match_buttons(specs: Array) -> void:
 	for i in range(specs.size()):
 		var spec: Dictionary = specs[i]
 		var b := Button.new()
-		b.text = "  %s  " % str(spec.get("text", ""))
+		b.text = str(spec.get("text", ""))
 		b.focus_mode = Control.FOCUS_NONE   # manual focus (VictoryScreen model) — no built-in nav
 		b.custom_minimum_size = MATCH_BTN_MIN
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		b.theme_type_variation = &"ShellBtnPrimary" if i == 0 else &"ShellBtn"
+		b.theme_type_variation = &"ShellBtn"   # WK-14: FocusRow swaps the focused one to primary
 		b.set_meta("id", spec.get("id", &""))
 		var idx := i
 		b.pressed.connect(func() -> void:
@@ -346,20 +347,7 @@ func _on_match_verb(v: String, _key: String) -> void:
 
 func _set_match_focus(i: int) -> void:
 	_match_focus = i
-	if _match_pulse != null and _match_pulse.is_valid():
-		_match_pulse.kill()
-	for j in range(_match_btns.size()):
-		var b: Button = _match_btns[j]
-		var focused: bool = j == i
-		b.modulate.a = 1.0 if focused else 0.85
-		var tw := create_tween()
-		tw.tween_property(b, "scale", Vector2(1.12, 1.12) if focused else Vector2.ONE, 0.12) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var fb: Button = _match_btns[i]
-	_match_pulse = create_tween()
-	_match_pulse.set_loops()
-	_match_pulse.tween_property(fb, "scale", Vector2(1.075, 1.075), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_match_pulse.tween_property(fb, "scale", Vector2(1.12, 1.12), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_match_pulse = FocusRow.row(self, _match_btns, i, _match_pulse)   # WK-14: shared focus look (CC-5.1)
 
 func _activate_match(i: int) -> void:
 	if not _match_armed or i < 0 or i >= _match_btns.size():

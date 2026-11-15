@@ -18,6 +18,7 @@ signal setup_pressed
 signal menu_pressed
 
 const ToyKit := preload("res://src/ui/ToyKit.gd")
+const FocusRow := preload("res://src/ui/FocusRow.gd")   # WK-14: one focus look (CC-5.1)
 const GOLD := Color("#ffd23f")
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const ARM_TIME := 1.1          # s from present() to interactive (absolute ~2.0 from the kill)
@@ -276,7 +277,7 @@ func _arm() -> void:
 
 func _set_focus(i: int) -> void:
 	_focus = i
-	_pulse = ToyKit.focus_row(self, _btns, i, _pulse)   # "press me" breath on the focused button
+	_pulse = FocusRow.row(self, _btns, i, _pulse)   # "press me" breath on the focused button
 
 func _activate(i: int) -> void:
 	AudioManager.play_sfx("ui_click")

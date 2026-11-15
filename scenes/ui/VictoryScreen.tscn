@@ -263,7 +263,7 @@ custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
-theme_type_variation = &"ShellBtnPrimary"
+theme_type_variation = &"ShellBtn"
 text = "REMATCH"
 
 [node name="BtnSetup" type="Button" parent="Root/Prompts"]

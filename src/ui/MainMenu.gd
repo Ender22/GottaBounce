@@ -21,6 +21,11 @@ func _ready() -> void:
 	# vertical wrap PLAY <-> OPTIONS <-> QUIT
 	wire_col([_play, _options, _quit])
 	wire_col([_stay, _do_quit])
+	# WK-14 (CC-5.1 / CC-5.2): the quit dialog is modal — left / right inside it stay put (they used to leak focus to
+	# the title buttons behind the scrim, leaving a "focused" button under the dialog)
+	for b: Control in [_stay, _do_quit]:
+		b.focus_neighbor_left = b.get_path_to(b)
+		b.focus_neighbor_right = b.get_path_to(b)
 	_animate_logo()
 
 func first_focus() -> Control:
@@ -54,6 +59,7 @@ func activate(c: Control) -> void:
 
 func _open_dialog() -> void:
 	_dialog_open = true
+	_set_stack_focusable(false)   # modal: nothing behind the dialog can take focus (keys, pad or hover)
 	_dialog.visible = true
 	_dialog.modulate.a = 0.0
 	_dialog.pivot_offset = _dialog.size * 0.5
@@ -66,10 +72,15 @@ func _open_dialog() -> void:
 
 func _close_dialog() -> void:
 	_dialog_open = false
+	_set_stack_focusable(true)
 	var t := _dialog.create_tween()
 	t.tween_property(_dialog, "modulate:a", 0.0, 0.1)
 	t.tween_callback(func() -> void: _dialog.visible = false)
 	call_deferred("_focus_node", _quit)
+
+func _set_stack_focusable(on: bool) -> void:
+	for b: Control in [_play, _options, _quit]:
+		b.focus_mode = Control.FOCUS_ALL if on else Control.FOCUS_NONE
 
 func _focus_node(n: Control) -> void:
 	if is_instance_valid(n):

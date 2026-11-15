@@ -9,6 +9,7 @@ extends Control
 ## (Enter / gamepad-A both fire ui_accept). BACK is menu_back, handled here.
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
+const FocusRow := preload("res://src/ui/FocusRow.gd")   # WK-14: the focused shell button is the only primary one
 
 var shell   # ShellRoot (set via setup); null when a screen is hosted outside the shell (Options in pause)
 var _entered := false
@@ -52,24 +53,51 @@ func register(c: Control, focus_scale := 1.08) -> void:
 		return
 	c.focus_mode = Control.FOCUS_ALL
 	c.set_meta("focus_scale", focus_scale)
+	# WK-14 (CC-5.1): plain shell buttons swap to the primary style ONLY while focused (no permanently green PLAY)
+	if FocusRow.owns(c):
+		c.set_meta("focus_swap", true)
+		FocusRow.style(c as Button, c.has_focus())
 	c.focus_entered.connect(_on_focus_in.bind(c))
 	c.focus_exited.connect(_on_focus_out.bind(c))
 	c.mouse_entered.connect(_on_hover.bind(c))
+	if not InputRouter.cursor_changed.is_connected(_on_cursor_changed):
+		# deferred: the viewport updates its hovered control after the router sees the motion
+		InputRouter.cursor_changed.connect(_on_cursor_changed, CONNECT_DEFERRED)   # bound method: auto-disconnects when freed
 	if c is Button:
 		(c as Button).pressed.connect(_on_pressed.bind(c))
 	_focusables.append(c)
 
 func _on_hover(c: Control) -> void:
+	# WK-39 (CC-2.4): hover focuses only while the cursor is shown (i.e. after real mouse motion) — a resting,
+	# hidden cursor under a sliding-in screen never steals the pad / keyboard default focus
+	if not InputRouter.cursor_shown:
+		return
 	if c.focus_mode != Control.FOCUS_NONE and not c.has_focus():
 		c.grab_focus()
 
+## WK-39: the cursor just came back (real mouse motion). If it is already resting on one of our focusables, that one
+## takes focus now (mouse_entered fired while the cursor was still hidden and was ignored).
+func _on_cursor_changed(shown: bool) -> void:
+	if not shown or not is_inside_tree() or not is_visible_in_tree():
+		return
+	var h: Control = get_viewport().gui_get_hovered_control()
+	while h != null and h != self:
+		if _focusables.has(h):
+			_on_hover(h)
+			return
+		h = h.get_parent() as Control
+
 func _on_focus_in(c: Control) -> void:
+	if c.has_meta("focus_swap"):
+		FocusRow.style(c as Button, true)
 	MenuFX.focus_in(c)
 	_recolor_focus(c, accent_for(c))
 	if _entered:
 		_play_move()
 
 func _on_focus_out(c: Control) -> void:
+	if c.has_meta("focus_swap"):
+		FocusRow.style(c as Button, false)
 	MenuFX.focus_out(c)
 	_recolor_focus(c, accent_for(c), true)
 
