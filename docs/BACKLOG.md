@@ -2701,6 +2701,9 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - Status: open (trigger above).
 
 ### [ ] WK-161 [P2][S] BR-135 pin breaker worsens Singularity (stuck episodes 1.46x, p = 0.002); pin bar fails there in both arms
+- **A/B 2026-11-16 (docs/audit/2026-11-16_wk161_ab.md):** don't ship C/D (in-well skip, contacts 3). Stuck regression didn't reproduce
+  with the breaker isolated (0.99x). 84 % of pins = thrusting at a target THROUGH an obstacle -> build WK-161b chase routing (design in the
+  audit, switch default OFF; needs a WK-93 recording + acceptance batch). Also: make the stuck detector well-aware (median 'stuck' speed 951 px/s).
 - **Built cb8d40d (switch wk161_radial_pin_skip OFF + dump).** Recording read: Singularity stalls are mostly bots chasing a target THROUGH
   a pylon/core (aim.n -0.5..-0.97), no hitstun/black-hole involvement -> root cause is chase routing in the well, not the breaker. Next:
   Singularity-only batch with the dump (GB_WK161=0/1), then an obstacle-aware chase target if confirmed.
