@@ -148,7 +148,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 18. WK-28 controller disconnect (M)
 19. WK-19 rumble per pad (S)
 20. WK-32a hero decision (S)
-21. WK-29 glyph component (M)
+21. ~~WK-29~~ done 9eb3c60 — glyph component (M)
 22. WK-65 court cards + Dropshot mode card + CD3-09 thumbnails (M, art generation)
 23. ~~WK-85~~ done 5ea164e — tall-arena tiling (the remainder after WK-85a)
 24. WK-57 arena scorecard tool (M; would feed a WK-20d follow-up across all 94 arenas)
@@ -1193,7 +1193,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   RECONNECT ring 10 s then EMPTY. Screens `tools/out/wk/WK-28_*.png`.
 - Status: open
 
-### [ ] WK-29 [P1][M] One device-aware glyph component (pad circles/pills, key caps) used everywhere
+### [x] WK-29 [P1][M] One device-aware glyph component (pad circles/pills, key caps) used everywhere — 9eb3c60
 - Sources: C-23, R-23, C-11 (glyph half), CC-1.6/1.7, lobby review L12 (ModeSelect/ArenaSelect 10a/11a: old key caps + ASCII "< >" beside the lobby's glyph chips)
 - Area: menus/HUD · Owner: ui-ux-designer + gameplay-programmer · Deps: WK-03 (done)
 - Note: the lobby already has PadGlyph chips + the amended CC-1.6 shared-glyph rule (WK-81 f1a9fdd) — generalise THAT component, don't build a second one.
