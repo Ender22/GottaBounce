@@ -292,6 +292,13 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 		_build_open_sky(json, brect, floor_y)
 		return
 
+	# WK-85a: Trials courses float over open sky ("falling = start over"), so below the painted horizon the
+	# meadow stack paints a SKY DROP (hills dissolve into a cloud bank, then deepening blue air) instead of
+	# extending the hills' flat green (read as walkable grass), and skips the Layer-4 ground props (nothing
+	# to stand on). Per-level knob "sky_drop" (bool) overrides; default = on for mode "trials" only, so
+	# Brawl / sports / Islands Void meadow backdrops are untouched.
+	var sky_drop := bool(json.get("sky_drop", str(json.get("mode", "")) == "trials"))
+
 	# Layer 1 — sky painting, parallax 0.05, scaled to cover the view at max zoom-out + 10%.
 	if ResourceLoader.exists(SKY_TEX):
 		var tex: Texture2D = load(SKY_TEX)
@@ -307,7 +314,11 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 		# and extend the painting's bottom row color further down so no gradient seam can show
 		var sky_h := tex.get_height() * sc
 		var base := Vector2(_anchor.x, floor_y + 420.0 - sky_h * 0.5)
-		_extend_below(node, tex, Vector2(0.0, floor_y + 400.0), tex.get_width() * sc, brect.end.y + pad)
+		if sky_drop:   # WK-85a: drop gradient from the painting's own bottom edge (local), never green
+			_extend_drop(node, tex, Vector2(0.0, sky_h * 0.5 - 4.0), tex.get_width() * sc,
+				(brect.end.y + pad) - base.y, 456.0)   # its bottom sits ~456 px below the hills' ramp start
+		else:
+			_extend_below(node, tex, Vector2(0.0, floor_y + 400.0), tex.get_width() * sc, brect.end.y + pad)
 		_add_layer(node, 0.05, base)
 		# pinned at its bottom edge (the hills strip + extension own everything below it)
 		_cover.append({"node": node, "pin": Vector2(0.0, sky_h * 0.5), "half_w": tex.get_width() * sc * 0.5,
@@ -335,9 +346,15 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 			sp.position = Vector2((float(i) - float(n - 1) * 0.5) * step, 0.0)
 			node.add_child(sp)
 		var hills_h := tex.get_height() * sc
+		var hills_base := Vector2(_anchor.x, floor_y + 60.0 - hills_h * 0.5)
 		# extension starts INSIDE the strip's soft bottom fade so the art blends into it
-		_extend_below(node, tex, Vector2(0.0, hills_h * 0.5 - hills_h * 0.20), span + tile_w, brect.end.y + pad)
-		_add_layer(node, 0.18, Vector2(_anchor.x, floor_y + 60.0 - hills_h * 0.5))
+		var ext_top := Vector2(0.0, hills_h * 0.5 - hills_h * 0.20)
+		if sky_drop:   # WK-85a: hills -> haze -> blue air below, with a cloud bank hiding the hills' base
+			_extend_drop(node, tex, ext_top, span + tile_w, (brect.end.y + pad) - hills_base.y, 0.0)
+			_add_cloud_bank(node, ext_top.y, span + tile_w)
+		else:
+			_extend_below(node, tex, ext_top, span + tile_w, brect.end.y + pad)
+		_add_layer(node, 0.18, hills_base)
 	else:
 		_warn_once("hills", "ArenaRenderer: missing " + HILLS_TEX + " — far-hills layer skipped")
 
@@ -392,6 +409,8 @@ func _build_background(json: Dictionary, brect: Rect2, floor_y: float, backdrop:
 	for path in PROP_TEXES:
 		if ResourceLoader.exists(path):
 			have_prop = true
+	if sky_drop:
+		return   # WK-85a: no ground under a sky drop -> no bushes/fences floating at pad height
 	if have_prop:
 		var node := Node2D.new()
 		node.z_index = -80
@@ -736,6 +755,127 @@ func _extend_below(layer: Node2D, tex: Texture2D, top_center: Vector2, width: fl
 	poly.z_index = -1
 	poly.show_behind_parent = true
 	layer.add_child(poly)
+
+## WK-85a: the Trials SKY DROP under a meadow layer. Same seat as _extend_below (behind the layer's art, from
+## `top_center` down `h` local px) but a vertical ramp: the art's own solid bottom colour -> bright haze (cloud
+## level) -> painting sky blue -> deep blue. `start_px` = how far down the shared ramp this layer's top sits, so
+## the hills strip (0) and the sky painting under it (its bottom is lower) agree on colour at one height.
+func _extend_drop(layer: Node2D, tex: Texture2D, top_center: Vector2, width: float, h: float, start_px: float) -> void:
+	var top_col := _solid_bottom_color(tex)
+	if top_col.a == 0.0:
+		top_col = Tuning.trials_drop_haze
+	var stops: Array = [[0.0, top_col], [Tuning.trials_drop_haze_px, Tuning.trials_drop_haze],
+		[Tuning.trials_drop_sky_px, Tuning.trials_drop_sky], [Tuning.trials_drop_deep_px, Tuning.trials_drop_deep]]
+	h = maxf(h, 200.0)
+	var offs := PackedFloat32Array()
+	var cols := PackedColorArray()
+	for i in range(stops.size()):
+		var px: float = float(stops[i][0]) - start_px
+		var c: Color = stops[i][1]
+		if px < 0.0:
+			if i + 1 < stops.size() and float(stops[i + 1][0]) - start_px > 0.0:
+				var nx: float = float(stops[i + 1][0]) - start_px
+				var nc: Color = stops[i + 1][1]
+				c = c.lerp(nc, -px / (nx - px))   # colour at this layer's top edge
+				px = 0.0
+			else:
+				continue
+		if px > h:
+			break
+		offs.append(px / h)
+		cols.append(c)
+	if offs.is_empty():
+		offs.append(0.0)
+		cols.append(Tuning.trials_drop_deep)
+	var grad := Gradient.new()
+	grad.offsets = offs
+	grad.colors = cols
+	var sp := _gradient_sprite(Rect2(top_center.x - width * 0.5, top_center.y, width, h), grad,
+		GradientTexture2D.FILL_LINEAR, Vector2(0, 0), Vector2(0, 1), Vector2i(4, 512), -1)
+	sp.show_behind_parent = true
+	layer.add_child(sp)
+
+## The art's genuinely solid bottom-row colour (the scan _extend_below uses); alpha 0 if none found.
+func _solid_bottom_color(tex: Texture2D) -> Color:
+	var img := tex.get_image()
+	if img == null:
+		return Color(0, 0, 0, 0)
+	if img.is_compressed():
+		img.decompress()
+	var xstep := maxi(1, int(img.get_width() / 24.0))
+	var y := img.get_height() - 2
+	while y > img.get_height() / 2:
+		var acc := Color(0, 0, 0, 0)
+		var solid := 0
+		var total := 0
+		var x := xstep / 2
+		while x < img.get_width():
+			var c := img.get_pixel(x, y)
+			total += 1
+			if c.a > 0.85:
+				acc += c
+				solid += 1
+			x += xstep
+		if total > 0 and float(solid) / float(total) >= 0.7:
+			return Color(acc.r / solid, acc.g / solid, acc.b / solid, 1.0)
+		y -= 4
+	return Color(0, 0, 0, 0)
+
+## WK-85a: a soft cloud bank along the hills' base (reuses the Layer-3 cloud art, no new asset) so the far
+## hills sit on a sea of cloud and the courses' islands visibly float above it. Two rows in the hills layer
+## (back row bluish + higher, front row white + lower), then a few small faint clouds deeper in the drop as a
+## depth cue ("it keeps going down"). Deterministic seed -> identical every load.
+func _add_cloud_bank(layer: Node2D, top_y: float, width: float) -> void:
+	var texes: Array[Texture2D] = []
+	for path in CLOUD_TEXES:
+		if ResourceLoader.exists(path):
+			texes.append(load(path))
+	if texes.is_empty():
+		_warn_once("cloud_bank", "ArenaRenderer: no bg/cloud_*.png — WK-85a cloud bank skipped")
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("wk85a_cloud_bank")
+	var spacing: float = maxf(Tuning.trials_drop_bank_spacing, 60.0)
+	var n := int(ceil(width / spacing)) + 1
+	for row in range(2):
+		var y0: float = top_y + (Tuning.trials_drop_bank_y if row == 1 else Tuning.trials_drop_bank_y - Tuning.trials_drop_bank_row_gap)
+		var tint: Color = Color(1, 1, 1) if row == 1 else Tuning.trials_drop_bank_back_tint
+		for i in range(n):
+			var tex: Texture2D = texes[(i + row) % texes.size()]
+			var sp := Sprite2D.new()
+			sp.texture = tex
+			var sc := rng.randf_range(Tuning.trials_drop_bank_scale_min, Tuning.trials_drop_bank_scale_max)
+			sp.scale = Vector2(sc, sc * rng.randf_range(0.8, 1.0))
+			sp.flip_h = rng.randf() < 0.5
+			var x := -width * 0.5 + (float(i) + (0.5 if row == 0 else 0.0) + rng.randf_range(-0.2, 0.2)) * spacing
+			sp.position = Vector2(x, y0 + rng.randf_range(-0.5, 0.5) * Tuning.trials_drop_bank_y_jitter)
+			sp.modulate = tint
+			sp.z_index = -1 if row == 0 else 0   # back row behind the hills art's soft bottom, front row over it
+			layer.add_child(sp)
+	# trailing wisps hung under the front row at irregular gaps, so the bank has no straight bottom edge
+	var tn := int(ceil(width / (spacing * 1.7))) + 1
+	for i in range(tn):
+		var sp := Sprite2D.new()
+		sp.texture = texes[i % texes.size()]
+		var sc := rng.randf_range(0.22, 0.38)
+		sp.scale = Vector2(sc, sc * 0.85)
+		sp.flip_h = rng.randf() < 0.5
+		var x := -width * 0.5 + (float(i) + rng.randf_range(0.0, 0.7)) * spacing * 1.7
+		sp.position = Vector2(x, top_y + Tuning.trials_drop_bank_y + rng.randf_range(70.0, 130.0))
+		sp.modulate = Color(1, 1, 1, 0.85)
+		sp.z_index = 0
+		layer.add_child(sp)
+	for i in range(Tuning.trials_drop_deep_clouds):
+		var sp := Sprite2D.new()
+		sp.texture = texes[i % texes.size()]
+		var sc := rng.randf_range(0.18, 0.32)
+		sp.scale = Vector2(sc, sc)
+		sp.flip_h = rng.randf() < 0.5
+		var x := lerpf(-width * 0.45, width * 0.45, (float(i) + rng.randf_range(0.2, 0.8)) / float(maxi(Tuning.trials_drop_deep_clouds, 1)))
+		sp.position = Vector2(x, top_y + rng.randf_range(Tuning.trials_drop_deep_cloud_y_min, Tuning.trials_drop_deep_cloud_y_max))
+		sp.modulate = Color(1, 1, 1, Tuning.trials_drop_deep_cloud_alpha)
+		sp.z_index = -1
+		layer.add_child(sp)
 
 ## Copy of a texture with the left/right edges alpha-feathered, for seamless horizontal tiling
 ## of soft background strips (brief §4 item 11: overlap with alpha feather in code).

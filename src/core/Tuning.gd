@@ -789,3 +789,23 @@ var cursor_show_motion: float = 4.0           # px of real mouse motion (accumul
 
 # --- WK-120 sports FORMAT auto default. Read by src/ui/HerdLobby.gd (_sports_format).  # WK-120
 var sports_auto_2v2_humans: int = 2           # joined humans at which an AUTO FORMAT (never set in RULES) reads 2V2  # WK-120
+
+# --- WK-85a Trials SKY DROP (ArenaRenderer meadow stack, mode "trials" / level knob "sky_drop"). Display only.  # WK-85a
+# Below the painted horizon: hills' own bottom colour -> haze -> sky -> deep, px below the hills ramp start.  # WK-85a
+var trials_drop_haze: Color = Color("#EAF8FF")     # cloud-level mist (hills dissolve into it)  # WK-85a
+var trials_drop_sky: Color = Color("#5ED0FB")      # open air below the islands (sky_grass_day ~0.8 row)  # WK-85a
+var trials_drop_deep: Color = Color("#159CF0")     # deep blue far below (sky_grass_day mid-sky tone)  # WK-85a
+var trials_drop_haze_px: float = 160.0             # WK-85a
+var trials_drop_sky_px: float = 650.0              # WK-85a
+var trials_drop_deep_px: float = 1300.0            # WK-85a
+var trials_drop_bank_y: float = 150.0              # front cloud row centre, px below the ramp start  # WK-85a
+var trials_drop_bank_row_gap: float = 70.0         # back row sits this much higher  # WK-85a
+var trials_drop_bank_y_jitter: float = 80.0        # WK-85a
+var trials_drop_bank_spacing: float = 300.0        # px between bank clouds (per row)  # WK-85a
+var trials_drop_bank_scale_min: float = 0.36       # cloud art is 854x515  # WK-85a
+var trials_drop_bank_scale_max: float = 0.72       # WK-85a
+var trials_drop_bank_back_tint: Color = Color("#CFE6F7")  # WK-85a
+var trials_drop_deep_clouds: int = 7               # small faint clouds deeper in the drop (depth cue)  # WK-85a
+var trials_drop_deep_cloud_y_min: float = 500.0    # WK-85a
+var trials_drop_deep_cloud_y_max: float = 1100.0   # WK-85a
+var trials_drop_deep_cloud_alpha: float = 0.55     # WK-85a
