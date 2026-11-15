@@ -2548,7 +2548,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 
 ## Re-rank #9 filings (WK-CD4, `docs/audit/2026-11-15_cd4_playthrough.md`)
 
-### [ ] WK-153 [P2][M] (CD4-01 + CD4-02) MEADOW MILE continues where the last match stopped; Islands Void's kill zone reads as sky, not lawn
+### [x] WK-153 [P2][M] (CD4-01 + CD4-02) MEADOW MILE continues where the last match stopped; Islands Void's kill zone reads as sky, not lawn — 361b6d2
 - Area: brawl (circuits, art)
 - Owner: gameplay-programmer (sequencing) + level-designer / art pipeline (sky drop)
 - Source: creative-director WK-CD4 CD4-01 + CD4-02. CD4 called this the "biggest remaining problem". It is the CD's named fantasy gap, so it
