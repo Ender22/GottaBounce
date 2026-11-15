@@ -4,21 +4,17 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-15 ~02:00, after a PC FREEZE + before context compaction) <<<**
-The PC froze with 5 agents running in parallel (8-process headless batches + several rendered games + recordings).
-Uncommitted PARTIAL work in the tree, by lane (agent transcripts are saved; resume each with SendMessage to its id):
-- WK-128 bill-only (fuel tapping fix ON, refund gates OFF; verify batch NOT done) — src/core/Tuning.gd (WK-128 block),
-  src/entities/Player.gd, src/core/InputBot.gd — agent a1c09a2f2907373ae. Commit only after brawl batch shows no hangs.
-- WK-37d ghost tags + islands_void faintness (lane G, port 9102) — assets/shaders/ghost.gdshader, src/core/GhostBot.gd,
-  src/entities/GhostGoat.gd, GhostPuff.gd, src/systems/GhostDirector.gd, src/ui/PlayerPips.gd (+ maybe a WK-37d block
-  at the END of Tuning.gd — stage with tools/stage_hunks.py) — agent a98a0dbfd05308d91.
-- WK-34 fixes + WK-35 committed (see log); its CD2-06 hunk in src/ui/PlayerPips.gd is still uncommitted — commit WITH WK-37d.
-- WK-66a net ART committed 9e91e3c; NEXT: net draw-code build (ArenaRenderer/SportsMode, brief docs/briefs/sports_nets_2026-11-15.md;
-  goal 3-slice cap_frac 0.13 mouth_h+31, Dropshot frame cap_frac 0.23 at 80 wpx) IN PROGRESS: agent a96edc4ef5c4a31e1 (port 9103).
-- WK-135 spec COMMITTED (docs/specs/wk135_bumper_min_bounce_2026-11-15.md). NEXT: build phase 1 (bumper min rebound)
-  AFTER WK-128 bill-only commits (both touch Player.gd/InputBot.gd/Tuning.gd).
-Keep-awake script died with the session: restart `scratchpad/keepawake.ps1` (background) before rendered timing work.
-CONCURRENCY CAP from now on: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
+**>>> RESUME HERE (2026-11-15 ~08:45, after context compaction) <<<**
+Committed since the freeze: WK-37d ghost tags + CD2-06 (b76d36f), WK-128 relight bill ON / refund gates OFF (3e1a5b0, DECISIONS
+2026-11-15 accepts the rr_allpads nav-pilot regression). In flight (resume each with SendMessage to its id):
+- WK-66a net draw code (lane V, port 9103) — ArenaRenderer.gd, Ball.gd, GoalZone.gd, MovingPlatform.gd, court JSONs,
+  new assets/shaders/net_*.gdshader + src/systems/SportsNetArt.gd, WK-66a block at END of Tuning.gd — agent a96edc4ef5c4a31e1.
+- WK-135 bumper build (3 phases; builds in a SCRATCH COPY, applies to repo at the end; port 9105) — agent a9403f95b2887d5dd.
+- WK-CD3 cold playthrough (port 9106; incl. WK-128 §9 relight feel + ghost T15) -> docs/audit/2026-11-15_cd3_playthrough.md — agent a72674c1962b636e4.
+- art-director regrade of WK-37d tags (no Godot) -> docs/audit/2026-11-15_wk37d_artgrade.md — agent adcb95673a3615a59.
+After CD3: producer re-rank with CD3 findings. Delete tools/out/rec/wk37d_islands + wk37d_mix raw frames after the art grade.
+Keep-awake script runs as a background task (restart scratchpad/keepawake.ps1 on a new session).
+CONCURRENCY CAP: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
 
 **WEEKEND POLISH RUN (started 2026-11-14, branch `weekend/polish`, UNATTENDED — owner: "i dont want to be
 involved much, this project is about seeing what ai can do on its own"):** owner verdict after a 4-month gap:
