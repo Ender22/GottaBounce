@@ -2896,6 +2896,8 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 - Status: open (unverified). Next-10 #4 (rides WK-176's slot).
 
 ### [ ] WK-175 [P3][M] Refund gates (WK-128 b) need a retune before they can ship ON
+- **WK-175 WR built dda9231 (OFF).** Probes pass (hug 58 -> 1 refund; floors/deck/super/Flight School unchanged). A/B queued after
+  WK-169b re-run (spec §8: OFF/WR/WS/FULL + OFF-repeat; read D7 wall-hug counter next to P1/P2 — it counts legal ping-pong).
 - Area: brawl (economy) · Owner: game-designer (175a ruling) -> gameplay-programmer
 - Source: `docs/audit/2026-11-16_wk135_p3_ab.md` follow-ups 1-3; DECISIONS 2026-11-16 WK-135 phase-3 ruling.
 - Evidence: gates ON: KO/min 0.77x, median stage +24 %, self-KO +6.7 pp, Bumper Gauntlet bot empty-tank falls 1/33 -> 13/35 (F1 re-arm blocks
