@@ -77,7 +77,7 @@ func _open_door() -> void:
 	open = true
 	_open_anim = 1.0
 	_cs.set_deferred("disabled", true)
-	AudioManager.play_sfx("super_fire", {"pitch": 1.5, "volume_db": -8.0})
+	AudioManager.play_sfx("super_fire", {"pitch": 1.5, "volume_db": -16.0})   # WK-79c (was -8): -8 dB like the WK-79b super blast
 
 func _draw() -> void:
 	if open and _open_anim <= 0.0:

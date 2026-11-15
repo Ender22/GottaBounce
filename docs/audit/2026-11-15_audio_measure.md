@@ -328,3 +328,92 @@ KO and goal rises are fair.
 
 Accept for C1-C3: re-run the same three recordings. KO rise (Brawl) >= +5 LU, point/goal rise >= +6 LU, TP <= -1.2 dBTP,
 integrated still -16 to -19 LUFS, 0 COUNTDOWN ceiling hits.
+
+---
+
+## 2026-11-15 (later still): WK-79c. C1-C3, C5, C6 applied + one correction pass, verified
+
+Sound-designer. Uncommitted, tagged `# WK-79c`; the parse gate is clean after each edit. C4 (super_aim trim) was skipped
+as a taste call.
+
+**Applied:**
+- **C1:** SFX compressor threshold -10 -> -6 dB, ratio 2.5 -> 2.0.
+- **C2:** goal sax +4 -> +7.
+- **C3:** GO 0 -> +3.
+- **C5:** other super_fire callers trimmed -8 dB: `Cannon.gd` -2 -> -10, `KeyDoor.gd` -8 -> -16, `HerdLobby.gd` -12 -> -20.
+- **C6:** `tools/record_match.ps1` resolves `-Arena` before launching. It accepts a res:// path (must exist), a file stem
+  or a display name, and searches `levels/` recursively. No match or an ambiguous match is an error with exit 1.
+  Tested offline: `dropshot_beach`, `Dropshot Beach` and the res:// path resolve to `res://levels/sports/dropshot_beach.json`;
+  `long_meadow` resolves to `res://levels/long_meadow.json`; `zzz_nothing` and `res://levels/nope.json` fail loudly.
+
+**Pass 1 (C1-C3 only) overshot:**
+
+| Run | Integrated | True peak | Ceiling clusters | KO rise | Goal rise | Notes |
+|---|---|---|---|---|---|---|
+| `WK-79c_brawl_meadow` (Hill and Dale) | -14.6 | -1.5 | **28 in COMBAT** | +3.2 | — | |
+| `WK-79c_rocketball` | -14.9 | -1.8 | 13 (4 in COUNTDOWN) | — | +5.5 | |
+
+Loosening the compressor raised the whole dense SFX bed (Brawl combat median -16.6 -> -14.4 LUFS), not just the payoffs.
+In Brawl, 17/20 supers, 14/19 smashes and 7/9 KOs ran into the limiter. The run also showed the Brawl payoff order was
+inverted: a ring-out KO lands < 1 s after the heavy smash that caused it, and that smash (up to +2 dB, about -12 dBFS
+RMS) was about 5 dB louder than the KO pop (+1 dB).
+
+**Correction (also `# WK-79c`):**
+
+| Change | Was | Now |
+|---|---|---|
+| SFX bus `volume_db` (Settings.gd keeps the layout value as its 100 % reference) | 0 | **-2.5** |
+| `_on_smashed` range | -10..+2 | **-12..-1** |
+| KO `death` | +1 | **+5** |
+| super slam layer | -3 | **-5** |
+
+**Pass 2 = the shipped state:**
+
+| Metric | WK-79a before (Dropshot) | WK-79b (Brawl / Rocketball) | **WK-79c final, Brawl** (`WK-79c2_brawl_meadow`, Long Meadow) | **WK-79c final, Rocketball** (`WK-79c2_rocketball`) | Target | Verdict |
+|---|---|---|---|---|---|---|
+| Integrated loudness | -14.2 LUFS | -17.0 / -16.7 | **-16.3** | **-16.9** | -16 to -19 | PASS |
+| True peak | -1.1 dBTP | -1.9 / -2.2 | **-2.0** | **-2.5** | <= -1.2 | PASS |
+| Ceiling clusters (>= -2 dBFS) | 17 | 2 / 0 | **0** | **0** | 0 in COUNTDOWN | PASS |
+| Loudness range | 2.8 LU | 2.9 / 2.3 | 4.9 | 2.8 | (informational) | Brawl better |
+| **KO rise** (median, n) | — | +2.8 (6) | **+3.3 (6)**, range +2.4..+5.3 | — | >= +6 | **FAIL** (see below) |
+| **Goal rise** (median, n) | +5.2 (Dropshot) | — / +3.4 (2) | — | **+5.3 (2)**: +4.2, +6.5 | >= +6 | near miss (-0.7) |
+| GO rise | +1.5 | +3.9 / +1.0 | **+5.7** | +2.7 (first stage +6.0) | — | better. Stage 2+ GO beds are the previous celebration |
+| Super rise / 0.5-2 kHz after a super | +0.9 / +0.4 | +1.9 / +2.7 | +2.8 / +3.4 | +2.6 / +2.3 | rises | PASS |
+| Bounce band p90 margin | +4.0 dB | +6.5 / +5.6 | **+7.4** | +5.3 | >= +6 | Brawl PASS, Rocketball 0.7 short |
+| Thrust share, combat | -3.3 dB | -17.4 / -9.9 | -21.6 | -11.0 | <= -8 | PASS |
+
+**Why the KO is still short (measured):**
+- The KO cue does play louder now. A pitch-searched fit of the first 0.35 s of `mm_quickdie.mp3` at all 6 KOs reads
+  **-0.6 to -1.7 dB** vs file (WK-79b: -2.5 to -6.4). That is about +3 dB absolute, and it now leads the smash.
+- The rise metric barely moves (+2.8 -> +3.3) because the asset is the ceiling. `mm_quickdie` is a quiet file (max
+  momentary -12.3 LUFS) whose energy is spread over 2 s. At unity it peaks at about -13 LUFS momentary, the same as the
+  loudest 10 % of ordinary Brawl combat (p90 -13.3 LUFS). More gain just feeds the shared SFX compressor and limiter.
+  Pass 1 showed exactly that.
+- So KO >= +6 LU needs one of:
+  1. **a punchier KO asset.** Sourcing S-6: a 0.3-0.6 s KO sting with a hard transient, broadband 200 Hz-5 kHz, active
+     RMS around -10 dBFS, distinct from the smash (not another impact). Layer it over the existing pop.
+  2. **a stinger bus that bypasses the SFX compressor** for KO / goal / match_win (structural: a new bus in
+     `default_bus_layout.tres` + per-cue routing in `play_sfx`; gameplay-programmer).
+  3. **a short SFX-bed duck** (bounce / aim / thrust -4 dB for 0.6 s) on `KillPipeline.killed`. Also structural.
+
+  Recommended: (2) first; it also lifts the goal. Then (1).
+
+**Goal near miss (C2b, S, not applied):** goal sax +7 -> **+9** (file peak -10 -> -1 pre-compressor, about -6 dBFS
+after compressor + bus). Expected goal rise about +6.5 LU. The two Rocketball goals already read +4.2 / +6.5.
+
+### WK-116 crowd chant check (Director request)
+
+Run: `tools/out/rec/WK-79c2_rocketball_wk116` (Rocketball, seed 7, `GB_WK116=1,7,11,3`; the log confirms `rule=1 t1=7 t2=11
+warn=3`). The current mix includes the committed WK-116 levels (bed -16 -> -10 dB, chant -4 dB). Scanned with
+`tools/out/wk/WK-79a_scripts/chantscan.py`, which loop-fits the crowd file in 2 s windows (300-2000 Hz). Noise floor on a
+chant-free run: r <= 0.09, share about -23 dB.
+
+| Element | Present at | Correlation r | Gain vs file | Share of the whole mix | Verdict |
+|---|---|---|---|---|---|
+| **Clap chant** `crowd_clap_loop.ogg` (-4 dB) | **19.0-25 s** and **40.0-44 s** (= GO + 11 s, until the goal at 26.6 / 46.0 s) | **0.51-0.63** | -9.1 to -10 dB (= -4 played, -2.5 SFX bus, about -2.5 compression) | **-4.8 to -7.5 dB (18-33 % of all sound energy)**; in its own band -4 to -6 dB | **Clearly audible.** It is the largest identifiable element while it plays, ahead of the jetpack (-11 dB). The 2 Hz clap is visible as regular 0.5 s broadband strokes from 19.2 s in `tools/out/wk/WK-79c_wk116_chant_spectrum.png` |
+| Murmur bed `crowd_murmur_loop.ogg` (-16 -> -10 dB swell) | from about 13-15 s (step 0) to each goal | 0.27-0.44 | -13.3 to -17.8 dB | -9 to -15 dB | present and audible, under the chant |
+
+Verdict: at -4 dB the chant is unmistakable, and if anything it is at risk of dominating the last seconds of a long
+rally, including over the goal-mouth ka-CHUNKs. Measured headroom says **-6 dB would still read clearly** (expected
+share about -7 to -9.5 dB, r about 0.45). Raising it from -9 to -4 was the right direction; whether -4 or -6 sits better
+is a taste call for a listener.

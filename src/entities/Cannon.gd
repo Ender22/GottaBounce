@@ -117,7 +117,7 @@ func _fire() -> void:
 	p.velocity = _barrel_dir() * impulse   # plain launch: no smash license, no fuel change (fence)
 	if p.has_method("play_pop_in"):
 		pass   # keep their scale alone — the launch stretch is the player's own streak VFX
-	AudioManager.play_sfx("super_fire", {"pitch": 1.1, "volume_db": -2.0})
+	AudioManager.play_sfx("super_fire", {"pitch": 1.1, "volume_db": -10.0})   # WK-79c (was -2): in line with the WK-79b super blast (-10)
 	EventBus.bounced_juicy.emit(p, impulse, global_position)   # camera/audio juice via existing channel
 
 # ------------------------------------------------------------------ display

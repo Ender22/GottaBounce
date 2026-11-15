@@ -477,7 +477,9 @@ func _on_surface_bounced(surface, player, _normal, _contact) -> void:
 func _on_smashed(_attacker, _victim, impulse) -> void:
 	# volume scaled by hit solidity (impulse magnitude vs a full super blast)
 	var t := clampf(impulse.length() / maxf(Tuning.super_boost_impulse_full, 1.0), 0.0, 1.0)
-	var db := lerpf(-10.0, 2.0, t)
+	# WK-79c (was -10..+2): a ring-out KO lands < 1 s after the heavy smash that caused it, and the smash (up to +2,
+	# ~-12 dBFS RMS) out-shouted the KO pop (+1, ~-17) -> KO rise only +2.8/+3.2 LU. Smash tops out at -1 now; the KO leads.
+	var db := lerpf(-12.0, -1.0, t)
 	if t > 0.6:
 		play_sfx("smash_heavy", {"volume_db": db, "pitch_var": 0.05})
 	else:
@@ -496,10 +498,10 @@ func _on_hazard_whoosh(_hazard, pos, _speed) -> void:
 
 func _on_super_boosted(_player) -> void:
 	# WK-79b: explosion_boss is 74 % 20-60 Hz at -6 dBFS RMS; at -2 dB it ducked the whole SFX bus ~5 dB for 2.8 s and
-	# read < 2 LU on a TV. Rumble tail down to -10 (peaks at the compressor threshold) + an interim mid "crack" layer
+	# read < 2 LU on a TV. Rumble tail down to -10 (peaks under the WK-79c -6 dB compressor threshold) + an interim mid "crack" layer
 	# from the owner's slam.mp3 pitched down (distinct from smash_heavy at 1.0) until a real crack is sourced (audit S-1).
 	play_sfx("super_fire", {"volume_db": -10.0, "pitch_var": 0.08})
-	play_sfx("super_fire", {"path": "res://assets/sfx/slam.mp3", "volume_db": -3.0, "pitch": 0.8, "pitch_var": 0.05})
+	play_sfx("super_fire", {"path": "res://assets/sfx/slam.mp3", "volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.05})   # WK-79c (was -3): 17/20 supers hit the limiter
 
 func _on_exploded(_center, _radius) -> void:
 	play_sfx("explode", {"volume_db": 0.0})
@@ -526,7 +528,7 @@ func _on_countdown_tick(n) -> void:
 		play_sfx("countdown", {"volume_db": -4.0})
 
 func _on_combat_started() -> void:
-	play_sfx("go", {"volume_db": 0.0})
+	play_sfx("go", {"volume_db": 3.0})   # WK-79c (was 0; file peak -4.9 -> -1.9): GO read like a countdown beep (+1.0 LU rise)
 
 func _on_match_started() -> void:
 	_contact_last_t.clear()
@@ -557,7 +559,7 @@ func _on_killed(victim, cause, _attacker) -> void:
 	# SFX makeup removed while the bed falls ~9 dB
 	if str(cause) == "ring_out":
 		play_sfx("death_whoosh", {"volume_db": 1.0})
-	play_sfx("death", {"volume_db": 1.0, "pitch_var": 0.1})
+	play_sfx("death", {"volume_db": 5.0, "pitch_var": 0.1})   # WK-79c (was +1): the KO pop must lead the smash before it (file peak -5.6)
 
 # --------------------------------------------------------------------- sports (WK-105 / SP-01)
 
@@ -598,7 +600,8 @@ func _on_goal_scored(team, _scorer, own_goal) -> void:
 		play_sfx("own_goal_groan", {"volume_db": -9.0, "pitch_var": 0.04, "protect": true})
 		play_sfx("goal_crowd", {"volume_db": -9.0, "pitch": 0.85, "pitch_var": 0.0, "protect": true})
 		return
-	play_sfx("goal_red" if int(team) == 0 else "goal_blue", {"volume_db": 4.0, "pitch_var": 0.0, "protect": true})
+	# WK-79c (was +4): removing the SFX makeup cost the stinger 4 dB net (point rise +5.2 -> +3.7 LU); file peak -10 -> -3
+	play_sfx("goal_red" if int(team) == 0 else "goal_blue", {"volume_db": 9.0, "pitch_var": 0.0, "protect": true})   # WK-79c: +7 -> +9 (goal rise +5.3 -> ~+6.5 LU predicted)
 	play_sfx("goal_crowd", {"volume_db": 2.0, "pitch_var": 0.03, "protect": true})   # WK-79b (was -2)
 	play_sfx("ball_body", {"volume_db": -5.0, "pitch": 0.8, "pitch_var": 0.0})   # net-bulge thump
 

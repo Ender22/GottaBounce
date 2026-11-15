@@ -790,6 +790,14 @@ var cursor_show_motion: float = 4.0           # px of real mouse motion (accumul
 # --- WK-120 sports FORMAT auto default. Read by src/ui/HerdLobby.gd (_sports_format).  # WK-120
 var sports_auto_2v2_humans: int = 2           # joined humans at which an AUTO FORMAT (never set in RULES) reads 2V2  # WK-120
 
+# --- CD4-01 Brawl circuit rotation = a SESSION DECK per circuit. Read by src/modes/BrawlMode.gd; decks live in  # CD4-01
+# GameConfig.circuit_decks (process lifetime: survive REMATCH / RESTART / quit-to-menu, gone on app restart).  # CD4-01
+# OFF (false) = legacy: ordered circuits replay their authored order from arena 1 every match, RANDOM ROTATION  # CD4-01
+# reshuffles its bag every match, draw circuits draw a fresh subset every play.  # CD4-01
+var circuit_session_deck: bool = true         # CD4-01 master switch (false = legacy, see above)  # CD4-01
+var circuit_deck_interleave: bool = true      # CD4-01 ordered circuits: alternate authored MILD half / WILD half  # CD4-01
+var circuit_deck_opener: bool = true          # CD4-01 the session's FIRST deck of a circuit opens on authored arena 1  # CD4-01
+
 # --- WK-85a Trials SKY DROP (ArenaRenderer meadow stack, mode "trials" / level knob "sky_drop"). Display only.  # WK-85a
 # Below the painted horizon: hills' own bottom colour -> haze -> sky -> deep, px below the hills ramp start.  # WK-85a
 var trials_drop_haze: Color = Color("#EAF8FF")     # cloud-level mist (hills dissolve into it)  # WK-85a
@@ -799,6 +807,8 @@ var trials_drop_haze_px: float = 100.0             # WK-85a (WK-162: 160 -> 100,
 var trials_drop_sky_px: float = 300.0              # WK-85a (WK-162: 650 -> 300, open-sky blue reads under the lowest decks)
 var trials_drop_deep_px: float = 1300.0            # WK-85a
 var trials_drop_bank_y: float = 0.0                # front cloud row centre, px below the ramp start  # WK-85a
+# WK-162: 150 -> 0 (UP, at the hills' base): the bank sat flush under the decks on Islands Void ("soft floor"); lowering it  # WK-162
+# instead parked it ON Flight School 4's pads (parallax 0.18 layer: deck-vs-bank height depends on each level's camera).  # WK-162
 var trials_drop_bank_row_gap: float = 40.0         # back row sits this much higher  # WK-85a (WK-162: 70 -> 40, thinner)
 var trials_drop_bank_y_jitter: float = 60.0        # WK-85a (WK-162: 80 -> 60)
 var trials_drop_bank_spacing: float = 420.0        # px between bank clouds (per row)  # WK-85a (WK-162: 300 -> 420, broken row)
@@ -1094,15 +1104,6 @@ var wk108b_back_court: float = 200.0          # K5: with the ball over the net t
 var wk108b_back_court_up: float = 520.0       # K5: ...this far above the court bottom (front/back split, no shared spot)  # WK-108b
 var wk108b_net_brake_s: float = 0.30          # K5  # WK-108b
 var wk108b_net_recover_clear: float = 400.0   # K5: during a danger recovery the net brake applies only this far above the court bottom  # WK-108b
-
-# --- CD4-01 Brawl circuit rotation = a SESSION DECK per circuit. Read by src/modes/BrawlMode.gd; decks live in  # CD4-01
-# GameConfig.circuit_decks (process lifetime: survive REMATCH / RESTART / quit-to-menu, gone on app restart).  # CD4-01
-# OFF (false) = legacy: ordered circuits replay their authored order from arena 1 every match, RANDOM ROTATION  # CD4-01
-# reshuffles its bag every match, draw circuits draw a fresh subset every play.  # CD4-01
-var circuit_session_deck: bool = true         # CD4-01 master switch (false = legacy, see above)  # CD4-01
-var circuit_deck_interleave: bool = true      # CD4-01 ordered circuits: alternate authored MILD half / WILD half  # CD4-01
-var circuit_deck_opener: bool = true          # CD4-01 the session's FIRST deck of a circuit opens on authored arena 1  # CD4-01
-
 # --- WK-154 Brawl spawn padlock wears the kickoff gate's draining ring (CD4-04: it said "locked", not for how long) ---  # WK-154
 var super_lock_ring_hold: bool = true         # a dropped truce press keeps the badge up until the ring empties (false = WK-20e held / tap-hold only)  # WK-154
 var super_lock_ring_r: float = 27.0           # canvas px ring centreline radius at 1080p (gate ring 44 wpx around a 64 wpx badge, scaled)  # WK-154

@@ -773,7 +773,7 @@ func _resolve_locks() -> void:
 			continue
 		s["state"] = S_READY
 		(_slot_views[si] as Object).call("set_ready", true, true)
-		AudioManager.play_sfx("super_fire", {"volume_db": -12.0, "pitch": 1.25, "pitch_var": 0.05})
+		AudioManager.play_sfx("super_fire", {"volume_db": -20.0, "pitch": 1.25, "pitch_var": 0.05})   # WK-79c (was -12): -8 dB like the WK-79b super blast
 	_after_change()
 
 ## B: READY -> PICKING -> EMPTY (CC-4.3). Only a B press that changed NOTHING (a device with no slot)

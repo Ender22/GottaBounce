@@ -42,6 +42,32 @@ $proj = Split-Path $PSScriptRoot -Parent
 $recRoot = Join-Path $proj "tools\out\rec"
 $outDir = Join-Path $recRoot $Name
 
+# WK-79c: resolve -Arena BEFORE launching. RecordBoot turns a bare name into res://levels/<name>.json, so a level in a
+# subfolder (levels/sports/dropshot_beach.json) silently fell back to the mode's default arena (WK-79b_dropshot
+# recorded Sports Court). Accept a res:// path (must exist), a file stem ("dropshot_beach"), or a display-style name
+# ("Dropshot Beach"); search levels/ recursively; fail loudly on no match or an ambiguous one.
+if ($Arena -ne "") {
+    $levelsDir = Join-Path $proj "levels"
+    if ($Arena.StartsWith("res://")) {
+        $abs = Join-Path $proj ($Arena.Substring(6) -replace "/", "\")
+        if (-not (Test-Path $abs)) { Write-Output "ERROR: -Arena '$Arena' does not exist ($abs)."; exit 1 }
+    } else {
+        $stem = ($Arena -replace "\.json$", "").Trim().ToLower() -replace "[\s\-]+", "_"
+        $hits = @(Get-ChildItem -Path $levelsDir -Recurse -Filter "*.json" | Where-Object { $_.BaseName.ToLower() -eq $stem })
+        if ($hits.Count -eq 0) {
+            $near = @(Get-ChildItem -Path $levelsDir -Recurse -Filter "*.json" | Where-Object { $_.BaseName.ToLower() -like "*$stem*" } | ForEach-Object { $_.BaseName })
+            Write-Output ("ERROR: -Arena '$Arena' matches no levels/**/$stem.json. Similar: " + ($near -join ", "))
+            exit 1
+        }
+        if ($hits.Count -gt 1) {
+            Write-Output ("ERROR: -Arena '$Arena' is ambiguous: " + (($hits | ForEach-Object { $_.FullName.Substring($proj.Length + 1) }) -join ", ") + ". Pass the res:// path.")
+            exit 1
+        }
+        $Arena = "res://" + ($hits[0].FullName.Substring($proj.Length + 1) -replace "\\", "/")
+        Write-Output "Arena resolved: $Arena"
+    }
+}
+
 # WK-100: display-off pre-flight. Movie Maker frames stay deterministic, but a sleeping display throttles
 # the wall clock to ~30 Hz with 500 ms stalls (or freezes Godot) - warn, never block.
 $displayCheck = Join-Path $PSScriptRoot "display_check.ps1"

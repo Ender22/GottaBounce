@@ -11,8 +11,8 @@ db = 3
 
 [sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_sfx"]
 resource_name = "Compressor"
-threshold = -10.0
-ratio = 2.5
+threshold = -6.0
+ratio = 2.0
 attack_us = 2000.0
 release_ms = 150.0
 
@@ -29,7 +29,7 @@ bus/2/name = &"SFX"
 bus/2/solo = false
 bus/2/mute = false
 bus/2/bypass_fx = false
-bus/2/volume_db = 0.0
+bus/2/volume_db = -2.5
 bus/2/send = &"Master"
 bus/2/effect/0/effect = SubResource("AudioEffectHighPassFilter_sfx")
 bus/2/effect/0/enabled = true
