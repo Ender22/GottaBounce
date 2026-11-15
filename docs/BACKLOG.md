@@ -2734,6 +2734,8 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   CD5-02 -> 170, CD5-03 watch (164), CD5-04 -> 171, CD5-05 -> 172, CD5-06 -> 173, CD5-07 -> 174.
 
 ### [ ] WK-161 [P2][S] BR-135 pin breaker worsens Singularity (stuck episodes 1.46x, p = 0.002); pin bar fails there in both arms
+- **WK-161b BUILT de3553c (switch OFF).** Scripted: blocker contacts -52 %, bot pins 3 -> 0; watch self-KO (3 hunter deaths ON vs 0 OFF,
+  p 0.24). Acceptance batch (GB_WK161B=0/1, Singularity + black_hole_brawl/twin_moons guard slice) next when the headless slot frees.
 - **Re-rank #10: in-progress as WK-161b** (chase routing, spec in `docs/audit/2026-11-16_wk161_ab.md` §Spec; `InputBot.gd`, switch
   `wk161_chase_route` OFF). Built cb8d40d, A/B 8be51e3 (ship neither C nor D; the 1.46x premise did not reproduce: 0.99x). Accept = the
   spec's batch (pins <= 0.1 / bot-stage, obstacle pins and stucks -50 %, KO/min 0.90-1.15x, side flips <= 1 / episode, guard slice) + the
