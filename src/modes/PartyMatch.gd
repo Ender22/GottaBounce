@@ -1100,7 +1100,8 @@ func _on_killed(victim, cause, attacker) -> void:
 	# FIRST BLOOD is a BRAWL kill-race moment — never in SPORTS (rocketball/dropshot), where knocking
 	# a rival out of bounds is incidental, not the point (owner 2026-07-19: "killing each other is not the point").
 	if ai >= 0 and ai != idx and not _first_blood_fired \
-			and not (_config != null and SportsMode.is_sports_mode(_config.mode_id)):
+			and not (_config != null and SportsMode.is_sports_mode(_config.mode_id)) \
+			and _attribution_mode():   # WK-137: BRAWL only — never Trials (co-op: a fall after a head-bounce credited the partner)
 		_first_blood_fired = true
 		_hud.show_top("FIRST BLOOD!", player_color(ai), 1.0)
 		EventBus.first_blood.emit(ai)   # audio: announcer
@@ -1128,7 +1129,7 @@ func _on_killed(victim, cause, attacker) -> void:
 			_recent_dead = [victim]
 		_last_death_clock = round_clock
 	var ne := _not_eliminated_count()
-	if ne == 2 and not _two_left_fired and _stage_start_alive >= 3:
+	if ne == 2 and not _two_left_fired and _stage_start_alive >= 3 and _attribution_mode():   # WK-137: BRAWL only
 		_two_left_fired = true
 		_hud.show_top("TWO LEFT!", Color.WHITE, 1.0)
 		EventBus.two_left.emit()   # audio: tension announcer

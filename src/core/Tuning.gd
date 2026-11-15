@@ -831,3 +831,11 @@ var themed_fill_contrast: float = 1.0        # WK-85
 # --- WK-29 device-aware glyphs (CC-1.6). Read by src/ui/ControlsLegend.gd (_fit_rows).  # WK-29
 var legend_edge_margin: float = 80.0          # px kept clear at each screen edge; a wider chip strip moves SUPER to a second row  # WK-29
 var legend_bottom_edge_margin: float = 290.0  # px each side for the BOTTOM-docked strip: clear of the 240 px corner HUD cards  # WK-29
+
+# --- WK-37f ghosts never rest hidden inside terrain (CD3-08). Read by src/systems/GhostDirector.gd + src/core/GhostBot.gd.  # WK-37f
+var ghost_terrain_clear: bool = true           # master switch (false = pre-WK-37f: ghosts may park inside platforms)  # WK-37f
+var ghost_terrain_clear_mult: float = 0.9      # x the drawn ghost body radius that must sit clear of solid geometry  # WK-37f
+var ghost_terrain_push_speed: float = 520.0    # px/s ease out to the nearest clear spot (< ghost_max_speed: a held stick still passes through)  # WK-37f
+var ghost_terrain_steer_in_dot: float = -0.3   # stick . exit-dir below this = "driving into the platform" -> no push (intangible while steered)  # WK-37f
+var ghost_terrain_search_step: float = 16.0    # px ring step of the nearest-clear-spot search  # WK-37f
+var ghost_terrain_search_max: float = 420.0    # px search radius; nothing clear inside the view within it -> leave the ghost be  # WK-37f

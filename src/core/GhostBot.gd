@@ -112,6 +112,7 @@ func poll() -> InputIntent:
 			var place: Vector2 = _target.global_position + dir * _lead + Vector2(0.0, _place_dy)
 			var goal: Vector2 = place - Tuning.ghost_puff_spawn_offset
 			goal = director.clamp_to_view(goal)
+			goal = director.terrain_clear_spot(goal, director.terrain_radius(ghost))   # WK-37f: never wait inside a platform
 			var to: Vector2 = goal - ghost.global_position
 			# press when on the spot, or — the target keeps moving — when roughly there and the chase has run a while
 			var close: bool = to.length() < Tuning.bot_ghost_puff_press_dist \
@@ -154,7 +155,7 @@ func _target_used(t) -> void:
 	director.note_bot_target(ghost, t)
 
 ## Hover spot: bot_ghost_hover_dist from the living centroid toward where this bot died (+-40 deg jitter), clamped into
-## the view inset, at least director.pick_spacing() from every other ghost (best of 16 tries).
+## the view inset, at least director.pick_spacing() from every other ghost (best of 16 tries), clear of terrain (WK-37f).
 func _pick_hover(living: Array) -> Vector2:
 	var c := Vector2.ZERO
 	if living.is_empty():
@@ -175,11 +176,15 @@ func _pick_hover(living: Array) -> Vector2:
 		var ang: float = _rng.randf_range(-0.7, 0.7) if k < 8 else _rng.randf_range(-PI, PI)
 		var cand: Vector2 = director.clamp_to_view(c + base.rotated(ang) * Tuning.bot_ghost_hover_dist)
 		var d: float = director.nearest_other_ghost_dist(ghost, cand)
+		if director.terrain_overlap(cand, director.terrain_radius(ghost)):
+			continue   # WK-37f: never hover hidden inside a platform
 		if d >= director.pick_spacing():   # spacing + margin: a spot AT 200 px is a fail the moment anyone drifts
 			return cand
 		if d > best_d:
 			best_d = d
 			best = cand
+	if best_d < 0.0:   # WK-37f: every try sat in terrain — the nearest clear spot on the side we died
+		best = director.terrain_clear_spot(director.clamp_to_view(c + base * Tuning.bot_ghost_hover_dist), director.terrain_radius(ghost))
 	return best
 
 ## Our hover spot is within bot_ghost_spacing of another ghost (or its spot).

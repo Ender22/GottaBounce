@@ -38,6 +38,7 @@ var frozen := false                   # STAGE_END: hold still and fade with the 
 var age := 0.0                        # s since the ghost appeared (scaled game time)
 var idle_t := 0.0                     # s since the last stick/button input (pip rule)
 var moved_after_idle := 0.0           # s left of the pip's full-alpha "I moved again" bump
+var aim_now := Vector2.ZERO           # WK-37f: this tick's stick (the director's terrain push yields to a stick held INTO terrain)
 
 # puff charge bookkeeping (the director decides; the ghost only carries the numbers)
 var next_puff_t := 0.0                # director clock when the next puff arms
@@ -228,6 +229,7 @@ func tick(delta: float, view: Rect2) -> Dictionary:
 	if aim.length() > 1.0:
 		aim = aim.normalized()
 	var stick: bool = aim.length() > 0.2
+	aim_now = aim   # WK-37f
 	var max_v: float = Tuning.ghost_max_speed * (Tuning.ghost_hurry_mult if intent.boost else 1.0)
 	if aim.length() > 0.001:
 		vel = vel.move_toward(aim * max_v, Tuning.ghost_accel * delta)
@@ -250,6 +252,11 @@ func tick(delta: float, view: Rect2) -> Dictionary:
 		idle_t += delta
 	moved_after_idle = maxf(0.0, moved_after_idle - delta)
 	return out
+
+## WK-37f: the drawn body radius right now (ghost_scale, grown by the wide-camera size compensation).
+func body_radius() -> float:
+	var k: float = absf(_body_root.scale.y) if _body_root != null else Tuning.ghost_scale
+	return BODY_RADIUS * k
 
 ## Keep the ghost centre inside `view` (already inset by the director). Never moves the camera (spec §4.3).
 func clamp_to(view: Rect2) -> void:

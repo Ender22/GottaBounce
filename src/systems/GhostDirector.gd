@@ -303,6 +303,77 @@ func clamp_to_view(p: Vector2) -> Vector2:
 		return p
 	return Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y))
 
+# ------------------------------------------------------------------ WK-37f terrain clearance (CD3-08)
+# Ghosts draw above static platforms (tree order) but at ~0.40 alpha a ghost parked INSIDE a busy platform body all but
+# vanishes (only its tag peeks out). So a ghost never RESTS in solid geometry: when its stick is not driving it deeper,
+# the director eases it to the nearest clear spot (inside the view inset). A stick held into a platform still passes
+# through (ghosts stay intangible to steer), bot hover / spawn spots are picked clear of terrain. Tuning WK-37f block.
+
+var _terrain_shape := CircleShape2D.new()
+var _terrain_q: PhysicsShapeQueryParameters2D = null
+
+## The radius a ghost must keep clear (default: a living goat's body x ghost_scale x the clear multiplier).
+func terrain_radius(g = null) -> float:
+	var r: float = 44.0 * Tuning.ghost_scale
+	if g != null and is_instance_valid(g) and g.has_method("body_radius"):
+		r = float(g.body_radius())
+	return r * Tuning.ghost_terrain_clear_mult
+
+## Does a ghost body of radius `r` centred at `p` overlap static / moving terrain (Player.MASK_SURFACES)?
+func terrain_overlap(p: Vector2, r: float = -1.0) -> bool:
+	if not Tuning.ghost_terrain_clear or not is_inside_tree():
+		return false
+	if _terrain_q == null:
+		_terrain_q = PhysicsShapeQueryParameters2D.new()
+		_terrain_q.shape = _terrain_shape
+		_terrain_q.collision_mask = Player.MASK_SURFACES
+		_terrain_q.collide_with_areas = false
+	_terrain_shape.radius = maxf(r if r > 0.0 else terrain_radius(), 1.0)
+	_terrain_q.transform = Transform2D(0.0, p)
+	return not get_world_2d().direct_space_state.intersect_shape(_terrain_q, 1).is_empty()
+
+## Nearest spot to `p` (ring search, up first) that is clear of terrain AND inside the view inset. `p` if none in range.
+func terrain_clear_spot(p: Vector2, r: float = -1.0) -> Vector2:
+	if not terrain_overlap(p, r):
+		return p
+	var view := view_inset_rect()
+	var has_view: bool = view.size.x > 0.0 and view.size.y > 0.0
+	var dirs := [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT,
+		Vector2(-0.7071, -0.7071), Vector2(0.7071, -0.7071), Vector2(-0.7071, 0.7071), Vector2(0.7071, 0.7071)]
+	var step: float = maxf(Tuning.ghost_terrain_search_step, 4.0)
+	var d: float = step
+	while d <= Tuning.ghost_terrain_search_max + 0.1:
+		for v in dirs:
+			var c: Vector2 = p + (v as Vector2) * d
+			if has_view and not view.grow(0.5).has_point(c):
+				continue
+			if not terrain_overlap(c, r):
+				return c
+		d += step
+	return p
+
+## Per tick (COMBAT): a ghost inside terrain whose stick is not driving it deeper eases out to the nearest clear spot;
+## its velocity INTO the terrain is dropped so a released coast settles on the surface instead of sinking back in.
+func _terrain_settle(g, delta: float) -> void:
+	if not Tuning.ghost_terrain_clear or g.frozen:
+		return
+	var r: float = terrain_radius(g)
+	var p: Vector2 = g.global_position
+	if not terrain_overlap(p, r):
+		return
+	var spot: Vector2 = terrain_clear_spot(p, r)
+	if spot == p:
+		return   # nothing clear in range inside the view (huge block filling the screen) — leave it be
+	var out_dir: Vector2 = (spot - p).normalized()
+	var a: Vector2 = g.aim_now
+	if a.length() > 0.2 and a.normalized().dot(out_dir) < Tuning.ghost_terrain_steer_in_dot:
+		return   # the stick is driving it through the platform: intangible while steered
+	g.global_position = p.move_toward(spot, Tuning.ghost_terrain_push_speed * delta)
+	var into: float = (g.vel as Vector2).dot(out_dir)
+	if into < 0.0:
+		g.vel = (g.vel as Vector2) - out_dir * into
+	g.stats["terrain_push_s"] = float(g.stats.get("terrain_push_s", 0.0)) + delta
+
 ## Spacing (with margin) a hover / spawn spot keeps from other ghosts and their hover spots.
 func pick_spacing() -> float:
 	return Tuning.bot_ghost_spacing * Tuning.ghost_pick_spacing_mult
@@ -411,6 +482,7 @@ func _physics_process(delta: float) -> void:
 			row["hushed_s"] = float(row.get("hushed_s", 0.0)) + delta
 		if float(row.get("t_first_move", -1.0)) < 0.0 and before.distance_to(g.global_position) > 0.5 and bool(e["active"]):
 			row["t_first_move"] = float(runner.round_clock)
+		_terrain_settle(g, delta)   # WK-37f: never rest hidden inside a platform
 		_stuck_check(g, before, delta)
 		if bool(e["puff"]):
 			_try_puff(g)
@@ -465,6 +537,7 @@ func _spawn_ghost(i: int, p, death_pos: Vector2) -> void:
 	g.setup(i, str(p.skin), runner.player_color(i), human, prov, self)
 	_ghost_layer.add_child(g)
 	g.global_position = _spread_spawn(g, clamp_to_view(death_pos))
+	g.global_position = terrain_clear_spot(g.global_position)   # WK-37f: never pop in inside the floor
 	if not human:
 		g.provider = GHOST_BOT_SCRIPT.new(g, self, runner, death_pos)
 	g.next_puff_t = _clock + Tuning.ghost_puff_arm_delay
