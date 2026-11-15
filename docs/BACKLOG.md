@@ -2728,7 +2728,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 ### [x] WK-165 [P3][S] slam.mp3 starts with 0.13 s of silence (heavy smash + super layer ~4 frames late) — 719cf00
 - Source: WK-163. Trim into a new file (`ffmpeg -af atrim=start=0.12`), point AudioManager at it, note it in LICENSES.md.
 
-### [ ] WK-166 [P1][S] Disconnect follow-ups from WK-160 (docs/audit/2026-11-16_wk160_recheck.md)
+### [x] WK-166 [P1][S] Disconnect follow-ups from WK-160 (docs/audit/2026-11-16_wk160_recheck.md) — 54150be
 - F1 BUG (high): pad dies -> RESUME WITHOUT -> later CHANGE SETUP: the dead pad returns as a normal PICKING lobby seat that never
   shows DISCONNECTED or times out, so READY TO FIGHT never appears (carries into the next mode). Cause: HerdLobby._restore_lobby
   restores seats without checking the device is still connected.
