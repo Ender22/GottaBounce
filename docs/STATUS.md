@@ -4,20 +4,19 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-16 ~05:00) <<<**
-Remote: origin = github.com/Ender22/GottaBounce (Ender22 profile set locally); agents can't push (deny rule) — owner runs `! git push -u origin weekend/polish master`.
-Since 01:30 (committed): WK-163 Stingers bus (KO +7.7 LU), WK-165 slam trim, WK-156..159 CD4 nits, WK-31 danger/stocks cards,
-WK-160 re-check (WK-19/30 closed), WK-166 disconnect follow-ups, WK-116 pressure nets ON at +75 % (+ RULES row), WK-135 phase 3:
-ball refuel ON / refund gates OFF, WK-109 power shot NOT shipped (A/B), WK-167 bots spend last fuel ON, WK-164 swerve hold ON.
-In flight: WK-20d PHASE A measurement (HOLDS the headless slot; snapshot predates WK-167) -> docs/audit/2026-11-16_wk20d_phaseA.md
-— agent af607f5d90294364e.
-Next: WK-161 Singularity batch (GB_WK161) -> WK-164 K1b-only + guard turn mult A/B -> refund-gates retune (bot refuel brain + re-arm
-frac + carousel deck floor); WK-109 redesign (designer); WK-65b MINEFIELD re-roll; WK-152 brawl start zoom (owner camera area);
-WK-CD5 cold playthrough after Phase A.
+**>>> RESUME HERE (2026-11-16 ~03:40) <<<**
+Remote: origin = github.com/Ender22/GottaBounce; agents can't push — owner runs `git push -u origin weekend/polish master`.
+Owner checklist + design questions: docs/feedback/owner_questions_2026-11-16.md (GPU reboot, listen test, real pads, OQ-1..3).
+Latest cold playthrough CD5 (7d1732d) = SHIP, no P0/P1. Since 05:00 yesterday (all committed): WK-20d closed, WK-65b, WK-161 A/B +
+WK-161b routing (OFF), WK-170 audio priority, WK-169a spec + SHOWDOWN prototype (OFF) + 169b A/B (no ruling -> re-run queued),
+WK-176 soak PASS, WK-171/172, WK-99/173/178, WK-46/179, WK-110 match point + GOALS stepper, WK-181 SD revives last two only,
+WK-180 bumper rail/block art + decals + unlock ribbon.
+In flight: WK-161b acceptance batch (holds headless slot) — agent a4383bb5709b649b4.
+Queue: WK-169b re-run (A0/A0r/A1, ~250 forced stages each, pre-registered in docs/audit/2026-11-16_wk169b_ab.md) -> WK-164 K1b/turn-mult
+A/B; WK-182 square bumpers (art call); WK-175a refund-gates retune design; WK-109 redesign; WK-152 owner camera question; WK-CD6.
 GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
 WK-38: automation server is OFF unless --gb-port is passed. Don't pipe/redirect run_game.ps1. Recordings keep audio.wav.
-Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Keep-awake runs as a background task (scratchpad/keepawake.ps1).
-Stall check: if a long builder writes nothing for > 45 min and no Godot runs, TaskStop it and start a recovery agent.
+Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Stall check: no output > 45 min + no Godot -> TaskStop + recovery agent.
 CONCURRENCY CAP: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
 
 **WEEKEND POLISH RUN (started 2026-11-14, branch `weekend/polish`, UNATTENDED — owner: "i dont want to be
