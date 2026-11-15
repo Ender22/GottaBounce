@@ -1051,3 +1051,46 @@ var super_lock_arrow_color: Color = Color(0.60, 0.60, 0.66, 0.80)   # the greyed
 # the goat's centre inside MovingPlatform's 118 px rider band, so the sticky carry still holds it (a marshmallow 120 px hop would  # WK-20e
 # leave the band and drop riders off a fast cart mid-swing). Tiered decks are unchanged. false = the legacy firm deck.  # WK-20e
 var moving_deck_min_bounce: bool = true       # WK-20e
+
+# --- WK-108b sports bots round 2 (BACKLOG WK-108b + CD3-03 + WK-131 QA-131-2). Read ONLY by SportsMode.gd (bot hooks) and  # WK-108b
+# InputBot.gd (objective re-plan + strike-guard reflex). Brawl / Trials never read it. Every switch OFF = the WK-108 / WK-131  # WK-108b
+# bots exactly. SportsMode.wk108b_arm(true) (or env GB_WK108B=1 at match configure) turns on the whole ON arm.  # WK-108b
+# K1 sticky keeper: one keeper per team, designated when a threat starts (all-bot team: the bot nearest its mouth; with a human  # WK-108b
+# teammate: the bot, while the human is nearer the ball), held until the threat has been gone release_s; its teammate stays chaser.  # WK-108b
+var wk108b_sticky_keeper: bool = false        # K1 (A/B switch)  # WK-108b
+var wk108b_keeper_release_s: float = 0.9      # K1: s the threat must stay gone before the keeper steps out to cover  # WK-108b
+var wk108b_keeper_third_hyst: float = 0.12    # K1: while a keeper is held, "own third" widens by this share of the axis  # WK-108b
+var wk108b_keeper_stray_px: float = 1100.0    # K1: a keeper this far from its mouth (knocked away) loses the role  # WK-108b
+var wk108b_keeper_challenge: float = 300.0    # K1: the keeper leaves the mouth only for a ball this close (WK-108: 400)  # WK-108b
+var wk108b_keeper_early_frac: float = 0.5     # K1: a keeper is also designated / held while the ball is inside this share of the  # WK-108b
+var wk108b_keeper_early_speed: float = 250.0  # K1: ... axis AND moving at my goal at >= this px/s (gets home before the third)  # WK-108b
+# K1b QA-131-2 (supporter home when the WK-131 gates open, bar >= 50 % within 300 px): s BEFORE the open that the kickoff keeper  # WK-108b
+# window starts. 0 = WK-131's BOT_GATE_RETURN_LEAD_S 0.8. Coherent with sports_gate_open_s (window = open - lead .. open + 1.0).  # WK-108b
+var wk108b_gate_return_lead: float = 0.0      # K1b (0 = today)  # WK-108b
+var wk108b_gate_return_lead_on: float = 2.5   # K1b: the value wk108b_arm(true) sets (gates 3.5 s -> home from 1.0 s after GO)  # WK-108b
+# K2 fast-ball re-plan: InputBot re-plans the sports objective every replan_s while the ball is fast or near (no extra dodge rolls).  # WK-108b
+var wk108b_fast_replan: bool = false          # K2 (A/B switch)  # WK-108b
+var wk108b_replan_s: float = 0.08             # K2  # WK-108b
+var wk108b_replan_ball_speed: float = 450.0   # K2: px/s ball speed that counts as fast  # WK-108b
+var wk108b_replan_near_px: float = 450.0      # K2: ... or the ball within this of the bot  # WK-108b
+# K3 GOAL-MOUTH CLEAR RULE (CD3-03): per-frame reflex - a bot never drives into the ball toward its own goal while the ball is in  # WK-108b
+# its own half; it swerves to the ball's goal side and brakes (a graze clears it away, the next plan lines up from the goal side).  # WK-108b
+var wk108b_strike_guard: bool = false         # K3 (A/B switch)  # WK-108b
+var wk108b_guard_frac: float = 1.0            # K3: active while the ball is within this share of the axis from my goal (1.0 = whole  # WK-108b
+                                              # pitch: a trackback overtaking a ball already running at my goal hit it in from 2000 px)  # WK-108b
+var wk108b_guard_horizon_s: float = 0.30      # K3: s to contact at the current closing speed that trips it (L3 turns ~0.2 s / 90 deg)  # WK-108b
+var wk108b_guard_cos: float = 0.30            # K3: contact normal . (ball -> own goal) at or above this = an own-goal push  # WK-108b
+var wk108b_guard_turn_mult: float = 3.0       # K3/K5: x bot_flight_turn_rate while the guard steers (= bot_pin_turn_mult; a human yanks)  # WK-108b
+var wk108b_guard_brake: float = 0.5           # K3: escape aim = perpendicular - this x max(1, closing / boost cap) x the contact normal  # WK-108b
+# K4 no goal-mouth stacking: with a home keeper, the chaser's track-back point stays mouth_gap from the mouth.  # WK-108b
+var wk108b_mouth_spacing: bool = false        # K4 (A/B switch; needs K1)  # WK-108b
+var wk108b_mouth_gap: float = 420.0           # K4  # WK-108b
+# K5 Dropshot side discipline: targets never past the net (net_margin from the line), the chaser waits ready_back into its half  # WK-108b
+# while the ball is over there, and a bot brakes before the net (stopping time net_brake_s) / flies home if across.  # WK-108b
+var wk108b_dropshot_side: bool = true         # K5 ON (director: net crossings 34 -> 0 unforced in recording)  # WK-108b
+var wk108b_net_margin: float = 110.0          # K5  # WK-108b
+var wk108b_ready_back: float = 380.0          # K5  # WK-108b
+var wk108b_back_court: float = 200.0          # K5: with the ball over the net the supporter covers this far behind its half's centre...  # WK-108b
+var wk108b_back_court_up: float = 520.0       # K5: ...this far above the court bottom (front/back split, no shared spot)  # WK-108b
+var wk108b_net_brake_s: float = 0.30          # K5  # WK-108b
+var wk108b_net_recover_clear: float = 400.0   # K5: during a danger recovery the net brake applies only this far above the court bottom  # WK-108b

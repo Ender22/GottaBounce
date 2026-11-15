@@ -158,6 +158,11 @@ var _super_purpose := ""
 var _bang_t := 0.0               # WK-95: s left of the post-head-bang lateral escape
 var _bang_dir := Vector2.ZERO    # WK-95: lateral direction (toward the nearer clear edge) to escape an underside
 var _fly_out := Vector2.ZERO     # WK-95/WK-103: the swept flight-stick direction actually emitted (ZERO = unseeded)
+var _obj_live := false           # WK-108b: the last decision took the mode-objective branch (sports)
+var _obj_replan_t := 0.0         # WK-108b K2: s until the next fast objective re-plan
+var wk108b_replans := 0          # WK-108b: telemetry - fast re-plans run
+var wk108b_guards := 0           # WK-108b: telemetry - frames the strike guard / net brake replaced the aim
+var _wk108b_has_guard := -1      # WK-108b: -1 unknown, 1 the mode has bot_strike_guard (sports), 0 not
 # --- WK-94 (owner 2026-11-14: bot super-aim "spins like nuts"). A bot's aim is a HUMAN STICK: the emitted
 # super-aim direction sweeps toward the solution at <= Tuning.bot_aim_turn_rate[level] rad/s (never a
 # per-frame snap), and every error term is a SLOW DRIFT toward a target re-rolled on a timer — never
@@ -296,7 +301,14 @@ func poll() -> InputIntent:
 		it.aim = _bang_escape(it.aim, it.boost)
 		if it.boost:
 			it.aim = _pin_avoid(it.aim)   # WK-135 BR-135c: a recovery steers off an excluded face (never drops its boost)
+		var rguard: Vector2 = _wk108b_guard(true)   # WK-108b K3: the clear rule also covers recovery flight (soccer only)
+		if rguard != Vector2.ZERO:   # WK-108b
+			it.aim = rguard   # WK-108b
+			it.boost = me.fuel > 2.0   # WK-108b
+			wk108b_guards += 1   # WK-108b
 		var rm: float = Tuning.bot_brake_turn_mult if _braking else 1.0   # WK-135: + snap off an excluded face
+		if rguard != Vector2.ZERO:   # WK-108b: the swerve snaps the stick (wk108b_guard_turn_mult)
+			rm = maxf(rm, Tuning.wk108b_guard_turn_mult)   # WK-108b
 		it.aim = _smooth_fly(it.aim, dt, maxf(rm, Tuning.bot_pin_turn_mult) if _pin_avoiding else rm)   # WK-135
 		return it
 	if _react <= 0.0:
@@ -307,6 +319,8 @@ func poll() -> InputIntent:
 			_super_purpose = "dodge"
 		else:
 			_decide()
+	if _obj_live and not _cached_super:   # WK-108b K2: fast objective re-plan between reaction ticks (sports only)
+		_wk108b_replan(dt)   # WK-108b
 	it.aim = _cached_aim
 	it.boost = _cached_boost
 	# WK-128 BR-128 (reflex, every frame — a cached dive boost can outlive the bounce it was decided before)
@@ -314,6 +328,14 @@ func poll() -> InputIntent:
 		it.boost = false
 	if _pin_release_t > 0.0 and wk135_no_pin:   # WK-135 BR-135b: the pin breaker's one-reaction-tick boost release
 		it.boost = false
+	var guarded := false   # WK-108b
+	if not _cached_super:   # WK-108b K3/K5: goal-mouth clear rule / Dropshot net brake (per-frame reflex; every sports path)
+		var guard: Vector2 = _wk108b_guard(false)   # WK-108b
+		guarded = guard != Vector2.ZERO   # WK-108b
+		if guarded:   # WK-108b
+			it.aim = guard   # WK-108b
+			it.boost = me.fuel > 2.0 and not (_pin_release_t > 0.0 and wk135_no_pin)   # WK-108b (WK-135 pin release still wins)
+			wk108b_guards += 1   # WK-108b
 	if _cached_super and me.super_arm_locked():   # WK-20d: truce / fumble-reserve gate would drop the press -> keep flying
 		_cached_super = false
 	if _cached_super:
@@ -339,7 +361,10 @@ func poll() -> InputIntent:
 		it.aim = _pin_avoid(it.aim)   # WK-135 BR-135b: no thrust into an excluded (just-pinned) bumper face
 	if not it.super_hold:
 		it.aim = _ceiling_guard(_bang_escape(it.aim, it.boost), it.boost)
-		it.aim = _smooth_fly(it.aim, dt, Tuning.bot_pin_turn_mult if _pin_avoiding else 1.0)   # WK-135: snap off an excluded face
+		var tm: float = Tuning.bot_pin_turn_mult if _pin_avoiding else 1.0   # WK-135: snap off an excluded face
+		if guarded:   # WK-108b: the clear-rule swerve / net brake snaps the stick
+			tm = maxf(tm, Tuning.wk108b_guard_turn_mult)   # WK-108b
+		it.aim = _smooth_fly(it.aim, dt, tm)   # WK-135 / WK-108b
 	else:
 		_fly_out = Vector2.ZERO   # the super aim takes over (WK-94 sweep); re-seed flight from the arrow after
 	return it
@@ -864,6 +889,7 @@ func _decide() -> void:
 	var pos: Vector2 = me.global_position
 	_cached_super = false
 	_refuel_dive = false
+	_obj_live = false   # WK-108b
 	# --- refuel rhythm (rule 2): below the floor, dive to a bounce surface — one bounce re-arms
 	if me.fuel < _eff_refuel_floor():
 		# Radial frame: the refuel dive is ALONG the local pull — the well's round body / shell
@@ -934,6 +960,9 @@ func _decide() -> void:
 	var objective: Variant = _mode_objective()
 	if objective is Vector2:
 		_pursue_objective(objective, pos)
+		_obj_live = true   # WK-108b
+		var iv: float = _wk108b_replan_iv()   # WK-108b K2: the next fast re-plan counts from this decision
+		_obj_replan_t = iv if iv < INF else 0.05   # WK-108b
 		return
 	# §2c flee-to-heal RETREAT: a wounded bot may break off to safe ground to heal, bounded by
 	# flee_max / finisher_flee_max so the chaser always closes. Evaluated AFTER refuel (secure fuel
@@ -1050,6 +1079,36 @@ func _pursue_objective(target: Vector2, pos: Vector2) -> void:
 		return
 	_cached_aim = _jitter(_fly_aim(d.normalized()))
 	_cached_boost = dist > 90.0 and me.fuel > 2.0
+
+## WK-108b K2: the mode's fast re-plan interval for me right now (INF = none / not a sports mode).
+func _wk108b_replan_iv() -> float:
+	if arena == null or not ("_mode" in arena) or arena._mode == null or not arena._mode.has_method("bot_replan_interval"):
+		return INF
+	return float(arena._mode.bot_replan_interval(arena, me))
+
+## WK-108b K2: between reaction ticks, re-run ONLY the sports objective (no dodge roll, no refuel/hunt re-decision) every
+## bot_replan_interval while the ball is fast or near. Skipped below the refuel floor (the next real tick dives to refuel).
+func _wk108b_replan(dt: float) -> void:
+	_obj_replan_t -= dt
+	if _obj_replan_t > 0.0:
+		return
+	var iv: float = _wk108b_replan_iv()
+	_obj_replan_t = iv if iv < INF else 0.05   # off / slow ball: look again shortly (cheap)
+	if iv == INF or me.fuel < _eff_refuel_floor():
+		return
+	var objective: Variant = _mode_objective()
+	if objective is Vector2:
+		_pursue_objective(objective, me.global_position)
+		wk108b_replans += 1
+
+## WK-108b K3/K5: the mode's per-frame strike guard (Vector2.ZERO = keep my aim). `recovering` = called from the danger
+## recovery (the mode skips the Dropshot net brake there: a floor hole is real void). Non-sports modes: one has_method, cached.
+func _wk108b_guard(recovering: bool) -> Vector2:
+	if _wk108b_has_guard < 0:
+		_wk108b_has_guard = 1 if arena != null and ("_mode" in arena) and arena._mode != null 			and arena._mode.has_method("bot_strike_guard") else 0
+	if _wk108b_has_guard == 0:
+		return Vector2.ZERO
+	return arena._mode.bot_strike_guard(arena, me, recovering)
 
 ## §2c RETREAT state machine. Returns true when RETREAT is driving movement this tick (caller returns).
 ## Entry: damaged + no attack opportunity + a heal window worth fleeing for, rolled on flee_skill.

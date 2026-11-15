@@ -187,3 +187,16 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   the carousel deck moves ~1300 px/s mid-swing, so riders get dropped into the void. 48 px stays inside the band (measured: rider drifts
   <= 7 px over a full swing).
 - gbplay `wait` counts FRAMES (`{"frames": N}`), not ms (an `ms` param is ignored = 1 frame). Under software rendering 1 frame ~ 27 ms.
+- **WK-108b: most CPU own goals do NOT come from the sports objective path.** Touch forensics on THE BOWL (OFF arm): 3 of 4 CPU
+  own-goal touches were made while the bot was in a refuel dive or `_danger_recover` (in sports, court walls count as blast lines,
+  so recovery fires at every wall) at 860-1620 px/s (bounce-charged, above the 800 boost cap). A guard that only covers
+  `bot_objective` misses them; the WK-108b strike guard runs on every soccer path. Also: trackback chasers overtaking a ball that
+  is ALREADY running at their goal score from 2000 px out, so an "own half only" guard misses those too.
+- **The WK-108 keeper% metric (non-nearest teammate within 300 px of the goal while the ball is in the own third) cannot see a
+  keeper that is challenging**: the keeper is then the nearest goat. Read it next to "home300" (anyone within 300 px) from
+  `tools/out/wk/wk108b_harness/wk108b_probe.gd`.
+- **CD4-01: level JSON `"sky_drop"` only works on the MEADOW parallax stack** (no `backdrop` key). Every Brawl arena except
+  islands_void is `"backdrop": "open_sky"` (a painted backdrop that already shows sky under the decks), and `_build_open_sky` returns
+  before the sky-drop code, so `sky_drop` does nothing there. Also: with `Tuning.circuit_session_deck` on, a `circuit=meadow_mile`
+  harness / RecordBoot run plays grassy_expanse then a SHUFFLED deck, not the authored order. A/B arms that need identical arena
+  sequences must set the knob false (or use `arena=`).

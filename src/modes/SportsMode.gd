@@ -166,6 +166,20 @@ static var wk108_bots := true
 # it did not lower stuck/min (43.2 on vs 42.5 off; 36.7 pre-WK-108) and raised underside bounces 57 -> 71/min
 # (boosted 18 -> 33). Kickoff-goal and own-goal gains come from the roles above, not from this. Kept for re-test.
 static var wk108_enclosed := false
+# --- WK-108b sports bots round 2 (BACKLOG WK-108b + CD3-03). Every behaviour change sits behind a Tuning "# WK-108b" switch
+# (all OFF = the WK-108/WK-131 bots exactly). wk108b_arm(true) flips the whole ON arm (A/B helper; also env GB_WK108B=1 at
+# configure, so a WK-93 recording or a headless batch can run the ON arm without touching Tuning.gd).  # WK-108b
+#   K1 wk108b_sticky_keeper: one sticky KEEPER per team (hysteresis) - the rank-by-distance swap no longer turns the keeper  # WK-108b
+#      into the chaser the moment it challenges, and the outfield bot stays the chaser while a keeper is designated.  # WK-108b
+#   K2 wk108b_fast_replan: InputBot re-plans the sports objective every wk108b_replan_s while the ball is fast / near.  # WK-108b
+#   K3 wk108b_strike_guard: GOAL-MOUTH CLEAR RULE - a bot in its own half never drives into the ball toward its own goal  # WK-108b
+#      (per-frame reflex in InputBot via bot_strike_guard: swerve to the ball's far-from-goal side and brake).  # WK-108b
+#   K4 wk108b_mouth_spacing: no goal-mouth stacking (the chaser's track-back stops short of a home keeper).  # WK-108b
+#   K5 wk108b_dropshot_side: Dropshot bots never target a point past the net and brake before it.  # WK-108b
+var _wk108b_keeper: Array = [-1, -1]     # team -> sticky keeper player idx (-1 none)  # WK-108b
+var _wk108b_calm_t: Array = [-1.0, -1.0] # team -> round_clock when its keeper threat ended (-1 = threatened / none)  # WK-108b
+var wk108b_role: Dictionary = {}         # idx -> last objective role (QA telemetry only, never read by decisions)  # WK-108b
+var wk108b_guard_n: Dictionary = {}      # idx -> frames the strike guard / net brake steered (QA telemetry)  # WK-108b
 
 # --- DROPSHOT serve geometry (owner 2026-07-19): after each point the ball waits FROZEN in the middle,
 # above the net, then on GO launches toward the team that scored last (pressure to make the first touch). ---
@@ -275,6 +289,21 @@ func configure(runner, config: MatchConfig) -> void:
 	_last_save = {}
 	_gates = []   # WK-131
 	_ko_runner = null   # WK-131
+	var arm_env: String = OS.get_environment("GB_WK108B")   # WK-108b: dev/QA arm override ("1" ON arm, "0" all OFF, unset = Tuning)
+	if arm_env == "1" or arm_env == "0":   # WK-108b
+		wk108b_arm(arm_env == "1")   # WK-108b
+		print("WK-108b: GB_WK108B=%s -> sticky=%s replan=%s guard=%s spacing=%s dropshot_side=%s gate_lead=%s" % [arm_env,
+			Tuning.wk108b_sticky_keeper, Tuning.wk108b_fast_replan, Tuning.wk108b_strike_guard, Tuning.wk108b_mouth_spacing,
+			Tuning.wk108b_dropshot_side, Tuning.wk108b_gate_return_lead])   # WK-108b: proves the arm in run logs
+
+## WK-108b A/B helper: flip every WK-108b switch (true = the ON arm with its test values, false = today's bots exactly).  # WK-108b
+static func wk108b_arm(on: bool) -> void:
+	Tuning.wk108b_sticky_keeper = on
+	Tuning.wk108b_fast_replan = on
+	Tuning.wk108b_strike_guard = on
+	Tuning.wk108b_mouth_spacing = on
+	Tuning.wk108b_dropshot_side = on
+	Tuning.wk108b_gate_return_lead = Tuning.wk108b_gate_return_lead_on if on else 0.0
 
 ## Resolve a court SELECTION to an arena PATH via the court-set (v8_sports_courts.md §4.2), keeping the
 ## CD #7 robustness fallback: SPORTS is an ENCLOSED-court mode, so ANY unresolved / locked / missing
@@ -521,6 +550,8 @@ func on_stage_ready(runner) -> void:
 	if is_instance_valid(_ball):
 		_ball.touched.connect(_on_ball_touched.bind(runner))
 	_spawn_kickoff_gates(runner)   # WK-131 H1
+	_wk108b_keeper = [-1, -1]   # WK-108b: roles are per stage (every goal is a fresh kickoff)
+	_wk108b_calm_t = [-1.0, -1.0]   # WK-108b
 
 ## GO! (dropshot only): unfreeze the ball held above the net and serve it toward the LAST SCORER's half,
 ## so the team that just scored must make the first touch (owner 2026-07-19 pressure inversion). Before
@@ -1045,7 +1076,9 @@ func goal_word() -> String:
 func bot_objective(runner, bot_player) -> Variant:
 	var target: Variant = _bot_objective_raw(runner, bot_player)
 	if wk108_bots and wk108_enclosed and target is Vector2:
-		return _below_ceiling(runner, target)
+		target = _below_ceiling(runner, target)
+	if Tuning.wk108b_dropshot_side and _sport == "dropshot" and target is Vector2:   # WK-108b K5
+		target = _wk108b_dropshot_target(runner, bot_player, target)   # WK-108b
 	return target
 
 ## WK-108: never send a bot to a point tucked under the court ceiling or a mid-court block: probe up from the
@@ -1071,18 +1104,26 @@ func _bot_objective_raw(runner, bot_player) -> Variant:
 	# TEAM PLAY (crowding fix): only the teammate NEAREST the ball chases it; supporters hold a goal-side
 	# cover point on their own half. Rank counts human teammates too (distance-to-ball, index tiebreak),
 	# so a bot yields the ball to a nearer human instead of piling on.
-	var rank: int = _ball_chase_rank(runner, idx, my_team, ball_pos)
+	# WK-108b K1: one sticky keeper per team. The designated keeper keeps goal whatever its ball distance; its teammate
+	# ranks as if the keeper were not there (so it stays the chaser instead of both swapping on every challenge).
+	var sticky: bool = Tuning.wk108b_sticky_keeper and wk108_bots and _sport == "soccer"   # WK-108b
+	if sticky and _wk108b_keeper_update(runner, my_team, ball_pos) == idx:   # WK-108b
+		return _wk108b_keeper_target(runner, idx, my_team, bot_player, ball_pos)   # WK-108b
+	var rank: int = _wk108b_rank(runner, idx, my_team, ball_pos) if sticky else _ball_chase_rank(runner, idx, my_team, ball_pos)   # WK-108b
 	var level: int = _bot_level(bot_player)
 	if rank > 0:
 		# WK-108 (b) keeper / (c) far-post run; otherwise the PROTECTED goal-side cover point (SUPPORT_HOLD_FRAC)
 		if wk108_bots and _sport == "soccer":
 			var keep: Variant = _keeper_point(runner, my_team, bot_player, ball_pos)
 			if keep is Vector2:
+				wk108b_role[idx] = "keeper"   # WK-108b telemetry
 				return keep
 			if level >= BOT_CROSS_MIN_LEVEL:
 				var run: Variant = _cross_run_point(runner, my_team, ball_pos)
 				if run is Vector2:
+					wk108b_role[idx] = "cross_run"   # WK-108b telemetry
 					return run
+		wk108b_role[idx] = "cover"   # WK-108b telemetry
 		return _support_point(runner, my_team, ball_pos, rank)
 	var to_goal: Vector2 = enemy_goal - ball_pos
 	if to_goal.length() < 1.0:
@@ -1103,15 +1144,22 @@ func _bot_objective_raw(runner, bot_player) -> Variant:
 		if wk108_bots and _sport == "soccer" and level >= BOT_CROSS_MIN_LEVEL:
 			var mate: Variant = _cross_target(runner, idx, my_team, ball_pos, enemy_goal)
 			if mate is Vector2:
+				wk108b_role[idx] = "cross"   # WK-108b telemetry
 				return ball_pos + ((mate as Vector2) - ball_pos).normalized() * BOT_DRIVE_THROUGH
+		wk108b_role[idx] = "strike"   # WK-108b telemetry
 		return ball_pos + to_goal * BOT_DRIVE_THROUGH
 	# WK-108 (a): never fly THROUGH the ball to reach the strike point behind it
 	if not wk108_bots:
+		wk108b_role[idx] = "line_up"   # WK-108b telemetry
 		return behind
 	if _sport == "soccer" and not behind_ball:
 		var back: Variant = _trackback_point(runner, my_team, ball_pos)
 		if back is Vector2:
+			if sticky and Tuning.wk108b_mouth_spacing:   # WK-108b K4
+				back = _wk108b_space_from_keeper(runner, idx, my_team, back as Vector2)   # WK-108b
+			wk108b_role[idx] = "trackback"   # WK-108b telemetry
 			return _avoid_ball_waypoint(runner, bot_player.global_position, ball_pos, back, to_goal)
+	wk108b_role[idx] = "line_up"   # WK-108b telemetry
 	return _avoid_ball_waypoint(runner, bot_player.global_position, ball_pos, behind, to_goal)
 
 ## WK-108 (a): if the straight line from `me_pos` to `strike` passes within the clearance of the ball, return a
@@ -1184,12 +1232,12 @@ func _keeper_point(runner, my_team: int, bot_player, ball_pos: Vector2) -> Varia
 	var kickoff: bool = float(runner.round_clock) < BOT_KICKOFF_KEEP_S
 	if _gate_rule == 1 and not _gates.is_empty():   # WK-131 H5: keep goal around the open, not the (unscorable) first 3 s
 		var open_in: float = gates_open_in()
-		kickoff = open_in <= BOT_GATE_RETURN_LEAD_S and open_in >= -BOT_GATE_KEEP_AFTER_S
+		kickoff = open_in <= _wk108b_gate_lead() and open_in >= -BOT_GATE_KEEP_AFTER_S   # WK-108b K1b: lead knob (0 = 0.8 s)
 	if frac > BOT_KEEPER_THIRD and not shot and not kickoff:
 		return null
 	var box: Rect2 = runner.bounds.grow(-SUPPORT_COURT_MARGIN)
 	var mouth := Vector2(clampf(own_goal.x, box.position.x, box.end.x), clampf(own_goal.y, box.position.y, box.end.y))
-	if ball_pos.distance_to(mouth) <= BOT_KEEPER_CHALLENGE:
+	if ball_pos.distance_to(mouth) <= _wk108b_challenge():   # WK-108b K1: knob while sticky (else BOT_KEEPER_CHALLENGE)
 		# challenge: clear it AWAY from my goal (we come from the goal side, so driving through pushes it out)
 		var away: Vector2 = (ball_pos - own_goal).normalized()
 		return ball_pos + away * BOT_DRIVE_THROUGH
@@ -1244,6 +1292,287 @@ func _bot_level(p) -> int:
 	if p == null or not is_instance_valid(p) or p.provider == null or not ("level" in p.provider):
 		return 3
 	return int(p.provider.level)
+
+# ------------------------------------------------------------------ WK-108b sports bots round 2 (bot hooks only)
+
+## WK-108b K1b: s before the gate open the kickoff keeper heads home (Tuning.wk108b_gate_return_lead; 0 = WK-131's 0.8 s).
+func _wk108b_gate_lead() -> float:
+	return Tuning.wk108b_gate_return_lead if Tuning.wk108b_gate_return_lead > 0.0 else BOT_GATE_RETURN_LEAD_S
+
+## WK-108b K1: the keeper's challenge radius (Tuning.wk108b_keeper_challenge while the sticky keeper is on).
+func _wk108b_challenge() -> float:
+	if Tuning.wk108b_sticky_keeper and Tuning.wk108b_keeper_challenge > 0.0:
+		return Tuning.wk108b_keeper_challenge
+	return BOT_KEEPER_CHALLENGE
+
+## WK-108b: the keeper's hold point (own goal centre clamped inside the court; same point _keeper_point holds).
+func _wk108b_mouth(runner, team: int) -> Vector2:
+	var own_goal: Vector2 = _own_goal_center(runner, team)
+	if own_goal == Vector2.INF:
+		return Vector2.INF
+	var box: Rect2 = runner.bounds.grow(-SUPPORT_COURT_MARGIN)
+	return Vector2(clampf(own_goal.x, box.position.x, box.end.x), clampf(own_goal.y, box.position.y, box.end.y))
+
+## WK-108b: a player driven by a bot brain (humans never get a keeper designation forced on them).
+func _wk108b_is_bot(p) -> bool:
+	return p != null and is_instance_valid(p) and p.provider != null and p.provider.has_method("_mode_objective")
+
+## WK-108b: is `team`'s goal under threat (the _keeper_point test: ball in own third (+ hyst), shot incoming, kickoff window)?
+func _wk108b_threat(runner, team: int, ball_pos: Vector2, hyst: float) -> bool:
+	var own_goal: Vector2 = _own_goal_center(runner, team)
+	var enemy_goal: Vector2 = _enemy_goal_center(runner, team)
+	if own_goal == Vector2.INF or enemy_goal == Vector2.INF:
+		return false
+	var axis: float = enemy_goal.x - own_goal.x
+	if absf(axis) < 1.0:
+		return false
+	var frac: float = (ball_pos.x - own_goal.x) / axis
+	if frac <= BOT_KEEPER_THIRD + hyst:
+		return true
+	var bv: Vector2 = _ball.linear_velocity if is_instance_valid(_ball) else Vector2.ZERO
+	var toward: float = -bv.x * signf(axis)
+	if frac <= Tuning.wk108b_keeper_early_frac and toward >= Tuning.wk108b_keeper_early_speed:
+		return true   # early: the ball is in my half and coming my way -> get home before it reaches the third
+	if toward >= BOT_KEEPER_SHOT_SPEED and (ball_pos.x - own_goal.x) * signf(axis) / toward <= BOT_KEEPER_SHOT_TIME:
+		return true
+	if _gate_rule == 1 and not _gates.is_empty():
+		var open_in: float = gates_open_in()
+		return open_in <= _wk108b_gate_lead() and open_in >= -BOT_GATE_KEEP_AFTER_S
+	return float(runner.round_clock) < BOT_KICKOFF_KEEP_S
+
+## WK-108b K1: update and return `team`'s sticky keeper (-1 none). Designated when a threat starts; released only after the
+## threat has been gone Tuning.wk108b_keeper_release_s (third test widened by wk108b_keeper_third_hyst while held), or when
+## the keeper dies / strays past wk108b_keeper_stray_px from its mouth.
+func _wk108b_keeper_update(runner, team: int, ball_pos: Vector2) -> int:
+	var k: int = int(_wk108b_keeper[team])
+	var mouth: Vector2 = _wk108b_mouth(runner, team)
+	if mouth == Vector2.INF:
+		return -1
+	if k >= 0:
+		var kp = runner.players[k] if k < runner.players.size() else null
+		if not _wk108b_is_bot(kp) or kp.is_dead() or int(_teams[k]) != team \
+				or (kp as Node2D).global_position.distance_to(mouth) > Tuning.wk108b_keeper_stray_px:
+			k = -1
+	var threat: bool = _wk108b_threat(runner, team, ball_pos, Tuning.wk108b_keeper_third_hyst if k >= 0 else 0.0)
+	if threat:
+		_wk108b_calm_t[team] = -1.0
+		if k < 0:
+			k = _wk108b_pick_keeper(runner, team, mouth, ball_pos)
+	elif k >= 0:
+		var now: float = float(runner.round_clock)
+		if float(_wk108b_calm_t[team]) < 0.0:
+			_wk108b_calm_t[team] = now
+		elif now - float(_wk108b_calm_t[team]) >= Tuning.wk108b_keeper_release_s:
+			k = -1
+	_wk108b_keeper[team] = k
+	return k
+
+## WK-108b K1: who keeps. All-bot team: the bot nearest its own mouth (usually goal-side, so nobody flies back past the
+## ball). Team with a human: the bot keeps only while a human teammate is nearer the ball (the human is the chaser).
+## A one-goat team never has a keeper (it must chase).
+func _wk108b_pick_keeper(runner, team: int, mouth: Vector2, ball_pos: Vector2) -> int:
+	var bots: Array = []
+	var members := 0
+	var has_human := false
+	for j in range(mini(runner.players.size(), _teams.size())):
+		var p = runner.players[j]
+		if int(_teams[j]) != team or not is_instance_valid(p) or p.is_dead():
+			continue
+		members += 1
+		if _wk108b_is_bot(p) and (p as Node2D).global_position.distance_to(mouth) <= Tuning.wk108b_keeper_stray_px:
+			bots.append(j)   # a bot already beyond the stray radius is never designated (no 1500 px treks; WK-108 rank logic covers)
+		else:
+			has_human = true
+	if members < 2 or bots.is_empty():
+		return -1
+	if has_human:
+		for b in bots:
+			if _ball_chase_rank(runner, int(b), team, ball_pos) > 0:
+				return int(b)
+		return -1
+	var best := -1
+	var best_d := INF
+	for b in bots:
+		var d: float = (runner.players[int(b)] as Node2D).global_position.distance_to(mouth)
+		if d < best_d:
+			best_d = d
+			best = int(b)
+	return best
+
+## WK-108b K1: the designated keeper's target. A live threat -> the WK-108 keeper point (hold / block the shot line /
+## challenge inside BOT_KEEPER_CHALLENGE); inside the release hysteresis -> hold the mouth. A keeper upfield of the ball
+## (the ball between it and its goal) never flies through the ball: it orbits round to the goal side first.
+func _wk108b_keeper_target(runner, idx: int, team: int, bot_player, ball_pos: Vector2) -> Vector2:
+	var mouth: Vector2 = _wk108b_mouth(runner, team)
+	var keep: Variant = _keeper_point(runner, team, bot_player, ball_pos)
+	var t: Vector2 = (keep as Vector2) if keep is Vector2 else mouth
+	wk108b_role[idx] = "keeper_s" if keep is Vector2 else "keeper_hold"
+	var own_goal: Vector2 = _own_goal_center(runner, team)
+	var enemy_goal: Vector2 = _enemy_goal_center(runner, team)
+	var s: float = signf(enemy_goal.x - own_goal.x)
+	var me_pos: Vector2 = (bot_player as Node2D).global_position
+	if (me_pos.x - ball_pos.x) * s > BOT_BODY_RADIUS * 0.5:   # wrong side of the ball
+		var to_goal: Vector2 = (enemy_goal - ball_pos).normalized()
+		wk108b_role[idx] = "keeper_route"
+		return _avoid_ball_waypoint(runner, me_pos, ball_pos, mouth, to_goal)
+	return t
+
+## WK-108b K1: chase rank with the team's sticky keeper left out (the outfield goat stays the chaser).
+func _wk108b_rank(runner, idx: int, team: int, ball_pos: Vector2) -> int:
+	var r: int = _ball_chase_rank(runner, idx, team, ball_pos)
+	var k: int = int(_wk108b_keeper[team])
+	if k < 0 or k == idx or k >= runner.players.size():
+		return r
+	var kp = runner.players[k]
+	var mine = runner.players[idx]
+	if not is_instance_valid(kp) or kp.is_dead() or not is_instance_valid(mine):
+		return r
+	var kd: float = (kp as Node2D).global_position.distance_to(ball_pos)
+	var md: float = (mine as Node2D).global_position.distance_to(ball_pos)
+	if kd < md or (kd == md and k < idx):
+		r -= 1
+	return maxi(r, 0)
+
+## WK-108b K4: the chaser's track-back point stays at least Tuning.wk108b_mouth_gap from the mouth while its keeper is home
+## (two goats of one team in one goal mouth + an attacker = the THE BOX stack).
+func _wk108b_space_from_keeper(runner, idx: int, team: int, back: Vector2) -> Vector2:
+	var k: int = int(_wk108b_keeper[team])
+	if k < 0 or k == idx or k >= runner.players.size() or not is_instance_valid(runner.players[k]):
+		return back
+	var mouth: Vector2 = _wk108b_mouth(runner, team)
+	var gap: float = Tuning.wk108b_mouth_gap
+	if mouth == Vector2.INF or (runner.players[k] as Node2D).global_position.distance_to(mouth) > gap:
+		return back   # keeper not home: the track-back is the only cover
+	var d: Vector2 = back - mouth
+	if d.length() >= gap:
+		return back
+	var s: float = signf(_enemy_goal_center(runner, team).x - mouth.x)
+	var dir: Vector2 = d.normalized() if d.length() > 1.0 else Vector2(s, -0.6).normalized()
+	if dir.x * s < 0.3:
+		dir = Vector2(s, minf(dir.y, -0.2)).normalized()   # out of the mouth, toward the field
+	var p: Vector2 = mouth + dir * gap
+	var box: Rect2 = runner.bounds.grow(-BOT_CEILING_CLEAR)
+	return Vector2(clampf(p.x, box.position.x, box.end.x), clampf(p.y, box.position.y, box.end.y))
+
+## WK-108b K2 (InputBot hook): s between sports-objective re-plans for this bot right now, or INF (normal reaction tick).
+## Fast or near ball -> Tuning.wk108b_replan_s (a 0.28 s L3 tick let a cleared ball move ~300 px between plans).
+func bot_replan_interval(_runner, bot_player) -> float:
+	if not Tuning.wk108b_fast_replan or not is_instance_valid(_ball) or not is_instance_valid(bot_player):
+		return INF
+	if _ball.linear_velocity.length() >= Tuning.wk108b_replan_ball_speed \
+			or (bot_player as Node2D).global_position.distance_to(_ball.global_position) <= Tuning.wk108b_replan_near_px:
+		return Tuning.wk108b_replan_s
+	return INF
+
+## WK-108b K3 / K5 (InputBot per-frame reflex): a replacement flight aim, or Vector2.ZERO (no change).
+## K3 GOAL-MOUTH CLEAR RULE (soccer): with the ball in my own half (wk108b_guard_frac of the axis), if I'm about to hit it
+## (closing, contact within wk108b_guard_horizon_s) from a side that would push it toward MY goal (contact normal within
+## the wk108b_guard_cos cone of ball->own goal), swerve to the ball's side nearest my goal and brake: a graze then pushes
+## it away from the goal, and the next plan lines up from the goal side. K5 (dropshot): brake before the net, fly home if across.
+func bot_strike_guard(runner, bot_player, recovering := false) -> Vector2:
+	if not wk108_bots or not is_instance_valid(_ball) or not is_instance_valid(bot_player):
+		return Vector2.ZERO
+	var idx: int = runner.players.find(bot_player)
+	if idx < 0 or idx >= _teams.size():
+		return Vector2.ZERO
+	var team: int = int(_teams[idx])
+	var p: Vector2 = (bot_player as Node2D).global_position
+	var v: Vector2 = bot_player.velocity
+	if _sport == "dropshot":
+		# recovery keeps full authority near the floor (a broken tile is real void); higher up it still brakes for the net
+		if not Tuning.wk108b_dropshot_side or (recovering and p.y > runner.bounds.end.y - Tuning.wk108b_net_recover_clear):
+			return Vector2.ZERO
+		var nb: Vector2 = _wk108b_net_brake(runner, team, p, v)
+		if nb != Vector2.ZERO:
+			wk108b_guard_n[idx] = int(wk108b_guard_n.get(idx, 0)) + 1
+		return nb
+	if not Tuning.wk108b_strike_guard:
+		return Vector2.ZERO
+	var own_goal: Vector2 = _own_goal_center(runner, team)
+	var enemy_goal: Vector2 = _enemy_goal_center(runner, team)
+	if own_goal == Vector2.INF or enemy_goal == Vector2.INF:
+		return Vector2.ZERO
+	var bp: Vector2 = _ball.global_position
+	var axis: float = enemy_goal.x - own_goal.x
+	if absf(axis) < 1.0 or (bp.x - own_goal.x) / axis > Tuning.wk108b_guard_frac:
+		return Vector2.ZERO
+	var rel: Vector2 = bp - p
+	var dist: float = rel.length()
+	if dist < 1.0:
+		return Vector2.ZERO
+	var n: Vector2 = rel / dist
+	var to_own: Vector2 = (own_goal - bp).normalized()
+	if n.dot(to_own) < Tuning.wk108b_guard_cos:
+		return Vector2.ZERO
+	var closing: float = (v - _ball.linear_velocity).dot(n)
+	if closing <= 60.0:
+		return Vector2.ZERO
+	if dist - (_ball.radius + BOT_BODY_RADIUS) > closing * Tuning.wk108b_guard_horizon_s:
+		return Vector2.ZERO
+	var perp := Vector2(-n.y, n.x)
+	if perp.dot(to_own) < 0.0:
+		perp = -perp
+	wk108b_guard_n[idx] = int(wk108b_guard_n.get(idx, 0)) + 1
+	# the brake share grows with closing speed (a 1500 px/s bounce-charged goat can't swerve clear, it has to stop)
+	return (perp - n * Tuning.wk108b_guard_brake * maxf(1.0, closing / Tuning.normal_boost_max_speed)).normalized()
+
+## WK-108b K5: the Dropshot net line = midway between the two floor goal strips (INF if not two zones).
+func _wk108b_net_x(runner) -> float:
+	var xs: Array = []
+	for z in runner.get_tree().get_nodes_in_group("goal_zone"):
+		xs.append((z as Node2D).global_position.x)
+	if xs.size() < 2:
+		return INF
+	return (float(xs[0]) + float(xs[1])) * 0.5
+
+## WK-108b K5: which way my half lies from the net (-1 left, +1 right, 0 unknown).
+func _wk108b_side(runner, team: int, net_x: float) -> float:
+	var own_goal: Vector2 = _own_goal_center(runner, team)
+	if own_goal == Vector2.INF or net_x == INF:
+		return 0.0
+	return -1.0 if own_goal.x < net_x else 1.0
+
+## WK-108b K5: keep a Dropshot bot's target on its own side of the net (>= wk108b_net_margin from the line). With the ball
+## over the net, the chaser waits at a ready spot wk108b_ready_back into its half at the ball's height (clamped).
+func _wk108b_dropshot_target(runner, bot_player, target: Vector2) -> Vector2:
+	var idx: int = runner.players.find(bot_player)
+	if idx < 0 or idx >= _teams.size() or not is_instance_valid(_ball):
+		return target
+	var team: int = int(_teams[idx])
+	var net_x: float = _wk108b_net_x(runner)
+	var side: float = _wk108b_side(runner, team, net_x)
+	if side == 0.0:
+		return target
+	var bp: Vector2 = _ball.global_position
+	var t: Vector2 = target
+	if (bp.x - net_x) * side <= 0.0:
+		var b: Rect2 = runner.bounds
+		if _ball_chase_rank(runner, idx, team, bp) == 0:   # front court: ready at the net side, at the ball's height
+			t = Vector2(net_x + side * Tuning.wk108b_ready_back, clampf(bp.y, b.position.y + 260.0, b.end.y - 320.0))
+			wk108b_role[idx] = "ready"
+		else:   # back court: the supporter covers deep (the two never share the front-court spot)
+			var own_goal: Vector2 = _own_goal_center(runner, team)
+			t = Vector2(own_goal.x + side * Tuning.wk108b_back_court, b.end.y - Tuning.wk108b_back_court_up)
+			wk108b_role[idx] = "back"
+	var limit: float = net_x + side * Tuning.wk108b_net_margin
+	if (t.x - limit) * side < 0.0:
+		t.x = limit
+	return t
+
+## WK-108b K5: brake before the net (thrust home, a little up) when the stopping distance would carry me past
+## wk108b_net_margin/2; if already across, fly home up and over.
+func _wk108b_net_brake(runner, team: int, p: Vector2, v: Vector2) -> Vector2:
+	var net_x: float = _wk108b_net_x(runner)
+	var side: float = _wk108b_side(runner, team, net_x)
+	if side == 0.0:
+		return Vector2.ZERO
+	var d: float = (p.x - net_x) * side
+	if d < 0.0:
+		return Vector2(side, -0.6).normalized()
+	var toward: float = -v.x * side
+	if toward > 120.0 and d < Tuning.wk108b_net_margin * 0.5 + toward * Tuning.wk108b_net_brake_s:
+		return Vector2(side, -0.35).normalized()
+	return Vector2.ZERO
 
 ## WK-108: SPORTS courts are ENCLOSED (walls + ceiling stop you): InputBot must not read "about to fly out of
 ## the arena" as danger here (it U-turned bots at every wall: the sports stuck loops), and it keeps its flight
