@@ -2,6 +2,12 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-15** CD4-01 SESSION DECKS (director, CD4 biggest problem): each Brawl circuit keeps a per-session arena deck (survives
+  REMATCH / RESTART / quit-to-menu; resets on app restart). Ordered circuits shuffle their authored MILD and WILD halves separately and
+  alternate them; the session's first deck opens on authored arena 1; no back-to-back repeats; RANDOM ROTATION is a persistent bag;
+  draw circuits (FOUNDRY/MAYHEM) draw from a session bag. Knob circuit_session_deck (false = legacy fixed order). A/B harnesses that
+  need a fixed arena sequence must set it false.
+
 - **2026-11-15** WK-131 A/B RULING (docs/audit/2026-11-15_wk131_ab.md): KEEP KICKOFF GATES, open at 3.5 s (the spec's pre-registered
   step): goals within 4 s of GO 32.4 % legacy / 17.8 % gates@3.0 / 2.8 % gates@3.5 / 19.2 % live ball / 29.9 % formation; goals within
   1 s of the open 13 -> 4 (p = 0.036); CENTER rally median 10.4 s (in band); restart 2.667 s. CPU own goals 8.3 % (within +5 pp bar).

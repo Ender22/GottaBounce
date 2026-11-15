@@ -39,6 +39,11 @@ var mode_rules: Dictionary = {}
 ## and auto-joins it (lowest free slot, P1 in an empty lobby) unless it is already seated — WK-125: also
 ## when other players carried over from the last lobby.
 var lobby_autojoin_key := ""
+## CD4-01: Brawl rotation session decks (BrawlMode, Tuning.circuit_session_deck). key ("circuit:<id>" /
+## "random") -> {"deck": Array of res:// paths still to play, "last": last path played, "decks": decks built}.
+## Never cleared in-process on purpose: a REMATCH or the next play of a circuit continues where the last
+## match stopped, so a session sees every arena before any repeats.  # CD4-01
+var circuit_decks: Dictionary = {}   # CD4-01
 
 func _ready() -> void:
 	if match_config == null:

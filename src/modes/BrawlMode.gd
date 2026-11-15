@@ -8,6 +8,8 @@ extends GameMode
 ## credited kill; a self-KO costs MatchConfig.self_ko_penalty (WK-20c: 0 by default = Ra, "OOPS!"; the RULES
 ## toggle "SELF-KO −1" restores -1 floored at 0). Level rotation = a shuffle-bag over the arena pool
 ## (RANDOM_ALL) or a fixed single arena (SINGLE). Sudden-death plumbing stays in the runner.
+## CD4-01: with Tuning.circuit_session_deck on, circuits and RANDOM ROTATION draw from SESSION decks held in
+## GameConfig.circuit_decks (every arena once before any repeat, continuing across REMATCH / new matches).
 
 const HUD_SCENE := preload("res://scenes/ui/MatchHUD.tscn")
 
@@ -21,6 +23,12 @@ var _last_level_path := ""
 const CIRCUITS_PATH := "res://levels/circuits.json"
 var _ordered := false
 var _ordered_idx := 0
+
+# CD4-01 SESSION DECKS (Tuning.circuit_session_deck; decks live in GameConfig.circuit_decks so they outlive the
+# match scene). Ordered circuits + RANDOM ROTATION draw each STAGE from a session deck (_deck_key); draw circuits
+# (pool + draw_count) take each PLAY's subset from a session bag (_draw_spec). Empty key / {} = legacy path.  # CD4-01
+var _deck_key := ""              # CD4-01 "circuit:<id>" | "random" | "" (legacy / SINGLE)
+var _draw_spec: Dictionary = {}  # CD4-01 {"id", "count", "items": [{id, tier}]} for a shuffle-draw circuit
 
 # --- identity / presentation ---
 func id() -> StringName:
@@ -46,11 +54,17 @@ func configure(runner, config: MatchConfig) -> void:
 	# RANDOM_ALL (default) -> the whole pool (shuffle-bag). Only CIRCUIT is _ordered.
 	_ordered = false
 	_ordered_idx = 0
+	_deck_key = ""      # CD4-01
+	_draw_spec = {}     # CD4-01
 	if config.arena_mode == MatchConfig.ArenaMode.CIRCUIT:
 		var circuit := _resolve_circuit(str(config.circuit_id))
 		if not circuit.is_empty():
 			_pool = circuit
 			_ordered = true
+			if Tuning.circuit_session_deck:   # CD4-01
+				_draw_spec = _cd4_draw_spec(str(config.circuit_id))
+				if _draw_spec.is_empty():
+					_deck_key = "circuit:" + str(config.circuit_id)   # ordered circuit: per-stage session deck
 		else:
 			push_warning("BrawlMode: unknown/empty circuit_id '%s' -> falling back to RANDOM_ALL" % str(config.circuit_id))
 			_pool = runner.LEVEL_POOL.duplicate()
@@ -58,6 +72,8 @@ func configure(runner, config: MatchConfig) -> void:
 		_pool = [config.single_arena_path]
 	else:
 		_pool = runner.LEVEL_POOL.duplicate()
+		if Tuning.circuit_session_deck:   # CD4-01: RANDOM ROTATION's bag persists across matches too
+			_deck_key = "random"
 	_reset_bag()
 
 ## Resolve a circuit_id to an ordered Array of res:// level paths from levels/circuits.json.
@@ -194,8 +210,17 @@ func _reset_bag() -> void:
 ## Draw the next level from the shuffle-bag; reshuffle when empty, avoiding an immediate repeat when
 ## the pool has >=2 entries. A 1-entry pool (SINGLE) returns that level every time (no rotation).
 func next_level_path(_runner) -> String:
+	# CD4-01: session deck (ordered circuits / RANDOM ROTATION) -- every arena once before any repeats, across matches.
+	if _deck_key != "" and not _pool.is_empty():
+		var dp: String = _cd4_deck_next()
+		_last_level_path = dp
+		return dp
 	# CIRCUIT: draw sequentially in authored order, looping when the list is exhausted (spec A.2#3).
 	if _ordered:
+		if not _draw_spec.is_empty() and _ordered_idx == 0:   # CD4-01: this play's subset from the session bag
+			var drawn: Array = _cd4_session_draw()
+			if not drawn.is_empty():
+				_pool = drawn
 		if _pool.is_empty():
 			return ""
 		var p: String = str(_pool[_ordered_idx % _pool.size()])
@@ -209,6 +234,112 @@ func next_level_path(_runner) -> String:
 	var path: String = str(_bag.pop_front())
 	_last_level_path = path
 	return path
+
+# ------------------------------------------------------------------- CD4-01 session decks
+## Pop the next arena from this key's session deck (GameConfig.circuit_decks), building a new deck when it is empty.  # CD4-01
+func _cd4_deck_next() -> String:
+	var store: Dictionary = GameConfig.circuit_decks
+	var st: Dictionary = store.get(_deck_key, {})
+	var deck: Array = st.get("deck", [])
+	# drop anything no longer in the pool (defensive: circuits.json edited mid-session)
+	deck = deck.filter(func(p): return _pool.has(p))
+	if deck.is_empty():
+		var built: int = int(st.get("decks", 0))
+		deck = _cd4_build_deck(built == 0, str(st.get("last", "")))
+		st["decks"] = built + 1
+	var path: String = str(deck.pop_front())
+	st["deck"] = deck
+	st["last"] = path
+	store[_deck_key] = st
+	return path
+
+## One full pass over _pool. Ordered circuits (key "circuit:"): the session's FIRST deck opens on authored arena 1
+## (Tuning.circuit_deck_opener); the rest alternates a shuffled MILD half (authored first half) with a shuffled WILD
+## half (Tuning.circuit_deck_interleave), so gentle and wild stages trade off and every match reaches the wild tail.
+## RANDOM ROTATION: a plain shuffle. Never the same arena twice in a row across a deck boundary.  # CD4-01
+func _cd4_build_deck(first_ever: bool, last: String) -> Array:
+	var src: Array = _pool.duplicate()
+	var n: int = src.size()
+	if n <= 1:
+		return src
+	var circuit := _deck_key.begins_with("circuit:")
+	var out: Array = []
+	if circuit and first_ever and Tuning.circuit_deck_opener:
+		out.append(src[0])
+	if circuit and Tuning.circuit_deck_interleave and n >= 4:
+		var half: int = int(ceil(float(n) / 2.0))
+		var mild: Array = src.slice(0, half)
+		var wild: Array = src.slice(half)
+		for p in out:
+			mild.erase(p)
+		mild.shuffle()
+		wild.shuffle()
+		var take_wild: bool = not out.is_empty()   # the opener is mild, so a wild one follows it
+		while not (mild.is_empty() and wild.is_empty()):
+			var use_wild: bool = (take_wild and not wild.is_empty()) or mild.is_empty()
+			out.append(wild.pop_back() if use_wild else mild.pop_back())
+			take_wild = not use_wild
+	else:
+		var rest: Array = src.duplicate()
+		for p in out:
+			rest.erase(p)
+		rest.shuffle()
+		out.append_array(rest)
+	if last != "" and str(out[0]) == last:
+		var j: int = 2 if out.size() >= 3 else 1   # slot 2 = same half when interleaved
+		var t: Variant = out[0]
+		out[0] = out[j]
+		out[j] = t
+	return out
+
+## {"id", "count", "items"} for a shuffle-DRAW circuit (pool + draw_count, draw_mode != "ordered"), else {}.  # CD4-01
+func _cd4_draw_spec(circuit_id: String) -> Dictionary:
+	var entry := _load_circuit_entry(circuit_id)
+	var pool_raw: Variant = entry.get("pool", [])
+	var count: int = int(entry.get("draw_count", 0))
+	if typeof(pool_raw) != TYPE_ARRAY or (pool_raw as Array).is_empty() or count <= 0:
+		return {}
+	if str(entry.get("draw_mode", "shuffle")) == "ordered":
+		return {}
+	var items: Array = []
+	for it in (pool_raw as Array):
+		var d := _id_tier(it)
+		if str(d["id"]) != "":
+			items.append(d)
+	if items.is_empty():
+		return {}
+	return {"id": circuit_id, "count": count, "items": items}
+
+## This play's subset for a draw circuit: take draw_count ids from the circuit's session bag (refilled with a fresh
+## shuffle when it runs dry, minus anything already picked this play), then tier-sort mild -> wild as before.  # CD4-01
+func _cd4_session_draw() -> Array:
+	var key := "draw:" + str(_draw_spec["id"])
+	var items: Array = _draw_spec["items"]
+	var tier_of: Dictionary = {}
+	for d in items:
+		tier_of[str(d["id"])] = int(d["tier"])
+	var n: int = mini(int(_draw_spec["count"]), items.size())
+	var store: Dictionary = GameConfig.circuit_decks
+	var st: Dictionary = store.get(key, {})
+	var bag: Array = st.get("deck", [])
+	bag = bag.filter(func(i): return tier_of.has(str(i)))
+	var picked: Array = []
+	while picked.size() < n:
+		if bag.is_empty():
+			bag = tier_of.keys()
+			bag.shuffle()
+			bag = bag.filter(func(i): return not picked.has(i))
+			st["decks"] = int(st.get("decks", 0)) + 1
+			if bag.is_empty():
+				break
+		picked.append(bag.pop_front())
+	st["deck"] = bag
+	store[key] = st
+	picked.sort_custom(func(a, b): return int(tier_of[str(a)]) < int(tier_of[str(b)]))
+	var out: Array = []
+	for i in picked:
+		out.append("res://levels/%s.json" % str(i))
+	return out
 
 ## BRAWL: a stage is over when <= 1 player is not-eliminated (last-one-standing).
 func is_stage_over(runner) -> bool:

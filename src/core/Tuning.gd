@@ -1094,3 +1094,11 @@ var wk108b_back_court: float = 200.0          # K5: with the ball over the net t
 var wk108b_back_court_up: float = 520.0       # K5: ...this far above the court bottom (front/back split, no shared spot)  # WK-108b
 var wk108b_net_brake_s: float = 0.30          # K5  # WK-108b
 var wk108b_net_recover_clear: float = 400.0   # K5: during a danger recovery the net brake applies only this far above the court bottom  # WK-108b
+
+# --- CD4-01 Brawl circuit rotation = a SESSION DECK per circuit. Read by src/modes/BrawlMode.gd; decks live in  # CD4-01
+# GameConfig.circuit_decks (process lifetime: survive REMATCH / RESTART / quit-to-menu, gone on app restart).  # CD4-01
+# OFF (false) = legacy: ordered circuits replay their authored order from arena 1 every match, RANDOM ROTATION  # CD4-01
+# reshuffles its bag every match, draw circuits draw a fresh subset every play.  # CD4-01
+var circuit_session_deck: bool = true         # CD4-01 master switch (false = legacy, see above)  # CD4-01
+var circuit_deck_interleave: bool = true      # CD4-01 ordered circuits: alternate authored MILD half / WILD half  # CD4-01
+var circuit_deck_opener: bool = true          # CD4-01 the session's FIRST deck of a circuit opens on authored arena 1  # CD4-01

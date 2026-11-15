@@ -7,6 +7,7 @@
   "sky_top": "#2e6cb0",
   "sky_bottom": "#bfe6ff",
   "backdrop_painting": "meadow_day",
+  "sky_drop": true,
   "bounds": { "left": -560, "right": 6140, "top": -2230, "bottom": 1920 },
   "platforms": [
     { "x": 0,    "y": 1080, "w": 960, "h": 128, "tier": "trampoline" },
