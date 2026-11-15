@@ -209,6 +209,7 @@ func _restore_lobby() -> void:
 		forward = bool(shell.nav_forward)
 	InputRouter.clear_joined()
 	var saved: Array = GameConfig.lobby
+	var any_gone := false   # WK-166
 	if saved.size() == MAX_SLOTS:
 		for i in range(MAX_SLOTS):
 			var d: Variant = saved[i]
@@ -223,6 +224,16 @@ func _restore_lobby() -> void:
 				st = S_PICKING
 			slots[i] = {"state": st, "device": dev, "goat": clampi(int(sd.get("goat", 0)), 0, HEROES.size() - 1),
 				"flair": str(sd.get("flair", "")), "row": 0}
+			# WK-166 (F1, CC-3.5): a seat whose pad died mid-match (RESUME WITHOUT -> CHANGE SETUP) and has not come
+			# back must not return as a live seat: nobody but that pad could clear it, so READY TO FIGHT never came.
+			# It returns DISCONNECTED with a fresh grace window, exactly like a live lobby disconnect (goat + colour
+			# kept, any free device's A takes it over, EMPTY when the window runs out), and is NOT in the join registry.
+			if _pad_gone(dev):
+				slots[i]["prev"] = st
+				slots[i]["state"] = S_DISC
+				slots[i]["until"] = Time.get_ticks_msec() + int(Tuning.lobby_disconnect_grace * 1000.0)
+				any_gone = true
+				continue
 			InputRouter.join(dev, i)
 	# WK-27: a goat this mode doesn't offer (VEX kept from a BRAWL lobby, now in ROCKETBALL) re-seats on the
 	# balanced default, un-readied (never a silently invalid READY).
@@ -230,12 +241,20 @@ func _restore_lobby() -> void:
 		if slots[i]["state"] == S_EMPTY:
 			continue
 		if not _pool.has(int(slots[i]["goat"])):
-			slots[i]["state"] = S_PICKING
+			if slots[i]["state"] == S_DISC:
+				slots[i]["prev"] = S_PICKING   # WK-166: the held seat stays DISCONNECTED, on a goat this mode offers
+			else:
+				slots[i]["state"] = S_PICKING
 			slots[i]["goat"] = _default_goat(i)
 	for i in range(MAX_SLOTS):
 		var s: Dictionary = slots[i]
 		if s["state"] == S_EMPTY:
 			(_slot_views[i] as Object).call("show_empty", true, false)
+		elif s["state"] == S_DISC:
+			# WK-166: restored DISCONNECTED (no join motion, no shake: the screen is sliding in)
+			(_slot_views[i] as Object).call("show_disconnected_seat", str(s["device"]), _hero(int(s["goat"])),
+				_portrait(int(s["goat"])), not _kb_joined())
+			(_slot_views[i] as Object).call("set_disc_remaining", 1.0, ceili(Tuning.lobby_disconnect_grace))
 		else:
 			(_slot_views[i] as Object).call("show_join", str(s["device"]), _hero(int(s["goat"])), _portrait(int(s["goat"])))
 			(_slot_views[i] as Object).call("set_ready", s["state"] == S_READY, false)
@@ -246,7 +265,18 @@ func _restore_lobby() -> void:
 	var auto_key: String = GameConfig.lobby_autojoin_key
 	GameConfig.lobby_autojoin_key = ""
 	if InputRouter.kind_of(auto_key) != "" and _slot_of(auto_key) < 0 and _joined_count() < MAX_SLOTS:
-		_join(auto_key, false)
+		_join(auto_key, false, false)   # WK-166: the mode-card confirm takes an EMPTY seat, not a DISCONNECTED one
+	# WK-166: the gone pad's seat is not carried to the next screen / mode (that is how it followed into ROCKETBALL)
+	if any_gone:
+		_persist()
+
+## WK-166 (F1): a pad seat whose pad was lost and has not been heard from since (InputRouter/DeviceWatch).
+## Never enumerates joypads (CC-3.1: gbplay / Steam Input pads are not in get_connected_joypads()).
+func _pad_gone(dev: String) -> bool:
+	if not InputRouter.is_pad(dev):
+		return false
+	var watch: Node = InputRouter.get_node_or_null("DeviceWatch")
+	return watch != null and watch.has_method("is_gone") and bool(watch.call("is_gone", dev))
 
 func _persist() -> void:
 	var out: Array = []
@@ -623,13 +653,15 @@ func _joined_count() -> int:
 
 ## EMPTY -> PICKING for an unassigned device: lowest EMPTY slot; goat = first goat no other joined human
 ## is on (E.4). Full lobby = deny.
-func _join(key: String, sound: bool) -> void:
+func _join(key: String, sound: bool, takeover_first: bool = true) -> void:
 	if _launching:
 		return
 	# WK-28a (CC-3.5): "the first unassigned device to press A takes it over" — a DISCONNECTED seat beats an EMPTY
 	# one. The lost pad itself gets its own seat back first if several are waiting.
+	# WK-166: `takeover_first` false (the CC-4.8 auto-join of the mode-card confirmer) prefers an EMPTY seat; a held
+	# DISCONNECTED seat is only taken when the lobby has no EMPTY one left (or it is that pad's own seat).
 	var di := _disc_slot_for(key)
-	if di >= 0:
+	if di >= 0 and (takeover_first or str(slots[di]["device"]) == key or not _has_empty()):
 		_reclaim(di, key)
 		return
 	var si := -1
@@ -657,6 +689,12 @@ func _join(key: String, sound: bool) -> void:
 		AudioManager.play_sfx("powerup_pickup", {"pitch": JOIN_PITCH[si], "pitch_var": 0.0, "volume_db": -4.0})
 	InputRouter.rumble(key, 0.4, 0.6, 0.18)   # WK-81 F3: the pad in YOUR hands buzzes — "that panel is mine"
 	_after_change()
+
+func _has_empty() -> bool:   # WK-166
+	for s in slots:
+		if s["state"] == S_EMPTY:
+			return true
+	return false
 
 func _leave(si: int) -> void:
 	var dev := str(slots[si]["device"])
@@ -1497,10 +1535,20 @@ func _refresh_glyphs() -> void:
 	(_f_back as Object).call("setup", "key:ESC" if kb else "B")
 	(_f_random as Object).call("setup", "key:R" if kb else "Y")
 	(_back_glyph as Object).call("setup", "key:ESC" if kb else "B")
-	_refresh_back_chip()
 	(_lb_glyph as Object).call("setup", "key:Q" if kb else "LB")
 	(_rb_glyph as Object).call("setup", "key:E" if kb else "RB")
 	(_view_glyph as Object).call("setup", "key:TAB" if kb else "VIEW")
+	# WK-166 (G1, CC-1.6): the four chrome chips get the same "/" twin as the footer on a mixed couch:
+	# [B] / [ESC] NOT JOINED? HOLD TO EXIT · [LB] / [Q] ... [RB] / [E] · [VIEW] / [TAB] RULES.
+	var sports_tray: bool = _mode == "sports"   # SPORTS has no LB / RB (seat count comes from FORMAT)
+	for pair in [["Header/BackBtn/Row/BackSlash", "Header/BackBtn/Row/BackGlyph2", true],
+			["CpuRow/CpuTray/Row/LBSlash", "CpuRow/CpuTray/Row/LBGlyph2", not sports_tray],
+			["CpuRow/CpuTray/Row/RBSlash", "CpuRow/CpuTray/Row/RBGlyph2", not sports_tray],
+			["RulesRow/RulesBar/Row/ViewSlash", "RulesRow/RulesBar/Row/ViewGlyph2", true]]:
+		var on: bool = mixed and bool(pair[2])
+		(get_node(str(pair[0])) as Control).visible = on
+		(get_node(str(pair[1])) as Control).visible = on
+	_refresh_back_chip()
 	(get_node("Footer/HintRow/GFlair/Glyph") as Object).call("setup", "arrows" if kb else "stick")   # WK-29: no stick on a keyboard
 	# WK-157 (CD4-07a, CC-1.6 / CC-1.7): with a pad AND the keyboard seated, the footer was pad-only (A / B / Y / stick),
 	# so the keyboard player had no footer prompt at all while ArenaSelect already said "A / ENTER". A mixed couch now
@@ -1538,14 +1586,23 @@ func _refresh_glyphs() -> void:
 func _refresh_back_chip() -> void:
 	var anyone: bool = _joined_count() > 0   # DISCONNECTED seats count as joined (their grace window holds the lobby)
 	_back_label.text = "NOT JOINED? HOLD TO EXIT" if anyone else "BACK"
-	_back_label.add_theme_font_size_override("font_size", 30 if anyone else 36)
-	var w: float = maxf(220.0, _back_row.get_combined_minimum_size().x + 44.0)
-	_back_btn.size.x = w
+	# WK-166: the mixed-couch "B / ESC" twin widens the chip toward the title; 28 px (CC-8.1 floor) + tighter gaps keep
+	# a clear margin before "CHOOSE YOUR GOAT"
+	var twin: bool = (get_node("Header/BackBtn/Row/BackGlyph2") as Control).visible
+	_back_label.add_theme_font_size_override("font_size", (28 if twin else 30) if anyone else 36)
+	_back_row.add_theme_constant_override("separation", 8 if twin else 12)
+	_fit_back_chip()
+	call_deferred("_fit_back_chip")   # WK-166: re-fit after the row's min size settles (twin glyph shown / hidden)
 	# ux lobby verdict Fix 2: an empty lobby has ONE exit prompt (the chip's "B BACK") and only the verb that works
 	# there (JOIN). BACK OUT / RANDOM / GOAT-FLAIR come back with the first seat.
 	(get_node("Footer/HintRow/GJoin/Label") as Label).text = "JOIN / READY" if anyone else "JOIN"
 	for n in ["GBack", "GRandom", "GFlair"]:
 		(get_node("Footer/HintRow/" + n) as Control).visible = anyone
+
+func _fit_back_chip() -> void:
+	var pad: float = 32.0 if (get_node("Header/BackBtn/Row/BackGlyph2") as Control).visible else 44.0   # WK-166
+	var w: float = maxf(220.0, _back_row.get_combined_minimum_size().x + pad)
+	_back_btn.size.x = w
 
 # ================================================================== misc
 func _on_device_lost(key: String) -> void:

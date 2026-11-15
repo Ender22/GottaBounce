@@ -259,6 +259,9 @@ func _ready() -> void:
 	_back.pressed.connect(func() -> void:
 		AudioManager.play_sfx("ui_click", {"pitch": 0.72, "pitch_var": 0.0, "volume_db": -4.0})
 		on_back())
+	# WK-166 (G1, CC-1.6): on a mixed pad + keyboard couch the header chip reads "B / ESC BACK", like the footer.
+	InputRouter.joined_changed.connect(_refresh_back_twin)
+	_refresh_back_twin()
 	_rewire_cross()
 	# WK-117 (SP-16) + WK-43 copy half: the confirm prompt speaks the mode's language (sports PLAY!, trials GO!);
 	# BRAWL keeps the scene's "A FIGHT!".
@@ -269,6 +272,25 @@ func _ready() -> void:
 	# BRAWL only: the celebration is a circuit moment and consuming the flag here would eat it.
 	if not _sports and not _trials:
 		_pending_celebrate = Settings.take_pending_unlock()
+
+## WK-166 (G1): BackGlyph (device_ctx "menu") already shows ESC for a keyboard-only couch and B for pads; a mixed couch
+## adds the "/ ESC" twin and the chip widens to fit (it is a Button, so it does not size itself to its Row).
+func _refresh_back_twin() -> void:
+	if not is_instance_valid(_back):
+		return
+	var mixed: bool = PadGlyph.shared_kind() == "mixed"
+	(get_node("Header/BackBtn/Row/BackSlash") as Control).visible = mixed
+	(get_node("Header/BackBtn/Row/BackGlyph2") as Control).visible = mixed
+	_fit_back_twin()
+	call_deferred("_fit_back_twin")
+
+func _fit_back_twin() -> void:
+	if not is_instance_valid(_back):
+		return
+	var row: Control = get_node("Header/BackBtn/Row") as Control
+	var w: float = maxf(220.0, row.get_combined_minimum_size().x + 44.0)
+	_back.custom_minimum_size.x = w
+	_back.size.x = w
 
 func _build_brawl() -> void:
 	# Owner 2026-07-19: BRAWL now picks a CIRCUIT only — the single-arena shelf is gone, and RANDOM

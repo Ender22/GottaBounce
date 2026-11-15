@@ -511,10 +511,32 @@ func show_disconnected(kb_free: bool) -> void:
 	_set_disc_plate()
 	set_disc_takeover(kb_free)
 	_disc_face.visible = true
+	if not animate:   # WK-166: restored on screen entry, no pop / shake
+		_disc_chip.scale = Vector2.ONE
+		return
 	_disc_chip.scale = Vector2(1.4, 1.4)
 	_disc_tw = _disc_chip.create_tween()
 	_disc_tw.tween_property(_disc_chip, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	MenuFX.reject_shake(self)
+
+## WK-166 (F1): a seat restored from lobby memory whose pad is still gone. Sets the seat's identity (device header,
+## goat, colour) without the join motion, then shows the DISCONNECTED face directly.
+func show_disconnected_seat(device_key: String, hero: Dictionary, tex: Texture2D, kb_free: bool) -> void:
+	_clear_disc()
+	_joined = true
+	_ready_on = false
+	if _on_back:
+		_set_face(false)
+	set_device(device_key)
+	_kill(_breathe)
+	_join.visible = false
+	_sil.visible = false
+	_header.modulate.a = 1.0
+	_team = -1
+	_taken_text = ""
+	_apply_hero(hero, tex)
+	scale = Vector2.ONE
+	show_disconnected(kb_free, false)
 
 ## `frac` = share of the grace window left (1 -> 0), `secs` = whole seconds left (shown in the hint).
 func set_disc_remaining(frac: float, secs: int) -> void:

@@ -180,6 +180,23 @@ mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "B"
 
+[node name="BackSlash" type="Label" parent="Header/BackBtn/Row"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "/"
+vertical_alignment = 1
+
+[node name="BackGlyph2" type="Control" parent="Header/BackBtn/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:ESC"
+
 [node name="BackLabel" type="Label" parent="Header/BackBtn/Row"]
 theme_type_variation = &"TextDark"
 layout_mode = 2
@@ -327,6 +344,23 @@ mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "LB"
 
+[node name="LBSlash" type="Label" parent="CpuRow/CpuTray/Row"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "/"
+vertical_alignment = 1
+
+[node name="LBGlyph2" type="Control" parent="CpuRow/CpuTray/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:Q"
+
 [node name="Minus" type="Control" parent="CpuRow/CpuTray/Row"]
 custom_minimum_size = Vector2(26, 34)
 layout_mode = 2
@@ -436,6 +470,23 @@ mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "RB"
 
+[node name="RBSlash" type="Label" parent="CpuRow/CpuTray/Row"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "/"
+vertical_alignment = 1
+
+[node name="RBGlyph2" type="Control" parent="CpuRow/CpuTray/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:E"
+
 [node name="RulesRow" type="HBoxContainer" parent="."]
 layout_mode = 0
 offset_top = 886.0
@@ -485,6 +536,23 @@ size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("5_glyph")
 glyph = "VIEW"
+
+[node name="ViewSlash" type="Label" parent="RulesRow/RulesBar/Row"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "/"
+vertical_alignment = 1
+
+[node name="ViewGlyph2" type="Control" parent="RulesRow/RulesBar/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_glyph")
+glyph = "key:TAB"
 
 [node name="ViewLabel" type="Label" parent="RulesRow/RulesBar/Row"]
 theme_type_variation = &"TextDark"

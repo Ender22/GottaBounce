@@ -235,3 +235,7 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   `reset_settle_s`), and aim through `get_viewport().get_canvas_transform().affine_inverse() * screen_px` (the camera re-frames focus points).
 - WK-156: a CanvasLayer HUD can't be drawn under world sprites, so "goat behind the legend" is solved by per-chip dimming from the goats'
   screen rects (`Node2D.get_global_transform_with_canvas()`) + the PlayerPips tag rects, not by z-order.
+- **WK-166: never swap a shared file to its HEAD version to "reproduce before the fix"** (cp HEAD -> run -> cp fixed back). Another
+  lane (WK-116) was editing neighbouring lobby files in the same 10-min window, and the restore would silently clobber any edit it
+  made to that file meanwhile. Reproduce pre-fix behaviour in a scratch project copy, or gate the fix behind a runtime-flippable
+  flag for the repro, never by rewriting the working tree.

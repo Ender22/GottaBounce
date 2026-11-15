@@ -149,6 +149,17 @@ func _on_found(key: String) -> void:
 				return
 	_toast("CONTROLLER CONNECTED")
 
+## WK-166 (F1, CC-3.5): true while pad `key` is lost and has not been heard from since (no reconnect, no press).
+## The Herd Lobby asks this when it restores seats from GameConfig.lobby, so a seat whose pad died mid-match comes
+## back DISCONNECTED (grace window, takeover allowed) instead of as a live seat nobody can clear.
+func is_gone(key: String) -> bool:
+	return _gone.has(key)
+
+## WK-166 (F3): the seat-change toast, shared by the mid-play take-back and the in-overlay reclaim / takeover, so the
+## room always SEES that pad 4 is now P2 ("P2 · TAKEN OVER" with the new device's icon, or "P2 · IS BACK!").
+func seat_toast(m, h: int, own: bool, key: String) -> void:
+	_toast("IS BACK!" if own else "TAKEN OVER", _tag(m, h), m.player_color(h), "kb" if key == InputRouter.KB else "pad")
+
 func _lobby_visible() -> bool:
 	var sc := get_tree().current_scene
 	if sc == null:
@@ -159,6 +170,8 @@ func _lobby_visible() -> bool:
 func _toast(text: String, tag: String = "", col: Color = NEUTRAL, icon: String = "pad") -> void:
 	_log("toast %s %s" % [tag, text])
 	if toast != null and is_instance_valid(toast):
+		# WK-166 (F6): in the Herd Lobby the top-centre stack sat on the goat roster strip; show it low-left there
+		toast.set_placement("lobby" if _lobby_visible() else "top")
 		toast.show_toast(text, tag, col, icon)
 
 # ------------------------------------------------------------------ overlay
@@ -284,7 +297,7 @@ func _on_window_input(e: InputEvent) -> void:
 				pick = int(h)
 	var own: bool = str(cpu_seats[pick]) == k
 	rebind(m, pick, k)
-	_toast("IS BACK!" if own else "TAKEN OVER", _tag(m, pick), m.player_color(pick), "kb" if k == InputRouter.KB else "pad")
+	seat_toast(m, pick, own, k)   # WK-166: same toast as the in-overlay path
 
 func _process(_dt: float) -> void:
 	var m := _live_match()

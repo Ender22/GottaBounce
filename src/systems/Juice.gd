@@ -175,7 +175,10 @@ func _hit_burst(pos: Vector2, dir: Vector2, col: Color) -> void:
 func _on_bounced(body, launch_speed, contact_point) -> void:
 	var t := clampf(launch_speed / 1240.0, 0.0, 1.0)   # 1240 ~= spring-tier launch
 	_shake(lerpf(0.08, 0.3, t))
-	if t > 0.25:
+	# WK-166: was t > 0.25 (310 px/s) - an idle goat's floor bounce (758-929 px/s) buzzed its pad ~once a second
+	# (395 bounce pulses vs 16 smash pulses for one pad, WK-160 audit), numbing the smash / super pulses. Only
+	# spring-tier launches rumble now; smash / super / blast rumble are untouched.
+	if float(launch_speed) >= Tuning.wk166_bounce_rumble_min_speed:
 		_rumble(0.3 * t, 0.5 * t, 0.08, [body])
 	_dust_puff(contact_point, t)
 

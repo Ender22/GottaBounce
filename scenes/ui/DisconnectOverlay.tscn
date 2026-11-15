@@ -263,13 +263,66 @@ theme_override_font_sizes/font_size = 30
 text = "ON ANOTHER CONTROLLER TO TAKE OVER"
 vertical_alignment = 1
 
-[node name="Also" type="Label" parent="Root/Menu/Panel/VBox"]
+[node name="Also" type="HBoxContainer" parent="Root/Menu/Panel/VBox"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Tok0" type="Label" parent="Root/Menu/Panel/VBox/Also"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.372549, 0.658824, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 30
+text = "P3"
+vertical_alignment = 1
+
+[node name="Amp0" type="Label" parent="Root/Menu/Panel/VBox/Also"]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.87, 0.2, 0.15, 1)
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 28
-text = "P3 IS DISCONNECTED TOO"
-horizontal_alignment = 1
+text = "&"
+vertical_alignment = 1
+
+[node name="Tok1" type="Label" parent="Root/Menu/Panel/VBox/Also"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.372549, 0.658824, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 30
+text = "P4"
+vertical_alignment = 1
+
+[node name="Amp1" type="Label" parent="Root/Menu/Panel/VBox/Also"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.87, 0.2, 0.15, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 28
+text = "&"
+vertical_alignment = 1
+
+[node name="Tok2" type="Label" parent="Root/Menu/Panel/VBox/Also"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.372549, 0.658824, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 30
+text = "P1"
+vertical_alignment = 1
+
+[node name="Tail" type="Label" parent="Root/Menu/Panel/VBox/Also"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.87, 0.2, 0.15, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 28
+text = "IS DISCONNECTED TOO"
 vertical_alignment = 1
 
 [node name="Rule" type="Panel" parent="Root/Menu/Panel/VBox"]
@@ -288,18 +341,41 @@ custom_minimum_size = Vector2(640, 84)
 layout_mode = 2
 text = "RESUME WITHOUT P2"
 
+[node name="NoteGap" type="Control" parent="Root/Menu/Panel/VBox/Buttons"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="WithoutNote" type="Label" parent="Root/Menu/Panel/VBox/Buttons"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.72)
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 0
 theme_override_font_sizes/font_size = 28
 text = "P2'S GOAT PLAYS ON AS A CPU"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="NoteGap2" type="Control" parent="Root/Menu/Panel/VBox/Buttons"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="QuitBtn" parent="Root/Menu/Panel/VBox/Buttons" instance=ExtResource("4_hold")]
 custom_minimum_size = Vector2(640, 80)
 layout_mode = 2
 text = "QUIT TO MENU"
+
+[node name="QuitNote" type="Label" parent="Root/Menu/Panel/VBox/Buttons"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 28
+text = "TAKE OVER FIRST TO QUIT"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Rule2" type="Panel" parent="Root/Menu/Panel/VBox"]
 custom_minimum_size = Vector2(0, 5)

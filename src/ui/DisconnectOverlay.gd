@@ -38,10 +38,16 @@ const FOCUS_FILL := Color("#ffd23f")   # neutral gold (no single owner) — the 
 @onready var _take_slash: Label = $Root/Menu/Panel/VBox/TakeRow/Slash
 @onready var _take_glyph2: Control = $Root/Menu/Panel/VBox/TakeRow/Glyph2
 @onready var _take_text: Label = $Root/Menu/Panel/VBox/TakeRow/Text
-@onready var _also: Label = $Root/Menu/Panel/VBox/Also
+@onready var _also: HBoxContainer = $Root/Menu/Panel/VBox/Also   # WK-166 (F5): P# tokens in identity colour + red tail
+@onready var _also_toks: Array = [$Root/Menu/Panel/VBox/Also/Tok0, $Root/Menu/Panel/VBox/Also/Tok1, $Root/Menu/Panel/VBox/Also/Tok2]
+@onready var _also_amps: Array = [$Root/Menu/Panel/VBox/Also/Amp0, $Root/Menu/Panel/VBox/Also/Amp1]
+@onready var _also_tail: Label = $Root/Menu/Panel/VBox/Also/Tail
 @onready var _without: HoldButton = $Root/Menu/Panel/VBox/Buttons/WithoutBtn
 @onready var _without_note: Label = $Root/Menu/Panel/VBox/Buttons/WithoutNote
 @onready var _quit: HoldButton = $Root/Menu/Panel/VBox/Buttons/QuitBtn
+@onready var _note_gap: Control = $Root/Menu/Panel/VBox/Buttons/NoteGap     # WK-166 (F2)
+@onready var _note_gap2: Control = $Root/Menu/Panel/VBox/Buttons/NoteGap2   # WK-166 (F2)
+@onready var _quit_note: Label = $Root/Menu/Panel/VBox/Buttons/QuitNote     # WK-166 (F4)
 @onready var _hints: HBoxContainer = $Root/Menu/Panel/VBox/HintBox
 @onready var _rule2: Control = $Root/Menu/Panel/VBox/Rule2
 
@@ -53,6 +59,9 @@ var queue: Array = []
 # QA readouts (eval)
 var last_action := ""    # "reclaim" / "takeover" / "without" / "quit"
 var resolved: Array = [] # [{h, how, key}] newest last
+var deny_count := 0      # WK-166: deny ticks played for a driver's B / Esc (QA readout)
+var also_text := ""      # WK-166: the "P3 IS DISCONNECTED TOO" line as plain text (QA readout)
+var drivers_left := true # WK-166 (F4): false = no joined device can drive the buttons (QUIT drawn unfocused + caption)
 var _open_msec := 0
 var _closing := false
 
@@ -147,12 +156,25 @@ func _refresh() -> void:
 	var kb_free: bool = watch != null and watch.is_free_device(match_ref, InputRouter.KB)
 	_take_slash.visible = kb_free
 	_take_glyph2.visible = kb_free
-	_take_text.text = "ON ANOTHER CONTROLLER TO TAKE OVER"
-	var others: Array[String] = []
+	# WK-166 (F7): with the ENTER twin on show, the line names the keyboard too
+	_take_text.text = "ON ANOTHER CONTROLLER OR KEYBOARD TO TAKE OVER" if kb_free else "ON ANOTHER CONTROLLER TO TAKE OVER"
+	# WK-166 (F5, CC-8.3): "P3 & P4 ARE DISCONNECTED TOO" - each P# token in that player's identity colour
+	var others: Array = []
 	for i in range(1, queue.size()):
-		others.append(_tag(int(queue[i]["h"])))
+		others.append(int(queue[i]["h"]))
 	_also.visible = not others.is_empty()
-	_also.text = "%s %s DISCONNECTED TOO" % [" & ".join(others), "IS" if others.size() == 1 else "ARE"]
+	var names: Array[String] = []
+	for t in range(_also_toks.size()):
+		var lbl: Label = _also_toks[t]
+		lbl.visible = t < others.size()
+		if t < others.size():
+			lbl.text = _tag(int(others[t]))
+			lbl.add_theme_color_override("font_color", match_ref.player_color(int(others[t])))
+			names.append(lbl.text)
+	for a in range(_also_amps.size()):
+		(_also_amps[a] as Label).visible = a + 1 < others.size()
+	_also_tail.text = "%s DISCONNECTED TOO" % ("IS" if others.size() == 1 else "ARE")
+	also_text = ("%s %s" % [" & ".join(names), _also_tail.text]) if not others.is_empty() else ""
 	_without.text = "RESUME WITHOUT %s" % tag
 	_without_note.text = "%s'S GOAT PLAYS ON AS A CPU" % tag
 	var can_without: bool = watch != null and watch.others_playing(match_ref, _lost_seats())
@@ -162,10 +184,17 @@ func _refresh() -> void:
 	_rule2.visible = can_without
 	_without.visible = can_without
 	_without_note.visible = can_without
+	_note_gap.visible = can_without
+	_note_gap2.visible = can_without
 	for b: Button in [_without, _quit]:
 		(b as HoldButton).ring_color = FOCUS_FILL.darkened(0.25)
-	if not can_without and _without.has_focus():
-		_quit.grab_focus()
+	# WK-166 (F4, CC-1.7 / CC-5.1): with no driver left nothing on a pad / key can fire QUIT (A = TAKE OVER), so it is
+	# not drawn focused (gold + hold ring); a caption says what to do. The mouse can still hold it.
+	drivers_left = can_without
+	_quit_note.visible = not can_without
+	if not can_without:
+		if _without.has_focus() or _quit.has_focus():
+			get_viewport().gui_release_focus()
 
 func _tag(h: int) -> String:
 	var n: int = match_ref.player_label(h)
@@ -228,8 +257,9 @@ func _wire() -> void:
 func _grab_default() -> void:
 	if _without.visible:
 		_without.grab_focus()
-	else:
+	elif drivers_left:
 		_quit.grab_focus()
+	# WK-166 (F4): no driver left -> nothing focused (QUIT is mouse-only until someone takes a seat over)
 
 # ------------------------------------------------------------------ input routing
 
@@ -265,17 +295,19 @@ func _input(e: InputEvent) -> void:
 			_reclaim(lost_h, k)
 		return
 	# 2) a device still driving a seat: drives the two buttons (focus nav + hold A), nothing else
-	var drivers: bool = watch != null and watch.has_active_driver(match_ref, _lost_seats())
 	if watch != null and watch.is_driver(match_ref, k, _lost_seats()):
 		if not _is_menu_nav(e):
 			get_viewport().set_input_as_handled()
+			# WK-166 (CC-5.2 "nothing silently dead"): a driver's B / Esc does nothing here, so it says so
+			if (e.is_action_pressed("ui_cancel") or e.is_action_pressed("menu_back")) and not e.is_echo():
+				AudioManager.play_sfx("ui_click", {"pitch": 0.55, "pitch_var": 0.0, "volume_db": -4.0})
+				deny_count += 1
 		return
-	# 3) a free device: A takes the current seat over; with nobody left to drive, it may also move focus
+	# 3) a free device: A takes the current seat over. WK-166 (F4): with nobody left to drive, nothing else is
+	# actionable (QUIT is not focusable from a pad / key then), so focus moves are swallowed too.
 	if _is_a(e):
 		get_viewport().set_input_as_handled()
 		_takeover(current_seat(), k)
-		return
-	if not drivers and _is_menu_nav(e) and not e.is_action("ui_accept") and not e.is_action("menu_accept"):
 		return
 	get_viewport().set_input_as_handled()
 
@@ -284,6 +316,7 @@ func _input(e: InputEvent) -> void:
 func _reclaim(h: int, key: String) -> void:
 	last_action = "reclaim"
 	watch.rebind(match_ref, h, key)
+	watch.seat_toast(match_ref, h, true, key)   # WK-166 (F3): "P2 · IS BACK!" - visible confirmation, not only a sound
 	_resolve(h, "reclaim", key)
 
 func _takeover(h: int, key: String) -> void:
@@ -291,6 +324,7 @@ func _takeover(h: int, key: String) -> void:
 		return
 	last_action = "takeover"
 	watch.rebind(match_ref, h, key)
+	watch.seat_toast(match_ref, h, false, key)   # WK-166 (F3): "P2 · TAKEN OVER" with the new device's icon
 	_resolve(h, "takeover", key)
 
 func _do_without() -> void:

@@ -1294,3 +1294,9 @@ var wk109_trail_len_s: float = 0.06           # s of travel the streak covers (l
 var wk109_trail_fade_s: float = 0.1           # s the streak fades when it switches off on its own (a blunting touch kills it on the frame)  # WK-109
 var wk109_power_duck_db: float = -3.0         # dB SFX-bed duck under the power cue (KO duck is -4 for 0.3 s)  # WK-109
 var wk109_power_duck_s: float = 0.15          # s the power duck holds  # WK-109
+
+# --- WK-166 disconnect follow-ups (docs/audit/2026-11-16_wk160_recheck.md). Read by src/systems/Juice.gd (bounce  # WK-166
+# rumble) and src/ui/DeviceToast.gd (lobby toast placement).  # WK-166
+var wk166_bounce_rumble_min_speed: float = 1100.0   # px/s launch a bounce needs before it rumbles the bouncer's pad (was 310 = t > 0.25 of 1240; idle floor bounces launch 758-929)  # WK-166
+var wk166_lobby_toast_pos: Vector2 = Vector2(40.0, 814.0)   # px top-left of the toast stack in the Herd Lobby (low-left, beside the CPU tray; top-centre covered the roster)  # WK-166
+var wk166_lobby_toast_width: float = 560.0    # px width of the lobby toast stack (toasts left-align inside it)  # WK-166

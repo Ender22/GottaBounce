@@ -11,6 +11,37 @@ extends CanvasLayer
 
 ## QA feed (eval): every toast shown, newest last: {text, tag, icon, msec}.
 var shown_log: Array = []
+## WK-166 (F6): "top" = the authored top-centre stack; "lobby" = low-left, beside the CPU tray (the top-centre stack
+## covered four goat portraits on the Herd Lobby roster strip). Eval-readable.
+var placement := "top"
+var _top_offsets := Vector4.ZERO   # authored left / top / right / bottom offsets of the stack
+
+func _ready() -> void:
+	if _stack != null:
+		_top_offsets = Vector4(_stack.offset_left, _stack.offset_top, _stack.offset_right, _stack.offset_bottom)
+
+## WK-166 (F6): where the next toasts stack. Live toasts move with it (they are children of the one stack).
+func set_placement(p: String) -> void:
+	if _stack == null or p == placement:
+		return
+	placement = p
+	if p == "lobby":
+		_stack.anchor_left = 0.0
+		_stack.anchor_right = 0.0
+		_stack.offset_left = Tuning.wk166_lobby_toast_pos.x
+		_stack.offset_top = Tuning.wk166_lobby_toast_pos.y
+		_stack.offset_right = Tuning.wk166_lobby_toast_pos.x + Tuning.wk166_lobby_toast_width
+		_stack.offset_bottom = Tuning.wk166_lobby_toast_pos.y + 300.0
+	else:
+		_stack.anchor_left = 0.5
+		_stack.anchor_right = 0.5
+		_stack.offset_left = _top_offsets.x
+		_stack.offset_top = _top_offsets.y
+		_stack.offset_right = _top_offsets.z
+		_stack.offset_bottom = _top_offsets.w
+	var flag: int = Control.SIZE_SHRINK_BEGIN if p == "lobby" else Control.SIZE_SHRINK_CENTER
+	for c in _stack.get_children():
+		(c as Control).size_flags_horizontal = flag
 
 ## Show one toast. `tag` = "" for no P# chip; `icon` = any PadGlyph id ("pad", "A", "kb", ...), "" = none.
 func show_toast(text: String, tag: String = "", tag_color: Color = Color("#ffd23f"), icon: String = "pad") -> void:
