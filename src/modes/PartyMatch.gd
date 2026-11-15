@@ -199,8 +199,8 @@ var _state_t := 0.0
 var _popped := 0
 var _cd_beat := -1
 var _sd_lock := 0.0              # sudden-death revive input lock countdown
-var _end_check := -1.0          # pending stage-decision timer (double-KO window)
-var _recent_dead: Array = []    # simultaneous-elimination group (double-KO SD, spec §5)
+var _end_check := -1.0          # pending stage-decision timer (double-KO window; game s since WK-181)
+var _recent_dead: Array = []    # simultaneous-elimination group (double-KO SD, spec §5): at most the last two (WK-181)
 var _last_death_clock := 0.0
 var _revived_this_stage := false # one sudden-death revive max per stage (no recursion)
 var _stage_deltas: Array = []   # applied kill deltas this stage (for the STAGE_END sub-line)
@@ -855,7 +855,7 @@ func _tick_combat(delta: float, rdelta: float) -> void:
 		return
 	# deferred stage decision: wait double_ko_window after a death that left <=1 not-eliminated
 	if _end_check >= 0.0:
-		_end_check -= rdelta
+		_end_check -= delta   # WK-181: GAME s, like the round_clock grouping (was real s: under KO hit-stop it expired ~0.07 game-s after the death)
 		if _end_check <= 0.0:
 			_end_check = -1.0
 			_decide_stage_end(true)
@@ -1141,10 +1141,16 @@ func _on_killed(victim, cause, attacker) -> void:
 		if _ghost_dir != null:
 			_ghost_dir.on_eliminated(idx, victim)   # WK-37: a ghost rises ghost_spawn_delay later (cancelled by SD/stage end)
 		# simultaneous-ELIMINATION grouping for the double-KO SD (spec §5)
-		if _recent_dead.size() > 0 and (round_clock - _last_death_clock) <= Tuning.double_ko_window:
-			_recent_dead.append(victim)
-		else:
-			_recent_dead = [victim]
+		# WK-181: the SD pair is the LAST TWO not-yet-eliminated goats (spec §5, owner 2026-07-03): only the elimination
+		# that left ONE goat standing can pair with the final one (window on game time, round_clock). An earlier
+		# elimination never joins, however close: a 0.5 s chain used to revive every goat in it (3- and 4-way "SD").
+		var wk181_ne: int = _not_eliminated_count()   # WK-181
+		if wk181_ne >= 2:   # WK-181: not one of the last two
+			_recent_dead.clear()   # WK-181
+		elif wk181_ne == 0 and _recent_dead.size() == 1 and (round_clock - _last_death_clock) <= Tuning.double_ko_window:   # WK-181
+			_recent_dead.append(victim)   # WK-181: the final elimination within the window of the one that left a lone goat
+		else:   # WK-181
+			_recent_dead = [victim]   # WK-181: ne == 1 (a lone survivor, the stage decision is deferred) or the window has passed
 		_last_death_clock = round_clock
 	var ne := _not_eliminated_count()
 	if _showdown != null and eliminated:
@@ -1285,6 +1291,8 @@ func _enter_stage_end(deferred := false) -> void:
 	state = "STAGE_END"
 	EventBus.combat_ended.emit()   # lethal hazards go inert (frozen survivors are safe during the freeze)
 	# the double-KO wait already elapsed since the last death — it counts as freeze time
+	# (WK-181: the wait is now double_ko_window GAME s, i.e. a little longer in real s under the KO hit-stop; only the
+	# nominal window is credited so the stage-end banner keeps its hold)
 	_state_t = Tuning.double_ko_window if deferred else 0.0
 	# finalize the round_stats record
 	_stage_kills = (_cur_stats.get("kills", []) as Array).duplicate(true) if not _cur_stats.is_empty() else []

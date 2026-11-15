@@ -260,3 +260,7 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   For forced long tails null the fighters' `provider` (they bounce in place) and tether them on void arenas; restore the provider later.
 - **WK-37 (found in WK-169 QA, not fixed): ghost_spawn_delay is REAL seconds**, so under KO slow-mo a ghost can rise ~0.15 game-s after its
   death, BEFORE a double-KO SD revive at +0.16 s: Grassy Expanse showed the revived seat 3 alive AND its ghost through the whole SD.
+- **WK-181: a KO hit-stop can eat a whole REAL-time window.** Rendered (software GPU), the kill hit-stop held time_scale ~0.04 for
+  ~0.45 real s, so PartyMatch's real-time 0.5 s double-KO `_end_check` expired only 0.03-0.07 GAME s after the death (a 0.22 game-s
+  double-KO ended the stage instead of SD), while headless it was ~0.5 game s. Any gameplay window that follows a kill must count game
+  time (delta), never rdelta; rdelta is for UI/flow beats only. Forced-kill QA: space kills with physics frames or game time from a probe.
