@@ -1577,7 +1577,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   WK-CD4 re-judges the refund side's feel (CD3 G3/G5 ran with the gates OFF).
 
 
-### [ ] WK-136 [P1][S] A near-empty re-light always delivers at least ~0.1 s of thrust (WK-128 regression, CD3-04a)
+### [x] WK-136 [P1][S] A near-empty re-light always delivers at least ~0.1 s of thrust (WK-128 regression, CD3-04a) — d23d2a4
 - Area: brawl | trials (fuel feel) · Owner: gameplay-programmer (+ game-designer: invariant #14) · Source: creative-director WK-CD3
   CD3-04 (§5 G2). CD3 filed P2. The producer raised it to P1: it is missing feedback on a core action (FLY) at the worst possible moment.
 - Evidence: in m1, 10 of 130 human boost presses (7.7 %) were billed down to `boost_relight_min_left` (1.0, leaving 0.76 after the same
