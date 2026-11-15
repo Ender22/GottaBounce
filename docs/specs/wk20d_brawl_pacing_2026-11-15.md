@@ -11,6 +11,9 @@ knockback) · owner check-in 2026-11-14 · GAME_ESSENCE · VISION · GDD · FEEL
 **Rules for this spec:** no code, no BACKLOG edit. Every candidate ships as an OFF-by-default knob or a JSON variant in a QA scratch
 copy, so the batch toggles it at runtime and nothing persists.
 
+> **2026-11-15 addendum (§11, after WK-CD4 and the R1-R4 ruling):** T1 (overall median ≥ 12 s) is **retired** and replaced by
+> per-arena-class targets. **R5 is Won't do.** **R6 is a conditional**, held for the post-CD4-01 measurement. See §11.
+
 ---
 
 ## 0. At a glance
@@ -668,3 +671,245 @@ All are computed per arm. CIs: Wilson for proportions, bootstrap for medians and
 - Design: `docs/reference/GAME_DESIGN.md` §3 (10-30 s rounds), §4.2 / §4.6 (super gamble, recovery triad), §7 (early circuits tame);
   `docs/GAME_ESSENCE.md` (core verbs, per-gap flight rule); DECISIONS 2026-07-19, 2026-11-14 (WK-95, WK-95e, WK-20a, autonomy),
   2026-11-15 (WK-128).
+
+---
+
+## 11. ADDENDUM 2026-11-15: per-arena-class targets, R5 / R6 status, and the post-CD4-01 measurement
+
+**Written after:** the R1-R4 batch (`docs/audit/2026-11-15_wk20d_r1.md`, ruling e09d727: R2 adopted, the rest not), WK-20e 4282309
+(truce shipped), WK-CD4 (`docs/audit/2026-11-15_cd4_playthrough.md`, CD4-01 / CD4-03) and BACKLOG re-rank #9 (WK-20d is now P2, with
+a mis-scope flag on T1).
+**Data re-read:** `tools/out/wk/WK-20d_R1_summary.json` (per-arena scorecards, pooled B0b and R2 arms, 8 stages per arena) ·
+`tools/out/wk/CD4_data/m1.json`, `m2_trim.json` (per-stage `length_s`, 25 stages in circuit order) · the 20 MEADOW MILE level JSONs
+(platforms, gaps, hazards).
+**Still in force:** §1 fantasy, §2 constraints, §6 metrics, §7 guardrails (as amended in §11.6). **Do not touch the spawn truce.**
+
+### 11.1 Why T1 is retired
+- **It measures the mix, not the design.** One overall median blends wide-deck openers, void archipelagos and gimmick arenas. Once
+  CD4-01 changes which arenas a session plays (start rotation or shuffled bag), the overall median moves even if no arena changes.
+- **12 s has no anchor.** VISION and GDD §3 set the round band at **10-30 s** ("Duck Game runs ~8-10 s; ours may run slightly
+  longer"). The headless baseline already sits at 11.2 s (B0b), and R2 at 11.8 s.
+- **It aims at the wrong feeling.** No couch can feel 10.7 s vs 12 s. What CD4-03 describes is the **short tail on void arenas**:
+  stages of 5-6 s, where "launched → claw back → smash" has no room. So the new targets are by class, and they include a tail line.
+- **Per-arena numbers are noise at n = 8.** The same arena, two arms of the same build family: Hill and Dale 4.89 s (B0b) vs 24.46 s
+  (R2); Grassy Expanse 13.6 vs 18.6 s. **Targets are set per class, pooled.** Any per-arena ranking needs n ≥ 12 (§11.8).
+
+### 11.2 Arena classes (a data rule, so WK-57's scorecard can compute it for any circuit)
+**Definitions:**
+- *Floor decks* = bounce platforms whose top is within 250 px of the lowest platform top. Spring and bubblegum shoulders above that
+  row don't count.
+- *Coverage* = the union of floor-deck x-extents divided by the walkable span (min to max x of the floor decks).
+- *Inner lethal gap* = a gap between floor decks with a lethal void or pit below.
+
+| Class | Rule | MEADOW MILE members (coverage; inner gaps) |
+|---|---|---|
+| **G: grounded / wide-deck** | coverage ≥ 80 % **and** ≤ 1 inner lethal gap (or `kill_shape` central_pit / enclosed) | grassy_expanse (85 %; 1 pit), meadow_first_hop (84 %; 1), sunny_shoulders (84 %; 1) |
+| **H: hazard / gimmick** | any `moving_hazard`, `moving_platform`, lethal hazard object, or a bumper-tier feature | windmill_meadow (pendulum), hay_bales (4 bumpers), high_pasture (bumper side walls, vertical), meadow_carousel (moving cart) |
+| **V: void archipelago** | everything else | islands_void (69 %; 3), the_cliff (66 %; 3), twin_chasms (71 %; 2), clover_steps (69 %; 2), three_meadows (70 %; 2), daisy_ring (ring), long_meadow (65 %; 4), hill_and_dale (62 %; 3 + height steps), bluff_line (72 %; 2), two_hills (69 %; 2), meadow_spine (59 %; 2), stepping_bloom (60 %; 4), river_split (74 %; 2) |
+
+- In other circuits: THE SCRAPWORKS, THE FOUNDRY and MAYHEM MILE are mostly H. THE HIGH WIRE is mostly V.
+- These targets are measured on MEADOW MILE only. Applying them to other circuits is WK-57's job.
+
+### 11.3 Evidence by class (what we have now)
+- Headless class values are the **median of the per-arena medians** (8 stages per arena), so they are an approximation. Phase A
+  recomputes them from per-stage logs.
+- CD4 values are per-stage (HumanSim4, rendered).
+
+| Class | Headless B0b (no truce) | **Headless R2 (truce; current build family)** | CD4 rendered (truce) |
+|---|---|---|---|
+| G (3) | 13.6 s (10.8-19.1) | **15.1 s** (14.9-18.6) | 17.8 s (n 5; 1 under 6 s: Sunny Shoulders 4.6) |
+| V (13) | 11.1 s (4.9-14.3) | **10.7 s** (7.8-24.5) | 9.4 s (n 20; **4/20 = 20 % under 6 s**, 8/20 ≤ 6.3 s) |
+| H (4) | 10.0 s (8.9-12.3) | **14.3 s** (10.8-15.4) | none played: CD4-01 (the fixed order never reaches arenas 15-20) |
+
+**Three readings:**
+1. **The class split is real, but smaller than CD4 made it look.** G runs about 15-18 s and V about 9.5-11 s. Both sit inside or at
+   the floor of the GDD band.
+2. **CD4's bimodality follows circuit position more than arena class.**
+   - Islands Void, The Cliff and Twin Chasms are V-class. In CD4 they ran **14.3-17.6 s** as stages 2-4, against 8.7-10.5 s headless
+     (R2).
+   - The CD4 back half (stages 6-13) was nearly all V, and ran 4.5-14 s.
+   - So something position-dependent or rig-dependent is mixed in. Hypotheses:
+     - the CD's screenshot bursts are concentrated in the first stages, and the driver's timing may run on frames, not game time;
+     - score-state effects (for example, the ghost hush at match point);
+     - n = 2 per arena.
+   - **Don't design geometry against an effect that may be an artefact.** CD4-01 decorrelates position from arena, so the post-CD4-01
+     run can separate the two (§11.8, Phase A lane 2).
+3. **Where the deaths are now.** With the truce shipped, side self-KOs are almost gone:
+   - R2 primary half: 2 side vs 34 void, of 36 human self-KOs;
+   - CD4: 0 side of 13 (void 8, bottom 4, top 1).
+
+   The remaining problem is the **void floor**, on V arenas.
+
+### 11.4 New targets (they replace T1; T2-T8 stand, with the §11.6 fixes)
+Measured headless, 3 × HumanSim4 + CPU L2, game time, on the build after WK-153 (and WK-135 p3, if landed). Pooled per class.
+
+| ID | Scope | Target | Why |
+|---|---|---|---|
+| **T1-G** | G arenas | median 12-25 s; p90 ≤ 40 s; no stage > 60 s | Inside the GDD band. Wide decks are the careful openers. Over 40 s reads as a stall (CD4: Grassy Expanse 39.4 s) |
+| **T1-V** | V arenas | median **≥ 10.0 s** (bootstrap CI lower bound ≥ 9.0) **and** stages **< 6 s ≤ 15 %** **and** claw-backs (M9) **≥ 3.0** per human alive-minute | 10 s is the GDD floor. Under 6 s is the stage where the fantasy arc has no room (CD4-03). 3.0 ≈ R2's 3.10, so RECOVER must not get rarer |
+| **T1-H** | H arenas | median 10-25 s. Hazard-caused share of deaths is reported (info) | first real data, once CD4-01 lets sessions reach them |
+| **T1-S** | session (real match flow with CD4-01, first-to-10) | stage median ≥ 10 s; no run of 3 or more consecutive stages under 6 s in more than 1 match in 8; mean match length 2.5-5.0 min (T8) | what a couch actually lives through |
+
+- **Info, not a target:** interstitial share at 4.8 s per stage (owner-ruled screen). Report it per session.
+- **Rendered sanity check, at WK-CD5:** V median ≥ 8.5 s and < 6 s ≤ 25 % in rendered play. Rendered runs are harsher than headless:
+  CD3 8.4 s vs B0 10.1 s, CD4 V 9.4 s vs R2 V 10.7 s. A rendered miss with a headless pass sends the **rendered-vs-headless gap** to
+  QA as its own item. It does not trigger geometry.
+
+### 11.5 Rulings on R5 and R6
+
+**R5 (side runway to 720 px): WON'T DO.**
+- **The thing it could fix is gone.** R5's target was marginal side self-KOs. After the truce they are 2 of 36 (R2) and 0 of 13
+  (CD4). R1 already showed that pushing deaths away from the side edges just moves them into the voids.
+- **What is left for R5 to change is credited side ring-outs.** Blunting those weakens the super's kills, which is the owner's +25 %
+  knockback feed under ruling (c). It also cuts against the fantasy ("smash rivals off the screen"). Wrong direction.
+- **Reopen only if** Phase A shows side-edge deaths at ≥ 25 % of human deaths on V arenas.
+
+**R6 (catch shelves): NOT warranted by default. Held as a pre-registered conditional: V arenas only, at most 4 of them, triggered only
+by a Phase A miss on T1-V's tail or claw-back lines.**
+- **Why R6 is the right conditional lever:**
+  - The void floor is now where people die (R2: 34 of 36 self-KOs; CD4: 12 of 13 void or bottom).
+  - RECOVER is the verb CD4-03 says rarely happens on V arenas, and a shelf is a direct claw-back opportunity.
+  - It changes no rule and no constant.
+- **Why not build it now:**
+  - The headless V median (10.7 s) already sits at the GDD floor.
+  - 8-stage-per-arena data cannot pick the arenas (Hill and Dale flips between 4.9 and 24.5 s).
+  - CD4-01 changes what sessions see.
+  - The CD4 position effect may be an artefact.
+  - Every shelf has costs: it also catches smashed victims (a lethality feed), it extends `camera_bounds` downward, and it needs art
+    that reads against the CD4-01 sky drop.
+- **Arena selection rule (if triggered):**
+  - The arena is in the bottom third of V by Phase A median (n ≥ 12 per arena), **and**
+  - it carries a structural flag: ≥ 3 inner lethal gaps, or coverage < 65 %.
+  - Pre-registered expected picks: **stepping_bloom, long_meadow, hill_and_dale, islands_void.** Alternate: the_cliff.
+  - two_hills (the worst R2 median at 7.8 s) is **not** eligible structurally (2 gaps, 69 %). If it ranks bottom again, it goes to the
+    level-designer as a separate note: its short stages likely come from the high-hill → low-centre super line, not the gaps.
+- **Shelf spec amendments (on top of §4.6):**
+  - **Fuel:** a shelf contact must pay fuel under the build's refund rules (WK-135 p3 refund gates; marshmallow pays about 13.3, not
+    20 as §4.6 assumed) on ≥ 95 % of first contacts. Otherwise the shelf is a trampoline to death.
+  - **Camera:**
+    - A shelf whose top is 380-450 px below the island extends the platform-union bottom by about 300 px, so `camera_bounds` grows
+      downward. On every expected pick, horizontal extent dominates: Islands Void is about 5,980 px wide vs about 1,490 × 16/9 ≈
+      2,650 px tall. So the zoom-in cap (`cam_close_fraction`) is unchanged.
+    - The only framing change is that a falling goat stays in frame lower down instead of turning into a bubble. For a recovery,
+      that is the right change.
+    - It is still the owner's camera area: before/after rendered stills per arena, and a DECISIONS camera note.
+  - **Art:** a "rescue pad" in the platform language (glossy, outlined bounce surface). It must read as a bounce, not as sky or cloud
+    art against the CD4-01 sky drop. Art-director grade before adoption.
+  - **Flight:** the per-gap flight analysis is attached for each shelf. No island is reachable from a shelf by bouncing alone.
+  - **No camping:** marshmallow always bounces. Shelf dwell (alive time within 150 px above a shelf) ≤ 3 %.
+
+### 11.6 Protocol fixes carried in (from the R1-R4 audit, "For the designer" §5)
+- **G2** uses only its relative part: super share ≥ baseline − 8 pp. The absolute 60 % bar failed in the baseline itself.
+- **T5** is relative as well: super share ≥ baseline − 5 pp.
+- **G8:** the WK-128 sputter meter is blind after WK-136. Replace it with "billed relights per 100 boost presses ≤ 1.1 × baseline",
+  or drop it if no counter exists. G8 is info only for this addendum, because nothing here touches fuel constants.
+- **P0** is re-calibrated to the headless baseline (§11.7 A1-A3 replace it).
+
+### 11.7 Pre-registered predictions (written before any post-CD4-01 data)
+
+**Phase A (measure only):**
+
+| ID | Prediction |
+|---|---|
+| A1 | G median 13-19 s, p90 ≤ 40 s → **T1-G passes** |
+| A2 | V median 10.0-11.5 s (median line passes); V under-6 s share 8-16 % (**borderline**); claw-backs 2.9-3.6 per alive-minute |
+| A3 | H median 11-16 s → **T1-H passes**. Hazard deaths 10-30 % of deaths on windmill_meadow and meadow_carousel |
+| A4 | Position effect: within class, stages 1-5 vs 6+ differ by < 2 s (CD4's bimodality was rig or noise). 60 % confidence |
+| A5 | Session median under CD4-01 is 10.0-11.5 s. It is slightly *lower* than the fixed order would give, because sessions see fewer G arenas: 3 of 20 on average vs 3 of the first 13 |
+| A6 | CD4-01 correctness: a fresh session opens on Grassy Expanse; REMATCH does not restart at arena 1; arenas 15-20 appear in sessions; no arena repeats within a match if it's a bag |
+| **Ruling forecast** | WK-20d closes with no R6 (≈ 55 %); R6 on 2-4 arenas (≈ 35 %); V needs a geometry pass beyond shelves, routed to WK-57 (≈ 10 %) |
+
+**Phase B (only if R6 runs), on each shelved arena vs its own same-session baseline:**
+
+| ID | Prediction |
+|---|---|
+| B1 | median +1.5 to +3.5 s; under-6 s share −40 to −60 % (relative); claw-backs +20 to +40 % |
+| B2 | credited KO/min −5 to −15 % (G1's ≥ 0.8 × holds); super share −0 to −5 pp |
+| B3 | 0.5-1.5 shelf contacts per stage; shelf dwell ≤ 3 % of alive time |
+| B4 | off-screen bubble share −1 to −3 pp (the camera now frames recoveries) |
+
+### 11.8 Measurement plan (run AFTER WK-153 / CD4-01 commits; #5 in the headless queue)
+
+**Preconditions:**
+- WK-153 is committed (start rotation or shuffled bag, plus the void sky drop).
+- Record HEAD and whether WK-135 p3 is in. If WK-135 p3, or any `Player.gd` / fuel change, lands mid-batch: stop and re-baseline.
+- **The sky drop must be visual only.** For every arena WK-153 touched, QA diffs `bounds`, `platforms`, `kill_shape` and every
+  non-prop `objects[]` entry against the pre-WK-153 blob. Any geometry difference is flagged before Phase A runs. (Example:
+  `levels/islands_void.json` is modified in the working tree right now.)
+- **The design works with either CD4-01 implementation.**
+  - With a **bag**, position and arena decorrelate inside a match.
+  - With a **rotating start**, they decorrelate across the REMATCH chain.
+  - Lane 2 below logs both and analyses whichever applies.
+
+**Rig** (the same as the R1-R4 batch unless stated):
+- One headless batch, at most 2 processes.
+- `git archive` scratch copies with the McpInteractionServer autoload removed, `--fixed-fps 120`, game time only.
+- 3 × **HumanSim4** (`tools/out/wk/CD4_data/HumanSim4.gd.txt`, with the WK-20d SUDDEN_DEATH fix) + CPU L2.
+- Ghosts ON, powerups at defaults, the truce ON (shipped). Nothing else changed.
+
+**Phase A: measure only (about 440 stages, about 90-100 min of game time):**
+- **Lane 1, forced arena loop.**
+  - The 20 MEADOW MILE arenas in a forced ordered loop (harness, KILLS 999), × 12 seeds = **240 stages**: G 36, V 156, H 48.
+  - Every arena gets n = 12, which is the floor for the R6 selection rule.
+- **Lane 2, real flow.**
+  - **8 first-to-10 matches** through the real match flow (KILLS 10, CD4-01 on), each followed by one REMATCH: 16 matches, about 200
+    stages.
+  - Per stage, log: arena id, class, position in match, match index in the session, score state, `length_s`, every death with edge
+    and killer, claw-backs, and hazard-caused deaths.
+
+**Analysis:**
+- T1-G / V / H come from lane 1. Lane 2 stages, pooled by class, are the replication.
+- T1-S comes from lane 2.
+- **Position effect:** within class on lane 2, the median of stage positions 1-5 minus positions 6+, with a bootstrap CI.
+- Side-edge share of human deaths on V, for the R5 reopen test.
+- Per-arena V ranking on lane 1, for R6 selection.
+
+**Decision table** (rows 1-3 are mutually exclusive; rows 4-6 can fire alongside any of them):
+
+| Row | Condition | Ruling |
+|---|---|---|
+| 0 | fewer than 100 V stages, or a precondition fails (geometry diff, CD4-01 not behaving as A6) | **Inconclusive.** Fix and rerun once |
+| 1 | T1-V passes (all three lines), and T1-G and T1-H pass | **Close WK-20d:** no R5, no R6. DECISIONS entry with the class numbers |
+| 2 | T1-V misses only on the under-6 s or claw-back line, with V median ≥ 9.0 | **Phase B:** R6 on the arenas the §11.5 rule selects |
+| 3 | T1-V median < 9.0 | Phase B R6 **and** route V to a level-designer geometry pass (WK-57 scorecard) |
+| 4 | T1-G p90 > 40 s or median > 25 s | New item: wide-deck stall (not R6). Likely Grassy Expanse |
+| 5 | T1-H outside 10-25 s | New item per arena family. Hazards are tuned, not shelved |
+| 6 | Position effect ≥ 3 s, with a CI excluding 0 | New QA item to find the cause **before** any geometry is built. Phase B waits for it |
+| 7 | Side-edge deaths ≥ 25 % of human deaths on V | Reopen R5 as a separate single-variable arm |
+
+**Phase B: conditional R6** (a continuation of the same batch if game time allows, otherwise the next headless slot):
+- **Variant:** R6 JSON variants (scratch copy only) on the selected arenas, at most 4.
+- **Volume:** 24 shelf stages + 24 fresh same-session baseline stages per arena, interleaved by seed. That is at most 192 stages.
+- **Mechanism checks:**
+  - shelf contacts > 0;
+  - the per-gap flight analysis is attached;
+  - the new `camera_bounds` values are recorded and the aspect check passes (vertical × 16/9 ≤ horizontal);
+  - shelves pay fuel on ≥ 95 % of first contacts.
+- **Keep rule, per arena.** The shelf stays only if both hold:
+  - under-6 s share falls ≥ 30 % (relative) **or** median rises ≥ +1.5 s; **and**
+  - G1 (≥ 0.8 ×), G2 (relative), G5, G7 and shelf dwell ≤ 3 % all hold.
+- **Class recompute.** V is then recomputed with the kept shelves (lane 1 data with the shelved arenas swapped in), and it must pass
+  T1-V. If it still misses, apply row 3.
+- **Rendered (single process, own port):**
+  - a WK-93 recording, 20 s per shelved arena, contact sheet looked at:
+    - does the shelf read as a rescue bounce, not as backdrop?
+    - does a falling goat visibly claw back?
+    - does the camera keep it framed with no lurch?
+  - before/after stills per arena (owner camera area);
+  - art-director grade.
+
+**Budget:** Phase A about 440 + Phase B at most 192 = at most about 630 stages (under the 1,050 cap), about 130 min of game time.
+
+**Deliverables:**
+- `tools/out/wk/WK-20d_classes.json`: `meta`, per-class T1-G / V / H / S with n and CIs, position-effect estimate, per-arena
+  scorecard at n ≥ 12, side-edge share, Phase B arms if run, and `predictions_hit` for A1-A6 and B1-B4.
+- Raw per-stage logs.
+- A results doc in `docs/audit/`.
+- A DECISIONS entry: close, R6 adopted per arena, or a re-route.
+
+**Success criteria for this addendum's protocol:**
+1. Every class has n and a CI. V has n ≥ 100 and every arena has n ≥ 12 on lane 1.
+2. The sky-drop geometry diff ran, with its result recorded.
+3. The position effect is reported with a CI, whichever CD4-01 shape shipped.
+4. The designer can apply the §11.8 decision table without asking for another number.
+5. At most 2 Godot processes ran at once, and game time is recorded in `meta`.
