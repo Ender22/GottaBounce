@@ -1,0 +1,200 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/ui/ControlsScreen.gd" id="1_ctl"]
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="4_glyph"]
+
+[node name="ControlsScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_ctl")
+
+[node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(1600, 0)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"ToyPanel"
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="Ribbon" type="PanelContainer" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRibbon"
+
+[node name="Row" type="HBoxContainer" parent="Panel/VBox/Ribbon"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="BackChip" type="Button" parent="Panel/VBox/Ribbon/Row"]
+custom_minimum_size = Vector2(196, 66)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ToyBackChip"
+
+[node name="Inner" type="HBoxContainer" parent="Panel/VBox/Ribbon/Row/BackChip"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Glyph" type="Control" parent="Panel/VBox/Ribbon/Row/BackChip/Inner"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("4_glyph")
+glyph = "B"
+
+[node name="Label" type="Label" parent="Panel/VBox/Ribbon/Row/BackChip/Inner"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 34
+text = "BACK"
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="Panel/VBox/Ribbon/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"ToyRibbonTitle"
+text = "CONTROLS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Balance" type="Control" parent="Panel/VBox/Ribbon/Row"]
+custom_minimum_size = Vector2(196, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HeadPad" type="MarginContainer" parent="Panel/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+
+[node name="Head" type="HBoxContainer" parent="Panel/VBox/HeadPad"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+
+[node name="Spacer" type="Control" parent="Panel/VBox/HeadPad/Head"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="PadHead" type="PanelContainer" parent="Panel/VBox/HeadPad/Head"]
+custom_minimum_size = Vector2(250, 56)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRow"
+
+[node name="Box" type="HBoxContainer" parent="Panel/VBox/HeadPad/Head/PadHead"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="Control" parent="Panel/VBox/HeadPad/Head/PadHead/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("4_glyph")
+glyph = "pad"
+
+[node name="Label" type="Label" parent="Panel/VBox/HeadPad/Head/PadHead/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 28
+text = "CONTROLLER"
+vertical_alignment = 1
+
+[node name="KbHead" type="PanelContainer" parent="Panel/VBox/HeadPad/Head"]
+custom_minimum_size = Vector2(250, 56)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRow"
+
+[node name="Box" type="HBoxContainer" parent="Panel/VBox/HeadPad/Head/KbHead"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="Control" parent="Panel/VBox/HeadPad/Head/KbHead/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("4_glyph")
+glyph = "kb"
+
+[node name="Label" type="Label" parent="Panel/VBox/HeadPad/Head/KbHead/Box"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 28
+text = "KEYBOARD"
+vertical_alignment = 1
+
+[node name="Rows" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Tips" type="PanelContainer" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyChip"
+
+[node name="TipsLabel" type="Label" parent="Panel/VBox/Tips"]
+layout_mode = 2
+theme_type_variation = &"ToyChipLabel"
+theme_override_font_sizes/font_size = 30
+text = "EVERYTHING BOUNCES  ·  BOUNCE OFF HEADS  ·  SMASH RIVALS OFF THE SCREEN"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Rule" type="Panel" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRule"
+
+[node name="FooterRow" type="HBoxContainer" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="HintBox" type="HBoxContainer" parent="Panel/VBox/FooterRow"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+script = ExtResource("3_hint")
+hints = PackedStringArray("B|Back")
+dark_text = true

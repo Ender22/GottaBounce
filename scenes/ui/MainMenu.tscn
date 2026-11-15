@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://mainmenu00001"]
+[gd_scene load_steps=5 format=3 uid="uid://mainmenu00001"]
 
 [ext_resource type="Script" path="res://src/ui/MainMenu.gd" id="1_main"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" path="res://assets/ui/logo.png" id="3_logo"]
+[ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="4_hint"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -114,31 +115,41 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0784314, 0.0784314, 0.156863, 0.55)
+color = Color(0.14, 0.09, 0.07, 0.6)
 
 [node name="Panel" type="PanelContainer" parent="QuitDialog"]
+custom_minimum_size = Vector2(740, 0)
 layout_mode = 1
+anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = &"MatchEndPanel"
+theme_type_variation = &"ToyPanel"
 
 [node name="VBox" type="VBoxContainer" parent="QuitDialog/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 22
 alignment = 1
 
-[node name="Title" type="Label" parent="QuitDialog/Panel/VBox"]
+[node name="Ribbon" type="PanelContainer" parent="QuitDialog/Panel/VBox"]
+custom_minimum_size = Vector2(0, 104)
 layout_mode = 2
-theme_type_variation = &"BannerTop"
+mouse_filter = 2
+theme_type_variation = &"ToyRibbon"
+
+[node name="Title" type="Label" parent="QuitDialog/Panel/VBox/Ribbon"]
+layout_mode = 2
+theme_type_variation = &"ToyRibbonTitle"
+theme_override_font_sizes/font_size = 54
 text = "QUIT GOTTABOUNCE?"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="StayBtn" type="Button" parent="QuitDialog/Panel/VBox"]
-custom_minimum_size = Vector2(360, 92)
+custom_minimum_size = Vector2(420, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
@@ -146,9 +157,26 @@ theme_type_variation = &"ShellBtn"
 text = "STAY"
 
 [node name="QuitBtn" type="Button" parent="QuitDialog/Panel/VBox"]
-custom_minimum_size = Vector2(360, 92)
+custom_minimum_size = Vector2(420, 92)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 2
 theme_type_variation = &"ShellBtn"
 text = "QUIT"
+
+[node name="Rule" type="Panel" parent="QuitDialog/Panel/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRule"
+
+[node name="HintBox" type="HBoxContainer" parent="QuitDialog/Panel/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+script = ExtResource("4_hint")
+hints = PackedStringArray("A|Select", "B|Back")
+dark_text = true
+device_ctx = "menu"

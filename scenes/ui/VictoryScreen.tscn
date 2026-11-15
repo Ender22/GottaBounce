@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://src/ui/VictoryScreen.gd" id="1_vs"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
 
 [node name="VictoryScreen" type="CanvasLayer"]
 layer = 13
@@ -32,9 +33,9 @@ color = Color(0.14, 0.09, 0.07, 0.55)
 [node name="Rays" type="TextureRect" parent="Root"]
 layout_mode = 0
 offset_left = 170.0
-offset_top = 140.0
+offset_top = 100.0
 offset_right = 1070.0
-offset_bottom = 1040.0
+offset_bottom = 1000.0
 pivot_offset = Vector2(450, 450)
 mouse_filter = 2
 expand_mode = 1
@@ -43,9 +44,9 @@ stretch_mode = 5
 [node name="Shadow" type="TextureRect" parent="Root"]
 layout_mode = 0
 offset_left = 340.0
-offset_top = 310.0
+offset_top = 270.0
 offset_right = 900.0
-offset_bottom = 870.0
+offset_bottom = 830.0
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
@@ -54,9 +55,9 @@ self_modulate = Color(0.231373, 0.141176, 0.105882, 0.85)
 [node name="Bust" type="TextureRect" parent="Root"]
 layout_mode = 0
 offset_left = 340.0
-offset_top = 300.0
+offset_top = 260.0
 offset_right = 900.0
-offset_bottom = 860.0
+offset_bottom = 820.0
 pivot_offset = Vector2(280, 560)
 mouse_filter = 2
 expand_mode = 1
@@ -80,9 +81,9 @@ vertical_alignment = 1
 [node name="NameL" type="CenterContainer" parent="Root"]
 layout_mode = 0
 offset_left = 120.0
-offset_top = 828.0
+offset_top = 772.0
 offset_right = 1120.0
-offset_bottom = 916.0
+offset_bottom = 860.0
 pivot_offset = Vector2(500, 44)
 mouse_filter = 2
 
@@ -245,20 +246,27 @@ theme_override_font_sizes/font_size = 46
 text = "0"
 horizontal_alignment = 2
 
-[node name="Prompts" type="HBoxContainer" parent="Root"]
+[node name="PromptArea" type="VBoxContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -150.0
-offset_bottom = -60.0
+offset_top = -210.0
+offset_bottom = -58.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Prompts" type="HBoxContainer" parent="Root/PromptArea"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
 theme_override_constants/separation = 34
 alignment = 1
 
-[node name="BtnRematch" type="Button" parent="Root/Prompts"]
+[node name="BtnRematch" type="Button" parent="Root/PromptArea/Prompts"]
 custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
@@ -266,7 +274,7 @@ focus_mode = 0
 theme_type_variation = &"ShellBtn"
 text = "REMATCH"
 
-[node name="BtnSetup" type="Button" parent="Root/Prompts"]
+[node name="BtnSetup" type="Button" parent="Root/PromptArea/Prompts"]
 custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
@@ -274,10 +282,20 @@ focus_mode = 0
 theme_type_variation = &"ShellBtn"
 text = "CHANGE SETUP"
 
-[node name="BtnMenu" type="Button" parent="Root/Prompts"]
+[node name="BtnMenu" type="Button" parent="Root/PromptArea/Prompts"]
 custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
 theme_type_variation = &"ShellBtn"
 text = "QUIT TO MENU"
+
+[node name="Hints" type="HBoxContainer" parent="Root/PromptArea"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+script = ExtResource("3_hint")
+hints = PackedStringArray("A|Select", "B|Quit")
+device_ctx = "menu"

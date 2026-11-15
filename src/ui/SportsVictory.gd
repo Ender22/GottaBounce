@@ -16,6 +16,11 @@ extends CanvasLayer
 ## the MVP's in the gold ToyRowWinner well — with goat-colour identity pills (WK-34 F1), chocolate stat numbers and
 ## the column leader on a gold ToyStatLead pill (gold TEXT on cream would be ~1.1:1). Chocolate scrim; confetti and
 ## the focus-row pulse come from ToyKit (shared with the Brawl VictoryScreen).
+##
+## WK-139 (UX4-06/UX4-21): the Brawl / Sports / Trials end screens share one button kit (full-opacity cream unfocused
+## buttons via FocusRow + the "A Select · B Quit" glyph footer). Polish: OWN GOALS is a one-line header, an own goal
+## never gets the gold leader pill (it is not praise), BOTH teams' rows carry their team tint (the losers' lighter),
+## and the live court behind is dimmed harder (Tuning.sports_victory_scrim_alpha; dark courts kept goats readable).
 
 signal rematch_pressed
 signal setup_pressed
@@ -32,7 +37,7 @@ const HOP_HEIGHT := 46.0       # px the celebrating busts jump
 const RAYS_PATH := "res://assets/ui/victory_rays.png"
 const ZERO_ALPHA := 0.4        # a 0 stat recedes so the real numbers pop
 const BUST_REST_Y := 0.0       # the Bust's y inside its slot (scene offset_top)
-const COL_MIN_W := 92.0        # stat column floor (px); a wider header widens its column
+const COL_MIN_W := 84.0        # stat column floor (px); a wider header widens its column (WK-139: 92 -> 84, OWN GOALS is one line)
 # 2V2: two busts side by side; 1V1: one bigger bust. [position, scale] of the slots by winner count.
 const SLOT_LAYOUT := {
 	1: [[Vector2(205.0, 250.0), 1.18]],
@@ -63,8 +68,9 @@ const SLOT_LAYOUT := {
 @onready var _rally_l: Label = $Root/TrayArea/TrayCenter/Tray/Box/Facts/RallyP/RallyL
 @onready var _wingoal_p: PanelContainer = $Root/TrayArea/TrayCenter/Tray/Box/Facts/WinGoalP
 @onready var _wingoal_l: Label = $Root/TrayArea/TrayCenter/Tray/Box/Facts/WinGoalP/WinGoalL
-@onready var _prompts: HBoxContainer = $Root/Prompts
-@onready var _btns: Array = [$Root/Prompts/BtnRematch, $Root/Prompts/BtnSetup, $Root/Prompts/BtnQuit]
+@onready var _prompts: VBoxContainer = $Root/PromptArea   # WK-139: the button row + its glyph footer fade as one
+@onready var _btns: Array = [$Root/PromptArea/Prompts/BtnRematch, $Root/PromptArea/Prompts/BtnSetup,
+	$Root/PromptArea/Prompts/BtnQuit]
 
 var _live := false
 var _armed := false
@@ -94,6 +100,7 @@ func _ready() -> void:
 			if _armed and _gate.mouse_may_act():
 				_activate(idx))
 	_slot_tpl.visible = false
+	_scrim.color.a = Tuning.sports_victory_scrim_alpha   # WK-139 (UX4-21)
 
 func is_live() -> bool:
 	return _live
@@ -120,6 +127,7 @@ func present(data: Dictionary) -> void:
 	var names: Array = data.get("team_names", ["RED", "BLUE"])
 	var cols: Array = data.get("team_colors", [Color("#ff4b6a"), Color("#3fa9ff")])
 	var tcol: Color = cols[win]
+	var lcol: Color = cols[1 - win]   # WK-139: the losing team keeps its own (lighter) tint
 	var sport: String = str(data.get("sport", "soccer"))
 	var rows: Array = data.get("rows", [])
 	var mvp: int = int(data.get("mvp", -1))
@@ -188,7 +196,7 @@ func present(data: Dictionary) -> void:
 			return int(a["rating"]) > int(b["rating"])
 		return int(a["idx"]) < int(b["idx"]))
 	for r in ordered:
-		_rows.append(_build_row(r, columns, leaders, win, tcol, int(r["idx"]) == mvp))
+		_rows.append(_build_row(r, columns, leaders, win, tcol, lcol, int(r["idx"]) == mvp))
 	# --- match facts ---
 	var rally: Dictionary = data.get("longest_rally", {})
 	_rally_p.visible = not rally.is_empty()
@@ -300,7 +308,7 @@ func _columns(sport: String, team_size: int, goal_word: String) -> Array:
 		out.append({"key": "assists", "title": "ASSISTS"})
 	out.append({"key": "saves", "title": "SAVES"})
 	out.append({"key": "touches", "title": "TOUCHES"})
-	out.append({"key": "own_goals", "title": "OWN\nGOALS"})
+	out.append({"key": "own_goals", "title": "OWN GOALS"})   # WK-139: one line (two lines made the header row uneven)
 	return out
 
 func _build_slots(winners: Array, mvp: int, tcol: Color) -> void:
@@ -347,7 +355,7 @@ func _build_slots(winners: Array, mvp: int, tcol: Color) -> void:
 		_slots.append({"root": root, "bust": bust, "shadow": shadow, "name_l": name_l, "mvp": mv,
 			"rest_y": BUST_REST_Y})
 
-func _build_row(r: Dictionary, columns: Array, leaders: Array, win: int, tcol: Color, is_mvp: bool) -> Control:
+func _build_row(r: Dictionary, columns: Array, leaders: Array, win: int, tcol: Color, lcol: Color, is_mvp: bool) -> Control:
 	var row: PanelContainer = _row_tpl.duplicate()
 	row.visible = true
 	var won: bool = int(r.get("team", -1)) == win
@@ -356,7 +364,11 @@ func _build_row(r: Dictionary, columns: Array, leaders: Array, win: int, tcol: C
 	_rows_box.add_child(row)   # in the tree first: the themed stylebox only resolves under Root's theme
 	if won and not is_mvp:
 		# the rest of the winning team: the same rimmed well, tinted in the team colour
-		ToyKit.fill_panel(row, Color(tcol.r, tcol.g, tcol.b, 0.28))
+		ToyKit.fill_panel(row, Color(tcol.r, tcol.g, tcol.b, Tuning.sports_victory_win_tint_alpha))
+	elif not won:
+		# WK-139 (UX4-21): the losing team's plain well carries its own team colour too (lighter), so RED and BLUE
+		# rows both read as teams; the winners stay a step ahead by the rim + stronger tint
+		ToyKit.fill_panel(row, Color(lcol.r, lcol.g, lcol.b, Tuning.sports_victory_lose_tint_alpha))
 	var head: TextureRect = row.get_node("RowBox/Head")
 	var head_path := "res://assets/characters/bouncer_%s_idle.png" % str(r.get("skin", "pink"))
 	if ResourceLoader.exists(head_path):
@@ -369,7 +381,7 @@ func _build_row(r: Dictionary, columns: Array, leaders: Array, win: int, tcol: C
 	sub_l.visible = sub_l.text != ""
 	var chip: Control = row.get_node("RowBox/MvpSlot/Chip")
 	chip.modulate.a = 1.0 if is_mvp else 0.0     # keeps its width either way (column alignment)
-	# the losing side reads a step back by its plain well (no tint); a modulate dim would grey the cream
+	# the losing side reads a step back by its lighter tint (WK-139); a modulate dim would grey the cream
 	for i in range(5):
 		var cell: Label = row.get_node("RowBox/S%d" % i)
 		cell.visible = i < columns.size()
@@ -380,8 +392,8 @@ func _build_row(r: Dictionary, columns: Array, leaders: Array, win: int, tcol: C
 		cell.text = "0"
 		if v == 0:
 			cell.modulate.a = ZERO_ALPHA
-		elif v == int(leaders[i]):
-			cell.theme_type_variation = &"ToyStatLead"   # WK-35: the column leader on a gold pill
+		elif v == int(leaders[i]) and str((columns[i] as Dictionary)["key"]) != "own_goals":
+			cell.theme_type_variation = &"ToyStatLead"   # WK-35: the column leader on a gold pill (WK-139: never own goals)
 		_counts.append({"label": cell, "to": v, "row": _rows.size()})
 	return row
 

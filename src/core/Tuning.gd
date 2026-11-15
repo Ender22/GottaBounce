@@ -847,3 +847,9 @@ var lobby_disc_bust_tint: Color = Color(0.42, 0.40, 0.40, 0.85)  # greyed bust m
 var lobby_wait_flash: float = 0.45            # s a still-PICKING panel's gold status-bar plate takes to fade out after a READY player presses GO early  # WK-83
 var lobby_wait_flash_color: Color = Color(1.0, 0.82, 0.25)  # DISCONNECTED panel's countdown-text flash tint when a READY player presses GO early (PICKING panels light a gold plate)  # WK-83
 var tv_safe_margin: float = 0.05              # share of screen height kept clear top + bottom (TV overscan): header chips >= 54 px, footers <= 1026 px at 1080p  # WK-83
+
+# --- WK-139 end screens share one button kit (UX4-06 / UX4-21). Read by src/ui/FocusRow.gd + src/ui/SportsVictory.gd.  # WK-139
+var end_btn_unfocused_alpha: float = 1.0      # modulate alpha of unfocused end-screen buttons (was 0.8: grey "disabled" over the scrim)  # WK-139
+var sports_victory_scrim_alpha: float = 0.7   # SportsVictory chocolate scrim alpha (Brawl's 0.55 left dark courts' goats readable)  # WK-139
+var sports_victory_win_tint_alpha: float = 0.28   # winning team's non-MVP rows: team-colour well tint  # WK-139
+var sports_victory_lose_tint_alpha: float = 0.14  # losing team's rows: lighter team-colour well tint (was untinted)  # WK-139

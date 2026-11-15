@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/ui/TrialsHUD.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="3_glyph"]
+[ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="4_hint"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fuelbg"]
 bg_color = Color(0.12, 0.09, 0.07, 0.85)
@@ -284,3 +285,15 @@ layout_mode = 2
 theme_type_variation = &"BannerSub"
 text = ""
 horizontal_alignment = 1
+
+[node name="MatchHints" type="HBoxContainer" parent="Root/CenterC/MatchPanel/MatchBox"]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+script = ExtResource("4_hint")
+hints = PackedStringArray("A|Select", "B|Quit")
+dark_text = true
+device_ctx = "menu"

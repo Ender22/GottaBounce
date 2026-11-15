@@ -9,6 +9,11 @@ extends CanvasLayer
 ## Fills the SAME method surface PartyMatch calls on a HUD (setup / reset_scores / hide_center / set_dead
 ## / show_center / animate_scores / show_top / show_match_end / show_match_buttons) so the runner drives it
 ## unchanged; the score-oriented ones are no-ops. Live readouts poll the runner + active TrialsMode.
+##
+## WK-139 (UX4-07 / UX4-06): at MATCH_END the combat HUD steps aside — the corner PlayerCards, the objective panel and
+## the top banner hide behind TRIALS COMPLETE! (WK-42 did this for the Brawl Victory) and come back when the next
+## stage begins (PLAY AGAIN calls hide_center). The end row shares the Victory screens' button kit and its
+## "A Select · B Quit" glyph footer (MatchHints, a shared HintStrip: pad glyphs when a pad is joined, CC-1.6).
 
 ## Emitted when the player activates a match-end row button (id from the spec fed to show_match_buttons).
 signal match_button_pressed(id)
@@ -74,6 +79,7 @@ var _hint_re: RegEx = null
 @onready var _match_box: VBoxContainer = $Root/CenterC/MatchPanel/MatchBox
 @onready var _match_text: Label = $Root/CenterC/MatchPanel/MatchBox/MatchText
 @onready var _match_sub: Label = $Root/CenterC/MatchPanel/MatchBox/MatchSub
+@onready var _match_hints: HBoxContainer = $Root/CenterC/MatchPanel/MatchBox/MatchHints   # WK-139
 
 # --- match-end focus button row (VictoryScreen focus model, mirrored) ---
 var _match_btns: Array = []       # [Button] left->right; last = the safe menu_back target
@@ -82,6 +88,7 @@ var _match_armed := false
 var _gate: MenuInputGate
 var _match_pulse: Tween
 var _match_row: HBoxContainer = null
+var _end_hidden := false          # WK-139: the combat HUD is hidden behind the match-end panel
 
 var _pips: Array = []   # [{root: Panel, fill: Panel}]
 var _cards: Array = []  # per-player PlayerCard corner cards (fuel gauges)
@@ -178,6 +185,8 @@ func _process(delta: float) -> void:
 	var mode = _runner._mode
 	if mode == null:
 		return
+	if _end_hidden:
+		return   # WK-139: nothing re-shows the objective panel behind TRIALS COMPLETE!
 	var otype := "REACH_GOAL"
 	if mode.has_method("objective_type"):
 		otype = str(mode.objective_type())
@@ -470,10 +479,26 @@ func hide_center() -> void:
 	_center_box.scale = Vector2.ONE
 	_center_prompt.visible = false
 	_match_panel.visible = false
+	_match_hints.visible = false
+	if _end_hidden:
+		_set_end_hidden(false)   # WK-139: a new stage (PLAY AGAIN) brings the combat HUD back
+
+## WK-139 (UX4-07): hide / restore the combat HUD around the match-end panel. The objective panel is re-evaluated by
+## _process on the next frame once restored.
+func _set_end_hidden(on: bool) -> void:
+	_end_hidden = on
+	for c in _cards:
+		if is_instance_valid(c):
+			(c as Control).visible = not on
+	if on:
+		_home_panel.visible = false
+		_top_label.visible = false
+		_panel_was_visible = false
 
 # ------------------------------------------------------------------ MATCH END (set summary panel)
 func show_match_end(text: String, color: Color, subline: String) -> void:
 	hide_center()
+	_set_end_hidden(true)   # WK-139
 	_clear_match_buttons()
 	_gate.open()   # the end screen "appears" now: presses must begin after this and the row arms >= 1.0 s later
 	_match_text.text = text
@@ -517,8 +542,11 @@ func show_match_buttons(specs: Array) -> void:
 	for b: Button in _match_btns:
 		b.pivot_offset = b.size * 0.5
 	_match_row.modulate.a = 0.0
+	_match_hints.visible = true   # WK-139: "A Select · B Quit" appears with the row it describes
+	_match_hints.modulate.a = 0.0
 	var tw := create_tween()
 	tw.tween_property(_match_row, "modulate:a", 1.0, 0.2)
+	tw.parallel().tween_property(_match_hints, "modulate:a", 1.0, 0.2)
 	_arm_match()
 
 func _clear_match_buttons() -> void:
@@ -532,6 +560,7 @@ func _clear_match_buttons() -> void:
 	_match_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_match_row.add_theme_constant_override("separation", 30)
 	_match_box.add_child(_match_row)
+	_match_box.move_child(_match_row, _match_hints.get_index())   # WK-139: the glyph footer stays under the row
 
 func _arm_match() -> void:
 	_match_armed = true

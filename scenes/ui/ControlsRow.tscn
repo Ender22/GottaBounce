@@ -1,0 +1,55 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Theme" path="res://assets/ui/theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="2_glyph"]
+
+[node name="ControlsRow" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 68)
+mouse_filter = 2
+theme = ExtResource("1_theme")
+theme_type_variation = &"ToyRow"
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+
+[node name="Verb" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(270, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 38
+text = "FLY"
+vertical_alignment = 1
+
+[node name="Desc" type="Label" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 30
+text = "HOLD A TO FLY"
+vertical_alignment = 1
+
+[node name="PadCell" type="CenterContainer" parent="HBox"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Glyph" type="Control" parent="HBox/PadCell"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2_glyph")
+
+[node name="KbCell" type="CenterContainer" parent="HBox"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Glyph" type="Control" parent="HBox/KbCell"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2_glyph")

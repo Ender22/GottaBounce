@@ -15,7 +15,8 @@ const PRIMARY := &"ShellBtnPrimary"
 const SECONDARY := &"ShellBtn"
 const FOCUS_SCALE := 1.12
 const BREATH_SCALE := 1.075
-const UNFOCUSED_ALPHA := 0.8
+## WK-139 (UX4-06): the unfocused-button alpha now lives in Tuning.end_btn_unfocused_alpha (1.0): at 0.8 the cream
+## buttons over the Victory scrim read as grey "disabled" buttons. The style swap alone carries focus (CC-5.1).
 
 ## Is `b` a shell button this rule owns (plain ShellBtn / ShellBtnPrimary)? Cards, chips and HoldButtons are not.
 static func owns(c: Control) -> bool:
@@ -29,7 +30,7 @@ static func style(b: Button, focused: bool) -> void:
 	b.theme_type_variation = PRIMARY if focused else SECONDARY
 
 ## Manual focus row: button `i` is focused (style swap + spring to 1.12 + a breathing pulse), the rest are the
-## cream style, dimmed. Returns the new pulse tween (kill the old one through `old_pulse`).
+## cream style (WK-139: at full opacity by default). Returns the new pulse tween (kill the old one through `old_pulse`).
 static func row(host: Node, btns: Array, i: int, old_pulse: Tween) -> Tween:
 	if old_pulse != null and old_pulse.is_valid():
 		old_pulse.kill()
@@ -37,7 +38,7 @@ static func row(host: Node, btns: Array, i: int, old_pulse: Tween) -> Tween:
 		var b: Button = btns[j]
 		var focused: bool = j == i
 		style(b, focused)
-		b.modulate.a = 1.0 if focused else UNFOCUSED_ALPHA
+		b.modulate.a = 1.0 if focused else Tuning.end_btn_unfocused_alpha
 		var tw := host.create_tween()
 		tw.tween_property(b, "scale", Vector2(FOCUS_SCALE, FOCUS_SCALE) if focused else Vector2.ONE, 0.12) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

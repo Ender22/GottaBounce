@@ -53,7 +53,7 @@ theme_type_variation = &"ToyPanel"
 [node name="VBox" type="VBoxContainer" parent="Root/Menu/Panel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
 [node name="OwnerBand" type="PanelContainer" parent="Root/Menu/Panel/VBox"]
 custom_minimum_size = Vector2(0, 132)
@@ -177,7 +177,7 @@ theme_type_variation = &"ToyRule"
 
 [node name="Buttons" type="VBoxContainer" parent="Root/Menu/Panel/VBox"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 alignment = 1
 
 [node name="ResumeBtn" type="Button" parent="Root/Menu/Panel/VBox/Buttons"]
@@ -191,6 +191,14 @@ text = "RESUME"
 [node name="RestartBtn" parent="Root/Menu/Panel/VBox/Buttons" instance=ExtResource("4_hold")]
 layout_mode = 2
 text = "RESTART"
+
+[node name="ControlsBtn" type="Button" parent="Root/Menu/Panel/VBox/Buttons"]
+custom_minimum_size = Vector2(520, 80)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 2
+theme_type_variation = &"ShellBtn"
+text = "CONTROLS"
 
 [node name="OptionsBtn" type="Button" parent="Root/Menu/Panel/VBox/Buttons"]
 custom_minimum_size = Vector2(520, 80)

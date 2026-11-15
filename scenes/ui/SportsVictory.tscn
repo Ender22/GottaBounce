@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/ui/SportsVictory.gd" id="1_sv"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" path="res://assets/ui/icons/star_full.png" id="3_star"]
+[ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="4_hint"]
 
 [sub_resource type="Shader" id="rays_tint"]
 code = "shader_type canvas_item;
@@ -22,6 +23,17 @@ void fragment() {
 [sub_resource type="ShaderMaterial" id="rays_mat"]
 shader = SubResource("rays_tint")
 shader_parameter/team = Color(1, 0.823529, 0.247059, 1)
+
+[sub_resource type="StyleBoxFlat" id="head_pill"]
+content_margin_left = 2.0
+content_margin_right = 2.0
+content_margin_top = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.231373, 0.141176, 0.105882, 0.08)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxEmpty" id="row_header"]
 content_margin_left = 20.0
@@ -208,8 +220,8 @@ vertical_alignment = 1
 
 [node name="TrayArea" type="Control" parent="Root"]
 layout_mode = 0
-offset_left = 900.0
-offset_right = 1890.0
+offset_left = 880.0
+offset_right = 1870.0
 offset_bottom = 910.0
 mouse_filter = 2
 
@@ -331,6 +343,7 @@ layout_mode = 2
 mouse_filter = 2
 
 [node name="H0" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+theme_override_styles/normal = SubResource("head_pill")
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
@@ -341,6 +354,7 @@ horizontal_alignment = 1
 vertical_alignment = 2
 
 [node name="H1" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+theme_override_styles/normal = SubResource("head_pill")
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
@@ -351,6 +365,7 @@ horizontal_alignment = 1
 vertical_alignment = 2
 
 [node name="H2" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+theme_override_styles/normal = SubResource("head_pill")
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
@@ -361,6 +376,7 @@ horizontal_alignment = 1
 vertical_alignment = 2
 
 [node name="H3" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+theme_override_styles/normal = SubResource("head_pill")
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
@@ -371,13 +387,13 @@ horizontal_alignment = 1
 vertical_alignment = 2
 
 [node name="H4" type="Label" parent="Root/TrayArea/TrayCenter/Tray/Box/Header/HeadBox"]
+theme_override_styles/normal = SubResource("head_pill")
 custom_minimum_size = Vector2(92, 0)
 layout_mode = 2
 size_flags_vertical = 8
 theme_type_variation = &"TextDark"
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 0.8)
-text = "OWN
-GOALS"
+text = "OWN GOALS"
 horizontal_alignment = 1
 vertical_alignment = 2
 
@@ -525,20 +541,27 @@ theme_override_font_sizes/font_size = 30
 text = "WINNING GOAL  P1  ·  ASSIST VEX"
 horizontal_alignment = 1
 
-[node name="Prompts" type="HBoxContainer" parent="Root"]
+[node name="PromptArea" type="VBoxContainer" parent="Root"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -150.0
-offset_bottom = -60.0
+offset_top = -210.0
+offset_bottom = -58.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Prompts" type="HBoxContainer" parent="Root/PromptArea"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
 theme_override_constants/separation = 34
 alignment = 1
 
-[node name="BtnRematch" type="Button" parent="Root/Prompts"]
+[node name="BtnRematch" type="Button" parent="Root/PromptArea/Prompts"]
 custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
@@ -546,7 +569,7 @@ focus_mode = 0
 theme_type_variation = &"ShellBtn"
 text = "REMATCH"
 
-[node name="BtnSetup" type="Button" parent="Root/Prompts"]
+[node name="BtnSetup" type="Button" parent="Root/PromptArea/Prompts"]
 custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
@@ -554,10 +577,20 @@ focus_mode = 0
 theme_type_variation = &"ShellBtn"
 text = "CHANGE SETUP"
 
-[node name="BtnQuit" type="Button" parent="Root/Prompts"]
+[node name="BtnQuit" type="Button" parent="Root/PromptArea/Prompts"]
 custom_minimum_size = Vector2(380, 90)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
 theme_type_variation = &"ShellBtn"
 text = "QUIT TO MENU"
+
+[node name="Hints" type="HBoxContainer" parent="Root/PromptArea"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+script = ExtResource("4_hint")
+hints = PackedStringArray("A|Select", "B|Quit")
+device_ctx = "menu"

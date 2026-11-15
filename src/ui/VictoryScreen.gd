@@ -12,6 +12,11 @@ extends CanvasLayer
 ## wells, ToyBarTrack race bars, chocolate numbers) and the identity grammar is WK-34 F1's (goat-colour ToyIdPill
 ## names; the winner's name ribbon is a goat-colour ToyNameRibbon). The winner's row is a gold ToyRowWinner well.
 ## Chocolate scrim (no navy). Confetti / focus-row juice come from ToyKit (shared with SportsVictory).
+##
+## WK-139 (UX4-06): one end-screen button kit with SportsVictory and the Trials end — unfocused buttons are the full-
+## opacity cream ShellBtn (FocusRow, Tuning.end_btn_unfocused_alpha; they used to fade to a "disabled" grey over the
+## scrim), and a shared glyph footer under the row ("A Select · B Quit", HintStrip device_ctx "menu": pad glyphs when
+## a pad is joined, key caps when only the keyboard is, CC-1.6) makes the B -> QUIT shortcut (CC-10.1) discoverable.
 
 signal rematch_pressed
 signal setup_pressed
@@ -48,8 +53,9 @@ const CONFETTI_COLORS: Array[Color] = [
 @onready var _sub: Label = $Root/TrayArea/TrayCenter/Tray/Box/Sub
 @onready var _rows_box: VBoxContainer = $Root/TrayArea/TrayCenter/Tray/Box/Rows
 @onready var _template: PanelContainer = $Root/TrayArea/TrayCenter/Tray/Box/Rows/RowTemplate
-@onready var _prompts: HBoxContainer = $Root/Prompts
-@onready var _btns: Array = [$Root/Prompts/BtnRematch, $Root/Prompts/BtnSetup, $Root/Prompts/BtnMenu]
+@onready var _prompts: VBoxContainer = $Root/PromptArea   # WK-139: the button row + its glyph footer fade as one
+@onready var _btns: Array = [$Root/PromptArea/Prompts/BtnRematch, $Root/PromptArea/Prompts/BtnSetup,
+	$Root/PromptArea/Prompts/BtnMenu]
 
 var _live := false
 var _armed := false

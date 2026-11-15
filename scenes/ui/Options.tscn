@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://optionscr00001"]
+[gd_scene load_steps=6 format=3 uid="uid://optionscr00001"]
 
 [ext_resource type="Script" path="res://src/ui/OptionsScreen.gd" id="1_opt"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/HintStrip.gd" id="3_hint"]
 [ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="4_glyph"]
+
+[sub_resource type="StyleBoxEmpty" id="wk33_empty"]
 
 [node name="Options" type="Control"]
 layout_mode = 3
@@ -104,6 +106,64 @@ mouse_filter = 2
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 12
+
+[node name="ControlsRow" type="Button" parent="Panel/VBox/Rows"]
+custom_minimum_size = Vector2(0, 92)
+layout_mode = 2
+focus_mode = 2
+theme_override_styles/normal = SubResource("wk33_empty")
+theme_override_styles/hover = SubResource("wk33_empty")
+theme_override_styles/pressed = SubResource("wk33_empty")
+theme_override_styles/focus = SubResource("wk33_empty")
+theme_override_styles/disabled = SubResource("wk33_empty")
+
+[node name="Well" type="PanelContainer" parent="Panel/VBox/Rows/ControlsRow"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRow"
+
+[node name="HBox" type="HBoxContainer" parent="Panel/VBox/Rows/ControlsRow"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_right = -26.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="Panel/VBox/Rows/ControlsRow/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
+text = "CONTROLS"
+vertical_alignment = 1
+
+[node name="Sub" type="Label" parent="Panel/VBox/Rows/ControlsRow/HBox"]
+modulate = Color(1, 1, 1, 0.72)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 30
+text = "SEE EVERY MOVE"
+vertical_alignment = 1
+
+[node name="Arrow" type="Label" parent="Panel/VBox/Rows/ControlsRow/HBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 44
+text = ">"
+vertical_alignment = 1
 
 [node name="Rule" type="Panel" parent="Panel/VBox"]
 custom_minimum_size = Vector2(0, 5)

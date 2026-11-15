@@ -9,16 +9,18 @@ extends CanvasLayer
 ## target) and compact score chips. Focus = a full style swap to the owner's colour (CC-5.1: RESUME is NOT
 ## permanently "primary"-styled any more).
 ##
-## Content (CC-7.1): RESUME · RESTART (hold) · OPTIONS · CHANGE SETUP (hold) · QUIT TO MENU (hold).
+## Content (CC-7.1): RESUME · RESTART (hold) · CONTROLS · OPTIONS · CHANGE SETUP (hold) · QUIT TO MENU (hold).
 ## Destructive items are HoldButtons (0.9 s, radial fill in the owner colour, early release drains) — the
 ## banned double-press "REALLY?" swap is gone (C-18 / R-09).
 ##
 ## Couch rules (CC-1.5 / CC-7.3): the device that pressed pause OWNS the menu — other devices' key/pad events
 ## are dropped in _input before focus nav sees them. A confirms the focused item; Start (`pause`) or B
 ## (`menu_back`) = RESUME. Resuming tells PartyMatch to swallow held gameplay buttons until release (C-19).
-## Options is hosted in-place; backing out of it restores focus to OPTIONS (WK-80a).
+## Options is hosted in-place; backing out of it restores focus to OPTIONS (WK-80a). WK-33: CONTROLS hosts the shared
+## ControlsScreen the same way (owner's glyphs + colour; B returns to CONTROLS, Start resumes straight from it).
 
 const OPTIONS := preload("res://scenes/ui/Options.tscn")
+const CONTROLS := preload("res://scenes/ui/ControlsScreen.tscn")   # WK-33
 const PORTRAIT := "res://assets/ui/portraits/portrait_%s.png"
 const NEUTRAL := Color("#ffd23f")   # header colour when the pausing device drives no human
 
@@ -36,6 +38,7 @@ const NEUTRAL := Color("#ffd23f")   # header colour when the pausing device driv
 @onready var _chip_tpl: PanelContainer = $Root/Menu/Panel/VBox/Scores/ChipTemplate
 @onready var _resume: Button = $Root/Menu/Panel/VBox/Buttons/ResumeBtn
 @onready var _restart: HoldButton = $Root/Menu/Panel/VBox/Buttons/RestartBtn
+@onready var _controls_btn: Button = $Root/Menu/Panel/VBox/Buttons/ControlsBtn   # WK-33
 @onready var _options_btn: Button = $Root/Menu/Panel/VBox/Buttons/OptionsBtn
 @onready var _setup_btn: HoldButton = $Root/Menu/Panel/VBox/Buttons/SetupBtn
 @onready var _quit: HoldButton = $Root/Menu/Panel/VBox/Buttons/QuitBtn
@@ -43,13 +46,14 @@ const NEUTRAL := Color("#ffd23f")   # header colour when the pausing device driv
 
 var match_ref
 var _options: Control = null
+var _controls: Control = null   # WK-33: the hosted ControlsScreen (null = closed)
 # Device that opened the pause ("kb" / "pad:N", InputRouter.device_key). "" = no owner, any device
 # drives the menu (also the fallback if the owner's pad disconnects while paused).
 var _owner_key := ""
 var _owner_color := NEUTRAL
 # QA readouts (eval): who the header says paused, and what fired.
 var owner_label := 0                 # P# shown in the header (0 = no owner pill)
-var last_action := ""                # "resume" / "restart" / "setup" / "quit" / "options"
+var last_action := ""                # "resume" / "restart" / "setup" / "quit" / "options" / "controls"
 
 func setup(m, owner_key: String = "") -> void:
 	match_ref = m
@@ -82,7 +86,7 @@ func _input(e: InputEvent) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	var col: Array = [_resume, _restart, _options_btn, _setup_btn, _quit]
+	var col: Array = [_resume, _restart, _controls_btn, _options_btn, _setup_btn, _quit]
 	for b in col:
 		_reg(b)
 	_wire_col(col)
@@ -169,7 +173,7 @@ func _refresh_hints() -> void:
 # ------------------------------------------------------------------ focus
 
 func _is_menu_button(c: Control) -> bool:
-	return c == _resume or c == _restart or c == _options_btn or c == _setup_btn or c == _quit
+	return c == _resume or c == _restart or c == _controls_btn or c == _options_btn or c == _setup_btn or c == _quit
 
 func _reg(b: Button) -> void:
 	b.set_meta("focus_scale", 1.08)
@@ -222,6 +226,8 @@ func _on_pressed(b: Button) -> void:
 		_do_resume()
 	elif b == _options_btn:
 		_open_options()
+	elif b == _controls_btn:
+		_open_controls()
 
 # ------------------------------------------------------------------ actions
 
@@ -279,8 +285,37 @@ func _close_options() -> void:
 	_menu.visible = true
 	call_deferred("_grab", _options_btn)   # WK-80(a): back out of a submenu -> focus the item that opened it
 
+## WK-33: CONTROLS opens the shared ControlsScreen in place (Options' hosting pattern): owner glyphs + colour,
+## B (handled by the screen) returns here with focus back on CONTROLS (CC-5.6), Start resumes straight from it.
+func _open_controls() -> void:
+	if _controls != null:
+		return
+	last_action = "controls"
+	_controls = CONTROLS.instantiate()
+	_controls.process_mode = Node.PROCESS_MODE_ALWAYS
+	_controls.set_host(_owner_key, _owner_color, true)
+	add_child(_controls)
+	_controls.back_requested.connect(_close_controls)
+	_menu.visible = false
+	_controls.enter()
+
+func _close_controls() -> void:
+	if _controls != null:
+		_controls.queue_free()
+		_controls = null
+	_menu.visible = true
+	call_deferred("_grab", _controls_btn)
+
 func _unhandled_input(e: InputEvent) -> void:
 	if e.is_echo():
+		return
+	if _controls != null:
+		# the ControlsScreen owns B/Esc (back one level); Start (or P) resumes straight from it
+		if e.is_action_pressed("pause") and not e.is_action_pressed("menu_back"):
+			get_viewport().set_input_as_handled()
+			_close_controls()
+			AudioManager.play_sfx("ui_click", {"pitch": 0.72, "volume_db": -4.0})
+			_do_resume()
 		return
 	if _options != null:
 		# Options owns B/Esc (back one level, MenuScreen). Start (or P) resumes straight from Options;
