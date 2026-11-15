@@ -121,3 +121,12 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **WK-29 glyph rule lives in `PadGlyph`** (`for_kind` / `shared_kind` / `shared_spec`, KEYS_MENU / KEYS_PLAY). Shared
   .tscn glyphs and HintStrips opt in with `device_ctx = "menu"|"play"`. Prompts that belong to one player (pause, the
   lobby panels) keep passing their owner's device explicitly. Don't hand-roll `"key:X" if kb else "Y"` again.
+- **Tween trap (WK-83): `t.chain().set_parallel(true)` does NOT start a new parallel step**; `set_parallel(true)` re-applies to
+  everything after it, so all tweeners ran at once and a later "fade back to WHITE" tweener (start value captured = WHITE) won every
+  frame: the flash never showed. Write two-step pops as `tween_property(A)` + `parallel().tween_property(B)`, then the same for step 2.
+- **gbplay has no joypad connect/disconnect command.** Drive the REAL hot-plug path with
+  `eval "Input.joy_connection_changed.emit(<id>, false)"` (InputRouter listens to that signal); `InputRouter.simulate_device_lost("pad:N")`
+  is the same bookkeeping minus the engine signal. A "lost" simulated pad can still send events, which is how a reconnect + A is tested.
+- **Back-to-back gbplay `eval`s advance only ~1 game frame between them** (Engine.get_process_frames 5996 -> 5997), so "eval, then eval
+  to read the result" sees almost no animation time. Put a `sleep` step between, or slow the Tuning knob at runtime for a still (WK-83
+  set `Tuning.lobby_wait_flash = 4.0` via eval to photograph a 0.45 s flash, then restored it).

@@ -150,6 +150,7 @@ func enter() -> void:
 		t.tween_property(it, "modulate:a", 1.0, 0.24).set_delay(0.05 * i)
 	# Header/footer bands are hard no-content zones (ui_audit_2026-07-10 P2): raise the chrome to the
 	# top of the draw order so screen content can never occlude the title or the control hints.
+	_fit_safe_area()   # WK-83: before the slide-in captures the rest positions
 	var h := header_node()
 	if h != null:
 		h.move_to_front()
@@ -160,6 +161,51 @@ func enter() -> void:
 		_slide_in(f, Vector2(0, 60))
 	_entered = true
 	call_deferred("_grab_first")
+
+## WK-83 (UX4-04, TV overscan): keep the header chips and the footer hints inside the action-safe band
+## (Tuning.tv_safe_margin of the screen height, top and bottom: y 54..1026 at 1080p). Measures what each band
+## actually draws (its direct children: chips by rect, text and hint rows by their centred minimum height) and
+## nudges the whole Header down / Footer up by the overshoot, so the BACK chip and the title stay aligned. A no-op
+## for a screen that already fits (re-entry is idempotent) and for screens without a Header / Footer (Options).
+func _fit_safe_area() -> void:
+	var m: float = size.y * Tuning.tv_safe_margin
+	var h := header_node()
+	if h != null and h.visible:
+		var top: float = _ink_span(h).x
+		if top < m:
+			h.offset_top += m - top
+			h.offset_bottom += m - top
+	var f := footer_node()
+	if f != null and f.visible:
+		var bot: float = _ink_span(f).y
+		if bot > size.y - m and bot < size.y + 200.0:
+			f.offset_top -= bot - (size.y - m)
+			f.offset_bottom -= bot - (size.y - m)
+
+## Vertical span (top, bottom) in this screen's space of what `band`'s visible direct children draw.
+func _ink_span(band: Control) -> Vector2:
+	var top := INF
+	var bot := -INF
+	for c in band.get_children():
+		var cc := c as Control
+		if cc == null or not cc.visible:
+			continue
+		var y0: float = band.position.y + cc.position.y
+		var hgt: float = cc.size.y
+		if cc is Label or cc is Container:
+			# text and hint rows draw their content vertically centred in a taller band. A label's glyphs (caps +
+			# outline) are ~0.75 em per line, not its full line box.
+			var mh: float = cc.get_combined_minimum_size().y
+			if cc is Label:
+				var lbl := cc as Label
+				var lines: int = maxi(1, lbl.get_line_count())
+				mh = lbl.get_theme_font_size("font_size") * 0.75 * lines + lbl.get_theme_constant("outline_size")
+			mh = minf(mh, hgt)
+			y0 += (hgt - mh) * 0.5
+			hgt = mh
+		top = minf(top, y0)
+		bot = maxf(bot, y0 + hgt)
+	return Vector2(top, bot)
 
 ## Registration index of the currently focused control (-1 if focus is elsewhere). ShellRoot remembers it.
 func focus_index() -> int:

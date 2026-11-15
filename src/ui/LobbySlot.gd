@@ -45,6 +45,7 @@ const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smas
 @onready var _fchev_l: Control = $FlairRow/FChevL
 @onready var _fchev_r: Control = $FlairRow/FChevR
 @onready var _status: HBoxContainer = $Status
+@onready var _wait_flash: Panel = $WaitFlash   # WK-83: gold plate behind the status bar ("we're waiting on you")
 @onready var _status_glyph: Control = $Status/StatusGlyph
 @onready var _status_text: Label = $Status/StatusText
 @onready var _stamp: Label = $Stamp
@@ -57,6 +58,13 @@ const WELL := Color("#3b241b")          # WK-81 F4: EMPTY = dark slot well (Smas
 @onready var _rule_rows: Array = [$RulesFace/Row0, $RulesFace/Row1, $RulesFace/Row2, $RulesFace/Row3, $RulesFace/Row4, $RulesFace/Row5]
 @onready var _rules_done_glyph: Control = $RulesFace/Footer/DoneGlyph
 @onready var _rules_undo_glyph: Control = $RulesFace/Footer/UndoGlyph
+# WK-28a (CC-3.5): the DISCONNECTED face — greyed bust, red chip, reconnect countdown, takeover prompt
+@onready var _disc_face: Control = $DiscFace
+@onready var _disc_chip: Label = $DiscFace/DiscChip
+@onready var _disc_hint: Label = $DiscFace/DiscHint
+@onready var _take_glyph: Control = $DiscFace/TakeRow/TakeGlyph
+@onready var _take_slash: Label = $DiscFace/TakeRow/TakeSlash
+@onready var _take_glyph2: Control = $DiscFace/TakeRow/TakeGlyph2
 
 var slot_index := 0
 var _color := Color("#ff5fa8")
@@ -83,6 +91,8 @@ var _stamp_tw: Tween                    # one stamp tween at a time: a fast un-r
 var _flash_gen := 0
 var _device_key := ""
 var device_label := ""                  # eval-readable ("KEYBOARD" / "XBOX" / "PLAYSTATION" / "SWITCH" / "GAMEPAD")
+var disconnected := false               # WK-28a: eval-readable — the DISCONNECTED face is up
+var _disc_tw: Tween
 
 func _ready() -> void:
 	_bust_rest = _bust.position
@@ -114,6 +124,7 @@ func set_sports_layout(on: bool) -> void:
 ## EMPTY: dark slot well, faint cream silhouette, breathing "PRESS (A) TO JOIN". `animate` = the leave
 ## motion (bust falls out, plate darkens).
 func show_empty(kb_free: bool, animate: bool) -> void:
+	_clear_disc()
 	_joined = false
 	_ready_on = false
 	_device_key = ""
@@ -150,6 +161,7 @@ func _apply_empty_visibility() -> void:
 
 ## EMPTY -> PICKING: the join motion (panel 0.90 -> 1.06 -> 1.00, bust drops in, badge pops).
 func show_join(device_key: String, hero: Dictionary, tex: Texture2D) -> void:
+	_clear_disc()
 	_joined = true
 	_ready_on = false
 	if _on_back:
@@ -306,10 +318,15 @@ func set_taken_by(label: int) -> void:
 ## WK-27: the same chip with any blocking reason ("RED IS FULL" in SPORTS 1V1). "" = not blocked.
 func set_taken_text(text: String) -> void:
 	_taken_text = text
-	_taken.visible = text != "" and not _on_back
+	_taken.visible = text != "" and not _on_back and not disconnected
 	if text != "":
 		_taken.text = text
+	if disconnected:
+		return   # WK-28a: the greyed bust stays grey
 	_bust.modulate = Color(1, 1, 1, 0.55) if text != "" else Color.WHITE
+	# WK-138 (UX4-17): a blocked goat can't be locked, so the panel prompt stops offering LOCK IN
+	if _joined and not _ready_on:
+		_set_status_picking()
 
 ## A short-lived chip in the TakenChip style ("P1 HAS THE RULES", 1.2 s), then the real taken state returns.
 func flash_chip(text: String, secs: float) -> void:
@@ -420,6 +437,100 @@ func nudge() -> void:
 	var t := create_tween()
 	t.tween_property(self, "position:x", _rest_x + 8.0, 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.tween_property(self, "position:x", _rest_x, 0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## WK-83 (lobby review L7) "who are we waiting on": a READY player pressed GO before everyone was ready. This
+## panel nudges (8 px, 0.12 s) and its status bar flashes gold, so the couch sees who to hurry.
+func waiting_flash() -> void:
+	nudge()
+	var row: Control = _disc_chip if disconnected else _status
+	row.pivot_offset = row.size * 0.5
+	var t := row.create_tween()
+	t.tween_property(row, "scale", Vector2(1.12, 1.12), 0.06).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(row, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if disconnected:
+		# cream countdown text on the dark well: a gold tint reads; fade back
+		_disc_hint.modulate = Tuning.lobby_wait_flash_color
+		_disc_hint.create_tween().tween_property(_disc_hint, "modulate", Color.WHITE, Tuning.lobby_wait_flash)
+		return
+	# chocolate text on cream: light the gold plate behind the status bar, then fade it out
+	_wait_flash.modulate.a = 1.0
+	var tf := _wait_flash.create_tween()
+	tf.tween_property(_wait_flash, "modulate:a", 0.0, Tuning.lobby_wait_flash).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+# ------------------------------------------------------------------ DISCONNECTED (WK-28a, CC-3.5)
+
+## The pad that drove this panel was unplugged. The seat keeps the goat, its colour and its name; the bust greys
+## out, a red DISCONNECTED chip sits over it, and the bottom of the panel counts the grace window down
+## ("PLUG IT BACK IN · 9") with a draining ring on the takeover glyph. `kb_free` adds the ENTER key cap when the
+## keyboard is not seated (it can take over too). The lobby owns the timer and calls set_disc_remaining().
+func show_disconnected(kb_free: bool) -> void:
+	disconnected = true
+	_ready_on = false
+	_kill(_flip_tw)
+	_kill(_idle)
+	_kill(_swap)
+	_kill(_stamp_tw)
+	scale = Vector2.ONE
+	if _on_back:
+		_set_face(false)   # an open RULES flip closes (the lobby keeps the values)
+	_kill(_idle)
+	for n in [_chev_l, _chev_r, _taken, _blurb, _flair_row, _ribbon, _status, _stamp, _join]:
+		(n as Control).visible = false
+	_bust.visible = true
+	_bust.position = _bust_rest
+	_bust.rotation = 0.0
+	_bust.scale = Vector2.ONE
+	_bust.modulate = Tuning.lobby_disc_bust_tint
+	_disc.visible = false
+	_banner.visible = true
+	_banner.modulate = Color(0.75, 0.75, 0.75, 1.0)
+	_dev_name.visible = true
+	_dev_icon.visible = true
+	_dev_name.add_theme_color_override("font_color", Color(CREAM.r, CREAM.g, CREAM.b, 0.85))   # readable on the dark well
+	_wait_flash.modulate.a = 0.0
+	_set_disc_plate()
+	set_disc_takeover(kb_free)
+	_disc_face.visible = true
+	_disc_chip.scale = Vector2(1.4, 1.4)
+	_disc_tw = _disc_chip.create_tween()
+	_disc_tw.tween_property(_disc_chip, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	MenuFX.reject_shake(self)
+
+## `frac` = share of the grace window left (1 -> 0), `secs` = whole seconds left (shown in the hint).
+func set_disc_remaining(frac: float, secs: int) -> void:
+	if not disconnected:
+		return
+	_take_glyph.set("ring", clampf(frac, 0.0, 1.0))
+	_disc_hint.text = "PLUG IT BACK IN · %d" % maxi(secs, 0)
+
+## Takeover glyphs: any pad's A, plus the keyboard's ENTER while the keyboard is free.
+func set_disc_takeover(kb_free: bool) -> void:
+	(_take_glyph as Object).call("setup", "A")
+	_take_slash.visible = kb_free
+	_take_glyph2.visible = kb_free
+
+func _clear_disc() -> void:
+	if not disconnected:
+		return
+	disconnected = false
+	_kill(_disc_tw)
+	_disc_face.visible = false
+	_take_glyph.set("ring", 0.0)
+	_bust.modulate = Color.WHITE
+	_banner.modulate = Color.WHITE
+	_dev_name.add_theme_color_override("font_color", Color(CHOCO.r, CHOCO.g, CHOCO.b, 0.85))   # the scene's colour
+	_disc_hint.modulate = Color.WHITE
+
+## DISCONNECTED plate: the EMPTY dark well (nobody is holding this seat's pad) rimmed in the goat's colour (the
+## seat, goat and colour are still held).
+func _set_disc_plate() -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(WELL.r, WELL.g, WELL.b, Tuning.lobby_empty_well_alpha)
+	sb.border_color = Color(_color.r, _color.g, _color.b, 0.85)
+	sb.set_border_width_all(6)
+	sb.set_corner_radius_all(22)
+	sb.shadow_size = 0
+	_plate.add_theme_stylebox_override("panel", sb)
 
 func is_joined() -> bool:
 	return _joined
@@ -592,15 +703,22 @@ func _set_face(back: bool) -> void:
 # ------------------------------------------------------------------ internals
 func _set_status_picking() -> void:
 	(_status_glyph as Object).call("setup", "key:ENTER" if _device_key == "kb" else "A")
-	_status_text.text = "LOCK IN"
+	# WK-138 (UX4-17): on a goat someone else locked (or a full SPORTS team) the prompt reads TAKEN / TEAM FULL,
+	# greyed, with no glyph — LOCK IN would be refused, so it is not offered
+	var blocked: bool = _taken_text != ""
+	_status_glyph.visible = not blocked
+	_status_text.text = "LOCK IN" if not blocked else ("TAKEN" if _taken_text.begins_with("TAKEN") else "TEAM FULL")
+	_status_text.modulate.a = 0.5 if blocked else 1.0
 
 func _set_status_ready() -> void:
 	(_status_glyph as Object).call("setup", "key:ESC" if _device_key == "kb" else "B")
+	_status_glyph.visible = true
 	_status_text.text = "CHANGE"
+	_status_text.modulate.a = 1.0
 
 ## Joined plate (front + back face share it): cream glass, goat-colour border; READY / RULES add the glow.
 func _set_joined_plate() -> void:
-	if not _joined:
+	if not _joined or disconnected:
 		return
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(CREAM.r, CREAM.g, CREAM.b, 0.96 if (_ready_on or _on_back) else 0.92)
@@ -655,7 +773,7 @@ func _start_breathe() -> void:
 
 func _start_idle() -> void:
 	_kill(_idle)
-	if not _joined or _on_back:
+	if not _joined or _on_back or disconnected:
 		return
 	_bust.pivot_offset = Vector2(_bust.size.x * 0.5, _bust.size.y * 0.85)
 	_idle = _bust.create_tween().set_loops()

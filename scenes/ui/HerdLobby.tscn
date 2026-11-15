@@ -148,8 +148,9 @@ color = Color(0.0784314, 0.0784314, 0.156863, 0.5)
 
 [node name="Header" type="Control" parent="."]
 layout_mode = 0
+offset_top = 32.0
 offset_right = 1920.0
-offset_bottom = 110.0
+offset_bottom = 142.0
 mouse_filter = 2
 
 [node name="BackBtn" type="Button" parent="Header"]
@@ -210,9 +211,9 @@ grow_horizontal = 0
 
 [node name="Roster" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_top = 122.0
+offset_top = 128.0
 offset_right = 1920.0
-offset_bottom = 232.0
+offset_bottom = 238.0
 mouse_filter = 2
 theme_override_constants/separation = 22
 alignment = 1
@@ -271,9 +272,9 @@ vertical_alignment = 1
 
 [node name="Slots" type="Control" parent="."]
 layout_mode = 0
-offset_top = 262.0
+offset_top = 250.0
 offset_right = 1920.0
-offset_bottom = 792.0
+offset_bottom = 780.0
 mouse_filter = 2
 
 [node name="Slot1" parent="Slots" instance=ExtResource("4_slot")]
@@ -294,9 +295,9 @@ offset_right = 1848.0
 
 [node name="CpuRow" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_top = 810.0
+offset_top = 790.0
 offset_right = 1920.0
-offset_bottom = 900.0
+offset_bottom = 880.0
 mouse_filter = 2
 alignment = 1
 
@@ -437,9 +438,9 @@ glyph = "RB"
 
 [node name="RulesRow" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_top = 912.0
+offset_top = 886.0
 offset_right = 1920.0
-offset_bottom = 978.0
+offset_bottom = 952.0
 mouse_filter = 2
 alignment = 1
 
@@ -496,9 +497,9 @@ vertical_alignment = 1
 [node name="ReadyBanner" type="Control" parent="."]
 visible = false
 layout_mode = 0
-offset_top = 690.0
+offset_top = 678.0
 offset_right = 1920.0
-offset_bottom = 790.0
+offset_bottom = 778.0
 mouse_filter = 2
 
 [node name="Band" type="Panel" parent="ReadyBanner"]
@@ -576,9 +577,9 @@ glyph = "key:ENTER"
 [node name="HintBanner" type="Control" parent="."]
 visible = false
 layout_mode = 0
-offset_top = 700.0
+offset_top = 688.0
 offset_right = 1920.0
-offset_bottom = 780.0
+offset_bottom = 768.0
 mouse_filter = 2
 
 [node name="Band" type="Panel" parent="HintBanner"]
@@ -620,9 +621,9 @@ vertical_alignment = 1
 
 [node name="Footer" type="Control" parent="."]
 layout_mode = 0
-offset_top = 996.0
+offset_top = 956.0
 offset_right = 1920.0
-offset_bottom = 1066.0
+offset_bottom = 1020.0
 mouse_filter = 2
 
 [node name="HintRow" type="HBoxContainer" parent="Footer"]
@@ -706,57 +707,6 @@ glyph = "stick"
 layout_mode = 2
 theme_type_variation = &"Hint"
 text = "GOAT / FLAIR"
-vertical_alignment = 1
-
-[node name="GGo" type="HBoxContainer" parent="Footer/HintRow"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 10
-
-[node name="Glyph" type="Control" parent="Footer/HintRow/GGo"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-script = ExtResource("5_glyph")
-glyph = "START"
-
-[node name="Slash" type="Label" parent="Footer/HintRow/GGo"]
-visible = false
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "/"
-vertical_alignment = 1
-
-[node name="Glyph2" type="Control" parent="Footer/HintRow/GGo"]
-visible = false
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-script = ExtResource("5_glyph")
-glyph = "key:ENTER"
-
-[node name="Label" type="Label" parent="Footer/HintRow/GGo"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "GO!"
-vertical_alignment = 1
-
-[node name="GHold" type="HBoxContainer" parent="Footer/HintRow"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 20
-
-[node name="Glyph" type="Control" parent="Footer/HintRow/GHold"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-script = ExtResource("5_glyph")
-glyph = "B"
-
-[node name="Label" type="Label" parent="Footer/HintRow/GHold"]
-layout_mode = 2
-theme_type_variation = &"Hint"
-text = "HOLD: EXIT"
 vertical_alignment = 1
 
 [node name="UnlockCard" type="Control" parent="."]

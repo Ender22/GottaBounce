@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://lobbyslot0001"]
+[gd_scene load_steps=12 format=3 uid="uid://lobbyslot0001"]
 
 [ext_resource type="Script" path="res://src/ui/LobbySlot.gd" id="1_slot"]
 [ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="2_glyph"]
@@ -130,6 +130,35 @@ corner_radius_top_left = 30
 corner_radius_top_right = 30
 corner_radius_bottom_right = 30
 corner_radius_bottom_left = 30
+
+[sub_resource type="StyleBoxFlat" id="disc_chip"]
+bg_color = Color(1, 0.294118, 0.227451, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 6
+shadow_offset = Vector2(0, 5)
+content_margin_left = 16.0
+content_margin_right = 16.0
+
+[sub_resource type="StyleBoxFlat" id="wait_flash"]
+bg_color = Color(1, 0.823529, 0.247059, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.231373, 0.141176, 0.105882, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
 
 [node name="LobbySlot" type="Control"]
 custom_minimum_size = Vector2(420, 530)
@@ -379,6 +408,16 @@ offset_right = 374.0
 offset_bottom = 40.0
 mouse_filter = 2
 script = ExtResource("3_chev")
+
+[node name="WaitFlash" type="Panel" parent="."]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 0
+offset_left = 40.0
+offset_top = 478.0
+offset_right = 380.0
+offset_bottom = 526.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("wait_flash")
 
 [node name="Status" type="HBoxContainer" parent="."]
 layout_mode = 0
@@ -993,6 +1032,89 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
 theme_override_font_sizes/font_size = 28
 text = "UNDO"
+vertical_alignment = 1
+
+[node name="DiscFace" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DiscChip" type="Label" parent="DiscFace"]
+layout_mode = 0
+offset_left = 50.0
+offset_top = 128.0
+offset_right = 370.0
+offset_bottom = 186.0
+rotation = -0.0523599
+pivot_offset = Vector2(160, 29)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 34
+theme_override_styles/normal = SubResource("disc_chip")
+text = "DISCONNECTED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DiscHint" type="Label" parent="DiscFace"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 360.0
+offset_right = 402.0
+offset_bottom = 404.0
+theme_override_colors/font_color = Color(1, 0.968627, 0.921569, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 30
+text = "PLUG IT BACK IN · 10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TakeRow" type="HBoxContainer" parent="DiscFace"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 432.0
+offset_right = 400.0
+offset_bottom = 500.0
+mouse_filter = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="TakeGlyph" type="Control" parent="DiscFace/TakeRow"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_glyph")
+glyph = "A"
+
+[node name="TakeSlash" type="Label" parent="DiscFace/TakeRow"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.968627, 0.921569, 1)
+theme_override_font_sizes/font_size = 30
+text = "/"
+vertical_alignment = 1
+
+[node name="TakeGlyph2" type="Control" parent="DiscFace/TakeRow"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_glyph")
+glyph = "key:ENTER"
+
+[node name="TakeText" type="Label" parent="DiscFace/TakeRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.968627, 0.921569, 1)
+theme_override_colors/font_outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 30
+text = "TAKE OVER"
 vertical_alignment = 1
 
 [node name="JoinPrompt" type="Control" parent="."]

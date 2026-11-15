@@ -38,6 +38,7 @@ const ToyKit := preload("res://src/ui/ToyKit.gd")   # WK-52: unlock card palette
 const S_EMPTY := "EMPTY"
 const S_PICKING := "PICKING"
 const S_READY := "READY"
+const S_DISC := "DISCONNECTED"   # WK-28a (CC-3.5): the seat's pad was unplugged; goat + colour held for the grace window
 const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 
 @onready var _slot_views: Array = [$Slots/Slot1, $Slots/Slot2, $Slots/Slot3, $Slots/Slot4]
@@ -45,6 +46,8 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _backdrop: Control = $StandaloneBackdrop
 @onready var _back_btn: Button = $Header/BackBtn
 @onready var _back_glyph: Control = $Header/BackBtn/Row/BackGlyph
+@onready var _back_label: Label = $Header/BackBtn/Row/BackLabel
+@onready var _back_row: Control = $Header/BackBtn/Row
 @onready var _title: Label = $Header/Title
 @onready var _banner: Control = $ReadyBanner
 @onready var _banner_band: Panel = $ReadyBanner/Band
@@ -68,8 +71,6 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _go_wrap: Control = $ReadyBanner/Band/Row/GoWrap
 @onready var _go_wrap2: Control = $ReadyBanner/Band/Row/GoWrap2
 @onready var _go_glyph2: Control = $ReadyBanner/Band/Row/GoWrap2/GoGlyph2
-@onready var _f_go_slash: Label = $Footer/HintRow/GGo/Slash
-@onready var _f_go2: Control = $Footer/HintRow/GGo/Glyph2
 # WK-52 / CD3-07: the flair unlock is a cream banner card that drops into the header band (never over a slot).
 @onready var _unlock_card: Control = $UnlockCard
 @onready var _unlock_panel: PanelContainer = $UnlockCard/Center/Card
@@ -79,8 +80,6 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _f_join: Control = $Footer/HintRow/GJoin/Glyph
 @onready var _f_back: Control = $Footer/HintRow/GBack/Glyph
 @onready var _f_random: Control = $Footer/HintRow/GRandom/Glyph
-@onready var _f_go: Control = $Footer/HintRow/GGo/Glyph
-@onready var _f_hold: Control = $Footer/HintRow/GHold/Glyph
 @onready var _red_group: Control = $Roster/RedGroup
 @onready var _blue_group: Control = $Roster/BlueGroup
 @onready var _team_vs: Control = $Roster/TeamVs
@@ -89,6 +88,8 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 
 ## Slot state (audit §E.2): {state, device, goat, flair, row}. The lobby is the ONLY writer; InputRouter's
 ## join registry mirrors it. Eval-readable for QA (`slots`, `banner_up`, `cpus()`).
+## WK-28a: a DISCONNECTED slot also carries {prev: the state it had when its pad was lost, until: msec deadline};
+## its "device" is the lost pad (so that pad gets its old state back if it reconnects and presses A in time).
 var slots: Array = []
 var banner_up := false
 var hint_up := false
@@ -215,7 +216,7 @@ func _restore_lobby() -> void:
 			var sd: Dictionary = d
 			var st := str(sd.get("state", S_EMPTY))
 			var dev := str(sd.get("device", ""))
-			if st == S_EMPTY or InputRouter.kind_of(dev) == "":
+			if (st != S_PICKING and st != S_READY) or InputRouter.kind_of(dev) == "":
 				continue
 			if forward and st == S_READY:
 				st = S_PICKING
@@ -249,6 +250,9 @@ func _restore_lobby() -> void:
 func _persist() -> void:
 	var out: Array = []
 	for s in slots:
+		if s["state"] == S_DISC:
+			out.append(_empty_slot())   # WK-28a: a seat whose pad is gone is not carried to the next screen
+			continue
 		out.append({"state": s["state"], "device": s["device"], "goat": s["goat"], "flair": s["flair"]})
 	GameConfig.lobby = out
 	GameConfig.set_rules(_rules_key, _current_rules())
@@ -343,7 +347,7 @@ func _team_seats() -> int:
 func _team_ready_count(t: int, except_si: int) -> int:
 	var n := 0
 	for i in range(MAX_SLOTS):
-		if i != except_si and slots[i]["state"] == S_READY and _goat_team(int(slots[i]["goat"])) == t:
+		if i != except_si and _holds_lock(i) and _goat_team(int(slots[i]["goat"])) == t:
 			n += 1
 	return n
 
@@ -600,11 +604,12 @@ func _process(_delta: float) -> void:
 	if not _lock_queue.is_empty():
 		_resolve_locks()
 	_tick_hold_b(now)
+	_tick_disc(now)
 
 # ================================================================== slot actions
 func _slot_of(key: String) -> int:
 	for i in range(MAX_SLOTS):
-		if slots[i]["state"] != S_EMPTY and slots[i]["device"] == key:
+		if slots[i]["state"] != S_EMPTY and slots[i]["state"] != S_DISC and slots[i]["device"] == key:
 			return i
 	return -1
 
@@ -619,6 +624,12 @@ func _joined_count() -> int:
 ## is on (E.4). Full lobby = deny.
 func _join(key: String, sound: bool) -> void:
 	if _launching:
+		return
+	# WK-28a (CC-3.5): "the first unassigned device to press A takes it over" — a DISCONNECTED seat beats an EMPTY
+	# one. The lost pad itself gets its own seat back first if several are waiting.
+	var di := _disc_slot_for(key)
+	if di >= 0:
+		_reclaim(di, key)
 		return
 	var si := -1
 	for i in range(MAX_SLOTS):
@@ -655,6 +666,82 @@ func _leave(si: int) -> void:
 	(_slot_views[si] as Object).call("show_empty", not _kb_joined(), true)
 	AudioManager.play_sfx("ui_click", {"pitch": 0.6, "pitch_var": 0.0, "volume_db": -4.0})
 	_after_change()
+
+# ------------------------------------------------------------------ DISCONNECTED seats (WK-28a, CC-3.5)
+## The DISCONNECTED seat `key` should take over: its own old seat if it has one, else the lowest one. -1 = none.
+func _disc_slot_for(key: String) -> int:
+	var first := -1
+	for i in range(MAX_SLOTS):
+		if slots[i]["state"] != S_DISC:
+			continue
+		if str(slots[i]["device"]) == key:
+			return i
+		if first < 0:
+			first = i
+	return first
+
+## Seat `si` lost its pad: keep goat, colour, flair and P-number for Tuning.lobby_disconnect_grace seconds.
+func _disconnect(si: int) -> void:
+	var s: Dictionary = slots[si]
+	var dev := str(s["device"])
+	_stop_spin(si)
+	_lock_queue.erase(si)
+	s.erase("flair_view")
+	s["prev"] = s["state"]
+	s["state"] = S_DISC
+	s["until"] = Time.get_ticks_msec() + int(Tuning.lobby_disconnect_grace * 1000.0)
+	InputRouter.leave(dev)
+	_clear_device_input(dev)
+	_hold_b.erase(dev)
+	(_slot_views[si] as Object).call("show_disconnected", not _kb_joined())
+	(_slot_views[si] as Object).call("set_disc_remaining", 1.0, ceili(Tuning.lobby_disconnect_grace))
+	_deny_sound()
+	_after_change()
+
+## `key` takes over DISCONNECTED seat `si`. The pad that was lost gets its old state back (READY stays READY, if the
+## goat is still free); any other device takes the goat and colour but starts PICKING (a new pair of hands decides).
+func _reclaim(si: int, key: String) -> void:
+	var s: Dictionary = slots[si]
+	var same: bool = str(s["device"]) == key
+	var back_ready: bool = same and str(s.get("prev", "")) == S_READY
+	var g: int = int(s["goat"])
+	slots[si] = {"state": S_PICKING, "device": key, "goat": g, "flair": str(s.get("flair", "")), "row": 0}
+	if back_ready and not _blocked(g, si):
+		slots[si]["state"] = S_READY
+	InputRouter.join(key, si)
+	_clear_device_input(key)
+	var v: Object = _slot_views[si]
+	v.call("show_join", key, _hero(g), _portrait(g))
+	v.call("set_ready", slots[si]["state"] == S_READY, false)
+	_push_flair_view(si)
+	v.call("set_row", 0)
+	AudioManager.play_sfx("powerup_pickup", {"pitch": JOIN_PITCH[si], "pitch_var": 0.0, "volume_db": -4.0})
+	InputRouter.rumble(key, 0.4, 0.6, 0.18)
+	_after_change()
+
+## Grace window over: the seat empties (goat released), exactly as if the player had backed out.
+func _expire_disc(si: int) -> void:
+	slots[si] = _empty_slot()
+	(_slot_views[si] as Object).call("show_empty", not _kb_joined(), true)
+	AudioManager.play_sfx("ui_click", {"pitch": 0.6, "pitch_var": 0.0, "volume_db": -4.0})
+	_after_change()
+
+func _tick_disc(now: int) -> void:
+	for i in range(MAX_SLOTS):
+		if slots[i]["state"] != S_DISC:
+			continue
+		var left_ms: int = int(slots[i]["until"]) - now
+		if left_ms <= 0:
+			_expire_disc(i)
+			continue
+		var frac: float = float(left_ms) / (Tuning.lobby_disconnect_grace * 1000.0)
+		(_slot_views[i] as Object).call("set_disc_remaining", frac, ceili(float(left_ms) / 1000.0))
+
+## Eval-readable (QA): seconds left on a DISCONNECTED seat, -1 if the slot is not DISCONNECTED.
+func disc_left(i: int) -> float:
+	if i < 0 or i >= MAX_SLOTS or slots[i]["state"] != S_DISC:
+		return -1.0
+	return maxf(0.0, float(int(slots[i]["until"]) - Time.get_ticks_msec()) / 1000.0)
 
 func _on_accept(si: int) -> void:
 	var s: Dictionary = slots[si]
@@ -714,7 +801,6 @@ func _tick_hold_b(now: int) -> void:
 		best = maxf(best, float(now - int(_hold_b[k])) / (Tuning.lobby_hold_exit * 1000.0))
 	var shown: float = best if best * Tuning.lobby_hold_exit >= Tuning.lobby_hold_ring_show else 0.0
 	_back_glyph.set("ring", shown)
-	_f_hold.set("ring", shown)
 	if shown > 0.0:
 		var ticks: int = int(best / 0.2)
 		if ticks > _hold_ticks:
@@ -775,9 +861,14 @@ func _cycle_goat(si: int, dir: int) -> void:
 
 func _locked_by_other(g: int, si: int) -> int:
 	for i in range(MAX_SLOTS):
-		if i != si and slots[i]["state"] == S_READY and int(slots[i]["goat"]) == g:
+		if i != si and _holds_lock(i) and int(slots[i]["goat"]) == g:
 			return i
 	return -1
+
+## Slot `i` holds its goat locked: READY, or DISCONNECTED from READY (WK-28a — a cable wiggle never frees a pick).
+func _holds_lock(i: int) -> bool:
+	var st: String = str(slots[i]["state"])
+	return st == S_READY or (st == S_DISC and str(slots[i].get("prev", "")) == S_READY)
 
 ## Y / R: the portrait spins through the free goats for lobby_random_spin s and lands; stays PICKING.
 func _random_pick(si: int) -> void:
@@ -907,7 +998,7 @@ func roster_state() -> String:
 		if s["state"] == S_EMPTY:
 			continue
 		if s["state"] != S_READY:
-			return ""
+			return ""   # PICKING, or WK-28a DISCONNECTED (its grace window holds the launch)
 		joined += 1
 	if joined == 0:
 		return ""
@@ -928,6 +1019,7 @@ func _try_proceed() -> void:
 		return
 	if not banner_up:
 		_soft_tick()
+		_nudge_waiting()
 		return
 	if Time.get_ticks_msec() - _banner_since < int(Tuning.lobby_banner_guard * 1000.0):
 		# E.5 double-tap guard (banner up >= 0.35 s) — WK-81 F8: answer the press, never eat it silently
@@ -935,6 +1027,21 @@ func _try_proceed() -> void:
 		_pop_banner()
 		return
 	_proceed()
+
+## WK-83 (lobby review L7): a READY player pressed GO before the banner — every panel we are still waiting on
+## (PICKING, or WK-28a DISCONNECTED) nudges and flashes its status bar; with nobody left to wait on (the amber
+## "add a CPU" / "team full" band is up) the band pops instead.
+func _nudge_waiting() -> void:
+	var any := false
+	for i in range(MAX_SLOTS):
+		var st: String = str(slots[i]["state"])
+		if st == S_PICKING or st == S_DISC:
+			(_slot_views[i] as Object).call("waiting_flash")
+			any = true
+	if not any and hint_up:
+		var row: Control = _hint_banner.get_node("Band")
+		row.pivot_offset = row.size * 0.5
+		MenuFX.value_pop(row, 1.05)
 
 func _pop_banner() -> void:
 	if _breathe_tw != null and _breathe_tw.is_valid():
@@ -960,7 +1067,7 @@ func _proceed() -> void:
 	var teams := PackedInt32Array()
 	for i in range(MAX_SLOTS):
 		var s: Dictionary = slots[i]
-		if s["state"] == S_EMPTY:
+		if s["state"] == S_EMPTY or s["state"] == S_DISC:
 			continue
 		if _mode == "sports":
 			teams.append(maxi(0, _goat_team(int(s["goat"]))))
@@ -1192,7 +1299,7 @@ func _refresh_medals() -> void:
 	for g in range(_medals.size()):
 		var who: Array = []
 		for i in range(MAX_SLOTS):
-			if slots[i]["state"] == S_READY and int(slots[i]["goat"]) == g:
+			if _holds_lock(i) and int(slots[i]["goat"]) == g:
 				who.append(i)
 		(_medals[g] as Object).call("set_locked_by", who)
 
@@ -1201,9 +1308,15 @@ func _refresh_medals() -> void:
 func _refresh_empty_hints() -> void:
 	var kb_free: bool = not _kb_joined()
 	var first_empty := true
+	var has_disc := false
+	for i in range(MAX_SLOTS):
+		if slots[i]["state"] == S_DISC:
+			has_disc = true
+			(_slot_views[i] as Object).call("set_disc_takeover", kb_free)
 	for i in range(MAX_SLOTS):
 		if slots[i]["state"] == S_EMPTY:
-			(_slot_views[i] as Object).call("set_kb_hint", kb_free and first_empty)
+			# WK-28a: while a seat is DISCONNECTED the keyboard's Enter takes it over, so no KEYBOARD join hint here
+			(_slot_views[i] as Object).call("set_kb_hint", kb_free and first_empty and not has_disc)
 			first_empty = false
 
 func _kb_joined() -> bool:
@@ -1352,7 +1465,7 @@ func shared_glyph_kind() -> String:
 	var any_pad := false
 	var any_kb := false
 	for s in slots:
-		if s["state"] == S_EMPTY:
+		if s["state"] == S_EMPTY or s["state"] == S_DISC:
 			continue
 		if str(s["device"]) == "kb":
 			any_kb = true
@@ -1368,7 +1481,7 @@ func _mixed_devices() -> bool:
 	var any_pad := false
 	var any_kb := false
 	for s in slots:
-		if s["state"] == S_EMPTY:
+		if s["state"] == S_EMPTY or s["state"] == S_DISC:
 			continue
 		if str(s["device"]) == "kb":
 			any_kb = true
@@ -1382,23 +1495,18 @@ func _refresh_glyphs() -> void:
 	(_f_join as Object).call("setup", "key:ENTER" if kb else "A")
 	(_f_back as Object).call("setup", "key:ESC" if kb else "B")
 	(_f_random as Object).call("setup", "key:R" if kb else "Y")
-	(_f_go as Object).call("setup", "key:ENTER" if kb else "START")
-	(_f_hold as Object).call("setup", "key:ESC" if kb else "B")
 	(_back_glyph as Object).call("setup", "key:ESC" if kb else "B")
+	_refresh_back_chip()
 	(_lb_glyph as Object).call("setup", "key:Q" if kb else "LB")
 	(_rb_glyph as Object).call("setup", "key:E" if kb else "RB")
 	(_view_glyph as Object).call("setup", "key:TAB" if kb else "VIEW")
 	(get_node("Footer/HintRow/GFlair/Glyph") as Object).call("setup", "arrows" if kb else "stick")   # WK-29: no stick on a keyboard
 	(_go_glyph as Object).call("setup", "key:ENTER" if kb else "START")
-	# dual GO prompt for a mixed couch
-	_f_go_slash.visible = mixed
-	_f_go2.visible = mixed
+	# dual GO prompt for a mixed couch (WK-138: GO lives only on the banner, never in the footer)
 	_go_slash.visible = mixed
 	_go_wrap2.visible = mixed
 	if mixed:
-		(_f_go as Object).call("setup", "START")
 		(_go_glyph as Object).call("setup", "START")
-		(_f_go2 as Object).call("setup", "key:ENTER")
 		(_go_glyph2 as Object).call("setup", "key:ENTER")
 	# the banner glyphs are drawn 1.5x inside plain wrappers (containers reset child scale): size the wraps
 	_go_wrap.custom_minimum_size = (_go_glyph as Control).custom_minimum_size * 1.5
@@ -1406,20 +1514,30 @@ func _refresh_glyphs() -> void:
 	# amber hint: the lone human's own device
 	var lone := ""
 	for s in slots:
-		if s["state"] != S_EMPTY:
+		if s["state"] != S_EMPTY and s["state"] != S_DISC:
 			lone = str(s["device"]) if lone == "" else "many"
 	var hint_kb: bool = lone == "kb" or (lone == "" and kb)
 	(_hint_glyph as Object).call("setup", "key:E" if hint_kb else "RB")
 
+## WK-138 (UX4-05 / UX4-03, CC-1.7): the top-left chip is the lobby's ONE exit prompt and must be true for whoever
+## reads it. Nobody joined: a tap backs out ("BACK"). Anyone joined: only a device that is NOT seated arms the
+## hold-to-exit (WK-82 — a seated B un-readies / backs out instead), so the chip says exactly that.
+func _refresh_back_chip() -> void:
+	var anyone: bool = _joined_count() > 0
+	_back_label.text = "NOT IN? HOLD: EXIT" if anyone else "BACK"
+	_back_label.add_theme_font_size_override("font_size", 30 if anyone else 36)
+	var w: float = maxf(220.0, _back_row.get_combined_minimum_size().x + 44.0)
+	_back_btn.size.x = w
+
 # ================================================================== misc
 func _on_device_lost(key: String) -> void:
-	# Interim until WK-28's DISCONNECTED slot (10 s reconnect ring): an unplugged pad frees its slot so
-	# the lobby never holds a ghost player.
+	# WK-28a (CC-3.5): an unplugged pad's seat goes DISCONNECTED (goat + colour kept, grace countdown) instead of
+	# emptying; the pad itself, or any unseated device pressing A / Enter, takes it back over.
+	if _rules_owner == key:
+		_close_rules(false)   # owner pad gone: the RULES flip closes KEEPING the values
 	var si := _slot_of(key)
 	if si >= 0:
-		_leave(si)
-	if _rules_owner == key:
-		_close_rules(false)   # owner pad gone: close KEEPING the values (WK-28 then handles the slot)
+		_disconnect(si)
 
 func _clear_device_input(key: String) -> void:
 	_holds.erase(key + "|h")

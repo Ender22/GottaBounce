@@ -839,3 +839,11 @@ var ghost_terrain_push_speed: float = 520.0    # px/s ease out to the nearest cl
 var ghost_terrain_steer_in_dot: float = -0.3   # stick . exit-dir below this = "driving into the platform" -> no push (intangible while steered)  # WK-37f
 var ghost_terrain_search_step: float = 16.0    # px ring step of the nearest-clear-spot search  # WK-37f
 var ghost_terrain_search_max: float = 420.0    # px search radius; nothing clear inside the view within it -> leave the ghost be  # WK-37f
+
+# --- WK-28a lobby disconnect grace (CC-3.5). Read by src/ui/HerdLobby.gd + src/ui/LobbySlot.gd.  # WK-28a
+var lobby_disconnect_grace: float = 10.0      # s a lost pad's seat stays DISCONNECTED (goat + colour kept) before it empties  # WK-28a
+var lobby_disc_bust_tint: Color = Color(0.42, 0.40, 0.40, 0.85)  # greyed bust modulate on a DISCONNECTED panel  # WK-28a
+# --- WK-83 lobby "who are we waiting on" nudge + TV safe area. Read by HerdLobby.gd / LobbySlot.gd / MenuScreen.gd.  # WK-83
+var lobby_wait_flash: float = 0.45            # s a still-PICKING panel's gold status-bar plate takes to fade out after a READY player presses GO early  # WK-83
+var lobby_wait_flash_color: Color = Color(1.0, 0.82, 0.25)  # DISCONNECTED panel's countdown-text flash tint when a READY player presses GO early (PICKING panels light a gold plate)  # WK-83
+var tv_safe_margin: float = 0.05              # share of screen height kept clear top + bottom (TV overscan): header chips >= 54 px, footers <= 1026 px at 1080p  # WK-83
