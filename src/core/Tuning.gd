@@ -929,3 +929,28 @@ var disconnect_portrait_tint: Color = Color(0.50, 0.48, 0.48, 1.0)  # lost playe
 var device_toast_hold: float = 2.6            # s a connect / disconnect toast stays fully shown  # WK-28b
 var device_toast_fade: float = 0.22           # s a toast takes to drop in / fade out  # WK-28b
 var device_toast_max: int = 3                 # toasts stacked at once (the oldest leaves early)  # WK-28b
+
+# --- WK-136 near-empty re-light (CD3-04a, docs/audit/2026-11-15_cd3_playthrough.md §5 G2). A billed mid-air re-light (WK-128 R2)  # WK-136
+# always leaves at least this much THRUST TIME in the tank: fuel = max(fuel - bill, min(fuel, max(boost_relight_min_left,  # WK-136
+# normal_boost_drain() x this))). 0.105 s = 3.0 fuel = 12.6 ticks at 120 tps (Accept: 0 billed re-lights under 12 ticks). A press  # WK-136
+# with less than 3.0 fuel in the tank is not billed at all (it burns what is there, as before). Feather check: the cap only bites  # WK-136
+# below 8.7 fuel (bill 5.71 + 3.0), so the whole saving is ~1 bill per episode inside the last 9 % of a tank; tut_02/03 feather  # WK-136
+# still fails (verified rendered 2026-11-15). Invariant #14 untouched (bill_max x drain still 5.71 above the floor). Read by  # WK-136
+# Player._wk128_fresh_press only.  # WK-136
+var boost_relight_min_thrust: float = 0.105   # s of thrust a billed re-light always leaves. 0.0 = OFF (WK-128's 1.0 fuel floor alone)  # WK-136
+# --- WK-20d Brawl pacing rungs R2-R4 (docs/specs/wk20d_brawl_pacing_2026-11-15.md §4.2-4.4). BRAWL ONLY (Player checks the  # WK-20d
+# runner's GameMode id; Sports / Trials / Flight School never see them). Each is an independent A/B switch, OFF by default:  # WK-20d
+# OFF = exactly the pre-WK-20d game. Counters (Player.wk128 dict, wk20d_*): supers, supers_fired_protected, truce_locked_presses,  # WK-20d
+# truce_unlock_buffered_arms (must be 0), whiffs, fumbles, whiff_brakes, whiff_brake_reached750, whiff_brake_aborted, reserves,  # WK-20d
+# reserve_fuel, reserve_over_fire (must be 0), reserve_locked_presses, reserve_gate_violations (must be 0).  # WK-20d
+# NOT BUILT (spec: required before ADOPTION, not before measurement): the padlock / dry click (R2, R4), the sputter puff + "pfft"  # WK-20d
+# (R3), the HUD reserve sliver (R4).  # WK-20d
+# INVARIANT (§4.4): super_whiff_reserve < fuel_per_bounce (15 < 20). Because it is >= super_boost_min_fuel (10) the re-arm gate is  # WK-20d
+# REQUIRED; Player turns it on whenever super_whiff_reserve > 0, so the two can never be split.  # WK-20d
+var brawl_spawn_super_lock: bool = false      # R2 SPAWN TRUCE: no super arms while you blink (spawn-protected); a press is dropped,  # WK-20d
+                                              # never buffered. Test value true  # WK-20d
+var super_whiff_brake_speed: float = 0.0      # R3 WHIFF BRAKE: px/s a super that touched nothing (no smash branch, no surface)  # WK-20d
+                                              # bleeds to when its super_active_time window ends. 0 = OFF; test 700 (< boost cap 800)  # WK-20d
+var super_whiff_brake_time: float = 0.15      # R3: s the bleed takes (linear |v| cap v0 -> brake speed; scales only, never reverses)  # WK-20d
+var super_whiff_reserve: float = 0.0          # R4 FUMBLE RESERVE: a super that landed no smash returns min(this, fuel at fire) when its  # WK-20d
+                                              # window ends; that fuel can't arm a super until the next paying contact. 0 = OFF; test 15  # WK-20d

@@ -141,6 +141,27 @@ var _contact_times: Array = []  # clocks of contacts in the last 1 s (surface_co
 var _pin_key := ""
 var _pin_times: Array = []
 var _in_pin := false
+# WK-136 (CD3-04a) telemetry: a BILLED re-light's burn, so QA can count presses that ran dry under 0.1 s of thrust.  # WK-136
+const WK136_MIN_BURN := 0.1     # s: spec threshold (12 ticks at 120 tps). FIXED, not Tuning, so both A/B arms measure the same  # WK-136
+var _wk136_burn_t := -1.0       # s of thrust since the last billed re-light (-1 = not tracking)  # WK-136
+# WK-20d R2-R4 (docs/specs/wk20d_brawl_pacing_2026-11-15.md §4.2-4.4). BRAWL-only rules, each OFF by default in Tuning.  # WK-20d
+# Per-super window record, opened by _fire_super and judged when the super_active window (0.45 s) closes.  # WK-20d
+var _wk20d_mode := -1           # 1 = BRAWL rules apply, 0 = not BRAWL, -1 = not resolved yet (GameMode seam via the runner)  # WK-20d
+var _w_track := false           # a _fire_super window is open  # WK-20d
+var _w_fuel_at_fire := 0.0      # fuel when that super fired  # WK-20d
+var _w_contact := false         # any smash branch ran (incl. protected / Star / Counter targets, props) or a head-bounce  # WK-20d
+var _w_landed := false          # a smash_landed was emitted for this super (victim actually took the hit)  # WK-20d
+var _w_surface := false         # any surface contact since firing  # WK-20d
+var _w_paid := false            # a paying contact since firing  # WK-20d
+var _w_stunned := false         # in hitstun at any point in the window  # WK-20d
+var _w_locked := false          # fuel_locked (Unlimited Boost) at any point in the window  # WK-20d
+var _w_channel := false         # Black Hole channel at any point in the window  # WK-20d
+var _wb_t := -1.0               # R3 whiff brake: s since the brake started (-1 = not braking)  # WK-20d
+var _wb_v0 := 0.0               # R3: speed when the window closed  # WK-20d
+var _wb_dir := Vector2.ZERO     # R3: travel direction at the window close (the brake never reverses it)  # WK-20d
+var _wb_reached := false        # R3 QA: reached <= 750 px/s within 0.20 s of the window close  # WK-20d
+var _wr_block := false          # R4 re-arm gate: a fumble reserve was granted; no super arms until the next paying contact  # WK-20d
+var _wt_unlock_t := INF         # R2 QA: s since spawn protection ended (INF = never protected this life)  # WK-20d
 
 func damage_launch_mult() -> float:
 	# §12.3: victim's pre-hit launch multiplier (x1.0 / x1.33 / x1.66), indexed by damage_level.
@@ -528,7 +549,13 @@ func _physics_process(delta: float) -> void:
 	_shove_cd = maxf(0.0, _shove_cd - delta)
 	_super_recent = maxf(0.0, _super_recent - delta)
 	_pulled = maxf(0.0, _pulled - delta)
+	var wk20d_was_protected: bool = _spawn_protect > 0.0   # WK-20d R2 QA (unlock clock)
 	_spawn_protect = maxf(0.0, _spawn_protect - delta)
+	if wk20d_was_protected and _spawn_protect <= 0.0:   # WK-20d R2 QA
+		_wt_unlock_t = 0.0   # WK-20d
+	elif _wt_unlock_t < INF:   # WK-20d
+		_wt_unlock_t += delta   # WK-20d
+	_wk20d_window_tick()   # WK-20d R3/R4: judge the super_active window the frame it closes
 	_deform_cd = maxf(0.0, _deform_cd - delta)
 	_attacker_timer = maxf(0.0, _attacker_timer - delta)
 	_attacker_age += delta
@@ -596,15 +623,20 @@ func _physics_process(delta: float) -> void:
 
 	# --- Un-charged super boost (lethality spec §1): press = AIM, release / 2s cap = full blast ---
 	var sh: bool = intent.super_hold
+	# WK-20d R2 spawn truce / R4 re-arm gate: while locked a super press is DROPPED, never buffered (a fresh press is
+	# needed after unlock). Both knobs OFF -> always false -> the lines below run exactly as before.  # WK-20d
+	var wk20d_lock: bool = _wk20d_super_lock(sh)   # WK-20d
 	# Chain buffer (QA fix): a super press/hold while blocked by the refire lockout — or by the
 	# empty tank right after firing — is never eaten. It re-buffers every held frame (mirroring
 	# the hitstun buffer above), so the next AIM starts automatically on the first legal frame:
 	# fast super->bounce->super chains don't require a frame-perfect release + re-press.
-	if sh and not _sb_aiming and (_sb_lockout > 0.0 or fuel < Tuning.super_boost_min_fuel):
+	if not wk20d_lock and sh and not _sb_aiming and (_sb_lockout > 0.0 or fuel < Tuning.super_boost_min_fuel):   # WK-20d: not while locked
 		_sb_buffer = Tuning.input_buffer
-	var want_aim: bool = (sh and not _sb_was_held) or (_sb_buffer > 0.0 and not stunned)
+	var wk20d_fresh: bool = sh and not _sb_was_held   # WK-20d R2 QA (fresh press vs buffer)
+	var want_aim: bool = not wk20d_lock and (wk20d_fresh or (_sb_buffer > 0.0 and not stunned))   # WK-20d: not while locked
 	if want_aim and not _sb_aiming and _sb_lockout <= 0.0 and _channel_timer <= 0.0 \
 			and fuel >= Tuning.super_boost_min_fuel:
+		_wk20d_on_arm(wk20d_fresh)   # WK-20d QA counters (no behaviour)
 		_sb_aiming = true
 		_sb_aim_t = 0.0
 		_sb_aim_dir = aim_dir if aiming else Vector2.UP   # never steered = straight up (the funny default)
@@ -682,6 +714,7 @@ func _physics_process(delta: float) -> void:
 
 	_supercharge_timer = maxf(0.0, _supercharge_timer - delta)
 	_wk128_tick(boosting, delta)
+	_wk20d_brake_tick(delta)   # WK-20d R3: bleed a whiffed super toward super_whiff_brake_speed (no-op unless braking)
 
 	# Global safety cap: prevents elastic-wall+boost runaway and high-speed escapes through geometry.
 	velocity = velocity.limit_length(Tuning.max_speed)
@@ -745,6 +778,7 @@ func _fire_super(auto_fired: bool) -> void:
 	_super_recent = Tuning.super_active_time
 	_sb_lockout = Tuning.pu_unlimited_super_lockout if fuel_locked else Tuning.super_refire_lockout
 	_wk128_reset_relight()        # WK-128 R1: a super fire starts a new relight episode
+	_wk20d_on_fire(fuel_at_fire)  # WK-20d R3/R4: open this super's whiff record (telemetry + OFF-by-default rules)
 	EventBus.super_boosted.emit(self)
 	EventBus.super_fired.emit(self, fuel_at_fire, aim_time, auto_fired)
 
@@ -797,6 +831,7 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 		var collider = col.get_collider()
 		if collider == null:
 			continue
+		_wk20d_touched()   # WK-20d R3: any surface contact since firing disqualifies the whiff brake (and ends a brake)
 		# RECT surfaces snap the contact normal to its dominant axis (stops glancing edge/corner
 		# hits from launching you diagonally — a flat floor always bounces straight up). ROUND
 		# surfaces (meta "round": GravitySource planetoids, owner 2026-07-18) keep the TRUE radial
@@ -909,6 +944,7 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 			if boost_held:
 				_supercharge_timer = Tuning.supercharge_window
 			_wk128_paid()   # R3 waiver of a just-billed re-light, then R1 (next press free)
+			_wk20d_paid()   # WK-20d R4: a paying contact lifts the re-arm gate (and voids this super's reserve)
 		_stun_timer = 0.0
 		_stunned_by = null
 	_squash_timer = 0.12
@@ -991,7 +1027,10 @@ func _wk128_fresh_press() -> void:
 	elif Tuning.boost_relight_bill_max > 0.0 and not fuel_locked:   # R5: no bill under Unlimited Boost
 		var bill: float = Tuning.normal_boost_drain() * minf(_rl_gap, Tuning.boost_relight_bill_max)
 		var f0 := fuel
-		fuel = maxf(fuel - bill, minf(fuel, Tuning.boost_relight_min_left))   # E13: a sputter, never a dead button
+		# WK-136 (CD3-04a): the bill always leaves >= boost_relight_min_thrust s of thrust (0.105 s = 3.0 fuel = 12.6 ticks);  # WK-136
+		# 0.0 = OFF -> boost_relight_min_left (1.0, ~4 ticks) alone, exactly WK-128.  # WK-136
+		var keep: float = maxf(Tuning.boost_relight_min_left, Tuning.normal_boost_drain() * Tuning.boost_relight_min_thrust)   # WK-136
+		fuel = maxf(fuel - bill, minf(fuel, keep))   # E13: a sputter, never a dead button  # WK-136: keep (was boost_relight_min_left)
 		var paid := f0 - fuel
 		if paid > 0.0:
 			_rl_bill = paid
@@ -999,10 +1038,22 @@ func _wk128_fresh_press() -> void:
 			_rl_ep_spend += paid
 			_wk128_add("relights_billed", 1.0)
 			_wk128_add("relight_bill_fuel", paid)
+			if fuel - keep < 0.001:   # WK-136 QA: this press was billed down to the floor
+				_wk128_add("wk136_floored_relights", 1.0)   # WK-136
+			_wk136_burn_t = 0.0   # WK-136 QA: time this billed burn  # WK-136
 	_rl_gap = 0.0
 
 ## Per-tick ledger clocks (R4: the gap runs on physics time while not boosting; super-aim time counts).
 func _wk128_tick(boosting: bool, delta: float) -> void:
+	if _wk136_burn_t >= 0.0:   # WK-136 QA: a billed burn that ran the tank dry under WK136_MIN_BURN is a "dead button"
+		if boosting:   # WK-136
+			_wk136_burn_t += delta   # WK-136
+		if fuel <= 0.0 or not boosting:   # WK-136: burn over (dry, or released by the player)
+			if fuel <= 0.0 and _wk136_burn_t < WK136_MIN_BURN - 0.0001:   # WK-136
+				_wk128_add("wk136_short_billed_burns", 1.0)   # WK-136 (Accept: must stay 0)
+			_wk128_add("wk136_billed_burns_done", 1.0)   # WK-136
+			wk128["wk136_last_burn_s"] = _wk136_burn_t   # WK-136
+			_wk136_burn_t = -1.0   # WK-136
 	if not boosting:
 		_rl_gap += delta
 	_rl_bill_t = maxf(0.0, _rl_bill_t - delta)
@@ -1133,6 +1184,156 @@ func refund_rearm_pending(into: Vector2 = Vector2.ZERO) -> bool:
 		return false
 	return velocity.dot(n) > 0.0
 
+# ---------------------------------------------------------------- WK-20d R2-R4 (BRAWL pacing rungs, OFF by default)  # WK-20d
+# docs/specs/wk20d_brawl_pacing_2026-11-15.md §4.2-4.4 / §6.2. Every rule is gated by its Tuning knob AND BRAWL (GameMode  # WK-20d
+# seam: the runner's _mode.id()). Counters go into the per-player wk128 dict (wk20d_*); whiff/protected-fire telemetry is  # WK-20d
+# logged in BRAWL whatever the knobs say (no behaviour), so the B0 arm has the same counters as the rung arms.  # WK-20d
+
+## WK-20d: true when this goat plays under BRAWL rules (resolved once through the runner's GameMode; no runner = false).  # WK-20d
+func _wk20d_brawl() -> bool:
+	if _wk20d_mode < 0:
+		var r = identity_resolver
+		if r == null or not is_instance_valid(r):
+			return false
+		var m = r.get("_mode")
+		if m == null or not m.has_method("id"):
+			return false
+		var mid: StringName = m.id()
+		_wk20d_mode = 1 if mid == &"brawl" else 0
+	return _wk20d_mode == 1
+
+## WK-20d R2/R4: is a super press locked out right now? Counts a dropped fresh press and clears any buffered press.  # WK-20d
+func _wk20d_super_lock(sh: bool) -> bool:
+	var truce: bool = Tuning.brawl_spawn_super_lock and _spawn_protect > 0.0
+	var gate: bool = Tuning.super_whiff_reserve > 0.0 and _wr_block
+	if not (truce or gate) or not _wk20d_brawl():
+		return false
+	_sb_buffer = 0.0   # dropped, not buffered (spec §4.2): no super fires on the unlock frame without a fresh press
+	if sh and not _sb_was_held and not _sb_aiming:
+		_wk128_add("wk20d_truce_locked_presses" if truce else "wk20d_reserve_locked_presses", 1.0)
+	return true
+
+## WK-20d QA on every AIM start (no behaviour): R2 "0 arms within 0.05 s of unlock without a fresh press", R4 "0 arms
+## while the re-arm gate is up". Both must stay 0.  # WK-20d
+func _wk20d_on_arm(fresh: bool) -> void:
+	if not _wk20d_brawl():
+		return
+	if Tuning.brawl_spawn_super_lock and not fresh and _wt_unlock_t < 0.05:
+		_wk128_add("wk20d_truce_unlock_buffered_arms", 1.0)
+	if _wr_block and Tuning.super_whiff_reserve > 0.0:
+		_wk128_add("wk20d_reserve_gate_violations", 1.0)
+
+## WK-20d: _fire_super opened a window. Telemetry: supers fired while spawn-protected (R2 must make it 0).  # WK-20d
+func _wk20d_on_fire(fuel_at_fire: float) -> void:
+	_wb_t = -1.0   # a new super ends any running brake
+	if not _wk20d_brawl():
+		_w_track = false
+		return
+	_wk128_add("wk20d_supers", 1.0)
+	if _spawn_protect > 0.0:
+		_wk128_add("wk20d_supers_fired_protected", 1.0)
+	_w_track = true
+	_w_fuel_at_fire = fuel_at_fire
+	_w_contact = false
+	_w_landed = false
+	_w_surface = false
+	_w_paid = false
+	_w_stunned = _stun_timer > 0.0
+	_w_locked = fuel_locked
+	_w_channel = false
+
+## WK-20d per-frame window bookkeeping; judges the whiff the frame super_active ends.  # WK-20d
+func _wk20d_window_tick() -> void:
+	if not _w_track:
+		return
+	if _stun_timer > 0.0: _w_stunned = true
+	if fuel_locked: _w_locked = true
+	if _channel_timer > 0.0: _w_channel = true
+	if _super_recent > 0.0:
+		return
+	_w_track = false
+	# R4 qualifying fumble: no landed smash (protected / Star / Counter contacts still qualify), no paying contact,
+	# never in hitstun, not Unlimited Boost.
+	var fumble: bool = not _w_landed and not _w_paid and not _w_stunned and not _w_locked
+	# R3 qualifying whiff: no smash-branch contact at all, no surface contact, not stunned / Unlimited / pulled / channeling.
+	var whiff: bool = not _w_contact and not _w_surface and not _w_stunned and not _w_locked \
+			and _pulled <= 0.0 and not _w_channel
+	if fumble:
+		_wk128_add("wk20d_fumbles", 1.0)
+	if whiff:
+		_wk128_add("wk20d_whiffs", 1.0)
+	# R3 whiff brake
+	var sp: float = velocity.length()
+	if whiff and Tuning.super_whiff_brake_speed > 0.0 and sp > Tuning.super_whiff_brake_speed:
+		_wb_t = 0.0
+		_wb_v0 = sp
+		_wb_dir = velocity / sp
+		_wb_reached = false
+		_wk128_add("wk20d_whiff_brakes", 1.0)
+		_wk128_add("wk20d_whiff_brake_v0_sum", sp)
+	# R4 fumble reserve: min(reserve, fuel at fire), then the re-arm gate until the next paying contact
+	if fumble and Tuning.super_whiff_reserve > 0.0:
+		var res: float = minf(Tuning.super_whiff_reserve, _w_fuel_at_fire)
+		var f0 := fuel
+		fuel = minf(Tuning.fuel_max, fuel + res)
+		_wr_block = true
+		_wk128_add("wk20d_reserves", 1.0)
+		_wk128_add("wk20d_reserve_fuel", fuel - f0)
+		if res > _w_fuel_at_fire + 0.001:
+			_wk128_add("wk20d_reserve_over_fire", 1.0)   # QA: must stay 0
+
+## WK-20d R3: while braking, cap |v| on a linear schedule v0 -> super_whiff_brake_speed over super_whiff_brake_time.
+## Scales only (never adds speed, never reverses direction); a contact / hitstun / Unlimited / pull ends it.  # WK-20d
+func _wk20d_brake_tick(delta: float) -> void:
+	if _wb_t < 0.0:
+		return
+	if _stun_timer > 0.0 or fuel_locked or _pulled > 0.0 or _channel_timer > 0.0:
+		_wb_t = -1.0
+		_wk128_add("wk20d_whiff_brake_aborted", 1.0)
+		return
+	_wb_t += delta
+	var target: float = Tuning.super_whiff_brake_speed
+	var dur: float = maxf(Tuning.super_whiff_brake_time, 0.0001)
+	var k: float = clampf(_wb_t / dur, 0.0, 1.0)
+	var cap: float = lerpf(_wb_v0, target, k)
+	var sp: float = velocity.length()
+	if sp > cap and sp > 0.001:
+		velocity *= cap / sp
+	if not _wb_reached and velocity.length() <= 750.0 and _wb_t <= 0.2 + 0.0001:
+		_wb_reached = true
+		_wk128_add("wk20d_whiff_brake_reached750", 1.0)
+	if k >= 1.0:
+		_wb_t = -1.0
+		wk128["wk20d_last_brake_end_speed"] = velocity.length()
+
+## WK-20d R3: a surface contact (any slide collision) disqualifies an open window and ends a running brake.  # WK-20d
+func _wk20d_touched() -> void:
+	_w_surface = true
+	if _wb_t >= 0.0:
+		_wb_t = -1.0
+		_wk128_add("wk20d_whiff_brake_aborted", 1.0)
+
+## WK-20d R4: a paying contact lifts the re-arm gate and voids the open window's reserve.  # WK-20d
+func _wk20d_paid() -> void:
+	_w_paid = true
+	_wr_block = false
+
+func _wk20d_reset() -> void:  # WK-20d
+	_w_track = false
+	_wb_t = -1.0
+	_wr_block = false
+	_wt_unlock_t = INF
+	_wk136_burn_t = -1.0   # WK-136
+
+## WK-20d (bot lane / HUD): true while a super press would be dropped (spawn truce or the fumble-reserve re-arm gate).  # WK-20d
+func super_arm_locked() -> bool:
+	return ((Tuning.brawl_spawn_super_lock and _spawn_protect > 0.0) \
+			or (Tuning.super_whiff_reserve > 0.0 and _wr_block)) and _wk20d_brawl()
+
+## WK-20d QA: true while the fumble-reserve re-arm gate is up.  # WK-20d
+func whiff_reserve_gate() -> bool:
+	return _wr_block
+
 func _handle_smashes() -> void:
 	var my_speed := velocity.length()
 	for b in _hit_area.get_overlapping_bodies():
@@ -1154,6 +1355,7 @@ func _handle_smashes() -> void:
 			else:
 				b.receive_counter_launch(cdir * Tuning.pu_counter_reflect_impulse, self)
 			_smash_cd = 0.3
+			_w_contact = true   # WK-20d R3: a contact
 			return
 		# Star (contact_launch, spec 3.3): ANY contact flings the other player, regardless of speed.
 		if contact_launch and is_player and _smash_cd <= 0.0:
@@ -1164,6 +1366,7 @@ func _handle_smashes() -> void:
 			b.receive_smash(imp, self)
 			EventBus.smashed.emit(self, b, imp)
 			_smash_cd = 0.3
+			_w_contact = true   # WK-20d R3: a contact
 			return
 		if is_player:
 			# Black Hole (spec 3.6/P6): bodies DRAGGED into a channeler crash and stack — they are
@@ -1188,6 +1391,7 @@ func _handle_smashes() -> void:
 				# Hit solidity (kill-zone recovery spec §3.1/§3.2): both are circle colliders, so the
 				# line-of-centers IS the contact normal. s = how head-on the hit is (1=center, 0=graze).
 				# Launch scales with s; the momentum not spent launching becomes comedic spin.
+				_w_contact = true   # WK-20d R3: the smash branch ran (protected / Star / Counter targets included)
 				var n := (b.global_position - global_position).normalized()
 				var vdir := velocity.normalized()
 				var s: float = clampf(vdir.dot(n), 0.0, 1.0)
@@ -1224,6 +1428,7 @@ func _handle_smashes() -> void:
 				# Hit-solidity QA feed (kill-zone spec §8): one entry per qualifying smash.
 				# launch_speed read AFTER receive_smash (victim velocity already includes the impulse).
 				if victim_takes_hit and (launch_scale > 0.0 or impulse_mag >= Tuning.smash_sting_min_impulse):
+					_w_landed = true   # WK-20d R4: a landed smash pays no fumble reserve
 					EventBus.smash_landed.emit(attacker_for_credit, b, {
 						"solidity": s,
 						"launch_scale": launch_scale,
@@ -1252,6 +1457,7 @@ func _handle_smashes() -> void:
 					velocity.y = -Tuning.player_bounce_speed   # keep horizontal momentum, Mario-style
 					_squash_timer = 0.12
 					_shove_cd = 0.3
+					_w_contact = true   # WK-20d R3: a head-bounce relaunch is a contact (never brake after it)
 					if not b.invincible and b._spawn_protect <= 0.0:
 						b._squash_timer = 0.12
 						b.velocity += to_b * Tuning.player_bounce_victim_push
@@ -1284,6 +1490,7 @@ func _handle_smashes() -> void:
 				var angular_kick: float = Tuning.smash_spin_max * (1.0 - s) * signf(vdir.cross(n))
 				b.receive_smash(impulse, self, s, angular_kick)
 				_smash_cd = 0.3
+				_w_contact = true   # WK-20d R3: a prop smash (ball / crate) is a contact
 				return
 
 ## The SHOVE (lethality spec §2.3): momentum-scaled body-check along the separation axis.
@@ -1531,6 +1738,8 @@ func force_super_boost() -> void:
 	velocity = dir * Tuning.super_boost_impulse_full
 	_super_recent = Tuning.super_active_time   # a ring launch is a super — smash license + channel-break
 	_wk128_reset_relight()                     # WK-128 R1: a super (incl. a ring launch) starts a new relight episode
+	_w_track = false                           # WK-20d: a ring launch drains no fuel -> never a whiff brake / fumble reserve
+	_wb_t = -1.0                               # WK-20d
 	EventBus.super_boosted.emit(self)
 
 func cancel_super_aim() -> void:
@@ -1611,6 +1820,7 @@ func respawn(pos: Vector2) -> void:
 	_sb_was_held = false
 	_boost_was_held = false
 	_wk128_reset_relight()          # WK-128 E2: respawn clears relight state and face memory
+	_wk20d_reset()                  # WK-20d: a fresh life has no open whiff record, brake or re-arm gate
 	_faces.clear()
 	_last_pay_key = ""
 	_bumper_pay_cd = 0.0
