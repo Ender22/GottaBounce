@@ -23,6 +23,19 @@ static func resolve(velocity: Vector2, normal: Vector2, tier_height: float, grav
 	return v_tangential * Tuning.tangential_retention + normal * launch_speed
 
 ## Elastic ricochet for bumper walls (FEEL §2.4): reflect, preserving speed * restitution.
-static func resolve_bumper(velocity: Vector2, normal: Vector2) -> Vector2:
+## WK-135 K1 kick floor (INV-11 on the bumper path): the outgoing NORMAL speed is never below
+## max(sqrt(2 * gravity_mag * bumper_min_rebound_height), bumper_min_rebound_floor), so a body on a bumper
+## top hops 48 px like a tier min-bounce instead of settling (x0.86 alone is geometric decay -> rest). Only the
+## normal component is raised; the tangential keeps its x0.86. Inactive above ~456 px/s incoming (0.86 x
+## 456 = 392), so ricochets / supers / launches are byte-for-byte the plain reflect. Height 0 = OFF (K4).
+## `gravity_mag`: magnitude of local gravity at the body (GravityField), mirroring resolve() (INV-1).
+static func resolve_bumper(velocity: Vector2, normal: Vector2, gravity_mag: float) -> Vector2:
 	normal = normal.normalized()
-	return velocity.bounce(normal) * Tuning.bumper_restitution
+	var out: Vector2 = velocity.bounce(normal) * Tuning.bumper_restitution
+	if Tuning.bumper_min_rebound_height > 0.0:
+		var v_kick: float = maxf(sqrt(2.0 * maxf(gravity_mag, 0.0) * Tuning.bumper_min_rebound_height),
+			Tuning.bumper_min_rebound_floor)
+		var vn: float = out.dot(normal)
+		if vn < v_kick:
+			out += normal * (v_kick - vn)
+	return out

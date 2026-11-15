@@ -910,3 +910,12 @@ var pip_tag_hold: float = 0.4                  # s a tag keeps its side after sw
 var pip_tag_overlap_alpha: float = 0.4         # alpha cap of a tag that cannot clear an earlier tag on either side (it also draws behind)  # WK-150
 var pip_tag_dim_fade: float = 0.12             # s the dim in / out takes  # WK-150
 var pip_tag_claim_alpha: float = 0.25          # a living tag fainter than this (a fading CPU intro tag) claims no room  # WK-150
+
+# --- WK-135 phase 1: bumpers kick, never cradle (docs/specs/wk135_bumper_min_bounce_2026-11-15.md §4.1/§4.4). INV-11 on  # WK-135
+# EVERY surface: a bumper contact leaves at >= max(sqrt(2|g| x bumper_min_rebound_height), bumper_min_rebound_floor) along  # WK-135
+# the face normal (392 px/s flat, 310 in Singularity's well); above that the x0.86 ricochet is untouched. Read by  # WK-135
+# BounceResolver.resolve_bumper(). Phases 2-3 (face classes, liveness valve, refund gates ON, ball refuel, BR-135) NOT built.  # WK-135
+# INVARIANT #9 still holds: bumper_restitution < 1; the kick adds energy only below 456 px/s incoming (bounded at 392), never  # WK-135
+# a speed pump. Future #15 (phase 2): bumper_min_rebound_height (48) < refund_rearm_min_px (spec 60).  # WK-135
+var bumper_min_rebound_height: float = 48.0   # px kick floor on every bumper face (= min_bounce_height, own constant). 0 = OFF  # WK-135
+var bumper_min_rebound_floor: float = 250.0   # px/s absolute kick floor for weak / zero fields (= soft_bump_min)  # WK-135

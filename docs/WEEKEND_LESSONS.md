@@ -156,3 +156,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   A backgrounded `gbplay hold` gets its socket kicked by the next gbplay call (one client at a time) and leaves the key STUCK down.
 - Forcing an end screen with `eval "get_tree().current_scene._enter_match_end(1)"` works, but it banks progression
   (matches_played / total_kills / circuit_plays in user://settings.cfg). Back the file up first and restore it after.
+- **WK-135: PadHopper absolute numbers are NOT comparable across builds.** Its gate waypoints use "arrive and stop", so the
+  pilot hovers at the gate point and only crosses pass_x by luck; one changed contact flips a course (n2_slalom 5/5 in the
+  WK-128 bill-only run, 0/5 on 3e1a5b0 itself with the WK-135 switch OFF). Only same-build A/B arms mean anything, and
+  bit-identical B/P1 tracks mean the change never engaged on that course.
+- **The Wk123 Flight School probe sets (p_t2, p_t3, p_rr, p_t4, p_sl) exist only in the scratch copy's levels/course_sets.json.**
+  A fresh copy from the repo silently runs the default course instead (every probe gives the same wrong result, super lines
+  "fail"). Add the probe sets after copying.
+- WK127Rec writes its brawl json incrementally: summarising before the job ends reports "incomplete_files" and short stage counts.

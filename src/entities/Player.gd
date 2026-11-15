@@ -126,6 +126,21 @@ var _drb_c := Vector2.ZERO
 ## §8 per-player telemetry (QA feed). Bots: reset per stage with InputBot.reset_motion_health and reported through
 ## motion_health() into round_stats.motion_health; anyone: read wk128_stats() via gbplay eval.
 var wk128 := {}
+# WK-135 (docs/specs/wk135_bumper_min_bounce_2026-11-15.md §5/§8) motion-health detectors, written into the same wk128
+# dict so they reach round_stats. QA telemetry only; FIXED spec thresholds (not Tuning) so both A/B arms measure the same.
+const REST_SPEED := 20.0        # rest_episodes: speed below this ...
+const REST_TIME := 0.5          # ... for this long while touching a surface (an INV-11 pathology: must be 0)
+const REST_TOUCH_GAP := 0.1     # "touching" = a resolved contact within this many s
+const PIN_CONTACTS := 6         # bumper_pin_episodes: >= this many contacts with ONE bumper face ...
+const PIN_WINDOW := 1.0         # ... within this many s
+var _wk135_clock := 0.0         # physics s (detectors)
+var _last_contact_t := -INF     # clock of the last resolved surface contact
+var _rest_t := 0.0
+var _in_rest := false
+var _contact_times: Array = []  # clocks of contacts in the last 1 s (surface_contacts_per_s_max)
+var _pin_key := ""
+var _pin_times: Array = []
+var _in_pin := false
 
 func damage_launch_mult() -> float:
 	# §12.3: victim's pre-hit launch multiplier (x1.0 / x1.33 / x1.66), indexed by damage_level.
@@ -682,6 +697,7 @@ func _physics_process(delta: float) -> void:
 	_handle_smashes()
 	# Re-cap after bounce/smash resolution (a bounce adds launch speed on top of tangential).
 	velocity = velocity.limit_length(Tuning.max_speed)
+	_wk135_tick(delta)   # WK-135 §8 rest detector (telemetry only)
 	_update_visual(aim_dir, boosting, aiming, stunned, delta)
 
 ## WK-95 §3.1 steering grip: while thrusting along `a`, the velocity component perpendicular to `a` decays
@@ -798,14 +814,19 @@ func _resolve_bounces(g: Vector2, boost_held: bool, aim_in: Vector2 = Vector2.ZE
 			var tangent := Vector2(-n.y, n.x)
 			velocity += tangent * aim_in.dot(tangent) * Tuning.bounce_di
 			var launch_speed: float = maxf(0.0, velocity.dot(n))
+			_wk135_contact(collider, n, false)   # WK-135 §8 telemetry
 			_squash_surface(collider, n, col.get_position())
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())   # tier mat FX
 			_on_bounced(boost_held, Tuning.fuel_per_bounce * sqrt(tier_h / Tuning.bounce_height_trampoline), launch_speed, col.get_position(), n, collider, tier_in)
 			return
 		elif collider.has_meta("bumper"):
 			var bump_in: float = maxf(0.0, -velocity.dot(n))   # WK-128 F2: pre-reflect incoming normal impact speed
-			velocity = BounceResolver.resolve_bumper(velocity, n)
+			# WK-135 K1/K6: kick floor along the LOCAL gravity (INV-1); rebound_speed is read AFTER the floor
+			velocity = BounceResolver.resolve_bumper(velocity, n, g.length())
 			var rebound_speed: float = maxf(0.0, velocity.dot(n))
+			if rebound_speed > bump_in * Tuning.bumper_restitution + 0.5:
+				_wk128_add("bumper_kicks", 1.0)   # WK-135 §8: the kick floor raised this rebound
+			_wk135_contact(collider, n, true)   # WK-135 §8 telemetry
 			_squash_surface(collider, n, col.get_position())
 			EventBus.surface_bounced.emit(collider, self, n, col.get_position())
 			# Bumpers refund fuel too (QA fix): a dry rebound made the spec's miss -> wall-rebound
@@ -895,6 +916,45 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 	EventBus.bounced_juicy.emit(self, launch_speed, contact)
 
 # ---------------------------------------------------------------- WK-128 fuel integrity (fuel ledger only, no physics)
+
+## WK-135 per-tick clock + rest detector (§5/§8): speed after this frame's resolution; "touching" = a resolved contact
+## within REST_TOUCH_GAP. Telemetry only.
+func _wk135_tick(delta: float) -> void:
+	_wk135_clock += delta
+	if _wk135_clock - _last_contact_t <= REST_TOUCH_GAP and velocity.length() < REST_SPEED:
+		_rest_t += delta
+		if _rest_t >= REST_TIME and not _in_rest:
+			_in_rest = true
+			_wk128_add("rest_episodes", 1.0)
+	else:
+		_rest_t = 0.0
+		_in_rest = false
+
+## WK-135 per-contact detectors: surface contacts in a 1 s window (max) and bumper pin episodes (>= PIN_CONTACTS with one
+## bumper face within PIN_WINDOW). Telemetry only.
+func _wk135_contact(collider: Object, n: Vector2, bumper: bool) -> void:
+	_last_contact_t = _wk135_clock
+	_contact_times.append(_wk135_clock)
+	while not _contact_times.is_empty() and _wk135_clock - float(_contact_times[0]) > 1.0:
+		_contact_times.pop_front()
+	if float(_contact_times.size()) > float(wk128.get("surface_contacts_per_s_max", 0.0)):
+		wk128["surface_contacts_per_s_max"] = float(_contact_times.size())
+	if not bumper:
+		return
+	var key := _wk128_face_key(collider, n, collider != null and collider.has_meta("round"))
+	if key != _pin_key:
+		_pin_key = key
+		_pin_times.clear()
+		_in_pin = false
+	_pin_times.append(_wk135_clock)
+	while not _pin_times.is_empty() and _wk135_clock - float(_pin_times[0]) > PIN_WINDOW:
+		_pin_times.pop_front()
+	if _pin_times.size() >= PIN_CONTACTS:
+		if not _in_pin:
+			_in_pin = true
+			_wk128_add("bumper_pin_episodes", 1.0)
+	else:
+		_in_pin = false
 
 func _wk128_add(k: String, v: float) -> void:
 	wk128[k] = float(wk128.get(k, 0.0)) + v
