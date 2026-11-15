@@ -2411,7 +2411,7 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 - Source: WK-60 builder. Every screen using Godot focus navigation ignores WASD for keyboard players. Add W/A/S/D to ui_up/left/down/
   right in the action map (check gameplay WASD doesn't double-fire in menus via InputRouter) or route through InputRouter.
 
-### [ ] WK-148b [P3][S] Replace the sports first-frame cover with a camera snap to the mode framing
+### [x] WK-148b [P3][S] Replace the sports first-frame cover with a camera snap to the mode framing — 95d4723
 - Source: WK-148 builder. Root cause: PartyMatch snaps the camera to CAM_MAX_ZOOM at stage start (lines ~253 and ~691) then eases out
   to the court; the WK-148 MatchCover hides it but also hides the goats popping in + legend build. Snap straight to the mode framing
   (camera rules: check docs/feedback/owner_2026-07-10_camera_rules.md) after WK-135 releases PartyMatch; also check the per-goal
