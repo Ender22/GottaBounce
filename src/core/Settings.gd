@@ -3,8 +3,9 @@ extends Node
 ## + apply-on-boot to the AudioServer buses and the window mode. No UI here — this is the API the
 ## Options screen calls later. Changes are write-through (live apply + save; no "apply" button).
 ##
-## Keys: section [audio] master/music/sfx (float 0.0..1.0); section [video] fullscreen (bool).
-## Defaults (file absent): volumes 1.0, fullscreen false.
+## Keys: section [audio] master/music/sfx (float 0.0..1.0); section [video] fullscreen (bool), screen_shake (int
+## SHAKE_OFF/LOW/FULL); section [controls] rumble (bool). Defaults (file absent): volumes 1.0, fullscreen false,
+## screen_shake FULL, rumble on (WK-44: the Options RUMBLE / SCREEN SHAKE rows; Juice + InputRouter read them).
 ##
 ## VOLUME MAPPING — deviation from spec §4.3 (reported): §4.3 says db = linear_to_db(v) with the
 ## premise "100% = 0 dB = unchanged from today". That premise is false for the Music bus, which is
@@ -49,6 +50,10 @@ var master: float = 1.0
 var music: float = 1.0
 var sfx: float = 1.0
 var fullscreen: bool = false
+# WK-44 (CC-3.6 / R-32 / C-30): Options RUMBLE toggle + SCREEN SHAKE OFF / LOW / FULL.
+enum { SHAKE_OFF = 0, SHAKE_LOW = 1, SHAKE_FULL = 2 }
+var rumble: bool = true
+var screen_shake: int = SHAKE_FULL
 
 # progression state (persisted in [progression])
 var matches_played: int = 0
@@ -99,6 +104,28 @@ func set_fullscreen(b: bool) -> void:
 	_apply_fullscreen()
 	_save()
 
+## WK-44: RUMBLE on/off. Off stops any pad that is still buzzing right away.
+func set_rumble(b: bool) -> void:
+	rumble = b
+	if not b:
+		for id in Input.get_connected_joypads():
+			Input.stop_joy_vibration(id)
+	_save()
+
+## WK-44: SCREEN SHAKE level (SHAKE_OFF / SHAKE_LOW / SHAKE_FULL).
+func set_screen_shake(level: int) -> void:
+	screen_shake = clampi(level, SHAKE_OFF, SHAKE_FULL)
+	_save()
+
+## WK-44: the multiplier Juice applies to every camera trauma add (0 = OFF, Tuning.screen_shake_low_mult = LOW).
+func shake_mult() -> float:
+	match screen_shake:
+		SHAKE_OFF:
+			return 0.0
+		SHAKE_LOW:
+			return Tuning.screen_shake_low_mult
+	return 1.0
+
 # ------------------------------------------------------------------- apply
 
 func _apply_all() -> void:
@@ -133,6 +160,8 @@ func _load() -> void:
 	music = clampf(float(cfg.get_value("audio", "music", 1.0)), 0.0, 1.0)
 	sfx = clampf(float(cfg.get_value("audio", "sfx", 1.0)), 0.0, 1.0)
 	fullscreen = bool(cfg.get_value("video", "fullscreen", false))
+	screen_shake = clampi(int(cfg.get_value("video", "screen_shake", SHAKE_FULL)), SHAKE_OFF, SHAKE_FULL)   # WK-44
+	rumble = bool(cfg.get_value("controls", "rumble", true))   # WK-44
 	matches_played = int(cfg.get_value("progression", "matches_played", 0))
 	matches_won = int(cfg.get_value("progression", "matches_won", 0))
 	total_kills = int(cfg.get_value("progression", "total_kills", 0))
@@ -200,6 +229,8 @@ func _save() -> void:
 	cfg.set_value("audio", "music", music)
 	cfg.set_value("audio", "sfx", sfx)
 	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("video", "screen_shake", screen_shake)   # WK-44
+	cfg.set_value("controls", "rumble", rumble)            # WK-44
 	cfg.set_value("progression", "matches_played", matches_played)
 	cfg.set_value("progression", "matches_won", matches_won)
 	cfg.set_value("progression", "total_kills", total_kills)

@@ -5,7 +5,7 @@ extends Node
 ##
 ## v0 port note: particle textures + ring/flash sprites are not ported yet (art pipeline later) —
 ## bursts use textureless particles (scaled up to stay visible); texture-only effects are skipped
-## via the ResourceLoader.exists guards. SaveSystem isn't ported: shake/rumble default ON.
+## via the ResourceLoader.exists guards. WK-44: shake follows Options SCREEN SHAKE, rumble Options RUMBLE + per-player pads.
 
 var _camera: CameraController
 var _in_hitstop := false
@@ -28,11 +28,11 @@ func _on_ball_struck(_ball, _player, _impact, is_power) -> void:
 		return
 	_hitstop(0.45)
 	_shake(0.3)
-	_rumble(0.6, 0.5, 0.12)
+	_rumble(0.6, 0.5, 0.12, [_player])
 
 func _on_exploded(center, radius) -> void:
 	_shake(0.9)   # Heavy (FEEL §4.1)
-	_rumble(1.0, 0.9, 0.18)
+	_rumble(1.0, 0.9, 0.18, _humans_near(center, float(radius) * Tuning.rumble_blast_reach))
 	_hitstop(0.9)
 	_shockwave(center, radius)
 
@@ -43,7 +43,7 @@ func _on_hazard_shoved(player, dir, magnitude) -> void:
 		return
 	var t := clampf(magnitude / Tuning.soft_bump_max, 0.0, 1.0)
 	_shake(lerpf(0.12, 0.34, t))            # softer than a smash's 0.55
-	_rumble(0.25 * t, 0.5 * t, 0.10)
+	_rumble(0.25 * t, 0.5 * t, 0.10, [player])
 	_shove_puff(player.global_position, dir, t)
 
 ## Metallic clang puff kicked along the shove direction (reuses the _dust_puff pattern, steel-tinted).
@@ -80,7 +80,9 @@ func _on_smashed(attacker, victim, impulse) -> void:
 	_shake(0.55)
 	if victim != null and is_instance_valid(victim) and victim.has_method("flash"):
 		victim.flash()
-	_rumble(0.9, 0.8, 0.10)
+	_rumble(0.9, 0.8, 0.10, [victim])   # WK-44 (CC-3.6): the victim feels the hit; the attacker a lighter tap
+	var am: float = Tuning.rumble_attacker_mult
+	_rumble(0.9 * am, 0.8 * am, 0.10, [attacker] if attacker != victim else [])
 	_hitstop(clampf(impulse.length() / Tuning.super_boost_impulse_full, 0.0, 1.0))
 	# WK-24 (D-06): the impact burst wears the ATTACKER's identity colour. `attacker` here is already the
 	# CREDITED one (Player emits smashed with attacker_for_credit: chain hits = the launcher).
@@ -174,7 +176,7 @@ func _on_bounced(body, launch_speed, contact_point) -> void:
 	var t := clampf(launch_speed / 1240.0, 0.0, 1.0)   # 1240 ~= spring-tier launch
 	_shake(lerpf(0.08, 0.3, t))
 	if t > 0.25:
-		_rumble(0.3 * t, 0.5 * t, 0.08)
+		_rumble(0.3 * t, 0.5 * t, 0.08, [body])
 	_dust_puff(contact_point, t)
 
 ## Cheap one-shot grey-white dust kick at a bounce contact (reuses the _death_burst pattern).
@@ -209,7 +211,7 @@ func _dust_puff(pos: Vector2, t: float) -> void:
 
 func _on_super(player) -> void:
 	_shake(0.7)
-	_rumble(1.0, 0.95, 0.25)
+	_rumble(1.0, 0.95, 0.25, [player])
 	_hitstop(0.7)
 	if player != null and is_instance_valid(player):
 		var aim := Vector2.UP
@@ -302,7 +304,7 @@ func _on_killed(victim, _cause, _attacker) -> void:
 	if _sports_active():
 		if _out_of_court(victim):
 			_shake(0.12)
-			_rumble(0.3, 0.0, 0.08)
+			_rumble(0.3, 0.0, 0.08, [victim])
 			if victim != null and is_instance_valid(victim):
 				_drop_puff(victim, _identity_color(victim))
 			return
@@ -312,7 +314,7 @@ func _on_killed(victim, _cause, _attacker) -> void:
 			_death_burst(victim.global_position)
 		return
 	_shake(0.7)
-	_rumble(1.0, 0.9, 0.18)
+	_rumble(1.0, 0.9, 0.18, [victim])
 	_hitstop(1.0)
 	if victim != null and is_instance_valid(victim):
 		# v11 KO-POP flair: your own death burst in your equipped palette (P1-only; {} = stock)
@@ -454,15 +456,25 @@ func _flair_stop(v: Variant) -> Color:
 		return Color.WHITE
 	return Color(float(arr[0]), float(arr[1]), float(arr[2]), float(arr[3]))
 
+## WK-44: Options SCREEN SHAKE scales every trauma add (OFF = none at all, LOW = Tuning.screen_shake_low_mult).
 func _shake(amt: float) -> void:
-	# v0: SaveSystem/settings not ported yet — shake always on.
-	if _camera:
-		_camera.add_trauma(amt)
+	var a: float = amt * Settings.shake_mult()
+	if _camera and a > 0.0:
+		_camera.add_trauma(a)
 
-func _rumble(weak: float, strong: float, dur: float) -> void:
-	# v0: SaveSystem/settings not ported yet — rumble always on.
-	for id in Input.get_connected_joypads():
-		Input.start_joy_vibration(id, weak, strong, dur)
+## WK-44 (CC-3.6): rumble goes only to the pads of the players it concerns (`who`), never every connected pad, and
+## not at all when Options RUMBLE is off (InputRouter.rumble gates it). Bots in `who` are skipped.
+func _rumble(weak: float, strong: float, dur: float, who: Array = []) -> void:
+	for p in who:
+		InputRouter.rumble_player(p, weak, strong, dur)
+
+## Human players within `reach` px of `center` (an explosion's rumble targets).
+func _humans_near(center: Vector2, reach: float) -> Array:
+	var out: Array = []
+	for p in get_tree().get_nodes_in_group("human"):
+		if p is Node2D and (p as Node2D).global_position.distance_to(center) <= reach:
+			out.append(p)
+	return out
 
 func _hitstop(strength: float = 0.5) -> void:
 	if _in_hitstop:

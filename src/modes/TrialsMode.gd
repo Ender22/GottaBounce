@@ -38,6 +38,7 @@ const DEFAULT_SET_ID := "campaign"
 const PROOF_SET: Array[String] = ["res://levels/courses/course_01_tank_run.json"]
 
 var _course_set: Array = []
+var set_id := DEFAULT_SET_ID         # WK-142: the circuit (course-set id) this match plays — the end screen's NEXT lookup
 var _course_idx := 0                 # index of the NEXT course to serve (advanced in next_level_path)
 var _cur_path := ""                  # the course currently loaded
 var _cur_objective: Dictionary = {}     # the current course's "objective" block ({} => REACH_GOAL)
@@ -82,7 +83,7 @@ func configure(runner, _config: MatchConfig) -> void:
 	# multi-life respawn path) instead of eliminating -> ending the stage. Never a kill-race. (KEEP — v10.)
 	runner.lives_per_player = 99
 	runner.match_target_kills = 999999   # so a stray on_kill can never trip the kill-race match end
-	var set_id := DEFAULT_SET_ID
+	set_id = DEFAULT_SET_ID
 	if _config != null and str(_config.circuit_id) != "":
 		set_id = str(_config.circuit_id)
 	_course_set = _load_course_set(set_id)
@@ -501,3 +502,59 @@ func _load_course_set(set_id: String) -> Array:
 						return out
 	push_warning("TrialsMode: course_sets.json unusable for set '" + set_id + "' — using proof course")
 	return PROOF_SET.duplicate()
+
+# --- WK-142 circuit lookup for the Trials end celebration (UX4-08) ---
+
+## The courses played this match (QA / end screen "ALL N COURSES CLEARED").
+func course_count() -> int:
+	return _course_set.size()
+
+static func _sets_doc() -> Dictionary:
+	if not FileAccess.file_exists(COURSE_SETS_PATH):
+		return {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(COURSE_SETS_PATH))
+	return parsed as Dictionary if typeof(parsed) == TYPE_DICTIONARY else {}
+
+## Display data of a circuit: {id, name, tagline, color, courses (existing files only), crest (res path or "")}.
+## {} when the id is unknown. The crest is the ArenaSelect card art (assets/ui/circuits/crest_trials_<id>.png).
+static func circuit_info(sid: String) -> Dictionary:
+	var sets: Variant = _sets_doc().get("sets", {})
+	if typeof(sets) != TYPE_DICTIONARY or not (sets as Dictionary).has(sid):
+		return {}
+	var e: Variant = (sets as Dictionary)[sid]
+	if typeof(e) != TYPE_DICTIONARY:
+		return {}
+	var ed: Dictionary = e
+	var have := 0
+	var courses: Variant = ed.get("courses", [])
+	if typeof(courses) == TYPE_ARRAY:
+		for c in (courses as Array):
+			if FileAccess.file_exists(str(c)):
+				have += 1
+	var crest := "res://assets/ui/circuits/crest_trials_%s.png" % sid
+	return {
+		"id": sid,
+		"name": str(ed.get("display_name", sid.to_upper())),
+		"tagline": str(ed.get("tagline", "")),
+		"color": Color(str(ed.get("color", "#ffd23f"))),
+		"courses": have,
+		"crest": crest if ResourceLoader.exists(crest) else "",
+	}
+
+## The circuit after `sid` in course_sets.json "order" that has at least one playable course, or "" (last circuit /
+## unknown id). Trials circuits have no lock gates (ArenaSelect: every trials circuit is open), so NEXT never
+## skips past a locked one — there is no unlock state to read or write here.
+static func next_circuit_id(sid: String) -> String:
+	var doc := _sets_doc()
+	var order: Variant = doc.get("order", [])
+	if typeof(order) != TYPE_ARRAY:
+		return ""
+	var arr: Array = order
+	var i := arr.find(sid)
+	if i < 0:
+		return ""
+	for j in range(i + 1, arr.size()):
+		var info := circuit_info(str(arr[j]))
+		if not info.is_empty() and int(info.get("courses", 0)) > 0:
+			return str(arr[j])
+	return ""

@@ -290,7 +290,9 @@ func _activate(i: int) -> void:
 	match i:
 		0: rematch_pressed.emit()
 		1: setup_pressed.emit()
-		2: menu_pressed.emit()
+		2:
+			GameConfig.quit_to_modes = true   # WK-144: QUIT TO MENU lands on mode select, lobby cleared
+			menu_pressed.emit()
 
 ## Accept during the choreography: land every element instantly (never a black cut). WK-11: it does NOT
 ## arm the row — the gate still waits (>= Tuning.end_screen_ff_rearm after this, >= end_screen_arm overall).

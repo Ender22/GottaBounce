@@ -24,7 +24,8 @@ extends Node
 ##                                       it also writes MatchConfig.human_devices / human_labels on proceed.
 ##   signals device_lost(key) / device_found(key) (from Input.joy_connection_changed), last_device_changed,
 ##   joined_changed
-##   rumble(key, weak, strong, dur)      vibrate exactly one device (no-op for "kb" / "")
+##   rumble(key, weak, strong, dur)      vibrate exactly one device (no-op for "kb" / ""; WK-44: off when Options RUMBLE is off)
+##   rumble_player(player, ...)          WK-44: vibrate the device driving that human Player (bots: no-op)
 ##   simulate_device_lost(key) / simulate_device_found(key)   QA hooks — same code path as a real unplug
 ##   cursor_shown / cursor_allowed()     WK-39 mouse-cursor policy (CC-2.4 / CC-12.2), see "cursor" below
 
@@ -45,6 +46,7 @@ var joined: Dictionary = {}          # device key -> slot index (0 = P1). Writte
 var lost_count := 0
 var found_count := 0
 var rumble_log: Array = []           # [{key, weak, strong, dur, msec}] newest last, capped at RUMBLE_LOG_MAX
+var rumble_suppressed := 0           # WK-44: rumble() calls dropped because Options RUMBLE is OFF
 const RUMBLE_LOG_MAX := 32
 
 var _seen: PackedStringArray = PackedStringArray()   # first-seen order; a lost pad leaves, re-added on input
@@ -268,14 +270,33 @@ func simulate_device_found(key: String) -> void:
 # --------------------------------------------------------------------------------------- rumble
 
 ## Vibrate exactly one device (CC-3.6). Keyboard / mouse / unknown keys are a no-op. Returns true if a pad
-## was told to rumble. Options toggle + per-player routing land in WK-19 / WK-44 (Juice still rumbles all
-## pads directly until then).
+## was told to rumble. WK-44: the Options RUMBLE toggle (Settings.rumble) gates every call here.
 func rumble(key: String, weak: float, strong: float, dur: float) -> bool:
 	var id := pad_id(key)
 	if id < 0:
+		return false
+	if not Settings.rumble:   # WK-44
+		rumble_suppressed += 1
 		return false
 	Input.start_joy_vibration(id, clampf(weak, 0.0, 1.0), clampf(strong, 0.0, 1.0), dur)
 	rumble_log.append({"key": key, "weak": weak, "strong": strong, "dur": dur, "msec": Time.get_ticks_msec()})
 	if rumble_log.size() > RUMBLE_LOG_MAX:
 		rumble_log.pop_front()
 	return true
+
+## WK-44 (CC-3.6): rumble the device that drives `player` — a human Player whose provider carries a device_key.
+## Bots / non-players are a no-op. A legacy any-device human (provider device_key "", cold boot straight into a
+## match) rumbles every pad that has sent input. Gated by Settings.rumble through rumble().
+func rumble_player(player, weak: float, strong: float, dur: float) -> void:
+	if player == null or not is_instance_valid(player) or not ("provider" in player):
+		return
+	var prov = player.provider
+	if prov == null or not ("device_key" in prov):
+		return
+	var key: String = str(prov.device_key)
+	if key == "":
+		for k in _seen:
+			if is_pad(k):
+				rumble(k, weak, strong, dur)
+		return
+	rumble(key, weak, strong, dur)

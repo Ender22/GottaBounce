@@ -1,0 +1,85 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/ToyChoice.gd" id="1_choice"]
+
+[node name="ToyChoice" type="Control"]
+custom_minimum_size = Vector2(0, 80)
+focus_mode = 2
+script = ExtResource("1_choice")
+
+[node name="Well" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"ToyRow"
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_right = -26.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
+text = "SCREEN SHAKE"
+vertical_alignment = 1
+
+[node name="Segs" type="HBoxContainer" parent="HBox"]
+custom_minimum_size = Vector2(536, 52)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Seg0" type="PanelContainer" parent="HBox/Segs"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="HBox/Segs/Seg0"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 32
+text = "OFF"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Seg1" type="PanelContainer" parent="HBox/Segs"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="HBox/Segs/Seg1"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 32
+text = "LOW"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Seg2" type="PanelContainer" parent="HBox/Segs"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="HBox/Segs/Seg2"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 32
+text = "FULL"
+horizontal_alignment = 1
+vertical_alignment = 1

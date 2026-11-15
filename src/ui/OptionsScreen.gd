@@ -13,11 +13,23 @@ extends MenuScreen
 ## WK-33: the top row is CONTROLS, a link row (ToyRow well, gold ToyRowFocus well when focused) that opens the shared
 ## ControlsScreen in place over this screen; B there comes back here with focus on CONTROLS. It works the same in
 ## the shell and pause-hosted (the pause owner's colour / glyphs pass through).
+##
+## WK-44 (C-30 / R-22 / R-32 / UX4-16): an aligned grid — every row is label left + one 536 px control column right
+## (slider track + value, toggle pill + ON/OFF, SCREEN SHAKE segments, the CONTROLS link's caption), so all controls
+## start at the same x. New rows: SCREEN SHAKE (OFF / LOW / FULL, Settings.screen_shake -> Juice) and RUMBLE
+## (Settings.rumble -> InputRouter.rumble; switching it ON gives the switching pad a short test pulse). The footer
+## names the focused row's real verb (CC-1.7): A Open on CONTROLS, < > Adjust on sliders / SCREEN SHAKE, A Toggle on
+## RUMBLE / FULLSCREEN.
+## Focus grammar (deliberate widget-class rule, UX4-16): Options ROWS show focus with the gold ToyRowFocus well (a
+## row is a field, not a button), while BUTTONS (title, pause, end screens) show it with the green ShellBtnPrimary
+## fill (FocusRow). Either way exactly one thing on screen looks focused (CC-5.1).
 
 signal back_requested
 
 const SLIDER := preload("res://scenes/ui/ToySlider.tscn")
 const TOGGLE := preload("res://scenes/ui/ToyToggle.tscn")
+const CHOICE := preload("res://scenes/ui/ToyChoice.tscn")   # WK-44
+const SHAKE_LABELS := ["OFF", "LOW", "FULL"]                 # WK-44: index = Settings.SHAKE_OFF / LOW / FULL
 const ACCENT := Color("#ff5fa8")
 const CONTROLS := preload("res://scenes/ui/ControlsScreen.tscn")   # WK-33
 
@@ -53,9 +65,15 @@ func _ready() -> void:
 	music.changed.connect(func(v: float) -> void: Settings.set_music(v))
 	var sfx = _add_slider("SFX VOLUME", Settings.sfx)
 	sfx.changed.connect(func(v: float) -> void: Settings.set_sfx(v))
+	var shake = _add_choice("SCREEN SHAKE", SHAKE_LABELS, Settings.screen_shake)   # WK-44
+	shake.changed.connect(func(i: int) -> void: Settings.set_screen_shake(i))
+	var rum = _add_toggle("RUMBLE", Settings.rumble)                                 # WK-44 (CC-3.6)
+	rum.changed.connect(_on_rumble_changed)
 	var fs = _add_toggle("FULLSCREEN", Settings.fullscreen)
 	fs.changed.connect(func(v: bool) -> void: Settings.set_fullscreen(v))
-	wire_col(_rows)   # 5 rows (CONTROLS + 4), wrap top<->bottom; Back is B (CC-5.5), never in the focus chain
+	for r in _rows:   # WK-44: the footer follows the focused row's verb
+		(r as Control).focus_entered.connect(_refresh_glyphs)
+	wire_col(_rows)   # 7 rows (CONTROLS + 6), wrap top<->bottom; Back is B (CC-5.5), never in the focus chain
 	_back_chip.pressed.connect(func() -> void:
 		AudioManager.play_sfx("ui_click", {"pitch": 0.72, "pitch_var": 0.0, "volume_db": -4.0})
 		on_back())
@@ -63,6 +81,15 @@ func _ready() -> void:
 	_refresh_glyphs()
 	# shell-hosted: the front end's glyphs follow the last device (a pad pressed mid-screen swaps the key caps)
 	InputRouter.last_device_changed.connect(_on_last_device)   # a bound method: auto-disconnects when we are freed
+
+## WK-44: RUMBLE ON answers with a short pulse on the pad that switched it (the pause owner's pad when hosted),
+## so the player feels what they just enabled. A keyboard toggle has no pad to buzz.
+func _on_rumble_changed(on: bool) -> void:
+	Settings.set_rumble(on)
+	if on:
+		var key: String = _pause_owner if _hosted else InputRouter.last_device_key
+		var p: Vector3 = Tuning.rumble_test_pulse
+		InputRouter.rumble(key, p.x, p.y, p.z)
 
 func _on_last_device(_k: String) -> void:
 	if not _hosted:
@@ -95,15 +122,18 @@ func _is_kb() -> bool:
 func _refresh_glyphs() -> void:
 	var kb := _is_kb()
 	_back_glyph.call("setup", "key:ESC" if kb else "B")
-	# WK-33 (CC-1.7): the CONTROLS link row opens with A; it has nothing to adjust
+	# WK-33 (CC-1.7): the CONTROLS link row opens with A; it has nothing to adjust. WK-44 (UX4-16): a toggle row says
+	# A Toggle (A flips it; < > still work), sliders and SCREEN SHAKE say < > Adjust.
 	var link: bool = _controls_row != null and _controls_row.has_focus()
+	var fo: Control = get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var tog: bool = fo != null and fo.has_method("toggle")
 	var h: PackedStringArray
 	if kb:
-		h = PackedStringArray(["key:ENTER|Open" if link else "key:A/D|Adjust"])
+		h = PackedStringArray(["key:ENTER|Open" if link else ("key:ENTER|Toggle" if tog else "key:A/D|Adjust")])
 		if _hosted:
 			h.append("key:P|Resume")
 	else:
-		h = PackedStringArray(["A|Open" if link else "< >|Adjust"])
+		h = PackedStringArray(["A|Open" if link else ("A|Toggle" if tog else "< >|Adjust")])
 		if _hosted:
 			h.append("START|Resume")
 	_hints.call("set_hints", h)
@@ -178,6 +208,18 @@ func _add_slider(title: String, v: float):
 	s.focus_exited.connect(func() -> void: s.set_focus_active(false))
 	_rows.append(s)
 	return s
+
+## WK-44: a segmented choice row (ToyChoice) in the same grid / focus grammar as the slider + toggle rows.
+func _add_choice(title: String, labels: Array, start: int):
+	var c := CHOICE.instantiate()
+	_rows_box.add_child(c)
+	c.setup(title, labels, start, _accent)
+	c.set_meta("focus_rot_deg", 0.0)
+	register(c, 1.02)
+	c.focus_entered.connect(func() -> void: c.set_focus_active(true))
+	c.focus_exited.connect(func() -> void: c.set_focus_active(false))
+	_rows.append(c)
+	return c
 
 func _add_toggle(title: String, b: bool):
 	var t := TOGGLE.instantiate()

@@ -133,3 +133,7 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **Watch long builders for stalls.** The WK-135 builder wrote nothing for ~3 h (last output 09:50) while "running"; a queued
   SendMessage never reached it. Check its scratch/output dir timestamps each heartbeat; if nothing new for > 45 min and no Godot
   process is running, TaskStop it and start a recovery agent pointed at its scratch copy + notes.
+- **gbplay round-trips are slow under software rendering (~0.7 s per `eval`, ~1.2 s per scripted pad tap = press + release
+  calls).** A "press A 0.3 s after the end screen appears" test actually lands ~1-1.5 s later, i.e. AFTER a 1.3 s arm, and
+  correctly activates the default button (WK-142: looked like NEXT CIRCUIT firing on an early press; it wasn't). To test
+  pre-arm behaviour, raise the arm knob at runtime via eval or read the gate's `_open_msec` / `_arm_msec` vs now.

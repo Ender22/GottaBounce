@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/ToySlider.gd" id="1_slider"]
 
 [node name="ToySlider" type="Control"]
-custom_minimum_size = Vector2(0, 92)
+custom_minimum_size = Vector2(0, 80)
 focus_mode = 2
 script = ExtResource("1_slider")
 

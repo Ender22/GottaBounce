@@ -3,6 +3,8 @@ extends Control
 ## left(OFF)/right(ON) with a BACK pop; ON fills P3 green, OFF a warm grey. Never a checkbox.
 ## WK-34 Toybox panel kit A: same ToyRow well + chocolate TextDark label as ToySlider, a 36 px ON/OFF word beside
 ## the pill (the state reads without decoding the knob side), focus = the ToyRowFocus well swap (CC-5.1).
+## WK-44 aligned grid: the pill + ON/OFF word sit in a 536 px control column (HBox/Ctl), the same column the
+## ToySlider track + value and the ToyChoice segments use, so every Options control starts at the same x.
 
 signal changed(on: bool)
 
@@ -14,9 +16,9 @@ const KNOB_ON_X := 50.0
 
 @onready var _well: PanelContainer = $Well
 @onready var _label: Label = $HBox/Label
-@onready var _state: Label = $HBox/State
-@onready var _track: Panel = $HBox/Pill/Track
-@onready var _knob: Panel = $HBox/Pill/Track/Knob
+@onready var _state: Label = $HBox/Ctl/State
+@onready var _track: Panel = $HBox/Ctl/Pill/Track
+@onready var _knob: Panel = $HBox/Ctl/Pill/Track/Knob
 
 var on := false
 var accent := Color("#ff5fa8")

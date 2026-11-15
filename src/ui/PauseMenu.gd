@@ -258,6 +258,7 @@ func _do_change_setup() -> void:
 func _do_quit() -> void:
 	last_action = "quit"
 	get_tree().paused = false
+	GameConfig.quit_to_modes = true   # WK-144: lands on mode select, lobby cleared
 	get_tree().change_scene_to_file("res://scenes/ui/ShellRoot.tscn")
 
 func _open_options() -> void:

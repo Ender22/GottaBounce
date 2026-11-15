@@ -14,6 +14,13 @@ extends CanvasLayer
 ## the top banner hide behind TRIALS COMPLETE! (WK-42 did this for the Brawl Victory) and come back when the next
 ## stage begins (PLAY AGAIN calls hide_center). The end row shares the Victory screens' button kit and its
 ## "A Select · B Quit" glyph footer (MatchHints, a shared HintStrip: pad glyphs when a pad is joined, CC-1.6).
+##
+## WK-142 (UX4-08): the match end is now the TrialsVictory celebration (crest, CIRCUIT CLEAR!, the cheering Herd,
+## default focus NEXT CIRCUIT: <NAME>). show_match_end presents it instead of the cream MatchPanel; its choices come
+## back through _on_victory_choice: rematch / setup / menu go to the runner exactly as the old row did
+## (match_button_pressed), NEXT sets MatchConfig.circuit_id to the next course set and reloads the match scene
+## under a cream iris (same players, devices and goats — MatchConfig + the InputRouter join registry carry over).
+## The MatchPanel row below stays as the fallback if the celebration scene can't load.
 
 ## Emitted when the player activates a match-end row button (id from the spec fed to show_match_buttons).
 signal match_button_pressed(id)
@@ -21,6 +28,7 @@ signal match_button_pressed(id)
 const POP_IN := 0.15
 const POP_OUT := 0.2
 const FocusRow := preload("res://src/ui/FocusRow.gd")
+const MATCH_SCENE := "res://scenes/Arena.tscn"   # WK-142: NEXT CIRCUIT reloads the match with the next course set
 const MAX_PIPS := 4
 # Per-player fuel cards (owner 2026-07-19): co-op trials must show fuel PER PLAYER, same as brawl/sports —
 # not one shared centre bar. Corner-anchored PlayerCards (identity + fuel gauge; score pips already removed).
@@ -89,6 +97,7 @@ var _gate: MenuInputGate
 var _match_pulse: Tween
 var _match_row: HBoxContainer = null
 var _end_hidden := false          # WK-139: the combat HUD is hidden behind the match-end panel
+var _victory = null              # WK-142 (untyped: TrialsVictory members are dynamic): the TrialsVictory celebration (lazy)
 
 var _pips: Array = []   # [{root: Panel, fill: Panel}]
 var _cards: Array = []  # per-player PlayerCard corner cards (fuel gauges)
@@ -480,6 +489,8 @@ func hide_center() -> void:
 	_center_prompt.visible = false
 	_match_panel.visible = false
 	_match_hints.visible = false
+	if _victory != null and _victory.is_live():
+		_victory.dismiss()   # WK-142: PLAY AGAIN starts a new stage
 	if _end_hidden:
 		_set_end_hidden(false)   # WK-139: a new stage (PLAY AGAIN) brings the combat HUD back
 
@@ -500,6 +511,8 @@ func show_match_end(text: String, color: Color, subline: String) -> void:
 	hide_center()
 	_set_end_hidden(true)   # WK-139
 	_clear_match_buttons()
+	if _present_victory():   # WK-142: the celebration replaces the cream panel
+		return
 	_gate.open()   # the end screen "appears" now: presses must begin after this and the row arms >= 1.0 s later
 	_match_text.text = text
 	_match_text.add_theme_color_override("font_color", color)
@@ -518,6 +531,9 @@ func show_match_end(text: String, color: Color, subline: String) -> void:
 ## style follows focus, WK-14), the LAST button is the safe menu_back target. Mirrors VictoryScreen's focus juice exactly.
 ## PartyMatch calls this once, after its PROMPT_GUARD arm lock, and wires match_button_pressed.
 func show_match_buttons(specs: Array) -> void:
+	if _victory != null and _victory.is_live():
+		_victory.allow_row()   # WK-142: the celebration owns the row (its NEXT / PLAY AGAIN / SETUP / QUIT)
+		return
 	_clear_match_buttons()
 	_match_focus = 0
 	_match_armed = false
@@ -594,7 +610,65 @@ func _activate_match(i: int) -> void:
 		return
 	_match_armed = false   # one activation per row life — repeated accepts can't double-fire
 	AudioManager.play_sfx("ui_click")
+	if _match_btns[i].get_meta("id") == &"menu":
+		GameConfig.quit_to_modes = true   # WK-144: QUIT TO MENU lands on mode select, lobby cleared
 	match_button_pressed.emit(_match_btns[i].get_meta("id"))
+
+# ------------------------------------------------------------------ WK-142 TRIALS celebration
+
+## Build the celebration's data from the runner + TrialsMode and present it. False if it could not load.
+func _present_victory() -> bool:
+	if _victory == null:
+		var ps: PackedScene = load("res://scenes/ui/TrialsVictory.tscn") as PackedScene
+		if ps == null:
+			return false
+		_victory = ps.instantiate()
+		add_child(_victory)
+		_victory.choice.connect(_on_victory_choice)
+	var mode = _runner._mode if _runner != null else null
+	var sid: String = str(mode.set_id) if mode != null and "set_id" in mode else "campaign"
+	var circ: Dictionary = TrialsMode.circuit_info(sid)
+	if circ.is_empty():
+		circ = {"id": sid, "name": "TRIALS", "color": Color("#ffd23f"), "courses": 0, "crest": ""}
+	if mode != null and mode.has_method("course_count"):
+		circ["courses"] = int(mode.course_count())
+	var nid: String = TrialsMode.next_circuit_id(sid)
+	var goats: Array = []
+	var players: Array = _runner.players if _runner != null else []
+	for i in range(players.size()):
+		var p = players[i]
+		if not is_instance_valid(p):
+			continue
+		goats.append({
+			"idx": i,
+			"name": str(_runner.player_name(i)) if _runner.has_method("player_name") else "P%d" % (i + 1),
+			"sub": str(_runner.player_subtag(i)) if _runner.has_method("player_subtag") else "",
+			"color": _runner.player_color(i) if _runner.has_method("player_color") else _skin_color(i),
+			"skin": str(p.skin),
+		})
+	_victory.present({"circuit": circ, "next": TrialsMode.circuit_info(nid) if nid != "" else {}, "goats": goats})
+	return true
+
+## The celebration's button: NEXT is handled here (scene reload with the next course set); the other three go to the
+## runner through the same signal the old row used.
+func _on_victory_choice(id: StringName) -> void:
+	if id == &"next":
+		var nid: String = str(_victory.next_id())
+		var cfg: MatchConfig = GameConfig.match_config
+		if nid == "" or cfg == null:
+			return
+		cfg.arena_mode = MatchConfig.ArenaMode.CIRCUIT
+		cfg.circuit_id = StringName(nid)
+		cfg.single_arena_path = ""
+		_victory.cover_then(func() -> void: get_tree().change_scene_to_file(MATCH_SCENE))
+		return
+	if id == &"menu":
+		GameConfig.quit_to_modes = true   # WK-144
+	match_button_pressed.emit(id)
+
+## QA (gbplay eval): the live TrialsVictory, or null.
+func victory():
+	return _victory
 
 # ------------------------------------------------------------------ TOP banner (transient — part of the surface)
 func show_top(text: String, color: Color, hold: float) -> void:

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/ToyToggle.gd" id="1_toggle"]
 
 [node name="ToyToggle" type="Control"]
-custom_minimum_size = Vector2(0, 92)
+custom_minimum_size = Vector2(0, 80)
 focus_mode = 2
 script = ExtResource("1_toggle")
 
@@ -38,30 +38,26 @@ theme_override_font_sizes/font_size = 36
 text = "FULLSCREEN"
 vertical_alignment = 1
 
-[node name="State" type="Label" parent="HBox"]
-custom_minimum_size = Vector2(80, 0)
+[node name="Ctl" type="HBoxContainer" parent="HBox"]
+custom_minimum_size = Vector2(536, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"TextDark"
-theme_override_font_sizes/font_size = 36
-text = "OFF"
-horizontal_alignment = 2
-vertical_alignment = 1
+theme_override_constants/separation = 24
 
-[node name="Pill" type="Control" parent="HBox"]
+[node name="Pill" type="Control" parent="HBox/Ctl"]
 custom_minimum_size = Vector2(96, 52)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 
-[node name="Track" type="Panel" parent="HBox/Pill"]
+[node name="Track" type="Panel" parent="HBox/Ctl/Pill"]
 layout_mode = 0
 offset_right = 96.0
 offset_bottom = 52.0
 mouse_filter = 2
 theme_type_variation = &"ToyToggleTrack"
 
-[node name="Knob" type="Panel" parent="HBox/Pill/Track"]
+[node name="Knob" type="Panel" parent="HBox/Ctl/Pill/Track"]
 layout_mode = 0
 offset_left = 6.0
 offset_top = 6.0
@@ -69,3 +65,12 @@ offset_right = 46.0
 offset_bottom = 46.0
 mouse_filter = 2
 theme_type_variation = &"ToyToggleKnob"
+
+[node name="State" type="Label" parent="HBox/Ctl"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 36
+text = "OFF"
+vertical_alignment = 1

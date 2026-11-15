@@ -18,6 +18,10 @@ var match_config: MatchConfig = null
 ## to the shell; ShellRoot._ready consumes it (one-shot) and lands in the Herd Lobby with the
 ## current match_config intact — players keep their picks, that is the point of the button.
 var resume_setup := false
+## WK-144 (UX4-13 / CC-4.7): QUIT TO MENU (Pause, the Brawl / Sports Victory screens, the Trials end) sets this
+## right before returning to the shell; ShellRoot._ready consumes it (one-shot) and lands on MODE SELECT with the
+## lobby cleared (a returning group skips the title + PLAY). Cold boot and every other shell entry are unchanged.
+var quit_to_modes := false
 
 ## Herd Lobby state (audit §E.2), persisted across shell <-> match until the title screen clears it.
 ## lobby = 4 slot dicts {state "EMPTY"|"PICKING"|"READY", device "kb"/"pad:N"/"", goat int, flair String}

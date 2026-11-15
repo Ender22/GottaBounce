@@ -3,7 +3,8 @@ extends Node
 ## MainMenu and swaps ONE screen child at a time under a shared living backdrop, with the springy
 ## forward/back transition grammar. Selections write GameConfig.match_config; ArenaSelect CONFIRM
 ## fires the match-start iris and the real scene change to Arena.tscn. Returning from a match (Pause
-## Quit-to-Menu / match-end QUIT) change_scene's back to this scene, landing on MainMenu again.
+## Quit-to-Menu / match-end QUIT) change_scene's back to this scene; WK-144: those set GameConfig.quit_to_modes,
+## so it lands on MODE SELECT with the lobby cleared (cold boot still lands on MainMenu).
 
 const DESIGN := Vector2(1920, 1080)
 const MATCH_SCENE := "res://scenes/Arena.tscn"
@@ -44,6 +45,12 @@ func _ready() -> void:
 		GameConfig.lobby_unready()
 		_stack = ["main", "mode"]
 		_show("lobby", true)
+	elif GameConfig.quit_to_modes:
+		# WK-144 (UX4-13): QUIT TO MENU lands on mode select, lobby cleared (CC-4.7 for a quit). B there -> title.
+		GameConfig.quit_to_modes = false
+		GameConfig.clear_lobby()
+		_stack = ["main"]
+		_show("mode", true)
 	else:
 		_show("main", true)
 

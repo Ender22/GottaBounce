@@ -862,3 +862,14 @@ var tv_safe_margin_x: float = 0.05            # share of screen WIDTH kept clear
 # --- WK-141 controls legend: first frame + sports legend out of the ball's band (UX4-10/11). Read by src/ui/ControlsLegend.gd.  # WK-141
 var sports_legend_touch_alpha: float = 0.4    # sports legend alpha after the first live ball touch (removed at the first goal)  # WK-141
 var sports_legend_touch_fade: float = 0.3     # s the dip to sports_legend_touch_alpha takes  # WK-141
+
+# --- WK-44 Options RUMBLE + SCREEN SHAKE (CC-3.6). Read by src/core/Settings.gd, src/core/InputRouter.gd, src/ui/OptionsScreen.gd.  # WK-44
+var screen_shake_low_mult: float = 0.45       # SCREEN SHAKE LOW: x every camera trauma add (OFF = 0, FULL = 1)  # WK-44
+var rumble_attacker_mult: float = 0.5         # a smash's attacker feels this share of the victim's rumble (the victim gets it full)  # WK-44
+var rumble_blast_reach: float = 1.25          # an explosion rumbles human pads within this x its blast radius  # WK-44
+var rumble_test_pulse: Vector3 = Vector3(0.5, 0.6, 0.18)   # weak, strong, seconds: the pulse when RUMBLE is switched ON in Options  # WK-44
+# --- WK-142 Trials end celebration (UX4-08). Read by src/ui/TrialsVictory.gd.  # WK-142
+var trials_victory_arm: float = 1.3           # s from present() until the row accepts a press (never below end_screen_arm)  # WK-142
+var trials_victory_scrim_alpha: float = 0.8   # chocolate scrim alpha behind the celebration  # WK-142
+var trials_victory_hop: float = 46.0          # px each cheering goat hops  # WK-142
+var trials_victory_next_iris: float = 0.24    # s the cream iris takes to cover before NEXT CIRCUIT loads  # WK-142

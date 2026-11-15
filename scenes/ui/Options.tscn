@@ -108,7 +108,7 @@ mouse_filter = 2
 theme_override_constants/separation = 12
 
 [node name="ControlsRow" type="Button" parent="Panel/VBox/Rows"]
-custom_minimum_size = Vector2(0, 92)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 focus_mode = 2
 theme_override_styles/normal = SubResource("wk33_empty")
@@ -150,6 +150,7 @@ vertical_alignment = 1
 
 [node name="Sub" type="Label" parent="Panel/VBox/Rows/ControlsRow/HBox"]
 modulate = Color(1, 1, 1, 0.72)
+custom_minimum_size = Vector2(486, 0)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"TextDark"

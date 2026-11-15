@@ -238,8 +238,7 @@ func _burst_balls(player) -> void:
 		ball.linear_velocity = Vector2(randf_range(-320, 320), randf_range(-420, -120))
 	# confetti-cannon flash + big rumble (spec 3.5 — the burst IS the telegraph)
 	_confetti(player.get_parent(), player.global_position, 40)
-	for dev in Input.get_connected_joypads():
-		Input.start_joy_vibration(dev, 0.8, 0.9, 0.25)
+	InputRouter.rumble_player(player, 0.8, 0.9, 0.25)   # WK-44 (CC-3.6): the user's pad only, Options RUMBLE gates it
 
 func _plant_ring(player) -> void:
 	var parent: Node = player.get_parent()
