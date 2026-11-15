@@ -2950,6 +2950,6 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   Wiring it changes every grass platform's look -> art-director brief/grade first. Same call: give horizontal bumpers real art (today a grey strip).
   Also: the CIRCUIT UNLOCKED banner text overlaps the arena preview panel's chips.
 
-### [ ] WK-181 [P2][S] A chain of eliminations within 0.5 s of each other revives EVERYONE in the chain into sudden death
+### [x] WK-181 [P2][S] A chain of eliminations within 0.5 s of each other revives EVERYONE in the chain into sudden death — 4f5e429
 - Source: WK-169b batch (T.A0.201.json, meadow_spine: all four goats revived; 7 of 240 forced stages). Sudden death should only revive
   the last two (owner SD rule). Check PartyMatch's double-KO window chaining.
