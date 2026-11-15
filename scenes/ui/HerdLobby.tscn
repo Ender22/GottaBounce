@@ -525,6 +525,24 @@ theme_override_font_sizes/font_size = 30
 text = "FIRST TO 10 KOs  ·  1 LIFE  ·  CPU SKILL MIX"
 vertical_alignment = 1
 
+[node name="HelpTitle" type="Label" parent="RulesRow/RulesBar/Row"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "PRESSURE NETS"
+vertical_alignment = 1
+
+[node name="HelpText" type="Label" parent="RulesRow/RulesBar/Row"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"BodyDark"
+theme_override_colors/font_color = Color(0.231373, 0.141176, 0.105882, 1)
+theme_override_font_sizes/font_size = 30
+text = "Long rallies make both goals bigger"
+vertical_alignment = 1
+
 [node name="Gap" type="Control" parent="RulesRow/RulesBar/Row"]
 custom_minimum_size = Vector2(18, 0)
 layout_mode = 2

@@ -29,6 +29,10 @@ var _ordered_idx := 0
 # (pool + draw_count) take each PLAY's subset from a session bag (_draw_spec). Empty key / {} = legacy path.  # CD4-01
 var _deck_key := ""              # CD4-01 "circuit:<id>" | "random" | "" (legacy / SINGLE)
 var _draw_spec: Dictionary = {}  # CD4-01 {"id", "count", "items": [{id, tier}]} for a shuffle-draw circuit
+# WK-172 (CD5-05): arenas drawn from the session deck in THIS match (oldest first), reset in configure(). A deck that
+# runs dry mid-match builds its successor with these (plus the session's last Tuning.wk172_deck_recent_n draws, kept
+# in the deck's "hist") at the BACK of their MILD / WILD half, so the rest of the match sees fresh arenas.  # WK-172
+var _wk172_played: Array = []    # WK-172
 
 # --- identity / presentation ---
 func id() -> StringName:
@@ -56,6 +60,7 @@ func configure(runner, config: MatchConfig) -> void:
 	_ordered_idx = 0
 	_deck_key = ""      # CD4-01
 	_draw_spec = {}     # CD4-01
+	_wk172_played = []  # WK-172: a new match (incl. REMATCH / RESTART) starts a fresh played list
 	if config.arena_mode == MatchConfig.ArenaMode.CIRCUIT:
 		var circuit := _resolve_circuit(str(config.circuit_id))
 		if not circuit.is_empty():
@@ -243,21 +248,51 @@ func _cd4_deck_next() -> String:
 	var deck: Array = st.get("deck", [])
 	# drop anything no longer in the pool (defensive: circuits.json edited mid-session)
 	deck = deck.filter(func(p): return _pool.has(p))
+	var hist: Array = st.get("hist", [])   # WK-172: the session's most recent draws for this key (oldest first)
 	if deck.is_empty():
 		var built: int = int(st.get("decks", 0))
-		deck = _cd4_build_deck(built == 0, str(st.get("last", "")))
+		deck = _cd4_build_deck(built == 0, str(st.get("last", "")), _wk172_recent(hist))
 		st["decks"] = built + 1
 	var path: String = str(deck.pop_front())
 	st["deck"] = deck
 	st["last"] = path
+	if Tuning.wk172_deck_avoid_recent:   # WK-172
+		_wk172_played.append(path)
+		hist.append(path)
+		while hist.size() > maxi(0, Tuning.wk172_deck_recent_n):
+			hist.pop_front()
+		st["hist"] = hist
 	store[_deck_key] = st
 	return path
+
+## WK-172: the arenas a fresh deck should hold back, as {path: tier}: tier 1 = among the session's last
+## wk172_deck_recent_n draws (covers a REMATCH whose first stage reshuffles), tier 2 = drawn in THIS match (held
+## furthest back). {} when the knob is off.  # WK-172
+func _wk172_recent(hist: Array) -> Dictionary:
+	var out: Dictionary = {}
+	if not Tuning.wk172_deck_avoid_recent:
+		return out
+	for p in hist:
+		out[p] = 1
+	for p in _wk172_played:
+		out[p] = 2
+	return out
+
+## WK-172: `arr` (already shuffled) reordered in DRAW order: fresh arenas, then tier 1 (last match's tail), then tier 2
+## (this match), each group keeping its shuffled order. (A strict recency sort was tried: it copied the old deck's tail
+## order into every new deck, so the same 5-7 arena run recurred deck after deck.)  # WK-172
+func _wk172_hold_back(arr: Array, recent: Dictionary) -> Array:
+	var groups: Array = [[], [], []]
+	for p in arr:
+		(groups[int(recent.get(p, 0))] as Array).append(p)
+	return groups[0] + groups[1] + groups[2]
 
 ## One full pass over _pool. Ordered circuits (key "circuit:"): the session's FIRST deck opens on authored arena 1
 ## (Tuning.circuit_deck_opener); the rest alternates a shuffled MILD half (authored first half) with a shuffled WILD
 ## half (Tuning.circuit_deck_interleave), so gentle and wild stages trade off and every match reaches the wild tail.
 ## RANDOM ROTATION: a plain shuffle. Never the same arena twice in a row across a deck boundary.  # CD4-01
-func _cd4_build_deck(first_ever: bool, last: String) -> Array:
+## WK-172: `recent` arenas are held back to the end of their half (interleaved) / of the shuffle.  # WK-172
+func _cd4_build_deck(first_ever: bool, last: String, recent: Dictionary = {}) -> Array:
 	var src: Array = _pool.duplicate()
 	var n: int = src.size()
 	if n <= 1:
@@ -274,6 +309,11 @@ func _cd4_build_deck(first_ever: bool, last: String) -> Array:
 			mild.erase(p)
 		mild.shuffle()
 		wild.shuffle()
+		if not recent.is_empty():   # WK-172: halves are drawn from the BACK, so reverse the draw order
+			mild = _wk172_hold_back(mild, recent)
+			mild.reverse()
+			wild = _wk172_hold_back(wild, recent)
+			wild.reverse()
 		var take_wild: bool = not out.is_empty()   # the opener is mild, so a wild one follows it
 		while not (mild.is_empty() and wild.is_empty()):
 			var use_wild: bool = (take_wild and not wild.is_empty()) or mild.is_empty()
@@ -284,6 +324,8 @@ func _cd4_build_deck(first_ever: bool, last: String) -> Array:
 		for p in out:
 			rest.erase(p)
 		rest.shuffle()
+		if not recent.is_empty():   # WK-172
+			rest = _wk172_hold_back(rest, recent)
 		out.append_array(rest)
 	if last != "" and str(out[0]) == last:
 		var j: int = 2 if out.size() >= 3 else 1   # slot 2 = same half when interleaved

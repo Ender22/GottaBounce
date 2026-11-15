@@ -1338,3 +1338,12 @@ var wk161b_bounds_inset: float = 150.0        # px inside the blast bounds a rec
 var wk161b_episode_gap_s: float = 0.6         # s of clear line before a route episode closes (a re-block sooner keeps the side + episode)  # WK-161b
 var wk161b_los_halfwidth: float = 1.0         # x goat radius: side rays either side of the line-of-sight ray (0 = the spec's single centre ray; a point ray clears corners the body clips)  # WK-161b
 var wk161b_pinned_speed: float = 400.0        # px/s telemetry: an in-well stuck window below this mean speed = "pinned", else "ping-pong"  # WK-161b
+
+# --- WK-172 (CD5-05) session-deck reshuffle never repeats this match's arenas early. Read ONLY by src/modes/BrawlMode.gd.  # WK-172
+# When a CD4-01 deck runs dry, the new deck holds back (to the end of its MILD / WILD half; interleave + no-back-to-back  # WK-172
+# kept) every arena drawn in the current match plus the session's last wk172_deck_recent_n draws for that deck.  # WK-172
+var wk172_deck_avoid_recent: bool = true      # ON (bug fix). false = the CD4-01 build (only the single last arena is avoided)  # WK-172
+var wk172_deck_recent_n: int = 5              # session draws remembered across matches (a REMATCH whose stage 1 reshuffles)  # WK-172
+# --- WK-171 (CD5-04) RULES panel helper line: one sentence explaining the FOCUSED rules row, shown in the lobby's rules bar  # WK-171
+# (under the panels) while a RULES card is open. Read ONLY by src/ui/HerdLobby.gd. Texts live in HerdLobby._rules_defs.  # WK-171
+var wk171_rules_helper: bool = true           # ON. false = the bar keeps the rules summary while editing (pre-WK-171)  # WK-171

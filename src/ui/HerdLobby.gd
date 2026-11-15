@@ -67,6 +67,8 @@ const JOIN_PITCH := [1.0, 1.12, 1.26, 1.41]   # E.10: ui_join pitched by slot
 @onready var _rules_text: Label = $RulesRow/RulesBar/Row/RulesText
 @onready var _view_glyph: Control = $RulesRow/RulesBar/Row/ViewGlyph
 @onready var _edit_chip: Label = $RulesRow/RulesBar/Row/EditChip
+@onready var _help_title: Label = $RulesRow/RulesBar/Row/HelpTitle   # WK-171: focused RULES row's name ...
+@onready var _help_text: Label = $RulesRow/RulesBar/Row/HelpText     # WK-171: ... and its one-line explanation
 @onready var _go_slash: Label = $ReadyBanner/Band/Row/GoSlash
 @onready var _go_wrap: Control = $ReadyBanner/Band/Row/GoWrap
 @onready var _go_wrap2: Control = $ReadyBanner/Band/Row/GoWrap2
@@ -1161,24 +1163,44 @@ func _open_rules(key: String, si: int) -> void:
 		_deny_device(key)
 		return
 	if _mode == "brawl":
+		# WK-171 (CD5-04): "help" = the focused row's one-line explanation in the rules bar; "help_vals" (value -> line)
+		# overrides it for the value shown; "help_locked" while the row is locked. Device-agnostic: no button names.
 		_rules_defs = [
-			{"title": "CPUs", "field": "cpus"},
-			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty"},
-			{"title": "KOs TO WIN", "labels": ["5", "7", "8", "10"], "vals": [5, 7, 8, 10], "field": "kills_to_win"},
-			{"title": "LIVES", "labels": ["1", "2", "3"], "vals": [1, 2, 3], "field": "lives_per_player"},
+			{"title": "CPUs", "field": "cpus", "help": "How many computer goats join the brawl",
+				"help_vals": {0: "No computer goats: humans only"}},
+			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty",
+				"help": "How tough the CPUs are: 1 is gentle, 5 is fierce",
+				"help_vals": {0: "Each CPU gets a different skill level"}},
+			{"title": "KOs TO WIN", "labels": ["5", "7", "8", "10"], "vals": [5, 7, 8, 10], "field": "kills_to_win",
+				"help": "The first goat to this many KOs wins the match"},
+			{"title": "LIVES", "labels": ["1", "2", "3"], "vals": [1, 2, 3], "field": "lives_per_player",
+				"help": "Lives each goat gets per stage. Lose them all and you're out"},
 			# WK-20c (DECISIONS 2026-11-14, ruling Ra): self-KO costs 0 by default; ON = the old -1 (floored at 0)
-			{"title": "SELF-KO −1", "labels": ["OFF", "ON"], "vals": [0, 1], "field": "self_ko_penalty"},
+			{"title": "SELF-KO −1", "labels": ["OFF", "ON"], "vals": [0, 1], "field": "self_ko_penalty",
+				"help": "Falling out with nobody's help costs a point",
+				"help_vals": {0: "Falling out with nobody's help costs no points", 1: "Falling out with nobody's help costs a point"}},
 			# WK-37 ghost goats (spec §8.1): eliminated players float + bleat (+ puff cloud when ON). Labels say BAA, not QUACK.
-			{"title": "GHOSTS", "labels": ["ON", "BAA ONLY", "OFF"], "vals": [0, 1, 2], "field": "ghosts"},
+			{"title": "GHOSTS", "labels": ["ON", "BAA ONLY", "OFF"], "vals": [0, 1, 2], "field": "ghosts",
+				"help": "Knocked-out goats haunt the stage as ghosts",
+				"help_vals": {0: "Knocked-out goats haunt the stage: bleat and puff clouds",
+					1: "Knocked-out goats haunt the stage, but can only bleat",
+					2: "Knocked-out goats sit out until the next stage"}},
 		]
 	else:
 		_rules_defs = [
-			{"title": "FORMAT", "labels": ["1V1", "2V2"], "vals": [2, 4], "field": "sports_total"},
-			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty"},
+			{"title": "FORMAT", "labels": ["1V1", "2V2"], "vals": [2, 4], "field": "sports_total",
+				"help": "Goats on each team. CPUs fill any empty seat",
+				"help_vals": {2: "One goat per team. CPUs fill any empty seat", 4: "Two goats per team. CPUs fill any empty seat"},
+				"help_locked": "Stays 2V2 while three or more players are in"},
+			{"title": "CPU SKILL", "labels": ["MIX", "1", "2", "3", "4", "5"], "vals": [0, 1, 2, 3, 4, 5], "field": "bot_difficulty",
+				"help": "How tough the CPUs are: 1 is gentle, 5 is fierce",
+				"help_vals": {0: "Each CPU gets a different skill level"}},
 		]
 		if _pressure_row_mode():
 			# WK-116 (spec §5, shipped 2026-11-16): long rallies widen both goal mouths. Rocketball only; default ON.
-			_rules_defs.append({"title": "PRESSURE NETS", "labels": ["ON", "OFF"], "vals": [1, 0], "field": "pressure_nets"})
+			_rules_defs.append({"title": "PRESSURE NETS", "labels": ["ON", "OFF"], "vals": [1, 0], "field": "pressure_nets",
+				"help": "Long rallies make both goals bigger",
+				"help_vals": {0: "The goals stay the same size all match"}})
 	_rules_owner = key
 	_rules_slot = si
 	_rules_row_i = 0
@@ -1277,6 +1299,7 @@ func _rules_step(axis: String, dir: int) -> void:
 		_rules_row_i = posmod(_rules_row_i + dir, _rules_defs.size())
 		_move_sound()
 		view.call("refresh_rules", _rules_view_data(), -1, 0)
+		_refresh_rules_bar()   # WK-171: the helper line follows the focused row
 		return
 	var def: Dictionary = _rules_defs[_rules_row_i]
 	var dv: Array = _rule_def_values(def)
@@ -1297,8 +1320,9 @@ func _rules_step(axis: String, dir: int) -> void:
 	_refresh_rules_bar()
 	_refresh_cpu_tray()
 	_refresh_taken()   # WK-27: 2V2 -> 1V1 can fill a team under a browsing player ("RED IS FULL" chip)
-	_rules_text.pivot_offset = _rules_text.size * 0.5
-	MenuFX.value_pop(_rules_text, 1.06)
+	var popped: Label = _help_text if _help_text.visible else _rules_text   # WK-171: pop whatever the bar shows
+	popped.pivot_offset = popped.size * 0.5
+	MenuFX.value_pop(popped, 1.06)
 	_persist()
 
 ## Another device asked for RULES while they're open: deny shake on its own panel + "P1 HAS THE RULES".
@@ -1419,6 +1443,18 @@ func _refresh_sports_tray() -> void:
 
 func _refresh_rules_bar() -> void:
 	_rules_row.visible = _mode != "trials"
+	# WK-171 (CD5-04): while a RULES card is open the bar explains the focused row instead of repeating the values the
+	# open card already shows (EDITING · Pn chip + ROW TITLE + one sentence).
+	var helper: String = _wk171_helper_line()
+	_help_title.visible = helper != ""
+	_help_text.visible = helper != ""
+	_rules_text.visible = helper == ""
+	if helper != "":
+		_help_title.text = str((_rules_defs[_rules_row_i] as Dictionary)["title"]) + ":"
+		_help_text.text = helper
+		_wk171_hold_width()
+	else:
+		_help_text.custom_minimum_size.x = 0.0
 	var cfg: MatchConfig = GameConfig.match_config
 	var skill: String = "MIX" if cfg.bot_difficulty == 0 else str(cfg.bot_difficulty)
 	if _mode == "brawl":
@@ -1437,6 +1473,40 @@ func _refresh_rules_bar() -> void:
 		_rules_text.text = "%s  ·  FIRST TO %d %s  ·  CPU SKILL %s" % ["1V1" if total == 2 else "2V2", Tuning.sports_goal_target, unit, skill]
 		if _pressure_row_mode() and cfg.pressure_nets == 0:
 			_rules_text.text += "  ·  NO PRESSURE NETS"   # WK-116: only the non-default rule shows (like NO GHOSTS)
+
+## WK-171: the focused RULES row's helper sentence ("" = RULES closed / knob off / no text for the row). Value-specific
+## "help_vals" beat the row's "help"; a locked row says why it is locked.
+func _wk171_helper_line() -> String:
+	if not Tuning.wk171_rules_helper or _rules_owner == "" or _rules_row_i < 0 or _rules_row_i >= _rules_defs.size():
+		return ""
+	var def: Dictionary = _rules_defs[_rules_row_i]
+	if str(def["field"]) == "sports_total" and _joined_count() > 2 and def.has("help_locked"):
+		return str(def["help_locked"])
+	var hv: Dictionary = def.get("help_vals", {})
+	var cur: int = int(_rule_def_values(def)[2])
+	if hv.has(cur):
+		return str(hv[cur])
+	return str(def.get("help", ""))
+
+## WK-171: keep the rules bar one width while focus moves between rows: pad the sentence so title + sentence always
+## spans the widest title + line pair this panel can show (otherwise the centred bar jiggles on every Up/Down).
+func _wk171_hold_width() -> void:
+	var tf: Font = _help_title.get_theme_font("font")
+	var hf: Font = _help_text.get_theme_font("font")
+	if tf == null or hf == null:
+		return
+	var ts: int = _help_title.get_theme_font_size("font_size")
+	var hs: int = _help_text.get_theme_font_size("font_size")
+	var widest := 0.0
+	for def in _rules_defs:
+		var d: Dictionary = def
+		var lines: Array = [str(d.get("help", "")), str(d.get("help_locked", ""))]
+		lines.append_array((d.get("help_vals", {}) as Dictionary).values())
+		var t_w: float = tf.get_string_size(str(d["title"]) + ":", HORIZONTAL_ALIGNMENT_LEFT, -1, ts).x
+		for ln in lines:
+			widest = maxf(widest, t_w + hf.get_string_size(str(ln), HORIZONTAL_ALIGNMENT_LEFT, -1, hs).x)
+	var cur_t: float = tf.get_string_size(_help_title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ts).x
+	_help_text.custom_minimum_size.x = ceilf(maxf(0.0, widest - cur_t))
 
 ## Banner (E.5): valid roster -> "READY TO FIGHT!" slides in from the left (TRANS_BACK) and breathes;
 ## BRAWL 1 human + 0 CPUs -> the amber hint instead. Never both, never a silent dead end.
