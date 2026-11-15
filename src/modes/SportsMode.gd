@@ -190,6 +190,9 @@ var _wk108b_keeper: Array = [-1, -1]     # team -> sticky keeper player idx (-1 
 var _wk108b_calm_t: Array = [-1.0, -1.0] # team -> round_clock when its keeper threat ended (-1 = threatened / none)  # WK-108b
 var wk108b_role: Dictionary = {}         # idx -> last objective role (QA telemetry only, never read by decisions)  # WK-108b
 var wk108b_guard_n: Dictionary = {}      # idx -> frames the strike guard / net brake steered (QA telemetry)  # WK-108b
+var wk164_flips_held: Dictionary = {}   # idx -> trips where the fresh swerve side differed from the held one (QA telemetry)  # WK-164
+var _wk164_side: Dictionary = {}        # idx -> held K3 swerve side (+1 / -1 x the perpendicular)  # WK-164
+var _wk164_pick_f: Dictionary = {}      # idx -> physics frame the held side was picked  # WK-164
 
 # --- DROPSHOT serve geometry (owner 2026-07-19): after each point the ball waits FROZEN in the middle,
 # above the net, then on GO launches toward the team that scored last (pressure to make the first touch). ---
@@ -1578,16 +1581,26 @@ func bot_strike_guard(runner, bot_player, recovering := false) -> Vector2:
 		return Vector2.ZERO
 	var n: Vector2 = rel / dist
 	var to_own: Vector2 = (own_goal - bp).normalized()
-	if n.dot(to_own) < Tuning.wk108b_guard_cos:
-		return Vector2.ZERO
+	# WK-164: a swerve side picked < wk164_guard_hold_s ago is HELD (physics frames: deterministic in recordings / headless)
+	var hold_s: float = Tuning.wk164_guard_hold_s   # WK-164
+	var now_f: int = Engine.get_physics_frames()   # WK-164
+	var held: bool = hold_s > 0.0 and _wk164_pick_f.has(idx) \
+		and float(now_f - int(_wk164_pick_f[idx])) < hold_s * float(Engine.physics_ticks_per_second)   # WK-164
 	var closing: float = (v - _ball.linear_velocity).dot(n)
-	if closing <= 60.0:
-		return Vector2.ZERO
-	if dist - (_ball.radius + BOT_BODY_RADIUS) > closing * Tuning.wk108b_guard_horizon_s:
-		return Vector2.ZERO
+	var trip: bool = n.dot(to_own) >= Tuning.wk108b_guard_cos and closing > 60.0 \
+		and dist - (_ball.radius + BOT_BODY_RADIUS) <= closing * Tuning.wk108b_guard_horizon_s   # WK-164: was 3 early returns
+	if not trip:   # WK-164: never hold a RELEASED guard (steering the escape on after release: 1.7x sharp turns, 2.7x guard frames,
+		return Vector2.ZERO   # tools/out/wk/wk167/probe164.json)
 	var perp := Vector2(-n.y, n.x)
-	if perp.dot(to_own) < 0.0:
-		perp = -perp
+	var side: float = 1.0 if perp.dot(to_own) >= 0.0 else -1.0   # WK-164 (same pick as before: the ball's own-goal side)
+	if held:   # WK-164
+		if float(_wk164_side[idx]) != side:   # WK-164
+			wk164_flips_held[idx] = int(wk164_flips_held.get(idx, 0)) + 1   # WK-164: a flip the hold suppressed
+		side = float(_wk164_side[idx])   # WK-164
+	elif hold_s > 0.0:   # WK-164: a fresh pick starts a new hold
+		_wk164_side[idx] = side   # WK-164
+		_wk164_pick_f[idx] = now_f   # WK-164
+	perp *= side   # WK-164
 	wk108b_guard_n[idx] = int(wk108b_guard_n.get(idx, 0)) + 1
 	# the brake share grows with closing speed (a 1500 px/s bounce-charged goat can't swerve clear, it has to stop)
 	return (perp - n * Tuning.wk108b_guard_brake * maxf(1.0, closing / Tuning.normal_boost_max_speed)).normalized()

@@ -242,3 +242,11 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **Hunk staging can split a signature change across commits** (54150be committed HerdLobby calling LobbySlot.show_disconnected
   with 2 args while the LobbySlot signature hunk stayed unstaged because it lacked the WK tag; fixed in 14ff3f6). After a partial
   stage, check untagged hunks in the same files, or parse-gate a `git stash --keep-index`-style snapshot before committing.
+- **WK-167: the bots' "3.9 fuel at death" was NOT the WK-136 relight floor** (that floor is max(1.0, 28.57 x 0.105) = 3.0, not
+  3.86). It was `InputBot._danger_recover`'s `it.boost = me.fuel > 4.0`: boost drains 0.238/tick, so recovery let go at 3.76-4.0
+  (mean ~3.88) and never re-pressed. Scripted edge drops at 4.0 fuel: OFF 0 boost ticks, 1/24 survive; spend-to-0: 9/24.
+  0.14 s of thrust matters because a FRESH boost press also chops 75 % of the velocity across the aim (boost_enter_keep).
+- **WK-164: never keep the K3 guard steering after it RELEASES** (recomputed or frozen escape alike). Every 30-46 deg/frame turn
+  needs the 3x guard turn rate, so sharp turns scale with guard frames: a 0.2 s release hold gave 2.7x guard frames and 1.7x
+  sharp turns (in-game probe, 90 s x 4 L3 on THE BOX). Only the swerve SIDE latch (held while the guard stays tripped) is safe.
+  Single 20 s recordings are too noisy for this (seed 5 vs 6 baseline: 48 vs 73 sharp turns); use the per-tick probe.

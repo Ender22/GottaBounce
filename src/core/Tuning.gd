@@ -979,6 +979,12 @@ func _ready() -> void:  # WK-135: QA arm overrides from the environment ("1" ON,
 	var w109: String = OS.get_environment("GB_WK109")  # WK-109: QA arm override for wk109_power_shot (record_match.ps1 inherits the env)
 	if w109 != "":  # WK-109
 		wk109_power_shot = w109 == "1"  # WK-109
+	var w167: String = OS.get_environment("GB_WK167")  # WK-167: QA arm override for wk167_spend_last_fuel
+	if w167 != "":  # WK-167
+		wk167_spend_last_fuel = w167 == "1"  # WK-167
+	var w164: String = OS.get_environment("GB_WK164")  # WK-164: QA arm override for wk164_guard_hold_s
+	if w164 != "":  # WK-164
+		wk164_guard_hold_s = wk164_guard_hold_on if w164 == "1" else 0.0  # WK-164
 
 ## WK-135 phase 3: the EFFECTIVE WK-128 (b) gate values (0 = that gate OFF), with the master switch folded in.  # WK-135
 func gate_rearm_frac() -> float:  # WK-135
@@ -1299,3 +1305,17 @@ var wk109_power_duck_s: float = 0.15          # s the power duck holds  # WK-109
 var wk166_bounce_rumble_min_speed: float = 1100.0   # px/s launch a bounce needs before it rumbles the bouncer's pad (was 310 = t > 0.25 of 1240; idle floor bounces launch 758-929)  # WK-166
 var wk166_lobby_toast_pos: Vector2 = Vector2(40.0, 814.0)   # px top-left of the toast stack in the Herd Lobby (low-left, beside the CPU tray; top-centre covered the roster)  # WK-166
 var wk166_lobby_toast_width: float = 560.0    # px width of the lobby toast stack (toasts left-align inside it)  # WK-166
+# --- WK-167 bots spend their last fuel in a recovery (docs/audit/2026-11-16_wk135_p3_ab.md finding 4: 56 of 106 bot self-KOs  # WK-167
+# fell with 3.5-4.1 fuel). Cause: InputBot._danger_recover only held boost while fuel > 4.0 (drain 0.238/tick -> it let go at  # WK-167
+# 3.76-4.0 = ~0.13 s of thrust unspent), and _flight_recovers modelled the same cut-off. A HELD boost is never billed (WK-128 bills  # WK-167
+# only re-lights, and WK-136 always leaves >= 3.0 of it), so the reserve is free thrust. Read ONLY by InputBot.gd.  # WK-167
+# QA arm without a Tuning edit: env GB_WK167=1/0 (read in _ready; headless runs and record_match.ps1 inherit it).  # WK-167
+var wk167_spend_last_fuel: bool = true        # ON (director: bug fix - recovery boost used to stop at 4.0 fuel). false = old  # WK-167
+var wk167_recover_boost_floor: float = 0.0    # fuel a recovering bot keeps boosting down to when ON (and the WK-127 predictor's cut-off)  # WK-167
+# --- WK-164 K3 strike-guard swerve hold (docs/audit/2026-11-15_wk108b_ab.md: 41 sharp 30-46 deg turns + 20 direction flips per  # WK-164
+# 20 s in goal-mouth scrums). Read ONLY by SportsMode.bot_strike_guard. Once the guard picks a swerve side (the ball's own-goal  # WK-164
+# side of the perpendicular, which flips whenever the goat crosses the ball->own-goal line) it keeps that side for hold_s while the  # WK-164
+# guard stays tripped. A release is never held: steering a held escape after the guard let go measured 1.7x the sharp turns.  # WK-164
+# QA arm without a Tuning edit: env GB_WK164=1/0 (1 = wk164_guard_hold_on, 0 = 0.0).  # WK-164
+var wk164_guard_hold_s: float = 0.2           # s the K3 swerve SIDE is held once picked (ON 0.2: flips -13 %). 0.0 = OFF  # WK-164
+var wk164_guard_hold_on: float = 0.2          # s the GB_WK164=1 arm sets (brief: 0.15-0.25; L3 turns ~0.2 s / 90 deg)  # WK-164

@@ -813,6 +813,11 @@ func _in_danger() -> bool:
 			return true
 	return false
 
+## WK-167: fuel a recovering bot keeps boosting down to. OFF = 4.0 (today: ~3.9 fuel = 0.13 s of thrust left unspent in a doomed
+## fall); ON = Tuning.wk167_recover_boost_floor (0 = every last drop). A HELD boost is never billed (WK-128 bills re-lights only).
+func _wk167_boost_floor() -> float:   # WK-167
+	return Tuning.wk167_recover_boost_floor if Tuning.wk167_spend_last_fuel else 4.0   # WK-167
+
 func _recovery_dir() -> Vector2:
 	# back toward the nearest REACHABLE landing surface (never stage_center — on islands_void the
 	# stage-rect center sits over a void gap; aiming there dives bots INTO the chasm).
@@ -857,7 +862,7 @@ func _danger_recover(it: InputIntent) -> bool:
 	else:
 		dir = _steer(dir)
 	it.aim = dir
-	it.boost = me.fuel > 4.0
+	it.boost = me.fuel > _wk167_boost_floor()   # WK-167: was 4.0 (left ~3.9 fuel unspent in every doomed fall)
 	it.super_hold = false
 	it.use_powerup = false
 	if me.wings_flaps > 0:
@@ -1519,7 +1524,7 @@ func _climb_landing(pos: Vector2, budget_px: float) -> Dictionary:
 ## WK-127 (b): predict the bot's recovery FLIGHT from its current state, flying the same heading law as
 ## _danger_recover (_recover_heading: brake against the velocity when about to cross a blast line, else
 ## toward `land`) with Player's boost rules (cap along the aim, 0.8 g while thrusting, the steering grip below
-## boost_grip_speed_max, drain; boost stops at <= 4 fuel and the stick then only air-drifts).
+## boost_grip_speed_max, drain; boost stops at <= _wk167_boost_floor() fuel and the stick then only air-drifts).  # WK-167 (was 4)
 ## 0 = recovers (within RECOVER_ARRIVE of the landing point, a refuelling touch, or still in bounds at the
 ## horizon); 1 = crosses a blast line while it still has thrust (momentum: too fast to brake);
 ## 2 = crosses after the tank ran dry (range).
@@ -1536,6 +1541,7 @@ func _flight_recovers(pos: Vector2, land: Vector2) -> int:
 	var acc: float = Tuning.normal_boost_accel * bp * dt
 	var drain: float = Tuning.normal_boost_drain() * dt
 	var ac: float = me.profile.eff_air_control()
+	var floor_f: float = _wk167_boost_floor()   # WK-167: the same cut-off _danger_recover flies
 	var t := 0.0
 	while t < RECOVER_SIM_T:
 		var g: Vector2 = GravityField.get_gravity_at(p)
@@ -1543,7 +1549,7 @@ func _flight_recovers(pos: Vector2, land: Vector2) -> int:
 		if to.length() < RECOVER_ARRIVE:
 			return 0
 		var a := _recover_heading(p, v, to.normalized())
-		if fuel > 4.0:
+		if fuel > floor_f:   # WK-167 (was 4.0)
 			v += g * Tuning.boost_gravity_scale * dt
 			var along: float = v.dot(a)
 			if along < cap:
@@ -1571,7 +1577,7 @@ func _flight_recovers(pos: Vector2, land: Vector2) -> int:
 		else:
 			p += v * dt
 		if not b.has_point(p):
-			return 1 if fuel > 4.0 else 2
+			return 1 if fuel > floor_f else 2   # WK-167 (was 4.0)
 		t += dt
 	return 0
 
