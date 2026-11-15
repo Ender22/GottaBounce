@@ -133,12 +133,12 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 4. WK-31 HUD danger state + stocks (M) [H, with or after WK-99]
 5. WK-127b the_ascent top-tier hopping + CD3's hover watch (S) [S, `InputBot.gd`, after WK-108b]
 6. WK-116 rally tail (S, measurement only: LONG HAUL sample alongside WK-131's post-rule measurement; the Dropshot watch is cleared)
-7. WK-117 sports words + CD3-09 copy ("FIRST TO 6 POINTS" on Dropshot, no "A FIGHT!") (S) [U after WK-42; the kickoff word may need
+7. ~~WK-117~~ done 5a74fa8 — sports words + CD3-09 copy ("FIRST TO 6 POINTS" on Dropshot, no "A FIGHT!") (S) [U after WK-42; the kickoff word may need
    `SportsMode.gd`: stage hunks]
-8. WK-52 unlock toast becomes a banner card + CD3-07 (S) [L, after WK-120 + WK-125]
+8. ~~WK-52~~ done 5a74fa8 — unlock toast becomes a banner card + CD3-07 (S) [L, after WK-120 + WK-125]
 9. ~~WK-14~~ done ab11c61 — singular focus (S) [U]
 10. WK-37f ghosts never hide behind terrain (P3/S) [G]
-11. WK-113 sports legend off the floor (S)
+11. ~~WK-113~~ done 5a74fa8 — sports legend off the floor (S)
 12. WK-112 sports hazards stun (S) [S]
 13. WK-114 court unlock gates (S, JSON, with or after WK-112)
 14. WK-54 per-player legend (S)
@@ -515,7 +515,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   bomb arena still kills (regression check).
 - Status: open (on deck)
 
-### [ ] WK-113 [P2][S] Sports legend off the scoring surface + a sports smash line (SP-11 + SP-22)
+### [x] WK-113 [P2][S] Sports legend off the scoring surface + a sports smash line (SP-11 + SP-22) — 5a74fa8
 - Area: sports | HUD · Owner: ui-ux-designer · Source: WK-98 SP-11 (WK-15 follow-up) + SP-22 (merged)
 - Evidence: `tools/out/sports/evidence/sp_ds_legend_covers_floor.jpg` (Dropshot rally 1: rule line + chips sit on the floor tiles, cracks
   hidden); Rocketball the same over the floor/trampoline (`tools/out/sports/07_rb_intro.png`). SP-22: smashes happen (16 in M4's 110 s) but
@@ -560,7 +560,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   line. CENTER PITCH median 5.7-7.0 s (short, not long: that is CD3-05, now in WK-131). CD3 took **no LONG HAUL sample**, so this stays
   open for one measurement: take it in WK-131's post-rule run, then close as Won't do or rule.
 
-### [ ] WK-117 [P3][S] Sports words, not brawl words: "KICK OFF!" / "SERVE!" / "PLAY!" (SP-16)
+### [x] WK-117 [P3][S] Sports words, not brawl words: "KICK OFF!" / "SERVE!" / "PLAY!" (SP-16) — 5a74fa8
 - Area: sports | menus · Owner: ui-ux-designer · Source: WK-98 SP-16
 - Evidence: "BOUNCE!" at Rocketball kickoff (`tools/out/sports/m2_rb2v2_box/play_143.png`), "A FIGHT!" on court select (`06_courtselect.png`).
 - Do: mode `display_name`-keyed strings. Do together with WK-43's copy half: Trials circuit select also says "FIGHT!" (same footer).
@@ -1725,7 +1725,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Accept (rendered): contact sheet of 5 super hits at gameplay zoom: impact readable from a downscaled 640x360 frame (CD verdict).
 - Status: open
 
-### [ ] WK-52 [P2][S] KO meta counts human KOs only and moves off the shared lobby; unlock toast becomes a banner card
+### [x] WK-52 [P2][S] KO meta counts human KOs only and moves off the shared lobby; unlock toast becomes a banner card — 5a74fa8
 - Sources: R-25, R-24 (toast part)
 - Area: menus · Owner: gameplay-programmer + ui-ux-designer · Deps: WK-06
 - Note: the lobby half may be moot — HerdLobby.gd has no KO-meta chip (the old CharacterSelect was deleted). QA re-check; the human-only count + toast-card halves stay.
