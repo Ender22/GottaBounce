@@ -2,6 +2,12 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-20d CLOSED (director, docs/audit/2026-11-16_wk20d_phaseA.md, decision-table row 1): per-class targets met on
+  419 stages (grounded median 12.6 s, void median 10.6 s with 9 % under 6 s, hazard 13.0 s; session stage median 10.45 s, mean match
+  3.4 min). CD4's early/late split was arena mix + match-end cut, not position. No R5 margins, no R6 shelves. Watch items filed: one
+  70.8 s grounded 1v1 duel (no stall/pin), the void claw-back pass leans on daisy_ring (detector needs a ring-arena fix), CPU self-KO
+  25 % in real matches (snapshot predates WK-167).
+
 - **2026-11-16** WK-109 RULING (docs/audit/2026-11-16_wk109_ab.md): DON'T SHIP the power shot as specced (switch stays OFF). Neither arm
   meets the dynamic-range bars (near-cap normal touches 41 / 30 % vs < 10 %; power/median 1.38-1.40 vs >= 1.75) because real touches
   carry a ~1000 px/s striker into a ~1400 px/s ball; fixing it needs protected constants (incoming-speed retention / striker term) ->

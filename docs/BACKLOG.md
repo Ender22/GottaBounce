@@ -2746,3 +2746,9 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 ### [x] WK-167 [P2][S] Bots never spend their last ~3.9 fuel (WK-136 relight reserve) and fall with it — dab9528
 - Source: docs/audit/2026-11-16_wk135_p3_ab.md: 56 of 106 bot self-KOs died holding ~3.9 fuel in both arms — the WK-136 billed-relight
   reserve (0.105 s thrust). InputBot's recovery math likely treats < super_min / < some threshold as empty. Make recovery spend it.
+
+### [ ] WK-168 [P3][S] WK-20d Phase A watch items (docs/audit/2026-11-16_wk20d_phaseA.md)
+- Claw-back detector over-counts on ring-shaped arenas (daisy_ring 21/alive-min vs 0.75-6.75 elsewhere) — fix before it decides anything.
+- Long grounded 1v1 duels (70.8 s on Grassy Expanse, 66 s High Pasture earlier): check sudden-death timing for 1v1 endgames.
+- CPU self-KO share 25.4 % in real matches vs 12.8 % forced loop — re-measure after WK-167 (bots now spend their last fuel).
+- Level-designer note: two_hills ranks bottom-3 for void short stages but isn't R6-eligible; islands_void + stepping_bloom hold 8 of 14 sub-6 s void stages.
