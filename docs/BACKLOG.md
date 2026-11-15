@@ -171,7 +171,7 @@ first. Its re-judge list is in the WK-CD5 entry.
 8. WK-112 sports hazards stun (S) [S] · WK-114 sports courts unlock from sports play (S, JSON)
 9. WK-54 per-player legend (S) [U after WK-156]
 10. WK-46 menu nav repeat on held D-pad/stick (M)
-11. WK-65b MINEFIELD card re-roll (P3/S, art; can run any time outside the cap)
+11. ~~WK-65b~~ done 20ae38f — MINEFIELD card re-roll (P3/S, art; can run any time outside the cap)
 12. WK-123b HOME parking (S, unverified; 2P QA check first) · WK-129 super-only crates (S) · WK-103 pendulum follow-ups (S)
 13. WK-32a hero decision (S)
 14. WK-48 dry-tank sputter · WK-49 powerup name pop · WK-50 supercharge feedback · WK-51 super contact reads as THE hit (S/S/S/M, Brawl juice)
@@ -2541,7 +2541,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   (camera rules: check docs/feedback/owner_2026-07-10_camera_rules.md) after WK-135 releases PartyMatch; also check the per-goal
   STAGE_INTRO and Pause->RESTART / REMATCH paths (no cover there).
 
-### [ ] WK-65b [P3][S] HAMMER YARD and MINEFIELD court cards blur together when locked
+### [x] WK-65b [P3][S] HAMMER YARD and MINEFIELD court cards blur together when locked — 20ae38f
 - Source: WK-65 blind 480 read (`tools/out/wk/WK-65_40_rb_shelf_480_blind_B.png`): both locked Tier-3 cards are dim and brownish under the
   LOCKED banner; the hazards are too small at 480 px, so colour does all the work (measured dE76 17.3 < 20). Fix: re-roll the MINEFIELD
   interior in a clearly different hue (e.g. cool dusk teal/purple) via tools/court_badge_compose.py, and/or lighten the locked dim.
