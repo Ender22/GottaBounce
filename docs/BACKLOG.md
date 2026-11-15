@@ -2421,3 +2421,8 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 - Source: WK-65 blind 480 read (`tools/out/wk/WK-65_40_rb_shelf_480_blind_B.png`): both locked Tier-3 cards are dim and brownish under the
   LOCKED banner; the hazards are too small at 480 px, so colour does all the work (measured dE76 17.3 < 20). Fix: re-roll the MINEFIELD
   interior in a clearly different hue (e.g. cool dusk teal/purple) via tools/court_badge_compose.py, and/or lighten the locked dim.
+
+### [ ] WK-152 [P3][S] Brawl/Trials stage start zooms in then eases out over ~15 frames (camera)
+- Source: WK-148b probe: Brawl/Trials start at CAM_MAX_ZOOM 0.92 and ease to ~0.66-0.78. Sports now snaps (95d4723). BLOCKED-ish: camera
+  framing is an owner-rules area (docs/feedback/owner_2026-07-10_camera_rules.md) — a start snap to the computed framing is likely
+  harmless, but get a recording-based before/after and log a DECISIONS entry before changing it.
