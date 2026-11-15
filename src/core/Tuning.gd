@@ -857,8 +857,10 @@ var sports_victory_lose_tint_alpha: float = 0.14  # losing team's rows: lighter 
 # --- WK-145 lobby nits: unlock-card flair icon (UX4-26). Read by src/ui/FlairSwatch.gd (HerdLobby unlock card).  # WK-145
 var unlock_icon_sky: Color = Color("#3A2F5B")  # the icon disc's backdrop: twilight sky, so the glowing flair (streak / flame / pop / banner) pops on it  # WK-145
 var unlock_icon_goat_px: float = 66.0         # px the tiny goat wearing the flair is drawn at inside the 128 px disc  # WK-145
+
 # --- WK-149 horizontal TV safe area for header corner chips. Read by src/ui/MenuScreen.gd (_fit_safe_area).  # WK-149
 var tv_safe_margin_x: float = 0.05            # share of screen WIDTH kept clear left + right: corner chips x >= 96, <= 1824 at 1920  # WK-149
+
 # --- WK-141 controls legend: first frame + sports legend out of the ball's band (UX4-10/11). Read by src/ui/ControlsLegend.gd.  # WK-141
 var sports_legend_touch_alpha: float = 0.4    # sports legend alpha after the first live ball touch (removed at the first goal)  # WK-141
 var sports_legend_touch_fade: float = 0.3     # s the dip to sports_legend_touch_alpha takes  # WK-141
@@ -873,7 +875,6 @@ var trials_victory_arm: float = 1.3           # s from present() until the row a
 var trials_victory_scrim_alpha: float = 0.8   # chocolate scrim alpha behind the celebration  # WK-142
 var trials_victory_hop: float = 46.0          # px each cheering goat hops  # WK-142
 var trials_victory_next_iris: float = 0.24    # s the cream iris takes to cover before NEXT CIRCUIT loads  # WK-142
-
 # --- WK-119 sports team identity on the in-world tags (UX4-09 / CC-8.3). Read by src/ui/PlayerPip.gd + src/ui/PlayerPips.gd.  # WK-119
 var sports_pip_team_dress: bool = true         # sports tags wear a team-colour rim + home-side cap (false = pre-WK-119 goat-colour tags)  # WK-119
 var sports_pip_rim_px: float = 5.0             # px team-colour band around the tab (inside the rim's own chocolate outline)  # WK-119
@@ -885,7 +886,6 @@ var sports_pip_cpu_gap: int = 6                # px between a sports CPU tag's N
 var pip_card_gap: float = 6.0                  # px a living pip / ghost tag keeps from a HUD corner card  # WK-146
 var pip_bubble_gap: float = 6.0                # px a living pip keeps from an off-screen bubble's rim  # WK-147
 var pip_avoid_hysteresis_px: float = 12.0      # px the top side must clear by before a card/bubble-flipped pip flips back up  # WK-146
-
 # --- WK-60 / WK-60b arena / court / circuit select: focused-card preview region (UX4-12 / UX4-25). Read by src/ui/ArenaSelect.gd.  # WK-60
 var arena_preview_swap_time: float = 0.16       # s the preview art + name pop takes when focus moves to another card  # WK-60
 var arena_preview_art_pop: float = 0.92         # scale the preview art pops up from on a focus move (1 = no pop)  # WK-60
@@ -893,7 +893,6 @@ var arena_preview_rays_alpha: float = 0.45      # alpha of the slow-turning warm
 var arena_preview_rays_spin: float = 5.0        # deg/s the rays turn (0 = still)  # WK-60
 var arena_preview_locked_tint: Color = Color(0.55, 0.53, 0.58, 1.0)  # preview art modulate while a LOCKED card is focused  # WK-60
 var arena_select_card_size: Vector2 = Vector2(400, 300)  # px shelf card size under the preview (was 460x340 with no preview)  # WK-60
-
 # --- WK-148 sports match start: hold the iris white until the court camera settles (UX4-27). Read by src/ui/MatchCover.gd + src/ui/ShellRoot.gd.  # WK-148
 var match_cover_on: bool = true                # court confirm -> the iris white holds over the new match until the camera has eased out  # WK-148
 var match_cover_sports_only: bool = true       # only sports modes (their camera snaps to CAM_MAX_ZOOM, then eases out to the court)  # WK-148
