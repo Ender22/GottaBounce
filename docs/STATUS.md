@@ -4,16 +4,14 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-15 ~08:45, after context compaction) <<<**
-Committed since the freeze: WK-37d ghost tags + CD2-06 (b76d36f), WK-128 relight bill ON / refund gates OFF (3e1a5b0, DECISIONS
-2026-11-15 accepts the rr_allpads nav-pilot regression). In flight (resume each with SendMessage to its id):
-- WK-66a net draw code (lane V, port 9103) — ArenaRenderer.gd, Ball.gd, GoalZone.gd, MovingPlatform.gd, court JSONs,
-  new assets/shaders/net_*.gdshader + src/systems/SportsNetArt.gd, WK-66a block at END of Tuning.gd — agent a96edc4ef5c4a31e1.
-- WK-135 bumper build (3 phases; builds in a SCRATCH COPY, applies to repo at the end; port 9105) — agent a9403f95b2887d5dd.
-- WK-CD3 cold playthrough (port 9106; incl. WK-128 §9 relight feel + ghost T15) -> docs/audit/2026-11-15_cd3_playthrough.md — agent a72674c1962b636e4.
-- art-director regrade of WK-37d tags (no Godot) -> docs/audit/2026-11-15_wk37d_artgrade.md — agent adcb95673a3615a59.
-After CD3: producer re-rank with CD3 findings. Delete tools/out/rec/wk37d_islands + wk37d_mix raw frames after the art grade.
-Keep-awake script runs as a background task (restart scratchpad/keepawake.ps1 on a new session).
+**>>> RESUME HERE (2026-11-15 ~10:00) <<<**
+Committed since the freeze: WK-37d (b76d36f) + WK-37e (6c0d612) ghost tags; WK-128 relight bill ON / refund gates OFF (3e1a5b0);
+WK-66a sports nets (2bd049c); WK-53b living taunt + WK-26 super-aim wind-up + target "!" (4ca9472). In flight (SendMessage to resume):
+- WK-135 bumper build (3 phases; SCRATCH COPY, applies to repo at the end; port 9105) — agent a9403f95b2887d5dd.
+- WK-CD3 cold playthrough (port 9106) -> docs/audit/2026-11-15_cd3_playthrough.md — agent a72674c1962b636e4. Then producer re-rank #7.
+GPU PROBLEM: both AMD adapters in error (RX 6700S disabled, iGPU failed-add) -> software rendering ~37 fps since the freeze.
+Visuals/recordings OK, perf/timing numbers invalid; WK-90 (hit-stop re-measure) waits for the owner to reboot / re-enable.
+Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Keep-awake runs as a background task (scratchpad/keepawake.ps1).
 CONCURRENCY CAP: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
 
 **WEEKEND POLISH RUN (started 2026-11-14, branch `weekend/polish`, UNATTENDED — owner: "i dont want to be
