@@ -613,7 +613,7 @@ another simulated pass has lower value than a real session, so CD6 is scoped to 
   should say POINTS. Court select still says "A FIGHT!" (`rb_04_court.png`). Accept addition: a Dropshot lobby screenshot reading POINTS.
 - Status: done 5a74fa8.
 
-### [ ] WK-118 [P3][S] (unverified) Short stick flicks may be ignored by the lobby carousel (SP-19)
+### [x] WK-118 [P3][S] (unverified) Short stick flicks may be ignored by the lobby carousel (SP-19) — 30fdade
 - Area: menus · Owner: qa-playtester (re-check) -> ui-ux-designer · Source: WK-98 SP-19
 - Evidence (unverified): two 120 ms pad-0 stick taps did not change the goat, 350 ms holds did (`tools/out/sports/03_lobby_p2.png` vs
   `04_lobby_p2b.png`). Likely a harness artefact: the axis was injected with no intermediate values.
@@ -2880,7 +2880,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 - Accept: stills with a goat under a sticker (dimmed, goat readable) and a +1 on a CPU card (name readable); ui-ux Ship.
 - Status: open. Next-10 #7 (with WK-99).
 
-### [ ] WK-174 [P3][S] (unverified) (CD5-07) RULES panel: D-pad focus once failed to leave a locked row
+### [x] WK-174 [P3][S] (unverified) (CD5-07) RULES panel: D-pad focus once failed to leave a locked row — 30fdade
 - Area: menus · Owner: qa-playtester · Source: WK-CD5 CD5-07
 - Evidence (unverified): `tools/out/wk/CD5_16e/16f/16g.png`: RULES open -> D-pad left x3 on the locked FORMAT row -> D-pad down x2 -> stick
   down x2: focus stayed on FORMAT. Re-open: normal. Could be simulated-input timing or a stale frame.
@@ -2901,7 +2901,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   the build stays unsized until then. Not pullable as M.
 - Status: open (on deck #10).
 
-### [ ] WK-176 [P2][S] Soak test: long mixed session for crashes, error spam and leaks (WEEKEND_LOOP step 6; never run this weekend)
+### [x] WK-176 [P2][S] Soak test: long mixed session for crashes, error spam and leaks (WEEKEND_LOOP step 6; never run this weekend) — 30fdade
 - Area: perf / stability · Owner: qa-playtester (skill `soak-test`) · Source: producer re-rank #10 (process gap: step 6 asks for a soak every
   ~12 items; ~70 commits have landed since the run began with none)
 - Evidence: unverified by design (it is a check, not a bug). A/B batches ran hundreds of headless stages without crashes, but nobody has
@@ -2934,3 +2934,10 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 ### [x] WK-178 [P3][S] Ghost rise delay is real-time: under KO slow-mo a ghost appears before a double-KO sudden-death revive — fa785dc
 - Source: WK-169 build (Grassy Expanse: revived goat and its ghost both on screen through sudden death). Use game time for the 0.6 s
   ghost delay (GhostDirector) or cancel the ghost when a revive is pending.
+
+### [ ] WK-179 [P3][S] Soak findings (docs/audit/2026-11-16_wk176_soak.md)
+- F1: unlock celebrations (HerdLobby.gd:1677 flair card, ArenaSelect.gd:980 circuit unlock) reuse EventBus.match_won for the fanfare,
+  so AudioManager switches the front-end music to scoreboard.mp3 until the next match. Use a dedicated unlock cue/signal.
+- F2: ArenaRenderer _warn_once is per-renderer -> the same missing-decal warnings repeat every stage (131 lines/86 min); the
+  "missing bumper_post.png" warning is wrong (file exists; horizontal bumpers always use the placeholder strip).
+- WK-46 note: stop menu auto-repeat from wrapping (a held D-pad on a 3-row panel lands back on the start row).
