@@ -1040,7 +1040,7 @@ first. Its re-judge list is in the WK-CD5 entry.
 - Status: done 2aa8f87. Theme type-scale plus per-node fixes put every player-facing text at ≥ 28 px at 1080p, with no overflow. Lobby L6
   shipped too: a locked medallion desaturates and shows the drawn check.
 
-### [ ] WK-19 [P1][S] Rumble goes only to the concerned player's pad
+### [x] WK-19 [P1][S] Rumble goes only to the concerned player's pad — 27ead00
 - Sources: C-10, R-32 (rumble part), CC-3.6
 - Area: brawl · Owner: gameplay-programmer · Deps: WK-04 (player -> device)
 - Accept: eval-log `start_joy_vibration` calls during 10 smashes in a 2-pad match: only the victim's/attacker's device id appears.
@@ -1305,7 +1305,7 @@ first. Its re-judge list is in the WK-CD5 entry.
   keyboard input (screenshot pairs); no ASCII "(A)" or "< >" left (grep); Trials no longer says "HOLD A / SPACE".
 - Status: done 9eb3c60. UX4 rendered re-check: key caps / pad glyphs / mixed "≡ / ENTER" all correct (`tools/out/ux/UX4_12` vs `UX4_14`, `UX4_29`).
 
-### [ ] WK-30 [P1][S] Keyboard parity in menus (WASD nav, Q/E pages, prompts tell the truth)
+### [x] WK-30 [P1][S] Keyboard parity in menus (WASD nav, Q/E pages, prompts tell the truth) — 27ead00
 - Sources: C-11 (bindings half), CC-2.1 (R/Tab/Enter already added in WK-01)
 - Area: menus · Owner: gameplay-programmer · Deps: WK-01
 - Accept (rendered): ModeSelect/ArenaSelect/Options fully navigable with WASD only; Q/E page the shelf; every footer prompt
@@ -2662,7 +2662,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - Accept: 3 rendered GOAL RUSH goals where the ball stays in the cage, plus a WK-93 recording of one.
 - Status: open (on deck).
 
-### [ ] WK-160 [P2][S] QA re-check sweep: WK-19 rumble routing, WK-30 keyboard parity, WK-28b ui-ux verdict (no build)
+### [x] WK-160 [P2][S] QA re-check sweep: WK-19 rumble routing, WK-30 keyboard parity, WK-28b ui-ux verdict (no build) — 27ead00
 - Area: menus / input · Owner: qa-playtester + ui-ux-designer · Source: producer re-rank #9 (stale-entry rule)
 - Why:
   - WK-44 (2e406dc) says "all rumble routed per player through InputRouter". That is WK-19's scope.
@@ -2727,3 +2727,13 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 
 ### [x] WK-165 [P3][S] slam.mp3 starts with 0.13 s of silence (heavy smash + super layer ~4 frames late) — 719cf00
 - Source: WK-163. Trim into a new file (`ffmpeg -af atrim=start=0.12`), point AudioManager at it, note it in LICENSES.md.
+
+### [ ] WK-166 [P1][S] Disconnect follow-ups from WK-160 (docs/audit/2026-11-16_wk160_recheck.md)
+- F1 BUG (high): pad dies -> RESUME WITHOUT -> later CHANGE SETUP: the dead pad returns as a normal PICKING lobby seat that never
+  shows DISCONNECTED or times out, so READY TO FIGHT never appears (carries into the next mode). Cause: HerdLobby._restore_lobby
+  restores seats without checking the device is still connected.
+- G1: mixed couch, four chips still pad-only: lobby exit chip (ESC), CPU tray (Q/E), RULES chip (TAB), battleground header B BACK (ESC).
+- F2-F7 polish: crowded "plays on as a CPU" note; no confirmation on in-overlay takeover; QUIT TO MENU looks selected but untriggerable
+  with every pad lost; "P3 is disconnected too" not in P3's colour; "controller connected" toast covers lobby portraits; takeover line
+  says "another controller" when offering the keyboard.
+- Feel: pads buzz on nearly every bounce (395 bounce vs 16 smash buzzes for one pad) — raise the bounce-rumble speed threshold.
