@@ -1748,6 +1748,8 @@ func _spawn_ball(runner) -> void:
 	_ball = BALL_SCRIPT.new()
 	if _sport == "dropshot":
 		_ball.configure_dropshot()   # floaty beach ball (Tuning dropshot_* block) — set BEFORE add_child
+	elif _sport == "soccer":  # WK-109: only the Rocketball ball gets the power-shot tiers (Dropshot / Trials never)
+		_ball.wk109_on = Tuning.wk109_power_shot  # WK-109
 	runner._level_root.add_child(_ball)
 	_ball.linear_velocity = Vector2.ZERO
 	if _sport == "dropshot":

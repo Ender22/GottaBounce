@@ -172,6 +172,10 @@ var ko_ducks := 0                # QA: KO ducks triggered
 var _stinger_bus := "SFX"        # resolved in _ready (falls back to SFX if the layout has no Stingers bus)
 var _duck_fx: AudioEffectAmplify = null
 var _duck_t := -1.0              # s since the duck began (-1 = idle)
+var _duck_db := KO_DUCK_DB       # WK-109: depth of the running duck (KO = KO_DUCK_DB; the power-shot cue's duck is shallower)
+var _duck_hold := KO_DUCK_HOLD   # WK-109: hold of the running duck
+var power_ducks := 0             # WK-109 QA: power-shot ducks triggered
+var ball_power_stinger := 0      # WK-109 QA: power cues routed to the Stingers bus
 
 var _cache := {}                 # path -> AudioStream (lazy loaded once)
 var _pool: Array[AudioStreamPlayer] = []
@@ -624,8 +628,15 @@ func _on_ball_struck(_ball, _player, impact, is_power) -> void:
 	_ball_last_amt = t
 	ball_strikes_heard += 1
 	if bool(is_power):
-		play_sfx("ball_power", {"volume_db": BALL_DB_POWER, "pitch": 0.92, "pitch_var": 0.05})
-		play_sfx("ball_body", {"volume_db": -6.0, "pitch": 0.9, "pitch_var": 0.04})
+		# WK-109: a WK-109 ball (soccer, switch ON) only reports POWER for a real power shot, so its cue rides the Stingers bus
+		# (past the SFX compressor, the WK-163 KO pattern) over a short SFX-bed duck. OFF / other balls: today's SFX routing.
+		var wk109: bool = _ball != null and is_instance_valid(_ball) and _ball.get("wk109_on") == true  # WK-109
+		var pbus: String = _stinger_bus if wk109 else "SFX"  # WK-109
+		play_sfx("ball_power", {"volume_db": BALL_DB_POWER, "pitch": 0.92, "pitch_var": 0.05, "bus": pbus})  # WK-109 (bus)
+		play_sfx("ball_body", {"volume_db": -6.0, "pitch": 0.9, "pitch_var": 0.04, "bus": pbus})  # WK-109 (bus)
+		if wk109:  # WK-109
+			ball_power_stinger += 1  # WK-109
+			_start_power_duck()  # WK-109
 		return
 	play_sfx("ball_hit", {"volume_db": lerpf(BALL_DB_SOFT, BALL_DB_HARD, t) + duck,
 		"pitch": lerpf(1.3, 0.92, t), "pitch_var": 0.06})
@@ -970,9 +981,24 @@ func _start_ko_duck() -> void:
 	if _duck_fx == null:
 		return
 	ko_ducks += 1
+	_duck_db = KO_DUCK_DB  # WK-109 (the duck shape is now per trigger)
+	_duck_hold = KO_DUCK_HOLD  # WK-109
 	var cur: float = _duck_fx.volume_db
 	# re-enter the attack ramp at the point matching the current level so a re-trigger never jumps up
 	_duck_t = KO_DUCK_ATTACK * clampf(cur / KO_DUCK_DB, 0.0, 1.0)
+
+## WK-109 (spec §3.3): a short, shallow SFX-bed duck under the power-shot cue (Tuning.wk109_power_duck_db for wk109_power_duck_s,
+## same attack / release as the KO duck). Never shortens or shallows a deeper duck that is still running (a KO's).  # WK-109
+func _start_power_duck() -> void:  # WK-109
+	if _duck_fx == null:  # WK-109
+		return  # WK-109
+	var depth: float = minf(Tuning.wk109_power_duck_db, -0.01)  # WK-109
+	if _duck_t >= 0.0 and _duck_db < depth:  # WK-109: a deeper (KO) duck owns the bed
+		return  # WK-109
+	power_ducks += 1  # WK-109
+	_duck_db = depth  # WK-109
+	_duck_hold = Tuning.wk109_power_duck_s  # WK-109
+	_duck_t = KO_DUCK_ATTACK * clampf(_duck_fx.volume_db / depth, 0.0, 1.0)  # WK-109
 
 func _tick_ko_duck(delta: float) -> void:
 	if _duck_fx == null or _duck_t < 0.0:
@@ -980,12 +1006,12 @@ func _tick_ko_duck(delta: float) -> void:
 	# real time: hit-stop / KO slow-mo scale delta (Juice sets Engine.time_scale), the duck must not stretch with it
 	_duck_t += delta / maxf(Engine.time_scale, 0.05)
 	var d: float
-	if _duck_t < KO_DUCK_ATTACK:
-		d = KO_DUCK_DB * _duck_t / KO_DUCK_ATTACK
-	elif _duck_t < KO_DUCK_ATTACK + KO_DUCK_HOLD:
-		d = KO_DUCK_DB
-	elif _duck_t < KO_DUCK_ATTACK + KO_DUCK_HOLD + KO_DUCK_RELEASE:
-		d = KO_DUCK_DB * (1.0 - (_duck_t - KO_DUCK_ATTACK - KO_DUCK_HOLD) / KO_DUCK_RELEASE)
+	if _duck_t < KO_DUCK_ATTACK:  # WK-109: _duck_db / _duck_hold (= the KO constants unless a power duck runs)
+		d = _duck_db * _duck_t / KO_DUCK_ATTACK  # WK-109
+	elif _duck_t < KO_DUCK_ATTACK + _duck_hold:  # WK-109
+		d = _duck_db  # WK-109
+	elif _duck_t < KO_DUCK_ATTACK + _duck_hold + KO_DUCK_RELEASE:  # WK-109
+		d = _duck_db * (1.0 - (_duck_t - KO_DUCK_ATTACK - _duck_hold) / KO_DUCK_RELEASE)  # WK-109
 	else:
 		d = 0.0
 		_duck_t = -1.0

@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/entities/PowerShotPop.gd" id="1_pop"]
+[ext_resource type="Texture2D" path="res://assets/fx/star_sparkle.png" id="2_star"]
+[ext_resource type="FontFile" path="res://assets/fonts/lilitaone/LilitaOne-Regular.ttf" id="3_font"]
+
+[sub_resource type="LabelSettings" id="LS_power"]
+font = ExtResource("3_font")
+font_size = 57
+font_color = Color(1, 0.952941, 0.839216, 1)
+outline_size = 14
+outline_color = Color(0.231373, 0.141176, 0.105882, 1)
+
+[node name="PowerShotPop" type="Node2D"]
+z_as_relative = false
+z_index = 39
+script = ExtResource("1_pop")
+
+[node name="Box" type="Node2D" parent="."]
+
+[node name="StarL" type="Sprite2D" parent="Box"]
+self_modulate = Color(1, 0.952941, 0.839216, 1)
+texture_filter = 4
+rotation = -0.2618
+texture = ExtResource("2_star")
+
+[node name="StarR" type="Sprite2D" parent="Box"]
+self_modulate = Color(1, 0.952941, 0.839216, 1)
+texture_filter = 4
+rotation = 0.2618
+texture = ExtResource("2_star")
+
+[node name="Label" type="Label" parent="Box"]
+offset_right = 300.0
+offset_bottom = 70.0
+mouse_filter = 2
+text = "POWER SHOT!"
+label_settings = SubResource("LS_power")

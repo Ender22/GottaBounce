@@ -976,6 +976,9 @@ func _ready() -> void:  # WK-135: QA arm overrides from the environment ("1" ON,
 	var b: String = OS.get_environment("GB_WK135_BALL")  # WK-135
 	if b != "":  # WK-135
 		sports_touch_refuel = b == "1"  # WK-135
+	var w109: String = OS.get_environment("GB_WK109")  # WK-109: QA arm override for wk109_power_shot (record_match.ps1 inherits the env)
+	if w109 != "":  # WK-109
+		wk109_power_shot = w109 == "1"  # WK-109
 
 ## WK-135 phase 3: the EFFECTIVE WK-128 (b) gate values (0 = that gate OFF), with the master switch folded in.  # WK-135
 func gate_rearm_frac() -> float:  # WK-135
@@ -1010,7 +1013,7 @@ var sports_gate_open_s: float = 3.5           # s of live ball after GO when bot
 var sports_gate_warn_s: float = 0.6           # s of warning before the open (badge/ring swing, pole lift, wind-up ticks)  # WK-131
 var sports_gate_retract_s: float = 0.2        # s the pole slides up into the top socket, ENDING at the open (visual; collision drops at the open)  # WK-131
 var sports_gate_bounce: float = 0.6           # ball-vs-gate restitution (a dead thud keeps a blocked shot in the attacking third)  # WK-131
-var sports_gate_spit_speed: float = 450.0     # px/s outward pop for a ball resting on the gate at the open (< the 833 px/s touch floor; not a touch)  # WK-131
+var sports_gate_spit_speed: float = 450.0     # px/s outward pop for a ball resting on the gate at the open (< the 833 px/s touch floor, 583 with WK-109 ON; not a touch)  # WK-131 # WK-109
 var sports_gate_spit_reach: float = 40.0      # px ball surface to gate face that counts as "resting on it" at the open  # WK-131
 var sports_gate_thickness: float = 48.0       # px gate collider thickness (> 2 ticks of ball travel at the 2400 cap; CCD is the main guard)  # WK-131
 var sports_gate_pop_cooldown: float = 0.5     # s between "NOT YET!" pops on one gate  # WK-131
@@ -1238,7 +1241,6 @@ var trials_net_catch_gravity: float = 0.5     # x the ball's gravity while caugh
 var trials_net_catch_wall_keep: float = 0.3   # x speed a ball heading out through a net side keeps when it turns back in  # WK-159
 var trials_net_catch_push: float = 6.0        # 1/s ease back inside for a ball already past a net side (velocity = gap x this)  # WK-159
 var trials_net_catch_s: float = 4.0           # s the catch lasts (the course change frees the ball first; gravity restored after)  # WK-159
-
 # --- WK-31 HUD card danger + stocks + labelled fuel (R-06). Read by src/ui/PlayerCard.gd / MatchHUD.gd / FuelIcon.gd.  # WK-31
 # Danger = Player.damage_level (0 / 1 / 2; launch x dmg_launch_mult, full heal after dmg_heal_time). Three distinct card  # WK-31
 # states that never rely on hue alone: a WORD sticker (HURT! / DANGER!) with a draining heal bar, a thicker border, and  # WK-31
@@ -1275,3 +1277,20 @@ var hud_stock_inset: float = 14.0             # px from the card's screen-edge s
 var hud_stock_lose_s: float = 0.45            # s the lost head's pop-and-darken takes  # WK-31
 var hud_fuel_icon: bool = true                # flame glyph at the left of the fuel gauge  # WK-31
 var hud_fuel_icon_px: float = 28.0            # px flame height (overhangs the 16 px gauge row)  # WK-31
+# --- WK-109 Rocketball power shot dynamic range (SP-07; spec docs/specs/wk109_power_shot_2026-11-15.md). Read by  # WK-109
+# src/entities/Ball.gd (only on a ball SportsMode enabled: the soccer ball; Trials / Dropshot balls never), and by  # WK-109
+# src/systems/AudioManager.gd (power cue routing). OFF = today, byte-identical (impulse 500, no knee, cap 2400, SFX bus).  # WK-109
+# QA arm without a Tuning edit: env GB_WK109=1/0 (read once in _ready above; headless runs and record_match.ps1 inherit it).  # WK-109
+var wk109_power_shot: bool = false            # MASTER. true = soft floor + DRIVE knee + POWER SHOT tier on the soccer ball  # WK-109
+var wk109_touch_impulse: float = 350.0        # touch floor impulse when ON (legacy Ball.BALL_TOUCH_IMPULSE 500): 583 px/s from rest  # WK-109
+var wk109_touch_knee: float = 1600.0          # px/s soft-knee start for non-power touches (tanh squeeze up to the 2400 cap); 0 = no knee (arm A1)  # WK-109
+var wk109_power_speed: float = 2800.0         # px/s POWER exit speed = ball cap in the window. Keep < 48 px x 120 Hz / 2 ticks = 2880 (gate margin)  # WK-109
+var wk109_power_hold_s: float = 0.8           # s at the power cap after a POWER touch  # WK-109
+var wk109_power_decay_s: float = 0.3          # s the cap eases power_speed -> 2400 after the hold  # WK-109
+var wk109_trail_min_speed: float = 2450.0     # px/s streak shows only above this, inside the power window (normal cap + 50)  # WK-109
+var wk109_pop_cooldown_s: float = 1.5         # s match-wide minimum gap between "POWER SHOT!" pops  # WK-109
+var wk109_pop_cap_wpx: float = 40.0           # wpx cap height of the POWER SHOT! word (NOT YET! 34 < this < OPEN! 46)  # WK-109
+var wk109_trail_len_s: float = 0.06           # s of travel the streak covers (length = speed x this, ~170 wpx at 2800)  # WK-109
+var wk109_trail_fade_s: float = 0.1           # s the streak fades when it switches off on its own (a blunting touch kills it on the frame)  # WK-109
+var wk109_power_duck_db: float = -3.0         # dB SFX-bed duck under the power cue (KO duck is -4 for 0.3 s)  # WK-109
+var wk109_power_duck_s: float = 0.15          # s the power duck holds  # WK-109

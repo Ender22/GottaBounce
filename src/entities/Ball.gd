@@ -87,6 +87,26 @@ var _hit_dir: Vector2 = Vector2.RIGHT  # WORLD strike direction (squash axis)
 var _wk66a_prev_speed: float = 0.0     # WK-66a
 var _wk66a_touching: Array = []        # WK-66a colliders with meta "net_fx" in contact last step
 
+# --- WK-109 power shot dynamic range (docs/specs/wk109_power_shot_2026-11-15.md). Runs ONLY on a ball whose wk109_on was set  # WK-109
+# by SportsMode at spawn (the soccer ball, when Tuning.wk109_power_shot); Trials puzzle balls and the Dropshot beach ball keep  # WK-109
+# the legacy path byte-for-byte. Tiers: SOFT / DRIVE = one formula (softer floor + a tanh knee under the normal cap); POWER =  # WK-109
+# a super-active striker at >= smash_impact_min not in hitstun -> exit exactly wk109_power_speed and a short raised-cap window.  # WK-109
+const WK109_POP_SCENE_PATH := "res://scenes/entities/PowerShotPop.tscn"  # WK-109
+const WK109_SOFT_MAX := 1200.0         # px/s QA tier label only (exit < this = "soft"); not a feel constant  # WK-109
+var wk109_on: bool = false             # set by SportsMode._spawn_ball BEFORE add_child (soccer + Tuning.wk109_power_shot)  # WK-109
+var qa_trail_on: bool = false          # QA (spec M4): the streak's logical state this tick (window active AND speed > trail_min)  # WK-109
+var wk109_last_tier: String = ""       # QA: "soft" / "drive" / "power" of the latest accepted touch (ON only)  # WK-109
+var wk109_power_n: int = 0             # QA: POWER touches on this ball  # WK-109
+var wk109_blunt_n: int = 0             # QA: power windows ended by a non-power touch  # WK-109
+var wk109_pops: int = 0                # QA: POWER SHOT! pops this ball spawned  # WK-109
+var _wk109_pw_t: float = -1.0          # s since the POWER touch (-1 = no power window)  # WK-109
+var _wk109_last_power: bool = false    # the latest _drive_from's tier was POWER (feeds Ball.touched)  # WK-109
+var _wk109_trail: Node2D = null        # top-level streak node (two Line2Ds), created on the first power shot  # WK-109
+var _wk109_trail_a: float = 0.0        # streak alpha (1 while on, fades over wk109_trail_fade_s, 0 on a blunt)  # WK-109
+var _wk109_hist: Array = []            # recent ball positions, newest last (streak path; follows bank shots)  # WK-109
+static var _wk109_pop_tick: int = -1000000   # Engine physics frame of the last pop (match-wide cooldown, game time)  # WK-109
+static var _wk109_pop_ref: WeakRef = null    # the pop on screen (at most one)  # WK-109
+
 ## DROPSHOT beach-ball preset (owner item 5): floatier, bouncier, bigger, slower cap. Call BEFORE
 ## add_child. All values from Tuning (append-only block, 2026-07-18).
 func configure_dropshot() -> void:
@@ -140,7 +160,7 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	var g := GravityField.get_gravity_at(global_position)
 	var gm: float = gravity_mult * (_hang_mult if _hang_t >= 0.0 else 1.0)   # WK-104 kickoff hang
 	state.linear_velocity += g * gm * state.step
-	state.linear_velocity = state.linear_velocity.limit_length(max_speed)
+	state.linear_velocity = state.linear_velocity.limit_length(_wk109_cap())   # WK-109 (= max_speed unless a power window runs)
 	_wk66a_net_contacts(state)   # WK-66a
 
 ## WK-66a: a NEW contact with a net-tagged collider (Dropshot net, goal back post / wall caps) tells its
@@ -178,10 +198,22 @@ func _physics_process(delta: float) -> void:
 			if _hang_t < 0.0:
 				_hang_t = -1.0   # hang expired untouched -> normal gravity
 		_drive_from_overlaps()
+		if wk109_on:  # WK-109
+			_wk109_tick(delta)  # WK-109
 
 ## For every overlapping LIVE player not on cooldown, impart force to OURSELF (never to the player).
 func _drive_from_overlaps() -> void:
-	for b in _sense_area.get_overlapping_bodies():
+	var bodies: Array = _sense_area.get_overlapping_bodies()  # WK-109 (was iterated inline)
+	if wk109_on:  # WK-109 edge case 1: POWER touches go LAST, so a same-tick normal touch never blunts the shot being struck
+		var normal: Array = []  # WK-109
+		var power: Array = []  # WK-109
+		for b in bodies:  # WK-109
+			if b is Player and not b.is_dead() and _wk109_is_power(b):  # WK-109
+				power.append(b)  # WK-109
+			else:  # WK-109
+				normal.append(b)  # WK-109
+		bodies = normal + power  # WK-109
+	for b: Node2D in bodies:  # WK-109 (typed: the list is now an untyped Array)
 		if not (b is Player) or b.is_dead():
 			continue
 		var pid := b.get_instance_id()
@@ -200,7 +232,7 @@ func _log_touch(p: Player, vin: Vector2) -> void:
 	_touch_log.append({"p": p, "t": _clock, "vin": vin, "vout": linear_velocity, "pos": global_position})
 	if _touch_log.size() > TOUCH_LOG_MAX:
 		_touch_log.pop_front()
-	touched.emit(p, p.is_super_active() or p.in_hitstun())
+	touched.emit(p, _wk109_last_power if wk109_on else (p.is_super_active() or p.in_hitstun()))  # WK-109 (ON: POWER only)
 
 ## WK-104: recent live touches, oldest -> newest ([{ "p": Player, "t": float, "vin"/"vout"/"pos": Vector2 }]).
 func touch_log() -> Array:
@@ -231,19 +263,28 @@ func _drive_from(p: Player) -> void:
 	var strike_dir: Vector2 = (0.5 * away + 0.5 * pdir).normalized()
 	if strike_dir.length() < 0.001:
 		strike_dir = away
-	var mag: float = BALL_TOUCH_IMPULSE + BALL_DRIVE_GAIN * pvel.length()
+	var touch_imp: float = Tuning.wk109_touch_impulse if wk109_on else BALL_TOUCH_IMPULSE  # WK-109 (ON: softer floor)
+	var mag: float = touch_imp + BALL_DRIVE_GAIN * pvel.length()  # WK-109
 	if p.is_super_active() or p.in_hitstun():
 		mag *= BALL_SMASH_MULT   # the power shot: a fired-super / knocked-flying body
 	# StormBall's receive_smash form (impulse / mass), then re-cap.
 	var v_before: Vector2 = linear_velocity
 	linear_velocity += strike_dir * mag / maxf(mass, 0.01)
-	linear_velocity = linear_velocity.limit_length(max_speed)
+	var is_power: bool  # WK-109
+	if wk109_on:  # WK-109: POWER = constant exit + window; anything else = knee + normal cap (and blunts a window)
+		is_power = _wk109_is_power(p)  # WK-109
+		linear_velocity = _wk109_exit(linear_velocity, is_power)  # WK-109
+		_wk109_last_power = is_power  # WK-109
+	else:  # WK-109
+		linear_velocity = linear_velocity.limit_length(max_speed)
+		is_power = p.is_super_active() or p.in_hitstun()  # WK-109 (declared above)
 	# WK-105 (SP-01): announce the strike (audio/juice subscribe) + local hit reaction. Presentation only.
-	var is_power: bool = p.is_super_active() or p.in_hitstun()
 	var impact: float = (linear_velocity - v_before).length()
 	last_striker_team = SportsMode.team_for_skin(str(p.skin))
 	_hit_reaction(strike_dir, impact, is_power, p)
 	EventBus.ball_struck.emit(self, p, impact, is_power)
+	if wk109_on and is_power:  # WK-109
+		_wk109_pop(global_position)  # WK-109
 
 ## WK-105 (SP-01) hit reaction, proportional to the strike: a squash along the strike axis + a white
 ## flash on the ball (BallGloss), and a small additive spark puff at the contact point in the striker's
@@ -296,6 +337,8 @@ func _process(delta: float) -> void:
 		_hit_fx = maxf(0.0, _hit_fx - delta / HIT_FX_TIME)
 		if _gloss != null:
 			_gloss.queue_redraw()
+	if wk109_on:  # WK-109
+		_wk109_trail_update(delta)  # WK-109
 
 ## The ONE mode-owned hazard->ball entry point (v8_sports_courts.md §3.1). A hazard (bomb blast,
 ## hammer whack, debris drop, crusher eject) calls this to punt the ball; it is the SAME impulse form
@@ -308,8 +351,206 @@ func receive_hazard_impulse(impulse: Vector2) -> void:
 	if not live:
 		return   # WK-104: a ghosted kickoff ball can't be punted before GO
 	_hang_t = -1.0   # a hazard punt ends the kickoff hang like a touch does
+	if wk109_on and _wk109_pw_t >= 0.0:  # WK-109 edge case 6: back to the normal cap BEFORE the punt (a hammer never flings to 2800)
+		_wk109_end_window(true)  # WK-109
 	linear_velocity += impulse / maxf(mass, 0.01)
 	linear_velocity = linear_velocity.limit_length(max_speed)
+
+# ------------------------------------------------------------------ WK-109 power shot (ON only)  # WK-109
+
+## WK-109 spec §2.3: the POWER condition = the same eligibility a super needs to smash in Brawl (INV-1): super active,  # WK-109
+## flying at >= smash_impact_min, and NOT a hitstun victim (a tumbling goat keeps x2 but goes through the knee + cap).  # WK-109
+func _wk109_is_power(p: Player) -> bool:  # WK-109
+	return p.is_super_active() and not p.in_hitstun() and p.velocity.length() >= Tuning.smash_impact_min  # WK-109
+
+## WK-109 §2.2/§2.3: the exit velocity for v = v_in + dv. POWER -> the same direction at exactly wk109_power_speed and a  # WK-109
+## fresh power window. Otherwise a non-power touch: blunts any running window, then the tanh soft knee (monotonic, identity  # WK-109
+## below the knee, direction unchanged) and the normal cap.  # WK-109
+func _wk109_exit(v: Vector2, power: bool) -> Vector2:  # WK-109
+	var raw: float = v.length()  # WK-109
+	if power:  # WK-109
+		_wk109_pw_t = 0.0  # WK-109
+		wk109_power_n += 1  # WK-109
+		wk109_last_tier = "power"  # WK-109
+		var dir: Vector2 = v / raw if raw > 0.001 else Vector2.RIGHT  # WK-109 (dv from a super striker is > 4000: never ~0)
+		return dir * Tuning.wk109_power_speed  # WK-109
+	if _wk109_pw_t >= 0.0:  # WK-109: any non-power player touch blunts the shot (the streak dies on this frame)
+		_wk109_end_window(true)  # WK-109
+		wk109_blunt_n += 1  # WK-109
+	var cap: float = max_speed  # WK-109
+	var knee: float = Tuning.wk109_touch_knee  # WK-109
+	var out: float = raw  # WK-109
+	if knee > 0.0 and knee < cap and raw > knee:  # WK-109
+		out = knee + (cap - knee) * tanh((raw - knee) / (cap - knee))  # WK-109
+	out = minf(out, cap)  # WK-109
+	wk109_last_tier = "soft" if out < WK109_SOFT_MAX else "drive"  # WK-109
+	if raw <= 0.001:  # WK-109
+		return v  # WK-109
+	return v * (out / raw)  # WK-109
+
+## WK-109: the speed cap right now. max_speed (today's cap) unless a power window runs: wk109_power_speed for the hold,  # WK-109
+## then a smoothstep ease back to max_speed over the decay (a gentle slow-down, never a snap).  # WK-109
+func _wk109_cap() -> float:  # WK-109
+	if not wk109_on or _wk109_pw_t < 0.0:  # WK-109
+		return max_speed  # WK-109
+	var top: float = maxf(max_speed, Tuning.wk109_power_speed)  # WK-109
+	var hold: float = Tuning.wk109_power_hold_s  # WK-109
+	if _wk109_pw_t <= hold:  # WK-109
+		return top  # WK-109
+	var k: float = (_wk109_pw_t - hold) / maxf(Tuning.wk109_power_decay_s, 0.001)  # WK-109
+	if k >= 1.0:  # WK-109
+		return max_speed  # WK-109
+	return lerpf(top, max_speed, smoothstep(0.0, 1.0, k))  # WK-109
+
+## WK-109: advance the power window (ball physics clock) and the streak's logical state. The window survives surface  # WK-109
+## bounces; it ends after hold + decay, on a non-power touch / hazard punt (see callers), and at STAGE_END.  # WK-109
+func _wk109_tick(delta: float) -> void:  # WK-109
+	if _wk109_pw_t >= 0.0:  # WK-109
+		_wk109_pw_t += delta  # WK-109
+		var st: String = _wk109_scene_state()  # WK-109
+		if st == "STAGE_END" or st == "MATCH_END" or st == "SCOREBOARD":  # WK-109
+			_wk109_end_window(true)  # WK-109
+		elif _wk109_pw_t >= Tuning.wk109_power_hold_s + Tuning.wk109_power_decay_s:  # WK-109
+			_wk109_end_window(false)  # WK-109 (natural end: the streak, if still on, fades)
+	qa_trail_on = _wk109_pw_t >= 0.0 and linear_velocity.length() > Tuning.wk109_trail_min_speed  # WK-109
+
+func _wk109_scene_state() -> String:  # WK-109
+	if not is_inside_tree():  # WK-109
+		return ""  # WK-109
+	var sc: Node = get_tree().current_scene  # WK-109
+	if sc == null:  # WK-109
+		return ""  # WK-109
+	var st: Variant = sc.get("state")  # WK-109
+	return str(st) if st != null else ""  # WK-109
+
+## WK-109: close the power window. kill_trail = a blunt (touch / hazard / stage end): the streak vanishes on this frame.  # WK-109
+func _wk109_end_window(kill_trail: bool) -> void:  # WK-109
+	_wk109_pw_t = -1.0  # WK-109
+	qa_trail_on = false  # WK-109
+	if kill_trail:  # WK-109
+		_wk109_trail_a = 0.0  # WK-109
+		_wk109_hist.clear()  # WK-109
+		if is_instance_valid(_wk109_trail):  # WK-109
+			_wk109_trail.visible = false  # WK-109
+
+## WK-109 §3.1 streak: a tapered ribbon behind the ball along its recent path (so a banked shot bends with it). Length =  # WK-109
+## speed x wk109_trail_len_s, width 0.9 x the ball diameter -> 0, white core, the striker's team colour at the edge  # WK-109
+## (DECISIONS WK-24). Drawn at absolute z -1: over the court backdrop, UNDER the goats (z 0) and the ball (z 40).  # WK-109
+func _wk109_trail_update(delta: float) -> void:  # WK-109
+	if qa_trail_on:  # WK-109
+		_wk109_trail_a = 1.0  # WK-109
+	elif _wk109_trail_a > 0.0:  # WK-109
+		_wk109_trail_a = maxf(0.0, _wk109_trail_a - delta / maxf(Tuning.wk109_trail_fade_s, 0.001))  # WK-109
+	if _wk109_trail_a <= 0.0:  # WK-109
+		_wk109_hist.clear()  # WK-109
+		if is_instance_valid(_wk109_trail):  # WK-109
+			_wk109_trail.visible = false  # WK-109
+		return  # WK-109
+	if not is_instance_valid(_wk109_trail):  # WK-109
+		_wk109_trail = _wk109_make_trail()  # WK-109
+	var head: Vector2 = global_position  # WK-109
+	if _wk109_hist.is_empty() or (_wk109_hist.back() as Vector2).distance_to(head) > 1.0:  # WK-109
+		_wk109_hist.append(head)  # WK-109
+	var spd: float = maxf(linear_velocity.length(), Tuning.wk109_trail_min_speed)  # WK-109
+	var want: float = spd * Tuning.wk109_trail_len_s  # WK-109
+	# walk back from the ball along the recorded path until the streak is `want` long  # WK-109
+	var pts: PackedVector2Array = PackedVector2Array([head])  # WK-109
+	var got: float = 0.0  # WK-109
+	var i: int = _wk109_hist.size() - 2  # WK-109
+	while i >= 0 and got < want:  # WK-109
+		var a: Vector2 = pts[pts.size() - 1]  # WK-109
+		var b: Vector2 = _wk109_hist[i]  # WK-109
+		var seg: float = a.distance_to(b)  # WK-109
+		if got + seg >= want:  # WK-109
+			pts.append(a.lerp(b, (want - got) / maxf(seg, 0.001)))  # WK-109
+			got = want  # WK-109
+		else:  # WK-109
+			pts.append(b)  # WK-109
+			got += seg  # WK-109
+		i -= 1  # WK-109
+	if i >= 0:  # WK-109
+		_wk109_hist = _wk109_hist.slice(i)  # WK-109 keep one point past the tail
+	if got < want:  # WK-109: a fresh shot has no history yet -> extend straight back along the travel line
+		var back: Vector2 = -linear_velocity.normalized() if linear_velocity.length() > 1.0 else Vector2.LEFT  # WK-109
+		pts.append(pts[pts.size() - 1] + back * (want - got))  # WK-109
+	var col: Color = Color(1.0, 0.95, 0.8)  # WK-109
+	if last_striker_team >= 0 and last_striker_team < SportsMode.TEAM_COLORS.size():  # WK-109
+		col = SportsMode.TEAM_COLORS[last_striker_team]  # WK-109
+	var edge: Line2D = _wk109_trail.get_node("Edge")  # WK-109
+	var core: Line2D = _wk109_trail.get_node("Core")  # WK-109
+	var w: float = 0.9 * 2.0 * radius  # WK-109
+	edge.width = w  # WK-109
+	core.width = w * 0.6  # WK-109
+	edge.points = pts  # WK-109
+	core.points = pts  # WK-109
+	edge.gradient.colors = PackedColorArray([Color(col.r, col.g, col.b, 1.0), Color(col.r, col.g, col.b, 0.85),  # WK-109: solid team-colour
+		Color(col.r, col.g, col.b, 0.0)])  # WK-109 edge, fading out over the last third (offsets 0 / 0.65 / 1 set at creation)
+	_wk109_trail.modulate = Color(1, 1, 1, _wk109_trail_a)  # WK-109
+	_wk109_trail.visible = true  # WK-109
+
+func _wk109_make_trail() -> Node2D:  # WK-109
+	var n := Node2D.new()  # WK-109
+	n.name = "WK109Trail"  # WK-109
+	n.top_level = true  # WK-109: points are world coordinates
+	n.z_as_relative = false  # WK-109
+	n.z_index = -1  # WK-109: under the goats (0), over the court backdrop
+	for nm in ["Edge", "Core"]:  # WK-109
+		var ln := Line2D.new()  # WK-109
+		ln.name = nm  # WK-109
+		ln.joint_mode = Line2D.LINE_JOINT_ROUND  # WK-109
+		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND  # WK-109
+		ln.antialiased = true  # WK-109
+		var wc := Curve.new()  # WK-109: 1 at the ball -> 0 at the tail, held full for longer (a linear taper read as a thin cone)
+		wc.add_point(Vector2(0.0, 1.0))  # WK-109
+		wc.add_point(Vector2(0.6, 0.72))  # WK-109
+		wc.add_point(Vector2(1.0, 0.0))  # WK-109
+		ln.width_curve = wc  # WK-109
+		var g := Gradient.new()  # WK-109: 3 stops (head, body, tail); Edge's team colour is written per frame
+		if nm == "Edge":  # WK-109
+			g.offsets = PackedFloat32Array([0.0, 0.65, 1.0])  # WK-109
+			g.colors = PackedColorArray([Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.85), Color(1, 1, 1, 0.0)])  # WK-109
+		else:  # WK-109: solid white core to 55 %, gone by 85 % (the tail reads team colour)
+			g.offsets = PackedFloat32Array([0.0, 0.55, 0.85])  # WK-109
+			g.colors = PackedColorArray([Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.95), Color(1, 1, 1, 0.0)])  # WK-109
+		ln.gradient = g  # WK-109
+		n.add_child(ln)  # WK-109
+	add_child(n)  # WK-109 (freed with the ball)
+	return n  # WK-109
+
+## WK-109 §3.2 "POWER SHOT!" pop at the strike point: one on screen at most, a match-wide cooldown in physics frames (game  # WK-109
+## time), never outside live play. World-following CanvasLayer (the OPEN! call's layer) so a striker's name tag can't cover it.  # WK-109
+func _wk109_pop(at: Vector2) -> void:  # WK-109
+	var st: String = _wk109_scene_state()  # WK-109
+	if st != "COMBAT" and st != "SUDDEN_DEATH" and st != "":  # WK-109
+		return  # WK-109
+	var now: int = Engine.get_physics_frames()  # WK-109
+	if now - _wk109_pop_tick < int(Tuning.wk109_pop_cooldown_s * float(Engine.physics_ticks_per_second)):  # WK-109
+		return  # WK-109
+	var host: Node = get_parent()  # WK-109
+	if host == null:  # WK-109
+		return  # WK-109
+	var ps: PackedScene = load(WK109_POP_SCENE_PATH) as PackedScene  # WK-109
+	if ps == null:  # WK-109
+		return  # WK-109
+	if _wk109_pop_ref != null:  # WK-109: at most one on screen
+		var old: Object = _wk109_pop_ref.get_ref()  # WK-109
+		if old != null and is_instance_valid(old):  # WK-109
+			(old as Node).queue_free()  # WK-109
+	_wk109_pop_tick = now  # WK-109
+	var layer := CanvasLayer.new()  # WK-109
+	layer.name = "PowerShotPopLayer"  # WK-109
+	layer.layer = Tuning.sports_gate_open_call_layer  # WK-109: over the name tags, under the HUD / goal banner
+	layer.follow_viewport_enabled = true  # WK-109
+	host.add_child(layer)  # WK-109
+	var pop: Node2D = ps.instantiate() as Node2D  # WK-109
+	layer.add_child(pop)  # WK-109
+	pop.tree_exited.connect(layer.queue_free)  # WK-109
+	var col: Color = Color(1.0, 0.95, 0.8)  # WK-109
+	if last_striker_team >= 0 and last_striker_team < SportsMode.TEAM_COLORS.size():  # WK-109
+		col = SportsMode.TEAM_COLORS[last_striker_team]  # WK-109
+	pop.call("present", at + Vector2(0.0, -90.0), col, Tuning.wk109_pop_cap_wpx)  # WK-109
+	_wk109_pop_ref = weakref(pop)  # WK-109
+	wk109_pops += 1  # WK-109
 
 ## Glossy team-neutral hero ball: the ball.png sprite drawn centred on the origin. As a child Node2D it
 ## inherits the RigidBody's transform, so the baked gold seam ROLLS with the ball's physics spin.
