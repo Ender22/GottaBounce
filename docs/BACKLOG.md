@@ -163,9 +163,9 @@ first. Its re-judge list is in the WK-CD5 entry.
 **On deck (11+, in order; lane in brackets):**
 1. WK-99 fuel super-ready notch + CD3-04b billed-chunk flash (M) [H after WK-31]
 2. WK-110 MATCH POINT / GOLDEN GOAL banners + GOALS stepper (M) [S after WK-109; sports tension, owner lean]
-3. WK-157 mixed-couch lobby footer glyphs + Sports Victory tag (P3/S) [L + `SportsVictory.gd`]
-4. WK-158 Trials nits: FLIGHT SCHOOL card crop, objective panel jump, end-screen goat overlap (P3/S) [M / `TrialsHUD.gd` / `TrialsVictory.gd`]
-5. WK-159 Trials ball stays in the cage on SOLVED! (P3/S) [`TrialsMode.gd` / `GoalZone.gd`]
+3. ~~WK-157~~ done 1da373f — mixed-couch lobby footer glyphs + Sports Victory tag (P3/S) [L + `SportsVictory.gd`]
+4. ~~WK-158~~ done 1da373f — Trials nits: FLIGHT SCHOOL card crop, objective panel jump, end-screen goat overlap (P3/S) [M / `TrialsHUD.gd` / `TrialsVictory.gd`]
+5. ~~WK-159~~ done 1da373f — Trials ball stays in the cage on SOLVED! (P3/S) [`TrialsMode.gd` / `GoalZone.gd`]
 6. WK-127b the_ascent hopping (S) [S after WK-108b]
 7. WK-45 distinct UI sounds (S; then WK-79b mix fixes)
 8. WK-112 sports hazards stun (S) [S] · WK-114 sports courts unlock from sports play (S, JSON)
@@ -2623,7 +2623,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   - PROTECT: the 2.667 s restart and the 3.5 s gate time are unchanged.
 - Status: open. It rides WK-154 (lane U).
 
-### [ ] WK-156 [P2][S] Rocketball stage-1 legend hides goats at kickoff (CD4-06; UX4-10 relocated, not solved)
+### [x] WK-156 [P2][S] Rocketball stage-1 legend hides goats at kickoff (CD4-06; UX4-10 relocated, not solved) — 1da373f
 - Area: sports (HUD) · Owner: ui-ux-designer · Source: WK-CD4 CD4-06
 - Evidence: `CD4_40`. P3 flew into the top-docked legend and is hidden behind the SUPER-SMASH chip and the rule strip. The legend only dims after
   the first touch (WK-141), and the kickoff toss sends goats straight up into that band.
@@ -2632,7 +2632,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - Accept: stills of 3 stage-1 kickoffs with a goat in the legend band: goat and tag fully readable. ui-ux Ship.
 - Status: open. Lane U, after WK-154/155.
 
-### [ ] WK-157 [P3][S] Mixed-couch lobby footer glyphs + a live P1 tag over the Sports Victory panel (CD4-07 a + d)
+### [x] WK-157 [P3][S] Mixed-couch lobby footer glyphs + a live P1 tag over the Sports Victory panel (CD4-07 a + d) — 1da373f
 - Area: menus · Owner: ui-ux-designer · Source: WK-CD4 CD4-07
 - (a) Mixed-couch glyphs (CC-1.6). With a keyboard player seated:
   - the Brawl and sports lobby footers show pad glyphs only (`CD4_03`, `CD4_19`);
@@ -2643,7 +2643,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - Accept: a lobby footer with a keyboard and a pad seated shows both glyph sets; a Sports Victory still shows no tag over the panel; ui-ux Ship.
 - Status: open (on deck).
 
-### [ ] WK-158 [P3][S] Trials nits: FLIGHT SCHOOL card crop, objective panel jump, in-world goat behind the celebration goat (CD4-07 b, c, e)
+### [x] WK-158 [P3][S] Trials nits: FLIGHT SCHOOL card crop, objective panel jump, in-world goat behind the celebration goat (CD4-07 b, c, e) — 1da373f
 - Area: trials / menus · Owner: ui-ux-designer · Source: WK-CD4 CD4-07
 - (b) The FLIGHT SCHOOL shelf card crops the goat to a pink blob at the top edge (`CD4_29`).
 - (c) The objective panel jumps from screen centre to the top-left mid-course (`CD4_35` -> `CD4_36_trgoal_3`).
@@ -2652,7 +2652,7 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
 - Accept: three rendered stills, each fixed. ui-ux Ship.
 - Status: open (on deck).
 
-### [ ] WK-159 [P3][S] Trials ball ricochets back out of the goal cage after SOLVED! (CD4-08)
+### [x] WK-159 [P3][S] Trials ball ricochets back out of the goal cage after SOLVED! (CD4-08) — 1da373f
 - Area: trials · Owner: gameplay-programmer · Source: WK-CD4 CD4-08
 - Evidence: `CD4_36_trgoal_3`. SOLVED! fires while the ball is already flying back over the cage top.
 - Do: damp the ball inside the cage on solve, as the sports goal does, so the net "catches" it.
