@@ -893,3 +893,21 @@ var arena_preview_rays_alpha: float = 0.45      # alpha of the slow-turning warm
 var arena_preview_rays_spin: float = 5.0        # deg/s the rays turn (0 = still)  # WK-60
 var arena_preview_locked_tint: Color = Color(0.55, 0.53, 0.58, 1.0)  # preview art modulate while a LOCKED card is focused  # WK-60
 var arena_select_card_size: Vector2 = Vector2(400, 300)  # px shelf card size under the preview (was 460x340 with no preview)  # WK-60
+
+# --- WK-148 sports match start: hold the iris white until the court camera settles (UX4-27). Read by src/ui/MatchCover.gd + src/ui/ShellRoot.gd.  # WK-148
+var match_cover_on: bool = true                # court confirm -> the iris white holds over the new match until the camera has eased out  # WK-148
+var match_cover_sports_only: bool = true       # only sports modes (their camera snaps to CAM_MAX_ZOOM, then eases out to the court)  # WK-148
+var match_cover_zoom_tol: float = 0.015        # camera zoom within this share of the court-framing zoom counts as settled (1.5 % = ~14 px at a 1080p edge)  # WK-148
+var match_cover_pos_tol: float = 6.0           # world px the camera centre may be off the framing centre and still count as settled  # WK-148
+var match_cover_settle_frames: int = 2         # consecutive settled frames before the cover lifts  # WK-148
+var match_cover_fade: float = 0.16             # s the white fades out once the camera is settled  # WK-148
+var match_cover_max_hold: float = 1.2          # s of match time after which the cover lifts regardless (never strands a white screen)  # WK-148
+var match_cover_load_timeout: float = 20.0     # s after the iris with no match scene current -> the cover gives up  # WK-148
+# --- WK-150 living tags avoid each other when goats bunch (sports 4P tags). Read by src/ui/PlayerPips.gd.  # WK-150
+var pip_tag_avoid: bool = true                 # a living tag whose side overlaps an earlier-placed living tag tries the other side of its goat, else dims  # WK-150
+var pip_tag_gap: float = 4.0                   # px two living tags keep between them  # WK-150
+var pip_tag_hysteresis_px: float = 16.0        # px the preferred (above) side must clear by before an avoiding tag returns to it  # WK-150
+var pip_tag_hold: float = 0.4                  # s a tag keeps its side after switching (no flip-flop while goats jostle)  # WK-150
+var pip_tag_overlap_alpha: float = 0.4         # alpha cap of a tag that cannot clear an earlier tag on either side (it also draws behind)  # WK-150
+var pip_tag_dim_fade: float = 0.12             # s the dim in / out takes  # WK-150
+var pip_tag_claim_alpha: float = 0.25          # a living tag fainter than this (a fading CPU intro tag) claims no room  # WK-150

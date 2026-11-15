@@ -16,6 +16,8 @@ extends Control
 ##   - WK-146 (UX4-23): no tag (living or ghost) is drawn over a HUD corner card: it flips to the clear side of its
 ##     goat, else it is clamped out of the card rect (the edge-clamp rule, with the card as the edge).
 ##   - WK-147 (UX4-24): a living pip that would sit under an off-screen bubble flips below its goat (else hides).
+##   - WK-150: living tags avoid each other (bunched sports goats): a tag overlapping one placed earlier this frame takes
+##     the other side of its goat when that side is legal + clear, else dims behind; side changes are held (hysteresis).
 ##
 ## Screen space under a CanvasLayer (constant ~30 px type at every camera zoom; immune to the body's
 ## tumble rotation / spawn-blink modulate). Pure presentation: polls the runner, never feeds back.
@@ -36,6 +38,10 @@ var _teams: Array = []          # WK-119: team per pip (-1 = no team dress: Braw
 var _avoid_flip: Array = []     # WK-146/147: pip flipped below its goat to clear a card / bubble (hysteresis)
 var _cards_now: Array = []      # WK-146: this frame's HUD card keep-out rects (screen px)
 var _bubbles_now: Array = []    # WK-147: this frame's off-screen bubbles [{c, r}] (screen px)
+var _living_tag_rects: Array = [] # WK-150: living tags already placed THIS frame (later living tags keep clear of them)
+var _tag_avoid: Array = []      # WK-150: tag moved to the other side of its goat to clear an earlier tag (hysteresis)
+var _tag_hold: Array = []       # WK-150: s left before this tag may change side again
+var _tag_dim: Array = []        # WK-150: 0..1 dim (could not clear an earlier tag on either side)
 
 func setup(match_ref) -> void:
 	_match = match_ref
@@ -50,7 +56,8 @@ func debug_state() -> Array:
 		out.append({"tag": pip.get_node("Tab/Box/Label").text, "sub": pip.get_node("Tab/Box/Sub").text,
 			"visible": pip.visible, "alpha": snappedf(pip.modulate.a, 0.01), "pos": pip.position,
 			"font_px": pip.get_node("Tab/Box/Label").get_theme_font_size("font_size"),
-			"team": pip.team(), "rect": Rect2(pip.position + pip.local_rect().position, pip.local_rect().size)})
+			"team": pip.team(), "tag_avoid": bool(_tag_avoid[i]) if i < _tag_avoid.size() else false,
+			"tag_dim": snappedf(float(_tag_dim[i]), 0.01) if i < _tag_dim.size() else 0.0, "rect": Rect2(pip.position + pip.local_rect().position, pip.local_rect().size)})
 	return out
 
 func _sync_roster() -> void:
@@ -73,6 +80,9 @@ func _sync_roster() -> void:
 	_ghost_flip.clear()
 	_teams.clear()
 	_avoid_flip.clear()
+	_tag_avoid.clear()
+	_tag_hold.clear()
+	_tag_dim.clear()
 	_owners = players.duplicate()
 	for i in range(players.size()):
 		var pip = PIP_SCENE.instantiate()
@@ -91,6 +101,9 @@ func _sync_roster() -> void:
 		_ghost_flip.append(false)
 		_teams.append(team)
 		_avoid_flip.append(false)
+		_tag_avoid.append(false)
+		_tag_hold.append(0.0)
+		_tag_dim.append(0.0)
 
 ## WK-119: player i's sports team (0 RED / 1 BLUE), or -1 outside sports / with the team dress switched off.
 ## SportsMode._teams is the spawn-order truth; the goat's team colourway (TEAM_SKINS) is the fallback.
@@ -132,6 +145,7 @@ func _process(delta: float) -> void:
 	# would sit on it is hidden (WK-41 one-overlay-at-a-time; the pip comes back once the banner pops out).
 	var banner: Rect2 = _banner_rect() if active and st == "STAGE_END" else Rect2()
 	_ghost_tag_rects.clear()
+	_living_tag_rects.clear()   # WK-150
 	_cards_now = _card_rects() if active else []       # WK-146
 	_bubbles_now = _bubble_list() if active else []    # WK-147
 	for i in range(_pips.size()):
@@ -140,6 +154,8 @@ func _process(delta: float) -> void:
 		var alive: bool = active and is_instance_valid(p) and not p.is_dead() and p.is_visible_in_tree()
 		if not alive:
 			_shown[i] = false
+			_tag_avoid[i] = false   # WK-150: a respawned goat's tag starts on its preferred side
+			_tag_dim[i] = 0.0
 			# WK-37 / WK-37d (R3 identity): EVERY ghost carries its tag — "P#" for a human, NAME + "CPU" for a bot (the
 			# WK-88 naming / WK-10 pip style) — dressed smaller + fainter than a living pip and drawn behind them:
 			# ghost_pip_full_alpha for ghost_pip_full_time after it appears and whenever it moves again after
@@ -195,12 +211,53 @@ func _process(delta: float) -> void:
 			_avoid_flip[i] = flip
 		else:
 			_avoid_flip[i] = false
-		if flip:
-			sp = dn
-		pip.set_flipped(flip)
-		var rel: Rect2 = _tag_rel(pip, flip, 1.0)
-		if not _cards_now.is_empty():
-			sp = _clamp_out_of_cards(sp, rel, vp)   # WK-146: the card is one more screen edge
+		# WK-150: living tags keep clear of the living tags placed EARLIER this frame (lower roster index places first and
+		# keeps its spot, so humans win over CPUs). The preferred side (above, or the side the edge / card / bubble rules
+		# picked) overlapping one -> the other side of the goat, if that side is allowed by those same rules and is clear;
+		# neither -> stay and dim behind. Hysteresis: a switched tag keeps its side for pip_tag_hold s and only returns
+		# once the preferred side clears by pip_tag_hysteresis_px.
+		var pos_b: Vector2 = _carded(pip, dn if flip else sp, flip, vp)
+		var avoiding := false
+		var overlap := 0.0
+		_tag_hold[i] = maxf(0.0, float(_tag_hold[i]) - rdelta)
+		if Tuning.pip_tag_avoid:
+			var pos_a: Vector2 = _carded(pip, sp if flip else dn, not flip, vp)
+			var rel_b: Rect2 = _tag_rel(pip, flip, 1.0)
+			var rel_a: Rect2 = _tag_rel(pip, not flip, 1.0)
+			var r_b := Rect2(pos_b + rel_b.position, rel_b.size)
+			var r_a := Rect2(pos_a + rel_a.position, rel_a.size)
+			var alt_fits: bool = (sp.y - ph0 >= TOP_MARGIN) if flip else (dn.y + ph0 <= vp.y - TOP_MARGIN)
+			var raw_a: Vector2 = sp if flip else dn
+			var alt_ok: bool = alt_fits and not _blocked(Rect2(raw_a + rel_a.position, rel_a.size)) and not _blocked(r_a)
+			var g: float = Tuning.pip_tag_gap
+			var o_b: float = _overlap_area(r_b.grow(g), _living_tag_rects)
+			var o_a: float = _overlap_area(r_a.grow(g), _living_tag_rects) if alt_ok else INF
+			var was: bool = bool(_tag_avoid[i])
+			avoiding = was and alt_ok   # the other side became illegal (edge / card / bubble) -> back now
+			var hy: float = g + Tuning.pip_tag_hysteresis_px
+			if float(_tag_hold[i]) <= 0.0:
+				if avoiding:
+					if _overlap_area(r_b.grow(hy), _living_tag_rects) <= 0.0 or o_a > o_b:
+						avoiding = false
+				elif o_b > 0.0 and o_a <= 0.0:
+					avoiding = true
+			elif _overlap_area(r_a if avoiding else r_b, _living_tag_rects) > 0.0:
+				# inside the hold the tag only moves to escape a REAL overlap (goats crossed vertically), and only to a side
+				# that clears by the full hysteresis margin, so the escape can't bounce straight back
+				if avoiding and _overlap_area(r_b.grow(hy), _living_tag_rects) <= 0.0:
+					avoiding = false
+				elif not avoiding and alt_ok and _overlap_area(r_a.grow(hy), _living_tag_rects) <= 0.0:
+					avoiding = true
+			if avoiding != was:
+				_tag_hold[i] = Tuning.pip_tag_hold
+			_tag_avoid[i] = avoiding
+			overlap = _overlap_area(r_a if avoiding else r_b, _living_tag_rects)
+			if avoiding:
+				pos_b = pos_a
+		var side: bool = flip != avoiding
+		sp = pos_b
+		pip.set_flipped(side)
+		var rel: Rect2 = _tag_rel(pip, side, 1.0)
 		if not _bubbles_now.is_empty() and _hits_bubble(Rect2(sp + rel.position, rel.size)):
 			pip.visible = false   # WK-147: neither side clears the bubble (one cue at a time)
 			continue
@@ -209,6 +266,12 @@ func _process(delta: float) -> void:
 			if banner.intersects(Rect2(sp.x - half_w, sp.y - ph, half_w * 2.0, ph * 2.0)):
 				pip.visible = false   # CD2-06: never draw an identity pip over the stage-end banner text
 				continue
+		# WK-150: a tag that could not clear an earlier one fades to pip_tag_overlap_alpha and draws behind the living tags
+		_tag_dim[i] = move_toward(float(_tag_dim[i]), 1.0 if overlap > 0.0 else 0.0, rdelta / maxf(Tuning.pip_tag_dim_fade, 0.01))
+		a = lerpf(a, minf(a, Tuning.pip_tag_overlap_alpha), float(_tag_dim[i]))
+		pip.z_index = -1 if float(_tag_dim[i]) > 0.5 else 0
+		if a >= Tuning.pip_tag_claim_alpha:
+			_living_tag_rects.append(Rect2(sp + rel.position, rel.size))   # later living tags keep clear of this one
 		pip.position = sp.round()
 		pip.modulate.a = a
 		pip.visible = true
@@ -396,6 +459,12 @@ func _hits_bubble(r: Rect2) -> bool:
 		if q.distance_to(c) < float(b["r"]):
 			return true
 	return false
+
+## WK-150: a living tag's origin for one side after the WK-146 card clamp (the card is one more screen edge).
+func _carded(pip, origin: Vector2, flipped: bool, vp: Vector2) -> Vector2:
+	if _cards_now.is_empty():
+		return origin
+	return _clamp_out_of_cards(origin, _tag_rel(pip, flipped, 1.0), vp)
 
 func _blocked(r: Rect2) -> bool:
 	for c in _cards_now:

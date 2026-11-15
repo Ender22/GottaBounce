@@ -8,6 +8,7 @@ extends Node
 
 const DESIGN := Vector2(1920, 1080)
 const MATCH_SCENE := "res://scenes/Arena.tscn"
+const MATCH_COVER := preload("res://src/ui/MatchCover.gd")   # WK-148
 const SCREENS := {
 	"main": preload("res://scenes/ui/MainMenu.tscn"),
 	"mode": preload("res://scenes/ui/ModeSelect.tscn"),
@@ -116,7 +117,13 @@ func launch_match() -> void:
 	if _busy:
 		return
 	_busy = true
-	_iris_then(func() -> void: get_tree().change_scene_to_file(MATCH_SCENE))
+	_iris_then(func() -> void:
+		# WK-148 (UX4-27): a sports match holds the iris's white until the court camera has eased out to the court
+		# (the cover lives on the tree root, so it outlasts this scene; see MatchCover.gd)
+		var cfg: MatchConfig = GameConfig.match_config
+		if Tuning.match_cover_on and cfg != null and (SportsMode.is_sports_mode(cfg.mode_id) or not Tuning.match_cover_sports_only):
+			MATCH_COVER.arm(get_tree())
+		get_tree().change_scene_to_file(MATCH_SCENE))
 
 ## Match-start iris: a chocolate-outlined cream circle scales up from screen center to cover, then
 ## performs the real scene change under cover (frontend_ux_spec §1.5).
