@@ -1108,7 +1108,7 @@ first. Its re-judge list is in the WK-CD5 entry.
   the banner and ScoreScreen. Screens: `tools/out/wk/WK-20c_rules_off_1080p.png` and `_on_1080p.png`. Pacing and the CPU share went to
   WK-127 (done) and are re-judged in WK-CD3 (1).
 
-### [ ] WK-20d [P2][M] Brawl pacing on MEADOW MILE: a one-variable ladder for stage length and the human self-KO share (CD3-01)
+### [x] WK-20d [P2][M] Brawl pacing on MEADOW MILE: a one-variable ladder for stage length and the human self-KO share (CD3-01) — 9684fc6
 - Area: brawl (pacing) · Owner: game-designer (+ qa-playtester driving HumanSim seats) · Source: creative-director WK-CD3 CD3-01
   (`docs/audit/2026-11-15_cd3_playthrough.md` §1, "the single biggest remaining problem")
 - Evidence (27 stages, bill ON, 3 HumanSim seats + CPU L2, MEADOW MILE, default rules; `tools/out/cd3/m1/stats.json`, `m2/stats.json`,
