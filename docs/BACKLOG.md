@@ -1535,7 +1535,7 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
   A/B from CD3 (`tools/out/cd3/tap_ab.json`) still shows tapping costing more than holding; Flight School tut_02/03 feather still fails.
 - Status: open. Next-10 #3, lane P after WK-135.
 
-### [ ] WK-66b [P1][M] TRIALS goal zones still draw the old code grid
+### [x] WK-66b [P1][M] TRIALS goal zones still draw the old code grid — 19d924a
 - Source: WK-66a art grade (docs/audit/2026-11-15_wk66a_artgrade.md follow-up 2). Ten TRIALS courses use `goal_zone` with free-standing
   goals up to 700x620; WK-66a only builds the cage where the zone has `net_mouth_x`/`net_back_x`. Needs a free-standing goal layout
   (or a different "finish" visual) — art-director brief first. Lane V (ArenaRenderer/GoalZone).
@@ -1972,6 +1972,8 @@ CD3-03 into WK-108b, CD3-04b into WK-99, CD3-07 into WK-52, CD3-09 into WK-117 +
 - Status: open (on deck, lane G)
 
 ### [ ] WK-66c [P3][S] Dropshot net: taller-tape re-art (contingency)
+- Also from WK-66b: Trials solved glow barely visible (raise `trials_goal_glow_pad` to several hundred); background parallax
+  fences show through the gold-goal mesh (pocket shade 0.16 too light); Ball Cannon goal starts off-screen (camera).
 - Source: WK-66a F5 blind read: best guess "volleyball net" but "reads more like a lattice pole at 480 px; I got net from the setting".
   Only do it if WK-CD3 or a later cold read calls it a pole/tower: re-art D1 frame with a ~26 wpx tape (brief §3), or raise
   `net_tape_scale` to 1.6 first. Also capture one WK-27 colourway frame for test 7.
