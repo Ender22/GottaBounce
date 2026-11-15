@@ -192,6 +192,10 @@ func get_aim() -> Vector2:
 func is_super_aiming() -> bool:
 	return _sb_aiming
 
+## WK-20e (LivingCues padlock badge): the super button is held right now (last polled intent; false through hitstun).
+func is_super_held() -> bool:  # WK-20e
+	return _sb_was_held
+
 func get_super_aim_dir() -> Vector2:
 	return _sb_aim_dir
 
@@ -1280,6 +1284,8 @@ func _wk20d_super_lock(sh: bool) -> bool:
 	_sb_buffer = 0.0   # dropped, not buffered (spec §4.2): no super fires on the unlock frame without a fresh press
 	if sh and not _sb_was_held and not _sb_aiming:
 		_wk128_add("wk20d_truce_locked_presses" if truce else "wk20d_reserve_locked_presses", 1.0)
+		if Tuning.super_lock_cue and not _dead:   # WK-20e: padlock badge (LivingCues) + dry click (AudioManager)
+			EventBus.super_lock_pressed.emit(self)   # WK-20e
 	return true
 
 ## WK-20d QA on every AIM start (no behaviour): R2 "0 arms within 0.05 s of unlock without a fresh press", R4 "0 arms
@@ -2097,10 +2103,18 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_fire.scale = Vector2(flame, flame)
 			_smoke.scale = Vector2.ONE * (0.8 + 0.35 * thrust_frac)
 	if _arrow:
-		var show_arrow := (aiming or _sb_aiming) and not stunned
+		# WK-20e (spec wk20d §4.2): a held super press the truce dropped shows the super-aim arrow LOCKED (greyed, same  # WK-20e
+		# size and reach as a live aim); LivingCues adds the padlock badge beside the head.  # WK-20e
+		var lock_arrow: bool = Tuning.super_lock_cue and _sb_was_held and not _sb_aiming and super_arm_locked()   # WK-20e
+		var show_arrow := (aiming or _sb_aiming or lock_arrow) and not stunned   # WK-20e: + lock_arrow
 		_arrow.visible = show_arrow
 		if show_arrow:
-			if _sb_aiming:
+			if lock_arrow:   # WK-20e
+				_arrow.color = Tuning.super_lock_arrow_color   # WK-20e
+				_arrow.scale = Vector2.ONE * 1.9   # WK-20e: the super-aim arrow's own size + reach (it clears the P# pip)
+				_arrow.position = aim_dir * 165.0   # WK-20e
+				_arrow.rotation = aim_dir.angle()   # WK-20e
+			elif _sb_aiming:   # WK-20e: was `if`
 				# full size from frame 1 — the arrow shows WHERE, the ring shows WHEN (§1.4)
 				_arrow.color = Color(1.0, 0.9, 0.3).lerp(Color(1.0, 0.2, 0.1), fuse)
 				_arrow.scale = Vector2.ONE * 1.9

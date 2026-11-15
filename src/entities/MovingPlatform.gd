@@ -127,6 +127,11 @@ func _ready() -> void:
 		set_meta("bumper", true)
 	elif tier != "" and tier != "firm" and tier != "none":
 		set_meta("bounce_tier_height", Tuning.bounce_height_for(StringName(tier)))
+	elif Tuning.moving_deck_min_bounce:   # WK-20e (INV-11): a tier-less deck is never standable -> min-bounce hop + its refund.
+		# 48 px keeps the rider's centre inside the RIDER_REACH band, so the sticky carry below still holds it. The deck
+		# keeps its firm look (no gold mat strip: _draw_* test "firm_hop", not bounce_tier_height). Audit wk20d_r1 bug 1.  # WK-20e
+		set_meta("bounce_tier_height", Tuning.min_bounce_height)   # WK-20e
+		set_meta("firm_hop", true)   # WK-20e
 
 	_shape = CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
@@ -256,7 +261,7 @@ func _draw_deck() -> void:
 	draw_rect(Rect2(Vector2(-hw, -hh), Vector2(w, 12.0)), DECK)
 	draw_rect(Rect2(Vector2(-hw, -hh), Vector2(w, 4.0)), RAIL)
 	# tier-colored bounce mat, if this deck is a moving trampoline (readability of its bounce identity)
-	if has_meta("bounce_tier_height") or has_meta("bumper"):
+	if (has_meta("bounce_tier_height") and not has_meta("firm_hop")) or has_meta("bumper"):   # WK-20e: not on a firm hop deck
 		draw_rect(Rect2(Vector2(-hw, -hh), Vector2(w, 6.0)), Color(1.0, 0.85, 0.2))
 	# side rails / bolts (industrial read)
 	for cx in [-hw + 14.0, hw - 14.0]:
@@ -275,5 +280,5 @@ func _draw_vehicle() -> void:
 	var s := w / CART_TEX_W
 	draw_texture_rect(CART_TEX, Rect2(Vector2(-hw, -hh), Vector2(w, CART_TEX_H * s)), false)
 	# tier-colored bounce mat, if this deck is authored as a moving trampoline (unchanged identity read)
-	if has_meta("bounce_tier_height") or has_meta("bumper"):
+	if (has_meta("bounce_tier_height") and not has_meta("firm_hop")) or has_meta("bumper"):   # WK-20e: not on a firm hop deck
 		draw_rect(Rect2(Vector2(-hw, -hh), Vector2(w, 6.0)), Color(1.0, 0.85, 0.2))

@@ -14,27 +14,38 @@ extends CanvasLayer
 ##    the AIMER's colour beside its head (on the side facing the aimer). Re-evaluated every rendered frame from
 ##    get_super_aim_dir(), so it follows the aim the moment the ray crosses a goat. Teammates (sports) never get one.
 ##    Off-screen targets get none (the edge chevron is the cue); a bubble that would touch the centre banner hides.
+##  * WK-20e TRUCE PADLOCK. EventBus.super_lock_pressed(player) (Player: a fresh super press dropped by the Brawl spawn truce /
+##    R4 re-arm gate) -> a SuperLockBadge (gate padlock) beside that goat's head, re-popped on every dropped press. It stays
+##    while the button is held (+ Tuning.super_lock_badge_hold after a tap) and disappears the frame the lock ends.
 
 const WORD_SCENE := preload("res://scenes/ui/WordBurst.tscn")
 const BANG_SCENE := preload("res://scenes/ui/TargetBang.tscn")
+const LOCK_SCENE := preload("res://scenes/ui/SuperLockBadge.tscn")   # WK-20e
 const LIVE_STATES := ["COMBAT", "SUDDEN_DEATH"]
 
 var _match                    # PartyMatch (read-only)
 var _taunt_hist := {}         # player idx -> [ms of recent SHOWN taunts]
 var _bangs := {}              # aimer player idx -> TargetBang node
+var _locks := {}              # WK-20e: player idx -> SuperLockBadge node
+var _lock_hold := {}          # WK-20e: player idx -> s the badge may still stay after its last dropped press (tap hold; real-delta clock)
 
 # QA (gbplay eval)
 var taunts_seen := 0          # every living_taunt received
 var taunts_shown := 0         # taunts that passed the rate limit (word drawn + bleated emitted)
 var target_log: Array = []    # last 64 target changes: {ms, frame, aimer, target} (target -1 = cleared)
+var lock_presses_seen := 0    # WK-20e: every super_lock_pressed received
+var lock_log: Array = []      # WK-20e: last 32 badge events {ms, frame, idx, ev: "pop" / "hide"}
 
 func setup(match_ref) -> void:
 	_match = match_ref
 	EventBus.living_taunt.connect(_on_living_taunt)
+	EventBus.super_lock_pressed.connect(_on_super_lock_pressed)   # WK-20e
 
 func _exit_tree() -> void:
 	if EventBus.living_taunt.is_connected(_on_living_taunt):
 		EventBus.living_taunt.disconnect(_on_living_taunt)
+	if EventBus.super_lock_pressed.is_connected(_on_super_lock_pressed):   # WK-20e
+		EventBus.super_lock_pressed.disconnect(_on_super_lock_pressed)
 
 # ------------------------------------------------------------------ WK-53b taunt
 
@@ -93,6 +104,71 @@ func _banner_rects() -> Array:
 		return []
 	var r: Rect2 = pips._banner_rect()
 	return [r] if r.has_area() else []
+
+# ------------------------------------------------------------------ WK-20e truce padlock
+
+func _on_super_lock_pressed(player) -> void:
+	lock_presses_seen += 1
+	if _match == null or not is_instance_valid(player) or player.is_dead():
+		return
+	var idx: int = (_match.players as Array).find(player)
+	if idx < 0:
+		return
+	_lock_hold[idx] = Tuning.super_lock_badge_hold
+	var b = _locks.get(idx)
+	if b == null or not is_instance_valid(b):
+		b = LOCK_SCENE.instantiate()
+		b.visible = false
+		add_child(b)
+		b.setup(idx)
+		_locks[idx] = b
+	b.pop()
+	_log_lock(idx, "pop")
+
+## QA: player idx -> true for every padlock on screen right now.
+func lock_state() -> Dictionary:
+	var out := {}
+	for i in _locks:
+		var b = _locks[i]
+		if is_instance_valid(b) and b.visible:
+			out[i] = true
+	return out
+
+## Per frame: a badge shows while its goat is still locked AND (the press is held OR the tap hold runs). Beside the head on
+## the side AWAY from the aim (the greyed arrow points along the aim), flipped if it would leave the screen.
+func _update_locks(live: bool, cam, players: Array, vp: Vector2, rdelta: float) -> void:
+	for i in _locks.keys():
+		var b = _locks[i]
+		if b == null or not is_instance_valid(b):
+			_locks.erase(i)
+			continue
+		var p = players[i] if int(i) < players.size() else null
+		var hold: float = float(_lock_hold.get(i, 0.0))
+		_lock_hold[i] = maxf(0.0, hold - rdelta)
+		var on: bool = (live and p != null and is_instance_valid(p) and not p.is_dead() and p.is_visible_in_tree()
+				and p.super_arm_locked() and (p.is_super_held() or hold > 0.0))
+		if not on:
+			if b.visible:
+				b.visible = false
+				_log_lock(int(i), "hide")
+			continue
+		var z: float = maxf(cam.zoom.x, 0.01)
+		var centre: Vector2 = _to_screen(p.global_position, cam)
+		var r: float = _radius_of(p) * z
+		var half: Vector2 = b.half_size()
+		var aim: Vector2 = p.get_aim() if p.has_method("get_aim") else Vector2.UP
+		var side: float = -1.0 if aim.x > 0.2 else 1.0
+		var pos: Vector2 = centre + Vector2(side * (r * 0.85 + half.x + 6.0), -(r * 0.85 + 2.0))
+		if pos.x + half.x > vp.x - 8.0 or pos.x - half.x < 8.0:
+			pos.x = centre.x - side * (r * 0.85 + half.x + 6.0)
+		pos.y = maxf(pos.y, half.y + 8.0)
+		b.place(pos, rdelta)
+		b.visible = true
+
+func _log_lock(idx: int, ev: String) -> void:
+	lock_log.append({"ms": Time.get_ticks_msec(), "frame": Engine.get_process_frames(), "idx": idx, "ev": ev})
+	if lock_log.size() > 32:
+		lock_log.pop_front()
 
 # ------------------------------------------------------------------ WK-26 target "!"
 
@@ -170,6 +246,7 @@ func _process(delta: float) -> void:
 			if is_instance_valid(pp) and not pp.is_dead() and pp.is_visible_in_tree():
 				var hh: float = _radius_of(pp) * zz * 1.1 + 6.0
 				bodies[pi] = Rect2(_to_screen(pp.global_position, cam) - Vector2(hh, hh), Vector2(hh, hh) * 2.0)
+	_update_locks(live, cam, players, vp, rdelta)   # WK-20e
 	for ai in range(players.size()):
 		var aimer = players[ai]
 		var tgt = aim_target(aimer) if live else null

@@ -68,6 +68,11 @@ signal living_taunt(player)
 # ends); LivingCues polls is_super_aiming() / get_super_aim_dir() for the "!" over the targeted goat.
 signal super_aim_started(player)
 
+# --- WK-20e spawn-truce feedback (spec wk20d §4.2) --- a FRESH super press was DROPPED because the goat's super is locked
+# (R2 spawn truce while it blinks, or the R4 re-arm gate). Emitted by Player._wk20d_super_lock, once per press edge.
+# Subscribers: AudioManager (the dry click, rate-limited per goat) and LivingCues (the padlock badge beside the head).
+signal super_lock_pressed(player)
+
 # --- WK-131 Rocketball KICKOFF GATES (docs/specs/wk131_kickoff_rule_2026-11-15.md §8). KickoffGate emits; AudioManager (and QA) subscribe.
 # gate_team = the DEFENDING team of the gated goal (GoalZone.team); speed = the ball's pre-bounce speed (px/s). One per new ball contact.
 signal kickoff_gate_hit(gate_team, speed)

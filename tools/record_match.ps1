@@ -32,7 +32,9 @@ param(
     [switch]$Force,
     [ValidateSet("on", "baa", "off")][string]$Ghosts = "on",
     [int]$Lives = 1,
-    [string]$Eliminate = ""
+    [string]$Eliminate = "",
+    [string]$Circuit = "",
+    [string]$LockPress = ""
 )
 $ErrorActionPreference = "Stop"
 $godot = "C:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe"
@@ -65,6 +67,8 @@ if ($NoStamp) { $user += "stamp=0" }
 $user += "ghosts=$Ghosts"
 $user += "lives=$Lives"
 if ($Eliminate -ne "") { $user += "eliminate=$Eliminate" }
+if ($Circuit -ne "") { $user += "circuit=$Circuit" }   # WK-20e
+if ($LockPress -ne "") { $user += "lock_press=$LockPress" }   # WK-20e
 $user += "--gb-port=0"   # WK-130: no automation server in recordings (never steals/binds a port)
 
 $argList = @("--path", "`"$proj`"", "--resolution", "1280x720", "--position", "50,50",

@@ -20,6 +20,9 @@ extends Node
 ##   ghosts=on|baa|off     WK-37 RULES option (default on = MatchConfig default)
 ##   lives=<n>             lives per player (default 1)
 ##   eliminate=0,1         WK-37 QA fixture: ring out these seats 1.5 s into every stage (ghost recordings)
+##   circuit=<id>          WK-20e: play a levels/circuits.json circuit in order (e.g. meadow_mile); ignored if arena= is set
+##   lock_press=0,1        WK-20e QA fixture: these seats also press super while spawn-protected (hold 0.15-0.55 s, tap at
+##                         0.80 s of the blink), so the Brawl spawn-truce padlock + dry click show in the recording
 
 const MATCH_SCENE := "res://scenes/Arena.tscn"
 const RECORDER_SCENE := "res://scenes/dev/MatchRecorder.tscn"
@@ -62,6 +65,9 @@ func _ready() -> void:
 			arena = "res://levels/%s.json" % arena.trim_suffix(".json")
 		cfg.arena_mode = MatchConfig.ArenaMode.SINGLE
 		cfg.single_arena_path = arena
+	elif str(args.get("circuit", "")) != "":   # WK-20e
+		cfg.arena_mode = MatchConfig.ArenaMode.CIRCUIT
+		cfg.circuit_id = StringName(str(args["circuit"]))
 
 	var rec: Node = load(RECORDER_SCENE).instantiate()
 	rec.name = "MatchRecorder"
@@ -73,6 +79,8 @@ func _ready() -> void:
 		"seed": int(args.get("seed", "-1")),
 		"ghosts": gm,
 		"eliminate": Array(str(args.get("eliminate", "")).split(",", false)).map(func(x): return int(x)),
+		"lock_press": Array(str(args.get("lock_press", "")).split(",", false)).map(func(x): return int(x)),   # WK-20e
+		"circuit": str(args.get("circuit", "")),   # WK-20e
 	})
 	get_tree().root.add_child.call_deferred(rec)
 	get_tree().change_scene_to_file.call_deferred(MATCH_SCENE)

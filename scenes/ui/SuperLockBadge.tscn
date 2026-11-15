@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/ui/SuperLockBadge.gd" id="1_slb"]
+[ext_resource type="Texture2D" path="res://assets/world/sports/gate_badge_locked.png" id="2_lock"]
+
+[node name="SuperLockBadge" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("1_slb")
+
+[node name="Pivot" type="Control" parent="."]
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Lock" type="Sprite2D" parent="Pivot"]
+texture_filter = 4
+scale = Vector2(0.164, 0.164)
+texture = ExtResource("2_lock")

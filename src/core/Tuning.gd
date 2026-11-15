@@ -1003,12 +1003,12 @@ var boost_relight_min_thrust: float = 0.105   # s of thrust a billed re-light al
 # OFF = exactly the pre-WK-20d game. Counters (Player.wk128 dict, wk20d_*): supers, supers_fired_protected, truce_locked_presses,  # WK-20d
 # truce_unlock_buffered_arms (must be 0), whiffs, fumbles, whiff_brakes, whiff_brake_reached750, whiff_brake_aborted, reserves,  # WK-20d
 # reserve_fuel, reserve_over_fire (must be 0), reserve_locked_presses, reserve_gate_violations (must be 0).  # WK-20d
-# NOT BUILT (spec: required before ADOPTION, not before measurement): the padlock / dry click (R2, R4), the sputter puff + "pfft"  # WK-20d
-# (R3), the HUD reserve sliver (R4).  # WK-20d
+# NOT BUILT (spec: required before ADOPTION, not before measurement): the sputter puff + "pfft" (R3), the HUD reserve sliver (R4).  # WK-20d
+# The padlock / dry click (R2, R4) shipped with WK-20e (block at the END of this file).  # WK-20e
 # INVARIANT (§4.4): super_whiff_reserve < fuel_per_bounce (15 < 20). Because it is >= super_boost_min_fuel (10) the re-arm gate is  # WK-20d
 # REQUIRED; Player turns it on whenever super_whiff_reserve > 0, so the two can never be split.  # WK-20d
-var brawl_spawn_super_lock: bool = false      # R2 SPAWN TRUCE: no super arms while you blink (spawn-protected); a press is dropped,  # WK-20d
-                                              # never buffered. Test value true  # WK-20d
+var brawl_spawn_super_lock: bool = true       # R2 SPAWN TRUCE: no super arms while you blink (spawn-protected); a press is dropped,  # WK-20d
+                                              # never buffered. ADOPTED ON (WK-20e, DECISIONS 2026-11-15 ladder ruling); false = legacy  # WK-20e
 var super_whiff_brake_speed: float = 0.0      # R3 WHIFF BRAKE: px/s a super that touched nothing (no smash branch, no surface)  # WK-20d
                                               # bleeds to when its super_active_time window ends. 0 = OFF; test 700 (< boost cap 800)  # WK-20d
 var super_whiff_brake_time: float = 0.15      # R3: s the bleed takes (linear |v| cap v0 -> brake speed; scales only, never reverses)  # WK-20d
@@ -1029,3 +1029,25 @@ var cam_sports_start_snap: bool = true        # WK-148b
 
 # --- WK-131 kickoff gate hit flash vs the padlock badge (blind read: the badge ghosted out for 2-3 frames under the 0.06 s white).  # WK-131
 var sports_gate_badge_flash: float = 0.0      # share of the pole's hit flash the badge takes (0 = pole only, badge stays readable; 1 = old)  # WK-131
+
+# --- WK-20e R2 spawn-truce FEEDBACK (spec docs/specs/wk20d_brawl_pacing_2026-11-15.md §4.2: "the aim arrow shows locked (greyed,  # WK-20e
+# with a small padlock glyph) and a soft dry click plays"). A super press DROPPED by the truce (or the R4 re-arm gate) emits  # WK-20e
+# EventBus.super_lock_pressed; LivingCues hangs the padlock badge (assets/world/sports/gate_badge_locked.png, screen space so it  # WK-20e
+# keeps its size at any zoom and does not blink with the goat) beside the head, AudioManager plays the dry click, and Player greys  # WK-20e
+# its aim arrow while the button is held. The badge stays while the press is held (plus a short hold after a tap) and vanishes  # WK-20e
+# the frame the lock ends. No HUD change (spec names none). Presentation only: nothing here touches the sim.  # WK-20e
+var super_lock_cue: bool = true               # false = the truce still drops the press, but silently (no badge / click / grey arrow)  # WK-20e
+var super_lock_badge_px: float = 48.0         # badge diameter in canvas px at 1080p (the goat is ~40-80 px across at play zoom)  # WK-20e
+var super_lock_badge_hold: float = 0.45       # s the badge stays after a tapped (released) locked press  # WK-20e
+var super_lock_click_db: float = -11.0        # dry click volume (a soft tick: under the bounce, far under a smash)  # WK-20e
+var super_lock_click_pitch: float = 1.6       # pitch on the Kenney impactPlank crack (2.2 kHz centroid, 40 ms) -> a small dry "tk"  # WK-20e
+var super_lock_click_gap: float = 0.09        # s per-goat rate limit on the click (a mash can't machine-gun it)  # WK-20e
+var super_lock_arrow_color: Color = Color(0.60, 0.60, 0.66, 0.80)   # the greyed aim arrow while a locked press is held  # WK-20e
+
+# --- WK-20e Meadow Carousel soft-lock (audit docs/audit/2026-11-15_wk20d_r1.md bug 1, INV-11 "no standable ground"). A moving  # WK-20e
+# deck authored WITHOUT a bounce tier ("" / "firm" / "none": every vehicle cart + the carousel hay deck) used to be a solid deck you  # WK-20e
+# simply rested on: no bounce, no fuel, so an empty-tank goat was stranded and two stranded goats never ended the stage. true: such a  # WK-20e
+# deck bounces at min_bounce_height (48 px) and pays the matching bounce refund (fuel_per_bounce x sqrt(48 / 270) = 8.4). 48 px keeps  # WK-20e
+# the goat's centre inside MovingPlatform's 118 px rider band, so the sticky carry still holds it (a marshmallow 120 px hop would  # WK-20e
+# leave the band and drop riders off a fast cart mid-swing). Tiered decks are unchanged. false = the legacy firm deck.  # WK-20e
+var moving_deck_min_bounce: bool = true       # WK-20e

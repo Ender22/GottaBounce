@@ -24,7 +24,7 @@ Downloaded 2026-11-14 from the official pack pages; files copied verbatim, renam
 | `kenney_impactPunch_medium_000..004.ogg` | Impact Sounds (1.0) | https://kenney.nl/assets/impact-sounds | `ball_hit` — ball touch "thwock", pitch/volume by impact speed |
 | `kenney_impactSoft_heavy_000..001.ogg` | Impact Sounds (1.0) | https://kenney.nl/assets/impact-sounds | `ball_body` — low body thump layered under hard touches / power shots |
 | `kenney_impactPunch_heavy_000/002/004.ogg` | Impact Sounds (1.0) | https://kenney.nl/assets/impact-sounds | `ball_power` — super/power-shot strike |
-| `kenney_impactPlank_medium_000..002.ogg` | Impact Sounds (1.0) | https://kenney.nl/assets/impact-sounds | `tile_crack` — dry crack when a Dropshot floor tile CRACKS (1st hit) |
+| `kenney_impactPlank_medium_000..002.ogg` | Impact Sounds (1.0) | https://kenney.nl/assets/impact-sounds | `tile_crack` — dry crack when a Dropshot floor tile CRACKS (1st hit); also `super_locked` (WK-20e Brawl spawn-truce dry click: a super press dropped while spawn-protected, pitched x1.6 at -11 dB) |
 | `kenney_impactWood_medium_000..001.ogg` | Impact Sounds (1.0) | https://kenney.nl/assets/impact-sounds | `tile_break_body` — low knock layered under the tile-break crunch; also `gate_clonk` (WK-131 kickoff-gate block, pitched x1.25 x 0.9-1.15) |
 | `kenney_jingles_SAX02.ogg` | Music Jingles | https://kenney.nl/assets/music-jingles | `goal_red` — rising sax run (528 -> 937 Hz) for a RED goal/point |
 | `kenney_jingles_SAX10.ogg` | Music Jingles | https://kenney.nl/assets/music-jingles | `goal_blue` — rising sax run (592 -> 786 Hz) for a BLUE goal/point |

@@ -79,6 +79,10 @@ const SFX := {
 	"gate_whine":        ["res://assets/sfx/btnClick_Start.mp3"],
 	"whistle_double":    ["res://assets/sfx/whistle_double.ogg"],
 	"crowd_ooh":         [],
+	# --- WK-20e spawn-truce dry click (spec wk20d §4.2): a super press the truce dropped. Kenney impactPlank crack (CC0,
+	# already licensed for tile_crack; 40 ms, ~2.2 kHz) pitched up + quiet = a small dry "tk", not a menu click. ---
+	"super_locked":      ["res://assets/sfx/kenney_impactPlank_medium_000.ogg", "res://assets/sfx/kenney_impactPlank_medium_001.ogg",
+	                      "res://assets/sfx/kenney_impactPlank_medium_002.ogg"],   # WK-20e
 }
 
 # --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
@@ -238,6 +242,7 @@ func _ready() -> void:
 	EventBus.kickoff_gates_open.connect(_on_kickoff_gates_open) # WK-131 double whistle
 	EventBus.kickoff_gate_dropped.connect(_on_kickoff_gate_dropped)   # WK-131 stage-intro drop-in clonk
 	EventBus.kickoff_gate_tick.connect(_on_kickoff_gate_tick)   # WK-131 warning wind-up ticks
+	EventBus.super_lock_pressed.connect(_on_super_lock_pressed)   # WK-20e spawn-truce dry click
 	KillPipeline.killed.connect(_on_killed)
 
 # --------------------------------------------------------------------- core play API
@@ -640,6 +645,25 @@ func _bleat_voice(idx: int) -> Dictionary:
 	if BLEAT_BY_SKIN.has(skin):
 		return BLEAT_BY_SKIN[skin]
 	return {"hero": BLEAT_FALLBACK_ORDER[posmod(idx, BLEAT_FALLBACK_ORDER.size())], "pitch": 1.0, "db": 0.0}
+
+# --------------------------------------------------------------------- WK-20e spawn-truce dry click
+var super_locks_seen := 0        # QA: every EventBus.super_lock_pressed received  # WK-20e
+var super_locks_heard := 0       # QA: clicks actually played (rest = the per-goat gap)  # WK-20e
+var _lock_click_last := {}       # player instance id -> ms of its last click  # WK-20e
+
+## WK-20e: a super press was dropped by the spawn truce (or the R4 re-arm gate) -> one soft dry click, rate-limited per goat.
+func _on_super_lock_pressed(player) -> void:
+	super_locks_seen += 1
+	if player == null or not is_instance_valid(player):
+		return
+	var id: int = player.get_instance_id()
+	var now: int = Time.get_ticks_msec()
+	if now - int(_lock_click_last.get(id, -100000)) < int(Tuning.super_lock_click_gap * 1000.0):
+		return
+	_lock_click_last[id] = now
+	play_sfx("super_locked", {"volume_db": Tuning.super_lock_click_db, "pitch": Tuning.super_lock_click_pitch,
+		"pitch_var": 0.04, "tag": "super_locked:%d" % id})
+	super_locks_heard += 1
 
 ## WK-26: a goat entered super AIM -> the rising wind-up, held only while that aim lasts (_tick_aim_voices fades it).
 func _on_super_aim_started(player) -> void:

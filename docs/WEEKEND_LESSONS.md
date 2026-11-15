@@ -180,3 +180,10 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - WK-148b: redirecting `run_game.ps1 > file` hangs the PowerShell tool call exactly like a pipe (Godot inherits the handle); launch it with
   the tool's run-in-background option instead. Per-frame camera probes: hook `RenderingServer.frame_pre_draw` from a root node (records the
   zoom each DRAWN frame uses; `_process` order flips when change_scene re-adds the match after your probe).
+- **WK-20e: a MovingPlatform with no `tier` was a standable deck (INV-11 breach)** - no bounce, no refund, so an empty-tank goat
+  sat on it forever (velocity.y saturates at 3000 while y stays at deck top - 44). Fix = min-bounce hop (48 px) on tier-less decks
+  (`Tuning.moving_deck_min_bounce`). Do NOT "fix" it by authoring a real tier on a fast cart: the sticky carry only holds bodies inside
+  the 118 px RIDER_REACH band above the deck, and a marshmallow hop (120 px apex = centre 164 px up) leaves the band for ~0.48 s while
+  the carousel deck moves ~1300 px/s mid-swing, so riders get dropped into the void. 48 px stays inside the band (measured: rider drifts
+  <= 7 px over a full swing).
+- gbplay `wait` counts FRAMES (`{"frames": N}`), not ms (an `ms` param is ignored = 1 frame). Under software rendering 1 frame ~ 27 ms.

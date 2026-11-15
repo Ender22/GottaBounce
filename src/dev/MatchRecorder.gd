@@ -54,7 +54,10 @@ func _hook(cs: Node) -> void:
 	for i in range(players.size()):
 		var p = players[i]
 		var lvl: int = int(levels[i]) if i < levels.size() else 3
-		p.set_provider(InputBot.new(p, cs, lvl))
+		if (cfg.get("lock_press", []) as Array).has(i):   # WK-20e QA fixture: super presses during the spawn blink
+			p.set_provider(LockPressBot.new(p, cs, lvl))
+		else:
+			p.set_provider(InputBot.new(p, cs, lvl))
 		if p.is_in_group("human"):
 			p.remove_from_group("human")
 	EventBus.super_fired.connect(_on_super_fired)
@@ -63,6 +66,8 @@ func _hook(cs: Node) -> void:
 	KillPipeline.killed.connect(_on_killed)
 	if not EventBus.bleated.is_connected(_on_bleated):
 		EventBus.bleated.connect(_on_bleated)
+	if not EventBus.super_lock_pressed.is_connected(_on_super_lock_pressed):   # WK-20e
+		EventBus.super_lock_pressed.connect(_on_super_lock_pressed)
 	_collect_hazards(cs)
 
 func _collect_hazards(n: Node) -> void:
@@ -284,6 +289,25 @@ func _tick_eliminate(st: String) -> void:
 		if i >= 0 and i < players.size() and is_instance_valid(players[i]) and not players[i].is_dead():
 			players[i].kill(&"ring_out", null)
 	_ev("eliminate_fixture", {"seats": seats})
+
+## WK-20e: a super press dropped by the spawn truce (the padlock + dry click fire on this event).
+func _on_super_lock_pressed(player) -> void:
+	var prot: float = float(player.spawn_protect_left()) if is_instance_valid(player) else -1.0
+	_ev("super_lock_pressed", {"who": _idx(player), "protect_left": snappedf(prot, 0.001)})
+
+## WK-20e QA fixture bot (`lock_press=` seats): the normal InputBot, plus a super HOLD 0.15-0.55 s into each spawn blink and a
+## 0.06 s TAP at 0.80 s, i.e. two presses the Brawl spawn truce drops (badge held, then the tap hold). Outside the blink it is
+## exactly the InputBot.
+class LockPressBot extends InputBot:
+	func poll() -> InputIntent:
+		var it: InputIntent = super.poll()
+		if me != null and is_instance_valid(me) and not me.is_dead():
+			var left: float = me.spawn_protect_left()
+			if left > 0.0:
+				var age: float = Player.SPAWN_PROTECT_TIME - left
+				if (age > 0.15 and age < 0.55) or (age > 0.80 and age < 0.86):
+					it.super_hold = true
+		return it
 
 func _ev(type: String, d: Dictionary) -> void:
 	d["type"] = type
