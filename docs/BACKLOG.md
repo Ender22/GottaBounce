@@ -2722,6 +2722,8 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   Also a listener call: WK-116 crowd chant may dominate the end of long rallies (-4 vs -6 dB).
 
 ### [ ] WK-164 [P2][S] Sports bots round 3 (from the WK-108b A/B, docs/audit/2026-11-15_wk108b_ab.md)
+- K3 swerve side hold 0.2 s shipped ON (flips -13 %, sharp turns -7 %). Remaining sharp turns come from wk108b_guard_turn_mult 3.0 ->
+  test 2.0 in an own-goal A/B (one run: sharp turns -18 %). K1 rework + K1b-only A/B still open.
 - K3 strike guard shipped ON (2026-11-15) but still misses <= 15 % (all-bot 17.9 %) and 0-in-final-2 (4); add a short hold on the
   swerve direction (41 sharp 30-46 deg turns + 20 flips per 20 s in mouth scrums) and re-check BOX stacking (2 -> 7).
 - K1 sticky keeper: rework — 6 of 9 human-style CPU own goals came from `keeper_route` pushing the ball toward its own goal.
@@ -2741,6 +2743,6 @@ Producer-filed (re-rank #9): WK-160 QA re-check sweep (19, 30, 28b) · WK-CD5
   says "another controller" when offering the keyboard.
 - Feel: pads buzz on nearly every bounce (395 bounce vs 16 smash buzzes for one pad) — raise the bounce-rumble speed threshold.
 
-### [ ] WK-167 [P2][S] Bots never spend their last ~3.9 fuel (WK-136 relight reserve) and fall with it
+### [x] WK-167 [P2][S] Bots never spend their last ~3.9 fuel (WK-136 relight reserve) and fall with it — dab9528
 - Source: docs/audit/2026-11-16_wk135_p3_ab.md: 56 of 106 bot self-KOs died holding ~3.9 fuel in both arms — the WK-136 billed-relight
   reserve (0.105 s thrust). InputBot's recovery math likely treats < super_min / < some threshold as empty. Make recovery spend it.
