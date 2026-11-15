@@ -2,6 +2,10 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-15** WK-131 KICKOFF GATES ON (director, spec f5709c7): Rocketball goal mouths are shut to the BALL for 3.0 s of live
+  ball after GO (visible striped pole + padlock; no goal is ever taken back). Default sports_kickoff_rule = 1; 0 restores legacy.
+  Confirming human-seat A/B (gates vs LIVE BALL vs formation) runs when the headless slot frees; revert to 0 if it fails its bars.
+
 - **2026-11-15** WK-28b IN-MATCH DISCONNECT (director): a pad dropping mid-match pauses with a DISCONNECTED overlay; the same pad
   or any free device reclaims the seat; RESUME WITHOUT is hold-to-confirm and turns the seat into a CPU (keeps goat/colour/P#) rather
   than leaving an idle goat (free KOs / a 2v2 team a player short). Restart/rematch with the pad still gone = CPU seat + toast.

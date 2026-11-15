@@ -640,6 +640,8 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   rides over the reset and stays readable for 1.6 s. The PROTECT-list restart line is met again. WK-CD3 re-checks it in game time.
 
 ### [ ] WK-131 [P1][M] Rocketball kickoff goals ≤ 10 % with human-style seats: a kickoff RULE, not bot pathing (CD2-03 carry-over)
+- **WK-131a BUILT 10c5c6a** (gates ON by default, rule 1). Remaining: the human-seat A/B (gates vs LIVE BALL vs formation, 40 goals/arm)
+  when the batch slot frees; blind-read notes: the white hit-flash ghosts the padlock for 2-3 frames; at 480 px the bar is thin (art-director).
 - Area: sports (rules) · Owner: game-designer (A/B + DECISIONS entry) -> gameplay-programmer
 - Source: creative-director WK-CD2 CD2-03. Producer re-home, re-rank #6: this is WK-104 (b)'s Accept, which was folded into WK-108 as (b2).
   WK-108 closed (ee80867) without running it.
