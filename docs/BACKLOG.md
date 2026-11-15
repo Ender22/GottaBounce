@@ -2429,6 +2429,7 @@ another simulated pass has lower value than a real session, so CD6 is scoped to 
 - WK-135 closed (phase 3: ball refuel ON, gates OFF) — 04c7442, 7005cf1, b1ca88b (gates retune -> WK-175) · WK-167 bots spend last fuel — dab9528
 - WK-65b MINEFIELD card — 20ae38f · WK-20d closed on Phase A — 9684fc6 (watch -> WK-168)
 - WK-CD5 creative-director cold playthrough #5 (SHIP on every mode played; CD5-01..07 triaged at re-rank #10) — 7d1732d
+- WK-169c showdown polish (hush/stings/bell, gold card frames, golden tank art + umber stroke, CPU seek latch + reach guard, occupied-spawner claim, GOLD SURGE knob 0.0) — 83d92d9 · WK-175 A/B = SHIP WR (rendered checks owed) — audit committed
 
 ## Deferred / Cut (this weekend) — every finding not covered by an item above
 - **UX4-03's proposed redesign (arm hold-B on every press, act on release)** — NOT adopted (re-rank #8): it would re-open lobby review L8

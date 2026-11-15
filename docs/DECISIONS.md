@@ -2,6 +2,13 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-169c BUILD RULINGS (director, 83d92d9): (a) low-fuel golden race roll bot_golden_lowfuel_seek_p = 0.8, not the
+  spec's 0.5 — at 0.5 a lost first roll sends the bot into a refuel dive that burns the race fuel (T-B1 6/10 -> 9/10 at 0.8). (b) T-G3
+  ACCEPTED on the new ~2 px umber stroke: gold-ring-to-edge contrast 0.62-0.64 on all arenas and the crops read cleanly on Islands
+  Void's pale sky; the ring-vs-sky metric (0.21/0.24) is superseded for stroked art. (c) T-G1 accepted (follows the 1.25x rule).
+  (d) showdown_music_duck_db -4.5. GOLD SURGE stays 0.0 pending the TG-lane batch.
+- **2026-11-16** WK-175 A/B verdict SHIP WR (docs/audit/2026-11-16_wk175_ab.md); switch stays OFF until the §9.5 rendered checks and
+  §9.6 feel check pass. D5 zero_fuel_alive_max_s <= 6 s re-baselined: OFF/OFF-repeat fail it too (same 6 bot-stages over 6 s) = bar too tight.
 - **2026-11-16** WK-169c rulings (docs/specs/wk169c_showdown_polish_2026-11-16.md): showdown_drop_dur stays 6 s (a shorter tank
   barely moves holder-wins; 29/38 tails end ~2.6 s after the grab). Test GOLD SURGE instead (golden super arms 1.0 s after the grab,
   boost immediate; built at 0.0 = today, TG lane re-check decides). Low-fuel CPUs may go for a reachable golden bubble; a golden drop
