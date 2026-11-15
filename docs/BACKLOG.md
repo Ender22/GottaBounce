@@ -147,7 +147,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
    (P2/S+S) [H `PlayerPip.gd`/`PlayerPips.gd` + U `ControlsLegend.gd`; free now, takes the first spare slot]
 2. WK-60 select-screen prompt/copy: LOCKED card says "A FIGHT!" (P2/S), then WK-60b preview-region layout (P2/M) [M `ArenaSelect.gd/.tscn`]
 3. WK-28b in-match disconnect overlay (S/M) [U after WK-33: `PauseMenu.gd`; `PartyMatch.gd` hook only after WK-135]
-4. WK-143 RULES value pills neutral (P2/S) [L or `Stepper.gd`]
+4. ~~WK-143~~ done a1904ba — RULES value pills neutral (P2/S) [L or `Stepper.gd`]
 5. WK-142 Trials end celebration + NEXT CIRCUIT default (P2/M, art brief first) [U after WK-139]
 6. WK-44 Options rebuild: grid, SCREEN SHAKE, footer "A Toggle"; RUMBLE after WK-19 (M) [U after WK-33]
 7. WK-99 fuel super-ready notch + CD3-04b, then WK-31 HUD danger + stocks, with WK-146 (M+M+S) [H after WK-135 + WK-136]
@@ -2027,7 +2027,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept (rendered): quit dialog is cream, opaque (nothing shows through), opens on STAY; ui-ux Ship.
 - Status: open. UI lane filler: tiny, disjoint files; pair with WK-139 (same kit work).
 
-### [ ] WK-141 [P2][S] Controls legend: lay out before the first visible frame; sports legend shorter and out of the ball's band (UX4-11 + UX4-10)
+### [x] WK-141 [P2][S] Controls legend: lay out before the first visible frame; sports legend shorter and out of the ball's band (UX4-11 + UX4-10) — a1904ba
 - Area: HUD | sports · Owner: ui-ux-designer · Source: ui-ux-designer UX4 2026-11-15 (UX4-11; UX4-10 is a fix to WK-113, done 5a74fa8)
 - Evidence:
   - UX4-11: ~0.6 s after pressing A on an arena the Brawl legend renders as ONE row x 165-1750, over the P3 card and hiding the PUFF CPU card
@@ -2056,7 +2056,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
   goats, name and crest; ui-ux + art-director Ship.
 - Status: open (on deck after WK-139)
 
-### [ ] WK-143 [P2][S] RULES panel: neutral value pills, green only on the focused row (UX4-20)
+### [x] WK-143 [P2][S] RULES panel: neutral value pills, green only on the focused row (UX4-20) — a1904ba
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4-20 2026-11-15 (WK-14 focus grammar)
 - Evidence: `tools/out/ux/UX4_24`, `UX4_25`: six solid-green value pills; focus shown only by a thin yellow row ring + arrows. Under WK-14's
   "only the focused thing is green", six green pills read as six focused buttons.
@@ -2155,7 +2155,7 @@ WK-33 and WK-28 move into the Next 10: UX4's top two front-end gaps, both P1, bo
 - Accept (rendered): QUIT TO MENU from pause and from all three end screens shows mode select with an empty lobby next entry; title QUIT path unchanged.
 - Status: open
 
-### [ ] WK-145 [P3][S] Lobby nits: FLAIR caption, RULES-owner chip placement, unlock-card icon (UX4-18 + UX4-19 + UX4-26)
+### [x] WK-145 [P3][S] Lobby nits: FLAIR caption, RULES-owner chip placement, unlock-card icon (UX4-18 + UX4-19 + UX4-26) — a1904ba
 - Area: menus · Owner: ui-ux-designer · Source: ui-ux-designer UX4 2026-11-15
 - Evidence: "★ NONE" / "★ PEAK MENACE" reads as a rating, no label (`tools/out/ux/UX4_19`); the "P3 HAS THE RULES" chip covers the presser's
   READY! stamp (`UX4_26`); the WK-52 unlock card's icon is a generic star in a disc (`UX4_88`).
@@ -2394,6 +2394,6 @@ WK-107 -> 122 · WK-127 -> 127b · WK-37b -> 37c, 53 (raised P1) · WK-130 -> 38
 - Source: WK-85a builder (2P lesson 4, goat teleported into a gap -> "FIRST BLOOD!"). May be an artefact of the teleport; check a
   real fall in 2P Flight School. Brawl callouts (FIRST BLOOD / TWO LEFT) should never fire in Trials or sports.
 
-### [ ] WK-149 [P3][S] Horizontal TV safe area for corner chips
+### [x] WK-149 [P3][S] Horizontal TV safe area for corner chips — a1904ba
 - Source: lobby ui-ux verdict (docs/audit/2026-11-15_ux_lobby_verdict.md). Corner chips (BACK chip, mode chip) sit at x ~50 / ~1870;
   clamp to x >= 96 and <= 1824 in `MenuScreen._fit_safe_area` (~8 lines; per-chip clamp, the vertical fit moves the whole band).
