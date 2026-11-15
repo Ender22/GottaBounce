@@ -771,7 +771,7 @@ var trials_goal_color: Color = Color("#FFB21E")        # frame gold (gradient-ma
 var trials_goal_mesh_white_mix: float = 0.55           # mesh = lerp(gold, white, this) ~ #FFDC9A  # WK-66b
 var trials_goal_mesh_alpha: float = 0.95               # WK-66b
 var trials_goal_shade_color: Color = Color("#3B241B")  # pocket shade (mesh hole veil), chocolate not navy  # WK-66b
-var trials_goal_shade_alpha: float = 0.16              # lever L2: 0.24 for presence on huge goals  # WK-66b
+var trials_goal_shade_alpha: float = 0.45              # WK-66c: was 0.16 (sky/hills showed through; now reads as a pocket)  # WK-66b
 var trials_goal_snap_max: float = 80.0                 # DOC value: max platform-face gap a display edge may snap across (level-designer rule)  # WK-66b
 var trials_goal_floor_sink: float = 10.0               # DOC value: net_bottom_y = floor top - this (tube rests on the turf)  # WK-66b
 var trials_goal_mouth_bleed: float = 0.0               # mouth cap outer edge vs the mouth plane (Rocketball uses 8; 0 keeps caps off a pit edge)  # WK-66b
@@ -780,7 +780,7 @@ var trials_goal_glow_a_min: float = 0.35               # WK-66b
 var trials_goal_glow_a_max: float = 0.50               # WK-66b
 var trials_goal_glow_hz: float = 1.0                   # alpha breathing rate (never scale)  # WK-66b
 var trials_goal_glow_fade_in: float = 0.2              # s  # WK-66b
-var trials_goal_glow_pad: float = 120.0                # glow = frame size + this, both axes  # WK-66b
+var trials_goal_glow_pad: float = 320.0                # glow = frame size + this, both axes (WK-66c: was 120)  # WK-66b
 var trials_goal_idle_period: float = 2.6               # s between idle "the net breathes" ripples (attract cue)  # WK-66b
 var trials_goal_idle_amp: float = 3.0                  # wpx idle ripple amplitude (mesh only)  # WK-66b
 

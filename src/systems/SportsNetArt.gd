@@ -42,7 +42,7 @@ const GOAL_BACK_C_SRC := 76.0        # back tube centre column, from the image l
 const GOAL_MID_L_SRC := 240.0        # middle (plain tube run) column starts here
 const GOAL_MID_R_SRC := 430.0        # ... and ends here; right of it = mouth caps
 const TRIALS_SCALE := 0.25           # WK-66b: trials frames are never uniform-scaled (4 src px per wpx, like a 170 wpx Rocketball frame)
-const Z_TRIALS_GLOW := -3
+const Z_TRIALS_GLOW := 0              # WK-66c: in FRONT of mesh (-2) + frame (-1); behind them the dark pocket shade ate the glow
 const MAX_RIPPLES := 4
 const Z_DROPSHOT := 4
 const Z_DOME_GLOW := 6
@@ -345,7 +345,7 @@ func setup_trials_goal(gz: Node, mouth_x: float, back_x: float, back_snapped: bo
 	_apply_frame_mat(_frame)
 	add_child(_frame)
 
-	# solved glow: additive puff behind the cage, shown after the score (alpha breathes, never scale)
+	# solved glow: additive puff OVER the cage (WK-66c; low alpha), shown after the score (alpha breathes, never scale)
 	_glow = Sprite2D.new()
 	_glow.texture = PUFF_TEX
 	var add_mat := CanvasItemMaterial.new()
