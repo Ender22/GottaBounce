@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/ui/TrialsHUD.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://assets/ui/theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://src/ui/PadGlyph.gd" id="3_glyph"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fuelbg"]
 bg_color = Color(0.12, 0.09, 0.07, 0.85)
@@ -106,6 +107,49 @@ theme_override_font_sizes/font_size = 28
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
+
+[node name="HintRow" type="HBoxContainer" parent="Root/HomePanel/HomeBox"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="HintPre" type="Label" parent="Root/HomePanel/HomeBox/HintRow"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 28
+text = "HOLD"
+
+[node name="HintGlyph" type="Control" parent="Root/HomePanel/HomeBox/HintRow"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("3_glyph")
+glyph = "A"
+
+[node name="HintSlash" type="Label" parent="Root/HomePanel/HomeBox/HintRow"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 28
+text = "/"
+
+[node name="HintGlyph2" type="Control" parent="Root/HomePanel/HomeBox/HintRow"]
+visible = false
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("3_glyph")
+glyph = "key:SPACE"
+
+[node name="HintPost" type="Label" parent="Root/HomePanel/HomeBox/HintRow"]
+layout_mode = 2
+theme_type_variation = &"TextDark"
+theme_override_font_sizes/font_size = 28
+text = "FLY UP TO THE RING"
 
 [node name="FuelWrap" type="Control" parent="Root"]
 layout_mode = 1

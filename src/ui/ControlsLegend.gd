@@ -8,7 +8,9 @@ extends CanvasLayer
 ## Rides the intro/countdown quiet time, holds 4s into COMBAT, then fades.
 ## Charm beat: pressing a listed button press-bounces its chip (the strip answers you).
 ## Early-out: the first use_powerup press in combat fades it immediately (lesson learned).
-## Controller-only: always renders the drawn pad glyph (no keyboard variant — WK-01). Adds 0.0s to pacing.
+## WK-29 (CC-1.6): device-aware. Pad couch -> pad glyphs; keyboard only -> its key caps (WASD / SPACE / K / L / ESC);
+## a mixed couch sees both twins on every chip ("A / SPACE"), because the legend teaches every player at once.
+## Adds 0.0s to pacing.
 ## Chips are LegendChip.tscn instances (UI is .tscn + theme, CLAUDE.md); only text/glyph are set here.
 
 const CHIP_SCENE := preload("res://scenes/ui/LegendChip.tscn")
@@ -29,6 +31,7 @@ const DEFAULT_VERBS := ["move", "fly", "super", "powerup", "pause"]
 const SPORTS_SUPER_LABEL := "SUPER-SMASH THE BALL (POWER SHOT) OR A RIVAL (CLEAR THEM)"
 
 @onready var _strip: HBoxContainer = $Root/Strip
+@onready var _strip2: HBoxContainer = $Root/Strip2   # WK-29: overflow row (mixed-couch twin glyphs widen the chips)
 @onready var _goal_row: HBoxContainer = $Root/GoalRow
 @onready var _goal_chip: PanelContainer = $Root/GoalRow/GoalChip
 @onready var _goal_label: Label = $Root/GoalRow/GoalChip/GoalLabel
@@ -38,9 +41,13 @@ var _fade_t := -1.0
 var _dying := false
 var _chip_nodes: Array = []   # [{panel, action}]
 var _move_chip: PanelContainer = null
+var _super_chip: PanelContainer = null   # WK-29: the widest chip, moved to Strip2 when one row overflows
+
+var _goal_offsets := Vector2.ZERO   # WK-29: the scene's GoalRow offset_top/bottom (a bottom-dock overflow lifts it)
 
 func _ready() -> void:
 	visible = false
+	_goal_offsets = Vector2(_goal_row.offset_top, _goal_row.offset_bottom)
 
 ## verbs: GameMode.legend_verbs() ids in display order. goal: one-line rule for the gold chip ("" = no chip).
 func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
@@ -49,12 +56,20 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 	_dying = false
 	_fade_t = -1.0
 	_strip.modulate.a = 1.0
+	_strip2.modulate.a = 1.0
 	_goal_row.modulate.a = 1.0
 	var sports: bool = _is_sports()   # WK-113
 	for c in _strip.get_children():
 		c.queue_free()
+	for c in _strip2.get_children():
+		c.queue_free()
+	_strip2.visible = false
+	if not _is_sports():   # WK-29: undo a previous present's bottom-dock overflow lift (REMATCH re-presents)
+		_goal_row.offset_top = _goal_offsets.x
+		_goal_row.offset_bottom = _goal_offsets.y
 	_chip_nodes.clear()
 	_move_chip = null
+	_super_chip = null
 	for v in verbs:
 		var key := str(v)
 		if not VERBS.has(key):
@@ -62,7 +77,12 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 		var spec: Dictionary = VERBS[key]
 		var chip: PanelContainer = CHIP_SCENE.instantiate()
 		var glyph: PadGlyph = chip.get_node("Box/Glyph")
-		glyph.setup(str(spec["pad"]))
+		var gspec: Array = PadGlyph.shared_spec(str(spec["pad"]), "play", true)   # WK-29
+		glyph.setup(str(gspec[0]))
+		if gspec.size() > 1:
+			(chip.get_node("Box/Glyph2") as PadGlyph).setup(str(gspec[1]))
+			(chip.get_node("Box/Glyph2") as Control).visible = true
+			(chip.get_node("Box/Slash") as Control).visible = true
 		var label: String = str(spec["label"])
 		if sports and key == "super":
 			label = SPORTS_SUPER_LABEL   # WK-113
@@ -71,6 +91,8 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 		_chip_nodes.append({"panel": chip, "action": str(spec["action"])})
 		if key == "move":
 			_move_chip = chip
+		elif key == "super":
+			_super_chip = chip
 	_goal_label.text = goal
 	_goal_row.visible = goal != ""
 	if sports:
@@ -79,6 +101,7 @@ func present(verbs: Array = DEFAULT_VERBS, goal: String = "") -> void:
 	await get_tree().process_frame
 	if not visible:
 		return
+	_fit_rows(sports)   # WK-29
 	var pops: Array = []
 	if _goal_row.visible:
 		pops.append(_goal_chip)
@@ -107,6 +130,34 @@ func _dock_top() -> void:
 		_place_top(_goal_row, y, Tuning.sports_legend_goal_h)
 		y += Tuning.sports_legend_goal_h + Tuning.sports_legend_gap
 	_place_top(_strip, y, Tuning.sports_legend_strip_h)
+	if _strip2.visible:
+		y += Tuning.sports_legend_strip_h + Tuning.sports_legend_gap
+		_place_top(_strip2, y, Tuning.sports_legend_strip_h)
+
+## WK-29: a mixed couch doubles every chip's glyph ("A / SPACE"). If the one strip no longer fits the screen with
+## Tuning.legend_edge_margin (top dock) / legend_bottom_edge_margin (bottom dock, clear of the corner HUD cards)
+## either side, the SUPER chip (the widest, esp. the sports smash line) drops to a second
+## row instead of shrinking the 28 px text (CC-8.1). Top dock: the row goes under the strip. Bottom dock: the
+## strip stays on the bottom edge, the extra row sits above it and the goal chip moves up one row.
+func _fit_rows(sports: bool) -> void:
+	if _super_chip == null or not is_instance_valid(_super_chip):
+		return
+	var vw: float = _strip.get_viewport_rect().size.x
+	# bottom dock shares its band with the bottom HUD corner cards, so it keeps a wider margin than the top dock
+	var margin: float = Tuning.legend_edge_margin if sports else Tuning.legend_bottom_edge_margin
+	if _strip.get_combined_minimum_size().x <= vw - 2.0 * margin:
+		return
+	_strip.remove_child(_super_chip)
+	_strip2.add_child(_super_chip)
+	_strip2.visible = true
+	if sports:
+		_dock_top()
+		return
+	var step: float = Tuning.sports_legend_strip_h + Tuning.sports_legend_gap
+	_strip2.offset_top = _strip.offset_top - step
+	_strip2.offset_bottom = _strip.offset_bottom - step
+	_goal_row.offset_top -= step
+	_goal_row.offset_bottom -= step
 
 func _place_top(c: Control, y: float, h: float) -> void:
 	c.anchor_top = 0.0
@@ -150,5 +201,6 @@ func _fade_out() -> void:
 	_dying = true
 	var tw := create_tween()
 	tw.tween_property(_strip, "modulate:a", 0.0, FADE_TIME)
+	tw.parallel().tween_property(_strip2, "modulate:a", 0.0, FADE_TIME)
 	tw.parallel().tween_property(_goal_row, "modulate:a", 0.0, FADE_TIME)
 	tw.tween_callback(func() -> void: visible = false)

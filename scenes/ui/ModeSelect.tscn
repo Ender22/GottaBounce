@@ -61,6 +61,7 @@ size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("4_glyph")
 glyph = "B"
+device_ctx = "menu"
 
 [node name="BackLabel" type="Label" parent="Header/BackBtn/Row"]
 layout_mode = 2
@@ -112,6 +113,7 @@ offset_bottom = 24.0
 mouse_filter = 2
 script = ExtResource("3_hint")
 hints = PackedStringArray("A|Select", "B|Back", "< >|Change")
+device_ctx = "menu"
 
 [node name="Toast" type="Label" parent="."]
 visible = false

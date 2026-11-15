@@ -53,6 +53,15 @@ var _skin_colors: Array = []   # per-participant skin color (from setup), drives
 @onready var _home_label: Label = $Root/HomePanel/HomeBox/HomeLabel
 @onready var _sub_label: Label = $Root/HomePanel/HomeBox/SubLabel
 @onready var _pips_row: HBoxContainer = $Root/HomePanel/HomeBox/PipsRow
+# WK-29: a course hint that names a button ("HOLD  A / SPACE  —  FLY UP") renders as text + the device's glyph chip
+@onready var _hint_row: HBoxContainer = $Root/HomePanel/HomeBox/HintRow
+@onready var _hint_pre: Label = $Root/HomePanel/HomeBox/HintRow/HintPre
+@onready var _hint_glyph: PadGlyph = $Root/HomePanel/HomeBox/HintRow/HintGlyph
+@onready var _hint_slash: Label = $Root/HomePanel/HomeBox/HintRow/HintSlash
+@onready var _hint_glyph2: PadGlyph = $Root/HomePanel/HomeBox/HintRow/HintGlyph2
+@onready var _hint_post: Label = $Root/HomePanel/HomeBox/HintRow/HintPost
+var _hint_key := ""            # WK-29: hint text + device kind the glyph row was last built for
+var _hint_re: RegEx = null
 @onready var _fuel_wrap: Control = $Root/FuelWrap
 @onready var _root: Control = $Root
 
@@ -178,7 +187,7 @@ func _process(delta: float) -> void:
 	# SOLO (owner 2026-07-17: a permanent "GO" is not a HUD element): the home tracker and its pip
 	# are hidden — the panel carries only the course hint, and vanishes entirely when there is none.
 	_sub_label.visible = _sub_label.text != ""
-	_home_panel.visible = n > 1 or _sub_label.text != ""
+	_home_panel.visible = n > 1 or _sub_label.text != "" or _hint_row.visible
 	_place_home_panel(mode, delta)
 
 # ------------------------------------------------------------------ WK-87 objective-panel placement
@@ -357,12 +366,48 @@ func _skin_color(idx: int) -> Color:
 			return c
 	return Color(0.29, 0.83, 0.95, 1.0)
 
+## WK-29 (CC-1.6 / WK-29 accept "Trials no longer says HOLD A / SPACE"): course hints written with a dual button
+## token ("A / SPACE", "X / K", authored in the course JSON) show the button as the ONE glyph component instead,
+## in the shared device kind: pad glyph for pads, the key cap (PadGlyph.KEYS_PLAY) for keyboard only, both on a
+## mixed couch. Returns false (plain text) when the hint names no button.
+func _glyph_hint(h: String) -> bool:
+	if _hint_re == null:
+		_hint_re = RegEx.new()
+		_hint_re.compile("^(.*?)\\b([ABXY]) / [A-Z]+\\b(.*)$")
+	var kind: String = PadGlyph.shared_kind()
+	var key := h + "|" + kind
+	if key == _hint_key:
+		return _hint_row.visible
+	_hint_key = key
+	var m: RegExMatch = _hint_re.search(h)
+	if m == null:
+		_hint_row.visible = false
+		return false
+	var spec: Array = PadGlyph.shared_spec(m.get_string(2), "play", true)
+	_hint_pre.text = m.get_string(1).strip_edges()
+	_hint_pre.visible = _hint_pre.text != ""
+	_hint_glyph.setup(str(spec[0]))
+	_hint_slash.visible = spec.size() > 1
+	_hint_glyph2.visible = spec.size() > 1
+	if spec.size() > 1:
+		_hint_glyph2.setup(str(spec[1]))
+	_hint_post.text = m.get_string(3).strip_edges()
+	_hint_post.visible = _hint_post.text != ""
+	_hint_row.visible = true
+	return true
+
 ## Per-type neutral secondary readout — never a clock, never a score. A course-authored HINT line
 ## (owner 2026-07-16 tutorials) takes the slot when present.
 func _update_sub(mode, otype: String) -> void:
 	if mode.has_method("hint") and str(mode.hint()) != "":
-		_sub_label.text = str(mode.hint())
+		var h := str(mode.hint())
+		if _glyph_hint(h):
+			_sub_label.text = ""
+		else:
+			_hint_row.visible = false
+			_sub_label.text = h
 		return
+	_hint_row.visible = false
 	match otype:
 		"SURVIVE":
 			_sub_label.text = "SURVIVE %.0fs" % float(mode.survive_target()) if mode.has_method("survive_target") else "SURVIVE"

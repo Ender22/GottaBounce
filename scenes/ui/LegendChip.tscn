@@ -36,6 +36,22 @@ size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("2_glyph")
 
+[node name="Slash" type="Label" parent="Box"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CardTag"
+theme_override_font_sizes/font_size = 28
+text = "/"
+
+[node name="Glyph2" type="Control" parent="Box"]
+visible = false
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_glyph")
+
 [node name="Label" type="Label" parent="Box"]
 layout_mode = 2
 size_flags_vertical = 4

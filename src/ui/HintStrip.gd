@@ -12,10 +12,27 @@ extends HBoxContainer
 @export var hints: PackedStringArray = PackedStringArray()
 @export var green_first := false   # legacy (ArenaSelect "A FIGHT!"): the A glyph is already green
 @export var dark_text := false     # chocolate labels with no outline (for strips sitting on a cream plate)
+## WK-29 (CC-1.6): "" = draw the specs literally (PauseMenu / Options pass their owner's own device glyphs).
+## "menu" / "play" = the specs are PAD glyphs of a SHARED footer: they follow PadGlyph.shared_kind() (key caps
+## when only the keyboard is in, pad glyphs otherwise; a mixed couch sees both on the A / START confirm prompt)
+## and re-skin on join / leave / last-device changes.
+@export var device_ctx := ""
+
+var _kind := ""   # WK-29: the shared kind the strip was last built for
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 24)
+	if device_ctx != "":
+		InputRouter.joined_changed.connect(_on_devices)
+		InputRouter.last_device_changed.connect(_on_last_device)
 	rebuild()
+
+func _on_last_device(_k: String) -> void:
+	_on_devices()
+
+func _on_devices() -> void:
+	if PadGlyph.shared_kind() != _kind:
+		rebuild()
 
 func set_hints(h: PackedStringArray) -> void:
 	hints = h
@@ -23,6 +40,8 @@ func set_hints(h: PackedStringArray) -> void:
 		rebuild()
 
 func rebuild() -> void:
+	if device_ctx != "":
+		_kind = PadGlyph.shared_kind()
 	for c in get_children():
 		remove_child(c)
 		c.queue_free()
@@ -35,6 +54,8 @@ func rebuild() -> void:
 		group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(group)
 		var toks: PackedStringArray = _tokens(glyph_spec)
+		if device_ctx != "":
+			toks = _device_tokens(toks)
 		for t in range(toks.size()):
 			if t > 0:
 				group.add_child(_text_label("/"))
@@ -45,6 +66,15 @@ func rebuild() -> void:
 			group.add_child(g)
 		if label != "":
 			group.add_child(_text_label(label))
+
+## WK-29: map pad glyph ids to the shared device's glyphs (confirm/go prompts show both twins on a mixed couch).
+func _device_tokens(toks: PackedStringArray) -> PackedStringArray:
+	var out := PackedStringArray()
+	for t in toks:
+		for g in PadGlyph.shared_spec(t, device_ctx, t == "A" or t == "START"):
+			if not out.has(str(g)):
+				out.append(str(g))
+	return out
 
 ## Split a glyph spec into PadGlyph ids ("< >" is the stick; "B/START" is two glyphs).
 func _tokens(spec: String) -> PackedStringArray:

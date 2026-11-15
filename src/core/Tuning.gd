@@ -827,3 +827,7 @@ var painting_horizon_min_off: float = -350.0   # painted horizon sits at most th
 var themed_body_stretch_max: float = 1.6     # taller than this x canonical (64/128) -> canonical strip + tinted tiled fill  # WK-85
 var themed_fill_brightness: float = 2.0      # grey earth tile brightness (its mean luma is ~0.25) before the theme tint  # WK-85
 var themed_fill_contrast: float = 1.0        # WK-85
+
+# --- WK-29 device-aware glyphs (CC-1.6). Read by src/ui/ControlsLegend.gd (_fit_rows).  # WK-29
+var legend_edge_margin: float = 80.0          # px kept clear at each screen edge; a wider chip strip moves SUPER to a second row  # WK-29
+var legend_bottom_edge_margin: float = 290.0  # px each side for the BOTTOM-docked strip: clear of the 240 px corner HUD cards  # WK-29

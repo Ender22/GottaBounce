@@ -115,3 +115,9 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **Another lane's half-saved script breaks YOUR rendered run.** WK-113 QA hit a grey void court: lane V's mid-edit
   `ArenaRenderer.gd` failed to parse at launch, so `PartyMatch` failed to compile. Before you blame your change, grep the run
   `.err` for parse errors in files you didn't touch, then relaunch once theirs parses.
+- **Agent shell quirk: a doubled backslash in a heredoc'd Python edit arrived as a single one** (WK-29: a GDScript regex
+  `"\b"` landed as `"\b"`, which GDScript reads as a backspace character). Write backslashes with `chr(92)`, then grep
+  the result.
+- **WK-29 glyph rule lives in `PadGlyph`** (`for_kind` / `shared_kind` / `shared_spec`, KEYS_MENU / KEYS_PLAY). Shared
+  .tscn glyphs and HintStrips opt in with `device_ctx = "menu"|"play"`. Prompts that belong to one player (pause, the
+  lobby panels) keep passing their owner's device explicitly. Don't hand-roll `"key:X" if kb else "Y"` again.

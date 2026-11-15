@@ -18,9 +18,10 @@ func present(color: Color, kb: bool, puff: bool, card: Rect2, hold: float) -> vo
 	if _title == null:
 		await ready
 	_title.add_theme_color_override("font_color", color)
-	_move.setup("key:WASD" if kb else "stick")
-	_puff_g.setup("key:K" if kb else "X")
-	_baa.setup("key:J" if kb else "Y")
+	var kind := "kb" if kb else "pad"   # WK-29: the one keyboard map (PadGlyph.KEYS_PLAY)
+	_move.setup(PadGlyph.for_kind("stick", kind, "play"))
+	_puff_g.setup(PadGlyph.for_kind("X", kind, "play"))
+	_baa.setup(PadGlyph.for_kind("Y", kind, "play"))
 	_puff_g.visible = puff
 	_puff_l.visible = puff
 	reset_size()

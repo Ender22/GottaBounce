@@ -14,6 +14,14 @@ extends Control
 ## WK-81/WK-07 additions: "star" (36 px gold flair icon), "check" (green READY tick), "lock" (padlock).
 ## WK-92: `icon_size` scales the "check" (MenuCard's 150 px lock-in stamp); every other glyph ignores it.
 ## Set `glyph` in a .tscn (exported) or call setup() from code (ControlsLegend does).
+##
+## WK-29 (CC-1.6 / CC-1.7): this is THE device-aware glyph component. Every pad glyph has a keyboard twin per
+## context (KEYS_MENU for menus, KEYS_PLAY for a live match; both mirror project.godot's action map). Callers ask
+## `for_kind(pad_glyph, kind, ctx)` for one player's device, or read `shared_kind()` for a shared prompt (the
+## lobby rule from WK-81 generalised: any joined pad -> pad glyphs, only the keyboard joined -> key caps, pads AND
+## the keyboard joined -> "mixed", nobody joined -> the last device used). A glyph placed in a .tscn can opt in with
+## `device_ctx = "menu"` / `"play"`: it then re-skins itself on join / leave / last-device changes.
+## New glyph "arrows": a key cap with left/right triangles (the font has no arrow characters).
 
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const CREAM := Color(1.0, 1.0, 1.0, 0.97)
@@ -26,8 +34,20 @@ const PILL_W := 64.0                       # START pill width (height = SIZE)
 const PILL_COLOR := Color("#3b3f4a")       # Xbox charcoal for the centre buttons
 const RING_COLOR := Color("#ffd23f")
 const LETTER_PX := 28                      # WK-18 / CC-8.1 couch floor for every glyph letter / key name
+const ARROWS_W := 76.0                     # WK-29 "arrows" key cap width
+
+## WK-29: keyboard twins of the pad glyphs. Menus (CC-2.1 / project.godot menu_* + ui_*): Enter confirms and
+## goes, Esc backs, R = Y, Tab = View, Q/E = LB/RB, arrows move focus. Gameplay (CC-2.2 scheme KB-L): WASD move,
+## Space boost, K super, L powerup, J taunt, Esc pause. A glyph with no twin (e.g. "check") passes through.
+const KEYS_MENU := {"A": "key:ENTER", "B": "key:ESC", "X": "key:F", "Y": "key:R", "START": "key:ENTER",
+	"VIEW": "key:TAB", "LB": "key:Q", "RB": "key:E", "stick": "arrows"}
+const KEYS_PLAY := {"A": "key:SPACE", "B": "key:L", "X": "key:K", "Y": "key:J", "START": "key:ESC",
+	"stick": "key:WASD"}
 
 @export var glyph := ""                    # set in .tscn; "" = wait for setup()
+## WK-29: "" = draw `glyph` literally. "menu" / "play" = `glyph` is the PAD glyph of a SHARED prompt; show its
+## keyboard twin whenever shared_kind() is "kb" (pads and mixed couches keep the pad glyph).
+@export var device_ctx := ""
 @export var icon_size := 36.0:             # "check" only: drawn diameter-ish box (36 = READY tick)
 	set(v):
 		icon_size = maxf(v, 8.0)
@@ -40,10 +60,77 @@ const LETTER_PX := 28                      # WK-18 / CC-8.1 couch floor for ever
 
 var _glyph := "A"      # "A"/"B"/"X"/"Y" | "stick" | "START" | "LB"/"RB"/"VIEW" | "key:TXT" | "pad" | "kb"
 var _label: Label = null
+var _base := ""        # WK-29: the pad glyph a device-aware instance was authored with
 
 func _ready() -> void:
 	if _label == null:
 		setup(glyph if glyph != "" else _glyph)
+	if device_ctx != "":
+		_base = _glyph
+		var ir: Node = _router()
+		if ir != null:
+			ir.connect("joined_changed", _apply_device)
+			ir.connect("last_device_changed", _on_last_device)
+		_apply_device()
+
+func _on_last_device(_k: String) -> void:
+	_apply_device()
+
+## WK-29: re-skin a device-aware glyph for the current shared device kind.
+func _apply_device() -> void:
+	if device_ctx == "" or _base == "":
+		return
+	var want: String = for_kind(_base, "kb" if shared_kind() == "kb" else "pad", device_ctx)
+	if want != _glyph:
+		setup(want)
+
+# ------------------------------------------------------------------ WK-29 device mapping (static)
+
+static func _router() -> Node:
+	var ml := Engine.get_main_loop()
+	if ml is SceneTree:
+		return (ml as SceneTree).root.get_node_or_null("InputRouter")
+	return null
+
+## The glyph id to draw for pad glyph `g` on a device of `kind` ("kb" / "pad", or a device key "kb" / "pad:N").
+## ctx "menu" or "play" picks the keyboard map. Pads (and unknown kinds) get `g` unchanged.
+static func for_kind(g: String, kind: String, ctx: String = "menu") -> String:
+	if kind != "kb":
+		return g
+	var m: Dictionary = KEYS_PLAY if ctx == "play" else KEYS_MENU
+	return str(m.get(g, g))
+
+## Shared-prompt device kind (CC-1.6 as amended, WK-81's lobby rule): "pad" if only pads are joined, "kb" if only
+## the keyboard is, "mixed" if both are, and the last device used ("kb" / "pad") while nobody is joined.
+static func shared_kind() -> String:
+	var ir: Node = _router()
+	if ir == null:
+		return "pad"
+	var any_pad := false
+	var any_kb := false
+	for k in (ir.get("joined") as Dictionary).keys():
+		if str(k) == "kb":
+			any_kb = true
+		elif str(k).begins_with("pad:"):
+			any_pad = true
+	if any_pad and any_kb:
+		return "mixed"
+	if any_pad:
+		return "pad"
+	if any_kb:
+		return "kb"
+	return "kb" if str(ir.get("last_device_kind")) == "kb" else "pad"
+
+## Glyph spec(s) for a SHARED prompt of pad glyph `g`: one id, or "pad/kb" twins joined by "/" when the couch is
+## mixed and `both_when_mixed` (CC-1.6: GO / confirm prompts, and the controls legend, teach both).
+static func shared_spec(g: String, ctx: String = "menu", both_when_mixed: bool = false) -> Array:
+	var k: String = shared_kind()
+	if k == "kb":
+		return [for_kind(g, "kb", ctx)]
+	var twin: String = for_kind(g, "kb", ctx)
+	if k == "mixed" and both_when_mixed and twin != g:
+		return [g, twin]
+	return [g]
 
 func setup(g: String) -> void:
 	_glyph = g
@@ -69,6 +156,9 @@ func setup(g: String) -> void:
 		_label.add_theme_font_size_override("font_size", LETTER_PX)
 		_label.add_theme_color_override("font_color", Color.WHITE)
 		w = PILL_W
+	elif _glyph == "arrows":
+		_label.text = ""
+		w = ARROWS_W
 	elif _glyph.begins_with("key:"):
 		var t := _glyph.substr(4)
 		_label.text = t
@@ -143,6 +233,22 @@ func _draw() -> void:
 		face.set_border_width_all(3)
 		face.set_corner_radius_all(9)
 		draw_style_box(face, Rect2(Vector2(1, 0), Vector2(w - 2, SIZE - 6)))
+	elif _glyph == "arrows":
+		# WK-29: the arrow keys as one cream key cap with a left and a right triangle
+		var base_a := StyleBoxFlat.new()
+		base_a.bg_color = CHOCO
+		base_a.set_corner_radius_all(10)
+		draw_style_box(base_a, Rect2(Vector2(1, 4), Vector2(w - 2, SIZE - 4)))
+		var face_a := StyleBoxFlat.new()
+		face_a.bg_color = KEYCAP
+		face_a.border_color = CHOCO
+		face_a.set_border_width_all(3)
+		face_a.set_corner_radius_all(9)
+		draw_style_box(face_a, Rect2(Vector2(1, 0), Vector2(w - 2, SIZE - 6)))
+		var cy: float = (SIZE - 6.0) * 0.5
+		var cx: float = w * 0.5
+		draw_colored_polygon(PackedVector2Array([Vector2(cx - 24, cy), Vector2(cx - 8, cy - 10), Vector2(cx - 8, cy + 10)]), CHOCO)
+		draw_colored_polygon(PackedVector2Array([Vector2(cx + 24, cy), Vector2(cx + 8, cy - 10), Vector2(cx + 8, cy + 10)]), CHOCO)
 	elif _glyph == "pad":
 		_draw_pad_icon(c)
 	elif _glyph == "kb":

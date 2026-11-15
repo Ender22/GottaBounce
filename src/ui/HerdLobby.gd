@@ -1388,6 +1388,7 @@ func _refresh_glyphs() -> void:
 	(_lb_glyph as Object).call("setup", "key:Q" if kb else "LB")
 	(_rb_glyph as Object).call("setup", "key:E" if kb else "RB")
 	(_view_glyph as Object).call("setup", "key:TAB" if kb else "VIEW")
+	(get_node("Footer/HintRow/GFlair/Glyph") as Object).call("setup", "arrows" if kb else "stick")   # WK-29: no stick on a keyboard
 	(_go_glyph as Object).call("setup", "key:ENTER" if kb else "START")
 	# dual GO prompt for a mixed couch
 	_f_go_slash.visible = mixed

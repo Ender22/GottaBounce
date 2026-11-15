@@ -63,6 +63,7 @@ size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("6_glyph")
 glyph = "B"
+device_ctx = "menu"
 
 [node name="BackLabel" type="Label" parent="Header/BackBtn/Row"]
 layout_mode = 2
@@ -154,5 +155,6 @@ offset_bottom = 24.0
 mouse_filter = 2
 script = ExtResource("3_hint")
 hints = PackedStringArray("A|FIGHT!", "B|Back", "< >|Choose")
+device_ctx = "menu"
 green_first = true
 
