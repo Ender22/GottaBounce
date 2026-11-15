@@ -87,3 +87,10 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   in-flight lanes by name). Run it after each commit batch.
 - Stage a Tuning.gd block that shares a git hunk with another lane's block by writing the index blob directly:
   HEAD text + the lines tagged "# WK-NN" -> `git hash-object -w --stdin` -> `git update-index --cacheinfo`.
+- **The `--editor --quit` parse gate also misses GDScript errors in scripts only reached via runtime `load("res://...gd").new()`**
+  (WK-53b: `get_viewport_rect()` on a CanvasLayer passed the gate, then `Failed to load script` aborted `PartyMatch._ready` mid-way
+  -> match stuck in BOOT). After adding such a script, launch rendered and grep the run log's `.err` for `SCRIPT ERROR`.
+- **GPU FELL OFF (found 2026-11-15 ~09:30):** Device Manager shows the AMD RX 6700S as CM_PROB_DISABLED and the Radeon iGPU as
+  CM_PROB_FAILED_ADD, so Godot runs on the Microsoft Basic Render Driver (software, ~37 fps). Probably a leftover of the 02:00 freeze.
+  Visual checks and fixed-fps recordings stay valid; perf/fps/timing numbers taken since are NOT. Check
+  `Get-PnpDevice -Class Display` before any perf work. Fixing it needs the owner (reboot / re-enable the device) — not us.
