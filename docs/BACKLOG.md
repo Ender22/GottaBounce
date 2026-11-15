@@ -2833,7 +2833,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
   length, super share (>= CD5 62 % relative) and human self-KO (CD5 16 %) inside their guardrails; or Won't do with the numbers.
 - Status: **in-progress (169a, director 2026-11-16).** Next-10 #2.
 
-### [ ] WK-170 [P2][S] (CD5-02) Audio priority: the countdown is louder than a KO; some supers sink under the bed; combat mix is dark
+### [x] WK-170 [P2][S] (CD5-02) Audio priority: the countdown is louder than a KO; some supers sink under the bed; combat mix is dark — 5555fa6
 - Area: audio · Owner: sound-designer · Source: WK-CD5 CD5-02 (+ WK-79a's original "countdown loudest", never brought under the stinger bus)
 - Evidence (`tools/out/wk/CD5_rec_meadow/` audio.wav, `tools/out/wk/WK-79a_scripts/measure_run.py`):
   - countdown rise **+13.2 LU** (max +17.3) vs KO **+6.5 LU** and GO +6.5;
