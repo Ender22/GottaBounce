@@ -2805,6 +2805,9 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 ## Re-rank #10 filings (WK-CD5, `docs/audit/2026-11-16_cd5_playthrough.md`, + A/B follow-ups)
 
 ### [ ] WK-169 [P2][M] (CD5-01) Brawl spectator time: ~25 % of combat dead per human seat, 30-40 s 1v1 tails with two ghosts
+- **WK-169b A/B 2026-11-16: NO RULING (decision row 6: A0r noise 0.70x).** Golden drop works mechanically (tail smashes +70 %, tank
+  holder won 15/17 — watch 'too strong'), but lane N can't resolve 8 %. Re-queue (pre-registered): A0, A0r, A1 only, ~250 forced stages
+  each; tails measured without SD time; collection over taken-or-expired drops; A0+A0r pooled control; P(tail >= 6 s goes past 20 s).
 - **Prototype BUILT ab0c1a3 (all OFF).** WK-169b batch queued after the WK-161b acceptance batch (arms GB_WK169=a0/a1/a2/a3/a4).
   Design calls for 169c: golden-seek runs after the refuel rule (low-fuel CPUs ignore a nearby bubble); a golden drop can land on an
   occupied spawner; golden bubble art is small at play zoom; music hush/stings, gold HUD frame, ghost line not built.
@@ -2946,3 +2949,7 @@ A/B follow-ups (re-rank #10): WK-135 p3 (2026-11-16_wk135_p3_ab.md) 1-3 -> 175, 
 - Source: WK-179. ArenaRenderer looks for assets/world/grass/decal_*.png but the art is at assets/world/grass/decals/{tuft_a,tuft_b,flower_white}.png.
   Wiring it changes every grass platform's look -> art-director brief/grade first. Same call: give horizontal bumpers real art (today a grey strip).
   Also: the CIRCUIT UNLOCKED banner text overlaps the arena preview panel's chips.
+
+### [ ] WK-181 [P2][S] A chain of eliminations within 0.5 s of each other revives EVERYONE in the chain into sudden death
+- Source: WK-169b batch (T.A0.201.json, meadow_spine: all four goats revived; 7 of 240 forced stages). Sudden death should only revive
+  the last two (owner SD rule). Check PartyMatch's double-KO window chaining.
