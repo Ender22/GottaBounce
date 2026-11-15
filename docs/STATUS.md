@@ -14,7 +14,7 @@ Uncommitted PARTIAL work in the tree, by lane (agent transcripts are saved; resu
   at the END of Tuning.gd — stage with tools/stage_hunks.py) — agent a98a0dbfd05308d91.
 - WK-34 fixes + WK-35 committed (see log); its CD2-06 hunk in src/ui/PlayerPips.gd is still uncommitted — commit WITH WK-37d.
 - WK-66a net ART committed 9e91e3c; NEXT: net draw-code build (ArenaRenderer/SportsMode, brief docs/briefs/sports_nets_2026-11-15.md;
-  goal 3-slice cap_frac 0.13 mouth_h+31, Dropshot frame cap_frac 0.23 at 80 wpx) once a Godot slot is free.
+  goal 3-slice cap_frac 0.13 mouth_h+31, Dropshot frame cap_frac 0.23 at 80 wpx) IN PROGRESS: agent a96edc4ef5c4a31e1 (port 9103).
 - WK-135 standable-bumpers spec (doc only, docs/specs/wk135_*) — agent af926bde2ee0bc6f7.
 Keep-awake script died with the session: restart `scratchpad/keepawake.ps1` (background) before rendered timing work.
 CONCURRENCY CAP from now on: <= 3 agents running Godot at once, <= 1 headless batch (and <= 2 processes per batch).
