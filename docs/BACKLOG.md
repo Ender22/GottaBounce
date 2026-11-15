@@ -1385,7 +1385,7 @@ WK-95f is merged into WK-128's §9 Trials sweep. The g6 ORBIT, p4 cannon and s3 
   impacts above a speed threshold or on contact-begin. Check fuel refund + Juice don't depend on the flood (WK-128!).
 
 
-### [ ] WK-37d [P2][S] Ghost identity + islands_void faintness + art-director regrade
+### [x] WK-37d [P2][S] Ghost identity + islands_void faintness + art-director regrade — b76d36f
 - Source: WK-37c. R3: which bot ghost is which fails (no P#/name pip on bot ghosts; horns too small at ~30 px) — add a
   small name/P# tag to ghosts in the owner colour. islands_void: ghosts faint on the bright field (design call: base
   opacity or apply the wide-camera boost earlier than zoom 0.46). P1 pip sits on a living goat when its ghost is just
