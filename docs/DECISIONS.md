@@ -2,6 +2,12 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-109 RULING (docs/audit/2026-11-16_wk109_ab.md): DON'T SHIP the power shot as specced (switch stays OFF). Neither arm
+  meets the dynamic-range bars (near-cap normal touches 41 / 30 % vs < 10 %; power/median 1.38-1.40 vs >= 1.75) because real touches
+  carry a ~1000 px/s striker into a ~1400 px/s ball; fixing it needs protected constants (incoming-speed retention / striker term) ->
+  back to game-designer. A0 re-check confirms the phase-3 ball refuel + nets ON build: CENTER human rally median 8.85 s (in band),
+  starved share still halved, the all-bot goals dip was single-seed noise.
+
 - **2026-11-16** WK-135 PHASE-3 RULING (docs/audit/2026-11-16_wk135_p3_ab.md): refund gates stay OFF (KO/min 0.77x, median +24 %,
   self-KO +6.7 pp, Bumper Gauntlet 1/33 -> 13/35 bot empty-tank falls; neither fallback rescues them) -> retune later with the bot
   refuel brain + re-arm frac + the carousel deck fix. SPORTS BALL REFUEL ON (gates OFF): human-seat starved share 0.27 -> 0.14, goals

@@ -488,6 +488,9 @@ first. Its re-judge list is in the WK-CD5 entry.
   - The (b2) kickoff RULE with human-style seats was never run -> WK-131 (re-rank #6).
 
 ### [ ] WK-109 [P1][S] Power shot gets real dynamic range: split the ball cap, trim the touch floor (SP-07)
+- **A/B 2026-11-16: DON'T SHIP as specced** (docs/audit/2026-11-16_wk109_ab.md). Needs a redesign that lowers touch INPUT speeds
+  (incoming-ball retention / striker-speed term = protected constants -> designer ruling). Also unexplained: more goals in the 1 s after the
+  gates open with WK-109 on (THE BOX all-bot 12/62 vs 2/71).
 - **Built 2b6963a, switch OFF** (R1-R8 pass rendered). A/B queued after the WK-135 phase-3 A/B (arms A0/A1/A2 via tune_wk109_*;
   env GB_WK109). Notes: streak barely reads at couch scale (wk109_trail_len_s); pop can cover a goat tag / the gate NOT YET! pop.
 - Area: sports (feel) · Owner: game-designer (A/B ruling) -> gameplay-programmer · Source: WK-98 SP-07 · feel-protect: A/B before shipping;
