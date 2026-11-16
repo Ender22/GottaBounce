@@ -975,7 +975,7 @@ var bot_pin_turn_mult: float = 3.0            # x bot_flight_turn_rate while tha
 #       source can't be farmed; the only "farm" is hitting the ball, which is the game. Invariant #2 holds: one touch re-arms a super.  # WK-135
 # WK-175: the master now means "the wk175_gate_set scope" (1 WR walls only / 2 WS / 3 FULL = this phase-3 block + deck fix);  # WK-175
 # Player reads the gates ONLY through Tuning.gate_rules() (WK-175 block at the end of the file); the gate_* helpers below are legacy.  # WK-175
-var refund_gates_on: bool = false             # OFF until the phase-3 A/B (director). MASTER: WK-128 (b) gates at the spec values. false = every contact pays (pre-phase-3)  # WK-135
+var refund_gates_on: bool = true              # 2026-11-16 WK-175: ON = gate set wk175_gate_set 1 (WR, walls only) in the modes listed in wk175_gate_modes (brawl only). Shipped after the A/B (docs/audit/2026-11-16_wk175_ab.md), rendered checks, CD re-ask (docs/audit/2026-11-16_wk175d_feel.md) + WK-175e cue fix. false = every contact pays (pre-phase-3)  # WK-175
 var sports_touch_refuel: bool = true          # ON (phase-3 A/B: human starved share 0.27 -> 0.14; gates stay OFF). S1 switch: ball touches refuel in Sports. false (or sports_touch_fuel 0) = OFF  # WK-135
 var sports_touch_fuel: float = 20.0           # S1 fuel per accepted live touch (= one trampoline bounce). 0 = OFF  # WK-135
 var sports_touch_fuel_cd: float = 1.0         # S1 s per player between paying touches (caps the source at 20/s < drain 28.6). Inv. #17  # WK-135
@@ -1691,11 +1691,11 @@ var wk183_ding_st_max: float = 5.0            # semitones the ding rises across 
 #              refund-tick ding in the same frame is swallowed: one ding per pay) + a warm jetpack flare on the goat.  # WK-175c
 #   blocked -> "wall_tok" (Kenney impactWood, CC0, pitched down: a dull wood knock) + a slate-grey dud puff at the contact.  # WK-175c
 # PER-MODE SCOPE: the master refund_gates_on applies ONLY in the mode families listed in wk175_gate_modes ("brawl", "trials",  # WK-175c
-# "sports" = every SportsMode court). A goat whose mode can't be resolved (dev scenes) follows the master alone. Today the master is  # WK-175c
-# false, so this list changes nothing. THE BRAWL FLIP is the one line refund_gates_on = true (list default = brawl only); the  # WK-175c
-# sports flip later is adding "sports" here. QA arms: env GB_WK175=wr (or GB_WK135_GATES=1) widens the list to every mode unless  # WK-175c
+# "sports" = every SportsMode court). A goat whose mode can't be resolved (dev scenes) follows the master alone. 2026-11-16 (WK-175e):  # WK-175c
+# the master is ON, so WR is live in brawl only. (The brawl flip was the one line refund_gates_on = true; the  # WK-175c
+# sports flip later is adding "sports" here.) QA arms: env GB_WK175=wr (or GB_WK135_GATES=1) widens the list to every mode unless  # WK-175c
 # env GB_WK175_MODES=brawl,sports,... names it.  # WK-175c
-var wk175_gate_modes: Array[String] = ["brawl"]   # mode families the WK-175 master applies in (brawl / trials / sports). Inert while refund_gates_on = false  # WK-175c
+var wk175_gate_modes: Array[String] = ["brawl"]   # mode families the WK-175 master applies in (brawl / trials / sports). 2026-11-16 WK-175e: master ON -> WR live in BRAWL only  # WK-175c
 const WK175C_ALL_MODES: Array[String] = ["brawl", "trials", "sports"]   # what an env-armed QA run covers  # WK-175c
 var wk175c_cues_on: bool = true               # false = no wall ding / tok / flare / puff (WR stays silent, as pre-WK-175c)  # WK-175c
 var wk175c_ding_db: float = -14.5             # volume_db of a HUMAN goat's paying-wall ding (2 dB over the sports arc tick: brawl's bounce bed is 4 dB louder)  # WK-175c
@@ -1705,21 +1705,30 @@ var wk175c_tok_db: float = -12.0              # volume_db of a HUMAN goat's bloc
 var wk175c_tok_cpu_db: float = -18.0          # CPU goat's tok: 6 dB under  # WK-175c
 var wk175c_tok_pitch: float = 0.8             # tok pitch scale: the ~150 Hz wood knock dropped to ~120 Hz (dull; gate_clonk sits at x1.25)  # WK-175c
 var wk175c_tok_gap_s: float = 0.35            # min GAME s between two toks of the same goat (a FLY-held wall hug knocks ~3/s, never buzzes)  # WK-175c
+var wk175c_tok_after_pay_s: float = 0.30      # WK-175e (CD re-ask FIX 1): no tok (sound or puff) for this long after a PAID cue from the same goat on the SAME face key: one bank that squashes / slides / re-touches must never read 'ding-tok' (21 % did). The contact still pays nothing  # WK-175c
 var wk175c_flare_s: float = 0.35              # s the paying-wall jetpack flare lasts (decays linearly)  # WK-175c
-var wk175c_flare_scale: float = 1.7           # x flame size at the flare's start (on top of the live thrust / supercharge size)  # WK-175c
+var wk175c_flare_scale: float = 2.2           # x flame size at the flare's start (on top of the live thrust / supercharge size). WK-175e: 1.7 -> 2.2 (brawl zoom)  # WK-175c
 var wk175c_flare_tint: Color = Color(1.9, 1.7, 1.15, 1.0)   # flame modulate at the flare's start (warm over-bright; never cyan = Unlimited Boost)  # WK-175c
 var wk175c_glow_color: Color = Color(1.0, 0.82, 0.32, 1.0)  # additive nozzle glow at the flare's start (also shows when coasting, flame off)  # WK-175c
-var wk175c_glow_scale: float = 1.5            # glow_01 (128 px) scale at the flare's start (shrinks to 0.6 x this)  # WK-175c
-var wk175c_burst_amount: int = 14            # fire licks in the paying-wall flare burst out of the nozzle (Juice; shows even when coasting)  # WK-175c
+var wk175c_glow_scale: float = 2.4            # glow_01 (128 px) scale at the flare's start (shrinks to 0.6 x this). WK-175e: 1.5 -> 2.4 (~1 goat-width at brawl zoom)  # WK-175c
+var wk175c_burst_amount: int = 20            # fire licks in the paying-wall flare burst out of the nozzle (Juice; shows even when coasting). WK-175e: 14 -> 20  # WK-175c
 var wk175c_burst_speed: float = 420.0         # px/s max of that burst (out of the nozzle, opposite the aim)  # WK-175c
-var wk175c_puff_color: Color = Color(0.52, 0.52, 0.56, 1.0)   # tok dud puff at the CONTACT: mid-grey soft smoke (lighter than night skies, darker than the pale posts / day skies; the bounce dust is white sparks)  # WK-175c
-var wk175c_puff_amount: int = 6               # soft smoke blobs in the tok puff  # WK-175c
-var wk175c_puff_scale: float = 1.2            # puff_soft (128 px; its opaque core is ~36 px) blob scale (max; min = 0.7 x), grows 0.6 -> 1.0 over its life  # WK-175c
+var wk175c_puff_dark: Color = Color(0.28, 0.28, 0.32, 1.0)    # WK-175e two-tone tok puff, DARK half of the blobs (reads on sepia / day skies + the pale posts)  # WK-175c
+var wk175c_puff_pale: Color = Color(0.80, 0.80, 0.84, 1.0)    # WK-175e two-tone tok puff, PALE half (reads on night / sepia skies). Was one 0.52 grey = Pinball Pit's sky value  # WK-175c
+var wk175c_puff_amount: int = 6               # soft smoke blobs in the tok puff (half dark, half pale)  # WK-175c
+var wk175c_puff_scale: float = 2.0            # puff_soft (128 px; its opaque core is ~36 px) blob scale (max; min = 0.7 x), grows 0.6 -> 1.0 over its life. WK-175e: 1.2 -> 2.0  # WK-175c
 var wk175c_sputter_color: Color = Color(0.74, 0.74, 0.78, 1.0)  # tok jetpack SPUTTER: a light-grey smoke cough out of the nozzle (reads on night skies; the mirror of the paid fire flare)  # WK-175c
 var wk175c_sputter_amount: int = 6            # smoke blobs in the sputter  # WK-175c
-var wk175c_sputter_scale: float = 1.8          # puff_soft (128 px; ~36 px core) sputter blob scale (max; min = 0.6 x)  # WK-175c
+var wk175c_sputter_scale: float = 2.8          # puff_soft (128 px; ~36 px core) sputter blob scale (max; min = 0.6 x). WK-175e: 1.8 -> 2.8  # WK-175c
 var wk175c_puff_speed: float = 110.0          # px/s the blobs leave the contact (normal +/- 80 deg; they sag under gravity: a fizzle)  # WK-175c
-var wk175c_puff_s: float = 0.6                # s the tok puff + sputter live  # WK-175c
+var wk175c_puff_s: float = 0.7                # s the tok puff + sputter live. WK-175e: 0.6 -> 0.7 (still there once the goat bounced clear)  # WK-175c
+var wk175c_zoom_ref: float = 0.56             # WK-175e: camera zoom the scales above are tuned for (4-goat brawl, CD measured 0.55-0.57). Tighter shots shrink them  # WK-175c
+var wk175c_zoom_k_min: float = 0.6            # WK-175e: smallest size factor (zoom_ref / zoom, clamped [this, 1]) so tight 1v1 / sports shots never balloon (~ the pre-WK-175e sizes)  # WK-175c
+
+## WK-175e: size factor for the wall cue VFX at camera zoom `zoom`: 1 at / below wk175c_zoom_ref (brawl), smaller when the camera is  # WK-175c
+## tighter, never below wk175c_zoom_k_min. (The CD's clamp(0.85 / zoom, 1, 1.6) x old sizes, re-based on the new brawl-zoom values.)  # WK-175c
+func wk175c_zoom_k(zoom: float) -> float:  # WK-175c
+	return clampf(wk175c_zoom_ref / maxf(zoom, 0.01), wk175c_zoom_k_min, 1.0)  # WK-175c
 
 ## WK-175c: is the WK-175 master in scope for a goat in mode family `mode` ("" = unresolved -> follows the master alone)?  # WK-175c
 func wk175c_mode_in_scope(mode: StringName) -> bool:  # WK-175c

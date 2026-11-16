@@ -225,20 +225,28 @@ func _on_wall_refund_cue(player, paid, _amount, contact_point, normal) -> void: 
 		return
 	if bool(paid):
 		if player != null and is_instance_valid(player):
-			_wk175c_flare_burst(scene, player)
+			_wk175c_flare_burst(scene, player, _wk175c_zoom_k())
 		return
+	var zk: float = _wk175c_zoom_k()   # WK-175e: sizes tuned for brawl zoom, smaller in tight shots
 	if player != null and is_instance_valid(player):
-		_wk175c_sputter(scene, player)
+		_wk175c_sputter(scene, player, zk)
 	var n: Vector2 = normal if normal is Vector2 else Vector2.UP
+	# WK-175e two-tone: half the blobs dark, half pale (one mid grey vanished into Pinball Pit's sepia sky), drawn ABOVE the goat
+	var half: int = maxi(1, int(Tuning.wk175c_puff_amount * 0.5))
+	for c0 in [Tuning.wk175c_puff_dark, Tuning.wk175c_puff_pale]:
+		_wk175c_puff(scene, contact_point + n * 6.0, n, c0, half, zk)
+
+## WK-175c/e: one tone of the blocked-wall dud puff (soft smoke squirting off the wall in a half-disk, sagging: a fizzle).
+func _wk175c_puff(scene: Node, pos: Vector2, n: Vector2, c0: Color, amount: int, zk: float) -> void:   # WK-175c
 	var p := CPUParticles2D.new()
-	p.global_position = contact_point + n * 6.0
-	p.z_index = -1   # under the goats (never smears the face), over the sky: the smoke shows AROUND the contact
+	p.global_position = pos
+	p.z_index = 12   # WK-175e: ABOVE the goats (the CD lost it under the squash)
 	p.emitting = true
 	p.one_shot = true
 	p.explosiveness = 0.9
-	p.amount = maxi(1, Tuning.wk175c_puff_amount)
+	p.amount = amount
 	p.lifetime = Tuning.wk175c_puff_s
-	p.spread = 90.0   # a half-disk off the wall: most blobs squirt out along the face, above and below the goat
+	p.spread = 90.0   # a half-disk off the wall: blobs squirt out along the face, above and below the goat
 	p.direction = n
 	p.gravity = Vector2(0, 300)
 	p.initial_velocity_min = Tuning.wk175c_puff_speed * 0.5
@@ -249,13 +257,12 @@ func _on_wall_refund_cue(player, paid, _amount, contact_point, normal) -> void: 
 	p.scale_amount_max = 4.6
 	if ResourceLoader.exists(GLOW_TEX_175C):
 		p.texture = load(GLOW_TEX_175C)
-		p.scale_amount_min = Tuning.wk175c_puff_scale * 0.7
-		p.scale_amount_max = Tuning.wk175c_puff_scale
-	var c0: Color = Tuning.wk175c_puff_color
+		p.scale_amount_min = Tuning.wk175c_puff_scale * zk * 0.7
+		p.scale_amount_max = Tuning.wk175c_puff_scale * zk
 	var grad := Gradient.new()
 	grad.set_color(0, c0)
-	grad.add_point(0.4, Color(c0.r * 0.85, c0.g * 0.85, c0.b * 0.85, c0.a * 0.7))
-	grad.set_color(1, Color(c0.r * 0.7, c0.g * 0.7, c0.b * 0.7, 0.0))
+	grad.add_point(0.4, Color(c0.r, c0.g, c0.b, c0.a * 0.8))
+	grad.set_color(1, Color(c0.r, c0.g, c0.b, 0.0))
 	p.color_ramp = grad
 	var grow := Curve.new()
 	grow.add_point(Vector2(0.0, 0.6))
@@ -264,10 +271,15 @@ func _on_wall_refund_cue(player, paid, _amount, contact_point, normal) -> void: 
 	scene.add_child(p)
 	scene.get_tree().create_timer(Tuning.wk175c_puff_s + 0.4).timeout.connect(p.queue_free)
 
+## WK-175e: wall-cue VFX size factor at the live camera zoom (1 at brawl zoom, smaller in tight shots).
+func _wk175c_zoom_k() -> float:   # WK-175c
+	var cam := get_viewport().get_camera_2d()
+	return Tuning.wk175c_zoom_k(cam.zoom.x if cam != null else Tuning.wk175c_zoom_ref)
+
 const GLOW_TEX_175C := "res://assets/fx/puff_soft.png"   # WK-175c soft smoke blob (the tok puff + sputter; GhostGoat SOFT_TEX)
 
 ## WK-175c: the blocked-wall jetpack cough - a few light-grey smoke blobs out of the nozzle (opposite the aim) that drift up.
-func _wk175c_sputter(scene: Node, player) -> void:   # WK-175c
+func _wk175c_sputter(scene: Node, player, zk: float = 1.0) -> void:   # WK-175c
 	var aim := Vector2.UP
 	if player.has_method("get_aim"):
 		aim = player.get_aim()
@@ -293,8 +305,8 @@ func _wk175c_sputter(scene: Node, player) -> void:   # WK-175c
 	p.scale_amount_max = 4.6
 	if ResourceLoader.exists(GLOW_TEX_175C):
 		p.texture = load(GLOW_TEX_175C)
-		p.scale_amount_min = Tuning.wk175c_sputter_scale * 0.6
-		p.scale_amount_max = Tuning.wk175c_sputter_scale
+		p.scale_amount_min = Tuning.wk175c_sputter_scale * zk * 0.6
+		p.scale_amount_max = Tuning.wk175c_sputter_scale * zk
 	var c0: Color = Tuning.wk175c_sputter_color
 	var grad := Gradient.new()
 	grad.set_color(0, c0)
@@ -309,7 +321,7 @@ func _wk175c_sputter(scene: Node, player) -> void:   # WK-175c
 	scene.get_tree().create_timer(Tuning.wk175c_puff_s + 0.4).timeout.connect(p.queue_free)
 
 ## WK-175c: the paying-wall flare burst - a quick tongue of warm fire out of the nozzle (opposite the aim), additive.
-func _wk175c_flare_burst(scene: Node, player) -> void:   # WK-175c
+func _wk175c_flare_burst(scene: Node, player, zk: float = 1.0) -> void:   # WK-175c
 	var aim := Vector2.UP
 	if player.has_method("get_aim"):
 		aim = player.get_aim()
@@ -335,8 +347,8 @@ func _wk175c_flare_burst(scene: Node, player) -> void:   # WK-175c
 	p.scale_amount_max = 4.0
 	if ResourceLoader.exists(FIRE_TEX):
 		p.texture = load(FIRE_TEX)
-		p.scale_amount_min = 0.45
-		p.scale_amount_max = 0.8
+		p.scale_amount_min = 0.45 * zk / 0.75   # WK-175e: 0.6-1.07 at brawl zoom (the burst grew with the glow)
+		p.scale_amount_max = 0.8 * zk / 0.75
 	var grad := Gradient.new()
 	grad.set_color(0, Color(1.0, 1.0, 0.85, 1.0))
 	grad.add_point(0.3, Color(1.0, 0.8, 0.25, 1.0))

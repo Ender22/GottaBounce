@@ -164,9 +164,11 @@ var _wk175c_cls := -1                   # face class of the contact _wk128_conta
 var _wk175c_family: StringName = &"?"   # mode family for the per-mode gate scope: brawl / trials / sports, "" = no mode, "?" = unresolved  # WK-175c
 var _wk175c_pay_t := -100.0             # _wk135_clock of this goat's last emitted PAID cue (rate limit)  # WK-175c
 var _wk175c_tok_t := -100.0             # _wk135_clock of this goat's last emitted tok cue (rate limit)  # WK-175c
+var _wk175c_paid_key := ""              # WK-175e: face key of this goat's last PAYING wall contact (cue or not)  # WK-175c
+var _wk175c_paid_clock := -100.0        # WK-175e: _wk135_clock of it (tok-after-pay suppression, same face only)  # WK-175c
 var _wk175c_flare_t := 0.0              # s left on the paying-wall jetpack flare  # WK-175c
 var _wk175c_glow: Sprite2D              # additive nozzle glow of the flare (null if GLOW_TEX absent)  # WK-175c
-var wk175c_cues := {"ding": 0, "tok": 0, "rate_limited": 0}   # QA counters: cues emitted / swallowed by the per-goat gaps  # WK-175c
+var wk175c_cues := {"ding": 0, "tok": 0, "rate_limited": 0, "tok_after_pay": 0}   # QA counters: cues emitted / swallowed by the per-goat gaps / WK-175e same-face tok-after-pay  # WK-175c
 # WK-136 (CD3-04a) telemetry: a BILLED re-light's burn, so QA can count presses that ran dry under 0.1 s of thrust.  # WK-136
 const WK136_MIN_BURN := 0.1     # s: spec threshold (12 ticks at 120 tps). FIXED, not Tuning, so both A/B arms measure the same  # WK-136
 var _wk136_burn_t := -1.0       # s of thrust since the last billed re-light (-1 = not tracking)  # WK-136
@@ -1069,6 +1071,11 @@ func _wk175c_mode() -> StringName:  # WK-175c
 	_wk175c_family = mid if (mid == &"brawl" or mid == &"trials") else &"sports"  # WK-175c
 	return _wk175c_family  # WK-175c
 
+## WK-175e: wall-cue VFX size factor at the live camera zoom (Tuning.wk175c_zoom_k; 1 at brawl zoom, smaller in tight shots).  # WK-175c
+func _wk175c_zoom_k() -> float:  # WK-175c
+	var cam := get_viewport().get_camera_2d()  # WK-175c
+	return Tuning.wk175c_zoom_k(cam.zoom.x if cam != null else Tuning.wk175c_zoom_ref)  # WK-175c
+
 ## WK-175c (CD6 WK-175 FIX 1): feedback for a WALL-class contact the refund gate just judged, only while WR (set 1) is live for  # WK-175c
 ## this goat's mode. Paid -> flare + EventBus.wall_refund_cue(paid true); blocked -> cue(paid false). Floors / ceilings / OFF /  # WK-175c
 ## WS / FULL never cue. Per-goat game-time gaps (Tuning.wk175c_ding_gap_s / wk175c_tok_gap_s) keep a hug from buzzing.  # WK-175c
@@ -1078,6 +1085,8 @@ func _wk175c_cue(paid: bool, amount: float, contact: Vector2, n: Vector2, collid
 	if Tuning.wk175_effective_set(_wk175c_mode()) != 1:  # WK-175c: WR only
 		return  # WK-175c
 	if paid:  # WK-175c
+		_wk175c_paid_key = _wk175_pay_key   # WK-175e: remember the paying face even when the ding itself is rate-limited
+		_wk175c_paid_clock = _wk135_clock   # WK-175e
 		if _wk135_clock - _wk175c_pay_t < Tuning.wk175c_ding_gap_s:  # WK-175c
 			wk175c_cues["rate_limited"] = int(wk175c_cues["rate_limited"]) + 1  # WK-175c
 			return  # WK-175c
@@ -1085,6 +1094,9 @@ func _wk175c_cue(paid: bool, amount: float, contact: Vector2, n: Vector2, collid
 		_wk175c_flare_t = Tuning.wk175c_flare_s  # WK-175c
 		wk175c_cues["ding"] = int(wk175c_cues["ding"]) + 1  # WK-175c
 	else:  # WK-175c
+		if _wk175_pay_key == _wk175c_paid_key and _wk135_clock - _wk175c_paid_clock < Tuning.wk175c_tok_after_pay_s:  # WK-175e: the same bank
+			wk175c_cues["tok_after_pay"] = int(wk175c_cues["tok_after_pay"]) + 1   # WK-175e (still blocked, just silent)
+			return  # WK-175e
 		if _wk135_clock - _wk175c_tok_t < Tuning.wk175c_tok_gap_s:  # WK-175c
 			wk175c_cues["rate_limited"] = int(wk175c_cues["rate_limited"]) + 1  # WK-175c
 			return  # WK-175c
@@ -2044,6 +2056,7 @@ func respawn(pos: Vector2) -> void:
 	_wk175c_flare_t = 0.0   # WK-175c
 	_wk175c_pay_t = -100.0   # WK-175c
 	_wk175c_tok_t = -100.0   # WK-175c
+	_wk175c_paid_key = ""   # WK-175c
 	_last_pay_key = ""
 	_bumper_pay_cd = 0.0
 	_drb_key = ""
@@ -2248,7 +2261,8 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_smoke.scale = Vector2.ONE * (0.8 + 0.35 * thrust_frac)
 			if _wk175c_flare_t > 0.0:   # WK-175c: paying-wall flare (bigger + over-bright flame, decaying)
 				var k175c: float = clampf(_wk175c_flare_t / maxf(Tuning.wk175c_flare_s, 0.001), 0.0, 1.0)   # WK-175c
-				_fire.scale *= lerpf(1.0, Tuning.wk175c_flare_scale, k175c)   # WK-175c
+				var fs175c: float = 1.0 + (Tuning.wk175c_flare_scale - 1.0) * _wk175c_zoom_k()   # WK-175e: zoom-aware
+				_fire.scale *= lerpf(1.0, fs175c, k175c)   # WK-175c
 				_fire.modulate = Color(1, 1, 1, 1).lerp(Tuning.wk175c_flare_tint, k175c)   # WK-175c
 	_wk175c_flare_t = maxf(0.0, _wk175c_flare_t - delta)   # WK-175c
 	if _wk175c_glow:   # WK-175c: the flare's nozzle glow (shows even when coasting, flame off)
@@ -2256,7 +2270,7 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 		_wk175c_glow.visible = kg > 0.0 and not stunned   # WK-175c
 		if _wk175c_glow.visible:   # WK-175c
 			_wk175c_glow.position = -aim_dir * 44.0   # WK-175c: the flame's nozzle
-			_wk175c_glow.scale = Vector2.ONE * Tuning.wk175c_glow_scale * lerpf(0.6, 1.0, kg)   # WK-175c
+			_wk175c_glow.scale = Vector2.ONE * Tuning.wk175c_glow_scale * _wk175c_zoom_k() * lerpf(0.6, 1.0, kg)   # WK-175c. WK-175e: zoom-aware
 			var gc: Color = Tuning.wk175c_glow_color   # WK-175c
 			_wk175c_glow.modulate = Color(gc.r, gc.g, gc.b, gc.a * kg)   # WK-175c
 	if _arrow:
