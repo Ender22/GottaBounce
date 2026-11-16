@@ -3131,7 +3131,7 @@ Evidence paths below are under `tools/out/wk/` unless stated. WK-175 FIX 1 / FIX
   WK-188's batch so the two don't confound.
 - Status: open. Next-10 #5. Labels: **WK-189a** = the placement half (lane D + a headless slice), **WK-189b** = the L3 seek half (lane B).
 
-### [ ] WK-190 [P2][M] (CD6-03) Being dead isn't shorter on average: the 3-alive middle of a stage, not the tail
+### [x] WK-190 [P2][M] (CD6-03) Being dead isn't shorter on average: the 3-alive middle of a stage, not the tail — 2044882 (accepted, no lever)
 - Area: brawl (pacing) · Owner: game-designer (190a) -> qa (190b A/B, only if ruled) -> gameplay-programmer · Source: WK-CD6 CD6-03 (CD5-01's
   open middle; not a WK-169 reopen: different phase, different lever)
 - Evidence: dead share per human seat over 3 matches 14-38 %, median ~29 % (CD5 ~25 %); SHOWDOWN fired in 7/38 stages; first death 4.3 s in a
