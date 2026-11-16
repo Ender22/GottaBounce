@@ -4,16 +4,17 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-16 ~03:40) <<<**
+**>>> RESUME HERE (2026-11-16 ~07:30) <<<**
 Remote: origin = github.com/Ender22/GottaBounce; agents can't push — owner runs `git push -u origin weekend/polish master`.
 Owner checklist + design questions: docs/feedback/owner_questions_2026-11-16.md (GPU reboot, listen test, real pads, OQ-1..3).
-Latest cold playthrough CD5 (7d1732d) = SHIP, no P0/P1. Since 05:00 yesterday (all committed): WK-20d closed, WK-65b, WK-161 A/B +
-WK-161b routing (OFF), WK-170 audio priority, WK-169a spec + SHOWDOWN prototype (OFF) + 169b A/B (no ruling -> re-run queued),
-WK-176 soak PASS, WK-171/172, WK-99/173/178, WK-46/179, WK-110 match point + GOALS stepper, WK-181 SD revives last two only,
-WK-180 bumper rail/block art + decals + unlock ribbon.
-In flight: WK-161b acceptance batch (holds headless slot) — agent a4383bb5709b649b4.
-Queue: WK-169b re-run (A0/A0r/A1, ~250 forced stages each, pre-registered in docs/audit/2026-11-16_wk169b_ab.md) -> WK-164 K1b/turn-mult
-A/B; WK-182 square bumpers (art call); WK-175a refund-gates retune design; WK-109 redesign; WK-152 owner camera question; WK-CD6.
+Latest cold playthrough CD6 (1e8b41f, docs/audit/2026-11-16_cd6_playthrough.md) = SHIP front end/Brawl/Dropshot/Trials; WK-175 feel FIX.
+Since 03:40 (committed): WK-169 SHOWDOWN + golden drop ON (8fbcff8); WK-169c showdown polish (83d92d9; race p 0.8 + stroke rulings in
+DECISIONS); WK-183 sports per-player fuel arc + refuel ding (adbb6d6, b9d36a7, 1f35129; UX SHIP); WK-175 A/B = SHIP WR + rendered PASS
+(audits wk175_ab / wk175_rendered) but switch still OFF; WK-161b tune rejected -> WK-161 [~], WK-161c parked; BACKLOG re-rank #11 (b9ac0ef).
+In flight: WK-175c wall refund feedback (ding+flare / blocked tok) + per-mode gate scope, NO flip yet (then CD re-ask Q2 -> brawl flip,
+Q4 -> sports flip); WK-187 end-screen mash gate (CD6-05) + WINNER! backing; WK-188 GOLD SURGE TG-lane batch (holds headless slot;
+spec wk169c §1.5/§1.6 rows) -> docs/audit/2026-11-16_wk169c_goldsurge.md.
+Next: BACKLOG "Next 10" (re-rank #11). WK-CD7 after WK-175d + WK-187 + WK-188 + WK-66d.
 GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
 WK-38: automation server is OFF unless --gb-port is passed. Don't pipe/redirect run_game.ps1. Recordings keep audio.wav.
 Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Stall check: no output > 45 min + no Godot -> TaskStop + recovery agent.
