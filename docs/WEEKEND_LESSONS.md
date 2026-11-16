@@ -291,3 +291,7 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **Screenshotting a sub-0.3 s FX:** inject a PROCESS_MODE_ALWAYS node that connects the triggering EventBus signal and sets
   `get_tree().paused = true` N ms (real time) later, screenshot, then unpause (`tools/out/wk/WK-175c_data/Cue175c.gd`). Frame-count
   delays lie: the software-GPU game ran 45 fps, so "9 frames" was 0.2 s and the effect was already gone.
+
+- 2026-11-16 (WK-191): a forced 1v1 window loses ~21 % of pairs per second to natural deaths - force the end state in one frame when
+  a rig needs a specific state. Real-time locks (SD revive lock) shrink in game-time under hit-stop and stall further during in-probe
+  save_png; don't screenshot during a lock you are timing.

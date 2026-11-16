@@ -2,6 +2,9 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-190b RIG RULING (director): run the A/B on RIG=all (forcesd=2.0 forcesd_all=1, no force2), not the spec's
+  force2=3.0 + forcesd=4.0. The spec rig loses ~27 % of stages to natural deaths (lane-T raw data; >> the 15 % R5 bar); the 1.0 s gap's
+  purpose (keep seats 2/3 out of the double KO) is moot since WK-181 (SD revives only the last two). Exclusion ~0.9 %. All bars unchanged.
 - **2026-11-16** WK-188 GOLD SURGE NOT SHIPPED (docs/audit/2026-11-16_wk169c_goldsurge.md, row R2): showdown_drop_arm_s stays 0.0.
   The arm works (first golden super 1.04 -> 2.40 s; loser lands first hit 18 -> 44 %) but the duel lives on to a second drop and its
   holder wins: holder-wins 90.3 -> 90.5 %, tails > 8 s 11 -> 23 %. The advantage is the full-fuel super-every-second holder, not the

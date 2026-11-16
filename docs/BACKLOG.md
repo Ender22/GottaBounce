@@ -216,7 +216,7 @@ entry).
 2. WK-194 (CD6-10) dim the world behind WINNER! (P3/S) [V after WK-187]
 3. WK-192 (CD6-08) Dropshot end card adds up (P3/S) [V + S]
 4. WK-193 (CD6-09) QUIT TO MENU keeps joined devices (P3/S) [L; ui-ux call first]
-5. WK-191 (CD6-04) sudden death inherits SHOWDOWN, or accept (P3/S) [D; ruled in WK-190a]
+5. ~~WK-191~~ done f88027c — (CD6-04) sudden death inherits SHOWDOWN, or accept (P3/S) [D; ruled in WK-190a]
 6. WK-184 Rocketball goal-mouth camp (P3/S, design) [ruled with WK-175e]
 7. WK-32a goat-pick decision (P2/S, design; likely closes as cosmetic) · WK-109 redesign proposal (P2/S, design)
 8. WK-51 super contact reads as THE hit (P2/M, Brawl juice)
@@ -3146,7 +3146,7 @@ Evidence paths below are under `tools/out/wk/` unless stated. WK-175 FIX 1 / FIX
   share, self-KO and ghost-credited zeros inside their guardrails.
 - Status: open. Next-10 #8 (190a).
 
-### [ ] WK-191 [P3][S] (CD6-04) Sudden-death duels sit outside the SHOWDOWN
+### [x] WK-191 [P3][S] (CD6-04) Sudden-death duels sit outside the SHOWDOWN — f88027c
 - Area: brawl · Owner: game-designer (ruled in WK-190a's pass) -> gameplay-programmer · Source: WK-CD6 CD6-04
 - Evidence: m2 Long Meadow: after a 4-way chain (WK-181, correct), the SD duel ran 12.6 s with two ghosts and no showdown pressure (spec §5.3
   clears the showdown on SD by design); Stepping Bloom SD 6.2 s (`CD6_data/m2.json`). 2 SD stages in 38.
