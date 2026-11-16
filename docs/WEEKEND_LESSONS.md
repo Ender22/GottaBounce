@@ -283,3 +283,5 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
 - **WK-169c: a function connected to another node's `draw` signal must call THAT node's draw_* methods** (`_glint.draw_line(...)`, not
   a bare `draw_line(...)` on the script's own node). The bare call silently draws nothing and floods the run `.err` with "Drawing is only
   allowed inside this node's _draw()" (47k lines in one session) - the parse gate can't see it; grep the rendered run's `.err`.
+
+- 2026-11-16 (WK-187): end-screen input gates that count only real time can arm before their tween choreography has played when frames hitch (screenshot freezes, software GPU). Gate on BOTH real time and the screen's own animation time. A mash never has a release gap, so a "button released >= 0.3 s" quiet-gap rule beats a pure "press began after live" rule.
