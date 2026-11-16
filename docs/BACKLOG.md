@@ -2975,7 +2975,7 @@ Reports since re-rank #10: WK-183 ux Final (93cfdb2) -> 183 done, ball-vs-tag ->
 - Accept: 10/10 clean, or a reproducible case with a cause. Close as Won't do / not reproduced with the evidence.
 - Status: open (unverified). Next-10 #4 (rides WK-176's slot).
 
-### [ ] WK-175 [P2][M] Refund gates (WK-128 b) need a retune before they can ship ON
+### [x] WK-175 [P2][M] Refund gates (WK-128 b) need a retune before they can ship ON — 2c06fb6
 - **Re-rank #11: P3 -> P2, ship path split into three S steps (Next-10 #3).** State: spec 368e35e, WR build dda9231 (OFF), A/B e2cf8cc = SHIP WR
   (gate set 1, wall re-arm 400 px), §9.5 rendered checks 203d86d all PASS, §9.6 CD feel check (WK-CD6, 1e8b41f) = **FIX, two feedback items,
   no tuning** ("nothing I saw argues for 350"). Raised because CD6's fantasy-fit check names it (the last hover) and it is the slice in flight.

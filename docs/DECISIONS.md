@@ -2,6 +2,9 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-175 WR wall-only refund gate ON in BRAWL (2c06fb6): A/B SHIP WR, rendered PASS, CD feel FIX -> WK-175c/e cues
+  (ding+flare paid, tok+two-tone puff blocked, no tok 0.30 s after a pay, zoom-scaled) -> CD's stated bar met (full-frame shots readable).
+  Scope wk175_gate_modes = ["brawl"]; sports needs a Q4 re-ask with the fuel arc visible before "sports" is added.
 - **2026-11-16** WK-190b RIG RULING (director): run the A/B on RIG=all (forcesd=2.0 forcesd_all=1, no force2), not the spec's
   force2=3.0 + forcesd=4.0. The spec rig loses ~27 % of stages to natural deaths (lane-T raw data; >> the 15 % R5 bar); the 1.0 s gap's
   purpose (keep seats 2/3 out of the double KO) is moot since WK-181 (SD revives only the last two). Exclusion ~0.9 %. All bars unchanged.
