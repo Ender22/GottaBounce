@@ -5,7 +5,7 @@
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
 **>>> RESUME HERE (2026-11-16 ~08:10, owner left for work; agents may have died with the PC) <<<**
-Remote: origin = github.com/Ender22/GottaBounce; agents can't push — owner runs `git push -u origin weekend/polish master`.
+Remote: origin = github.com/Ender22/GottaBounce; agents may push (owner removed the block 2026-11-16): `git push origin weekend/polish`.
 Owner checklist: docs/feedback/owner_questions_2026-11-16.md. Tree was CLEAN at d80fb10.
 Shipped since 03:40: WK-169 SHOWDOWN ON; WK-169c polish (83d92d9); WK-183 sports fuel arc + refuel ding (UX SHIP); WK-187 + WK-194
 end-screen mash guard + WINNER! plate (UX SHIP); WK-175c wall-refund feedback (fc4591c, gate still OFF; per-mode `wk175_gate_modes`);

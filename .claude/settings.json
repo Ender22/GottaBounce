@@ -4,7 +4,6 @@
     "deny": [
       "Bash(rm -rf *)", "Bash(rm -fr *)", "Bash(rm -Rf *)", "Bash(rm -fR *)",
       "Bash(rm -r -f *)", "Bash(rm -f -r *)", "Bash(rm --recursive*)", "Bash(rm -r *)", "Bash(rm -R *)",
-      "Bash(git push*)", "Bash(git *push *)",
       "Bash(git reset --hard*)", "Bash(git *reset *--hard*)",
       "Bash(git clean*)", "Bash(git *clean *)",
       "Bash(git checkout -- .*)", "Bash(git restore .*)", "Bash(git restore -- .*)",
@@ -14,7 +13,6 @@
       "Bash(sudo *)", "Bash(format *)",
       "PowerShell(Remove-Item *-Recurse*)", "PowerShell(Remove-Item * -r*)", "PowerShell(Remove-Item -r*)",
       "PowerShell(rm *-Recurse*)", "PowerShell(rm * -r*)", "PowerShell(rmdir *)", "PowerShell(del *-Recurse*)",
-      "PowerShell(git push*)", "PowerShell(git *push *)",
       "PowerShell(git reset --hard*)", "PowerShell(git *reset *--hard*)",
       "PowerShell(git clean*)", "PowerShell(git *clean *)",
       "PowerShell(git checkout -- .*)", "PowerShell(git restore .*)",

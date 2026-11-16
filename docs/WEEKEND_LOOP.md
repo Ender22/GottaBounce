@@ -7,7 +7,7 @@ Goal: turn GottaBounce into a proper, conventional, fun couch party game. Re-rea
 start of every loop tick (it survives context compaction; your memory of earlier ticks may not).
 
 ## Ground rules
-- Branch `weekend/polish` only. Never switch branches, push, rebase, reset --hard, or clean
+- Branch `weekend/polish` only. Never switch branches, rebase, reset --hard, or clean (pushing to origin is allowed — owner removed the push block 2026-11-16)
   (deny rules in `.claude/settings.json` enforce most of this). The owner's
   `PLAY GOTTABOUNCE.bat` plays whatever is checked out, so the working tree must always be playable:
   never end a tick with a broken parse gate or a half-applied change uncommitted.
