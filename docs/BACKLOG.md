@@ -213,7 +213,7 @@ entry).
 
 **On deck (11+, in order; lane in brackets):**
 1. WK-186 sports tags avoid other goats' arcs **and the ball** (P3/S) [H; free now, a gap-filler]
-2. WK-194 (CD6-10) dim the world behind WINNER! (P3/S) [V after WK-187]
+2. ~~WK-194~~ done 2ad8b75, bd82551 — (CD6-10) dim the world behind WINNER! (P3/S) [V after WK-187]
 3. WK-192 (CD6-08) Dropshot end card adds up (P3/S) [V + S]
 4. WK-193 (CD6-09) QUIT TO MENU keeps joined devices (P3/S) [L; ui-ux call first]
 5. ~~WK-191~~ done f88027c — (CD6-04) sudden death inherits SHOWDOWN, or accept (P3/S) [D; ruled in WK-190a]
@@ -3092,7 +3092,7 @@ Reports since re-rank #10: WK-183 ux Final (93cfdb2) -> 183 done, ball-vs-tag ->
 ## Re-rank #11 filings (WK-CD6, `docs/audit/2026-11-16_cd6_playthrough.md`)
 Evidence paths below are under `tools/out/wk/` unless stated. WK-175 FIX 1 / FIX 2 are filed inside WK-175 as WK-175c / WK-175e.
 
-### [ ] WK-187 [P2][S] (CD6-05) Mashing A blows through the victory screen in ~2 s (CC-10.2 intent)
+### [x] WK-187 [P2][S] (CD6-05) Mashing A blows through the victory screen in ~2 s (CC-10.2 intent) — 2ad8b75, bd82551
 - Area: menus (end screens) · Owner: ui-ux-designer + gameplay-programmer · Source: WK-CD6 CD6-05 (first assessment of CC-10.2 under mashing;
   follow-up to WK-11 5926f10, which holds to the letter)
 - Evidence: staged 9-9-9-9 match point, pads 0/1 A + Enter toggling every 50 ms: MATCH_END 538.99 -> STAGE_INTRO 541.17, REMATCH 2.2 s after the
@@ -3184,7 +3184,7 @@ Evidence paths below are under `tools/out/wk/` unless stated. WK-175 FIX 1 / FIX
   picks cleared; QUIT TO TITLE clears; a pad unplugged meanwhile returns as DISCONNECTED.
 - Status: open (on deck #4).
 
-### [ ] WK-194 [P3][S] (CD6-10) The world shows through behind the WINNER! title
+### [x] WK-194 [P3][S] (CD6-10) The world shows through behind the WINNER! title — 2ad8b75, bd82551
 - Area: menus (end screens) · Owner: ui-ux-designer · Source: WK-CD6 CD6-10
 - Evidence: a pink deck strip cuts through "WINNER!" (`WK-CD6_07_m1_end.png`); a flying goat sits behind the score panel
   (`WK-CD6_08_m2_end_after_mash.png`, `WK-CD6_11_m4_end.png`).
@@ -3217,3 +3217,8 @@ Evidence paths below are under `tools/out/wk/` unless stated. WK-175 FIX 1 / FIX
   6. Audio re-measure: ceiling clusters (CD6 7 per 76 s), refuel ding share.
 - Accept: findings doc in `docs/audit/`, every finding mapped to a WK id, then producer re-rank #12.
 - Status: open (trigger above).
+
+### [ ] WK-195 [P2][S] Possible damage carry-over on REMATCH: P3's card shows HURT! right after a rematch (WK-187 re-grade watch)
+- Source: docs/audit/2026-11-16_wk187_ux.md Re-grade, tools/out/wk/WK-187b_brawl_rematch_goats_back.png. Check whether damage / the
+  HURT! sticker state resets on REMATCH before combat; if it carries over it's a fairness bug. qa repro first (eval damage on all seats
+  at REMATCH), then gameplay-programmer.
