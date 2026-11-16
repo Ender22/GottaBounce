@@ -1,0 +1,202 @@
+diff --git a/src/core/InputBot.gd b/src/core/InputBot.gd
+index 1f0581c..2817b8e 100644
+--- a/src/core/InputBot.gd
++++ b/src/core/InputBot.gd
+@@ -177,6 +177,7 @@ var _wk169c_latch_gp := Vector2.INF   # WK-169c: the bubble point it latched ont
+ var wk169c_latches := 0          # WK-169c QA: low-fuel seeks committed
+ var wk169c_latch_ends := {}      # WK-169c QA: reason -> count ("gone" / "timeout" / "void")
+ var wk169c_reach_blocks := 0     # WK-169c QA: normal (above-floor) golden seeks refused by the reach / void guard
++var wk189_near_latches := 0      # WK-189 QA: above-floor in-reach golden seeks committed (latched)
+ var _wk161b_tgt := Vector2.INF   # WK-161b: chase/plan target point of the last decision (dump telemetry, any path)
+ var _wk161b_obj := 0             # WK-161b: instance id of the blocker the side is latched for (0 = none)
+ var _wk161b_kind := ""           # WK-161b: "core" (round) / "rect"
+@@ -1240,8 +1241,18 @@ func _wk169_golden_seek(pos: Vector2, p_seek: float = -1.0) -> bool:  # WK-169 (
+ 	if rival != null and is_instance_valid(rival) and not rival.is_dead():  # WK-169
+ 		if d_me > Tuning.bot_golden_seek_ratio * (rival.global_position as Vector2).distance_to(gp):  # WK-169
+ 			return false  # WK-169
+-	if randf() >= (p_seek if p_seek >= 0.0 else Tuning.bot_golden_seek_p):  # WK-169 (WK-169c: low-fuel passes its own p)
++	var near: bool = Tuning.bot_golden_near_latch and p_seek < 0.0 and d_me <= Tuning.bot_golden_near_px  # WK-189 (b): in reach, above the floor
++	var p_roll: float = p_seek if p_seek >= 0.0 else (Tuning.bot_golden_near_p if near else Tuning.bot_golden_seek_p)  # WK-189
++	if randf() >= p_roll:  # WK-169 (WK-169c: low-fuel passes its own p; WK-189: in-reach p)
+ 		return false  # WK-169
++	if near and Tuning.bot_golden_lowfuel_latch_s > 0.0:  # WK-189 (b): a won in-reach roll COMMITS (no per-decision re-roll, no coast)
++		_wk169c_latch = true  # WK-189: the WK-169c latch (ends on collect / gone / latch_s / void guard)
++		_wk169c_latch_t0 = _pin_clock  # WK-189
++		_wk169c_latch_gp = gp  # WK-189
++		wk189_near_latches += 1  # WK-189
++		_wk169c_steer(pos, gp, true)  # WK-189: the committed steer thrusts to the touch
++		wk169_golden_seeks += 1  # WK-189 (same telemetry as the WK-169 path)
++		return true  # WK-189
+ 	var g: Vector2 = gp - pos  # WK-169
+ 	_cached_aim = _jitter(_fly_aim(g.normalized())) if d_me > 1.0 else Vector2.ZERO  # WK-169
+ 	_cached_boost = d_me > Tuning.bot_golden_boost_dist and me.fuel > Tuning.bot_golden_boost_fuel  # WK-169
+diff --git a/src/core/Tuning.gd b/src/core/Tuning.gd
+index bdedb86..68674b5 100644
+--- a/src/core/Tuning.gd
++++ b/src/core/Tuning.gd
+@@ -1641,6 +1641,28 @@ var showdown_holder_rim_mult: float = 1.5     # holder's rim width while a golde
+ var showdown_holder_trail_rate: float = 8.0   # star sparkles / s from the holder while a golden tank runs  # WK-169c
+ var showdown_frame_glint_s: float = 0.8       # s between glint sweeps on the HOLDER's gold card frame  # WK-169c
+ var showdown_frame_fade_s: float = 0.2        # s the gold card frame fades out on exit (real time)  # WK-169c
++# --- WK-189 golden drop fair point + L3 golden seek (BACKLOG WK-189 / CD6-02). Read by ShowdownDirector.fair_point (a) and  # WK-189
++# InputBot._wk169_golden_seek (b). (a) When EVERY authored powerup_spawner is > showdown_drop_far_px from the two fighters'  # WK-189
++# midpoint, the drop goes to a synthetic point near that midpoint: snapped hover_min..hover_max above a bounce deck (no pit / void  # WK-189
++# column under it), clear of solids (clear_r) and hazards (hazard_r), inside the view inset (showdown_drop_view_inset), minimax of  # WK-189
++# the two distances. No valid point within search_r -> the authored minimax spawner (today's rule). Flat-gravity arenas only.  # WK-189
++var showdown_drop_fairpoint: bool = true      # WK-189 (a) switch. false = the WK-169 spawner-only fair point byte for byte  # WK-189
++var showdown_drop_far_px: float = 900.0       # WORLD px: synthetic point only when the nearest spawner is farther than this from the midpoint  # WK-189
++var showdown_drop_fair_search_r: float = 600.0   # WORLD px: max |dx| / |dy| of a synthetic candidate from the midpoint  # WK-189
++var showdown_drop_fair_step: float = 40.0     # WORLD px between candidate columns  # WK-189
++var showdown_drop_fair_hover_min: float = 140.0  # WORLD px: lowest point above the deck top (authored spawners sit 120-200 above theirs)  # WK-189
++var showdown_drop_fair_hover_max: float = 300.0  # WORLD px: highest point above the deck top (~ a trampoline bounce apex, 270)  # WK-189
++var showdown_drop_fair_clear_r: float = 90.0  # WORLD px: no solid inside this circle (>= golden collider 43.2 + room for the goat)  # WK-189
++var showdown_drop_fair_hazard_r: float = 200.0   # WORLD px: no hazard / moving hazard inside this circle  # WK-189
++var showdown_drop_fair_deck_half: float = 60.0   # WORLD px: the deck must also be under x +- this (no lip / wall-top perch)  # WK-189
++# (b) An L3 CPU passed a live bubble in reach: above its refuel floor the seek re-rolled p 0.5 EVERY decision, so a lost roll  # WK-189
++# sent it hunting away and a won roll inside bot_golden_boost_dist coasted (fell under the bubble). Fixture (L3, bubble 150-250 px,  # WK-189
++# reachable): above the floor 16/30 collects vs 27/30 below it (the WK-169c latch). Fix: inside bot_golden_near_px a won roll LATCHES  # WK-189
++# (the WK-169c committed steer, same end rules + bot_golden_lowfuel_latch_s), rolled at bot_golden_near_p = 0.8 (the WK-169c low-fuel  # WK-189
++# ruling: a lost roll hunts away and burns the race). Latch at p 0.5: 23/30, at 0.8: 26/30. Beyond near_px: the WK-169 roll unchanged.  # WK-189
++var bot_golden_near_latch: bool = true        # WK-189 (b) switch. false = the WK-169 per-decision re-roll at every distance  # WK-189
++var bot_golden_near_px: float = 250.0         # px: a bubble this close (reach rule passing) is "in reach"  # WK-189
++var bot_golden_near_p: float = 0.8            # p per decision to race an in-reach bubble (= bot_golden_lowfuel_seek_p; 0.5 = the §6.1 rule)  # WK-189
+ # --- WK-183 sports per-player fuel arc (WK-99 SP-14, the sports half). Read by src/ui/SportsFuelArc.gd (built per goat by  # WK-183
+ # src/ui/SportsHUD.gd setup). A team-coloured arc hugs the LOWER half of each goat (screen-px widths, zoom-compensated), fills  # WK-183
+ # left -> right through 6 o'clock, carries the WK-99 super-ready notch (same threshold + lit / unlit look + pop), pulses when low,  # WK-183
+diff --git a/src/systems/ShowdownDirector.gd b/src/systems/ShowdownDirector.gd
+index 6432ae1..fd806ae 100644
+--- a/src/systems/ShowdownDirector.gd
++++ b/src/systems/ShowdownDirector.gd
+@@ -540,6 +540,8 @@ func _tick_drop(now: float) -> void:
+ 
+ ## The fair point (spec §6.1): among the in-view spawners (view inset showdown_drop_view_inset screen px; none -> all), the
+ ## one minimising max(d_A, d_B); ties -> nearest the camera centre.
++## WK-189 (a, Tuning.showdown_drop_fairpoint): if EVERY spawner is > showdown_drop_far_px from the fighters' midpoint, the
++## synthetic point wk189_synth_point() replaces it ("fair": "synth"); none valid -> the spawner above ("fair": "fallback").
+ func fair_point() -> Dictionary:
+ 	var pts: Array = runner.get("_pu_points") if runner.get("_pu_points") != null else []
+ 	if pts.is_empty() or fighters.size() < 2:
+@@ -570,8 +572,112 @@ func fair_point() -> Dictionary:
+ 			best_m = m
+ 			best_c = c
+ 			best = pv
+-	return {"pos": best, "d_a": best.distance_to(a.global_position), "d_b": best.distance_to(b.global_position),
++	var out := {"pos": best, "d_a": best.distance_to(a.global_position), "d_b": best.distance_to(b.global_position),
+ 		"in_view_n": from_n, "n": pts.size()}
++	if Tuning.showdown_drop_fairpoint:   # WK-189 (a): every spawner far from the fighters' midpoint -> a synthetic point near it
++		var mid: Vector2 = (a.global_position + b.global_position) * 0.5   # WK-189
++		var sp_d := INF   # WK-189: nearest authored spawner to the midpoint
++		for p in pts:   # WK-189
++			sp_d = minf(sp_d, (p as Vector2).distance_to(mid))   # WK-189
++		out["sp_mid_d"] = sp_d   # WK-189
++		out["fair"] = "spawner"   # WK-189
++		if sp_d > Tuning.showdown_drop_far_px:   # WK-189
++			var sp: Vector2 = wk189_synth_point(a.global_position, b.global_position, inset if inset.size.x > 0.0 and inset.size.y > 0.0 else Rect2())   # WK-189
++			var sp_m: float = maxf(sp.distance_to(a.global_position), sp.distance_to(b.global_position)) if sp != Vector2.INF else INF   # WK-189
++			if sp != Vector2.INF and sp_m < maxf(float(out["d_a"]), float(out["d_b"])):   # WK-189: never less fair than the spawner pick
++				out["pos"] = sp   # WK-189
++				out["d_a"] = sp.distance_to(a.global_position)   # WK-189
++				out["d_b"] = sp.distance_to(b.global_position)   # WK-189
++				out["fair"] = "synth"   # WK-189
++			else:   # WK-189: no valid point in the search box -> the authored minimax spawner above (today's rule)
++				out["fair"] = "fallback"   # WK-189
++	return out
++
++## WK-189 (a): a synthetic fair point near the fighters' midpoint (Tuning showdown_drop_fair_*). Candidate columns every
++## fair_step px within +- fair_search_r of the midpoint; in each column every bounce deck (a LAYER_SURFACES top with a bounce
++## tier, not a bumper) whose top lies within the search box below the column's start. The point hovers clamp(mid.y, top -
++## hover_max, top - hover_min) above that deck, so it is never over a pit / void column. It must be: inside `view` (the view
++## inset; empty = no view test), with no solid inside fair_clear_r (>= the golden collider), no hazard / moving hazard inside
++## fair_hazard_r, open air straight down to the deck, and the deck also under x +- fair_deck_half. Score = max(d_a, d_b), ties ->
++## nearest the midpoint. Radial-gravity spots (a gravity_source well) return INF (the caller falls back to the spawner rule).
++## Vector2.INF = no valid point.
++func wk189_synth_point(pa: Vector2, pb: Vector2, view: Rect2) -> Vector2:   # WK-189
++	var mid: Vector2 = (pa + pb) * 0.5   # WK-189
++	var gdir: Vector2 = GravityField.get_gravity_at(mid)   # WK-189
++	if gdir.length_squared() > 0.01 and gdir.normalized().y < 0.95:   # WK-189: "above a deck" is only defined for screen-down gravity
++		return Vector2.INF   # WK-189
++	var space := get_world_2d().direct_space_state   # WK-189
++	var surf_mask: int = 1 << 2   # WK-189: LevelLoader.LAYER_SURFACES
++	var haz_mask: int = (1 << 3) | (1 << 4)   # WK-189: LAYER_HAZARDS (spikes, crushers, hammers, debris, bombs, well cores) | LAYER_MOVING_HAZARD
++	var r_clear: float = maxf(Tuning.showdown_drop_fair_clear_r, 36.0 * Tuning.showdown_drop_scale)   # WK-189: >= the golden collider
++	var R: float = Tuning.showdown_drop_fair_search_r   # WK-189
++	var step: float = maxf(Tuning.showdown_drop_fair_step, 8.0)   # WK-189
++	var hmin: float = Tuning.showdown_drop_fair_hover_min   # WK-189
++	var hmax: float = maxf(Tuning.showdown_drop_fair_hover_max, hmin)   # WK-189
++	var circ := CircleShape2D.new()   # WK-189
++	var q := PhysicsShapeQueryParameters2D.new()   # WK-189
++	q.shape = circ   # WK-189
++	q.collide_with_areas = true   # WK-189
++	q.collide_with_bodies = true   # WK-189
++	var best := Vector2.INF   # WK-189
++	var best_m := INF   # WK-189
++	var best_c := INF   # WK-189
++	var n: int = int(floor(R / step))   # WK-189
++	for ix in range(-n, n + 1):   # WK-189
++		var x: float = mid.x + float(ix) * step   # WK-189
++		var y_from: float = mid.y - R   # WK-189: decks whose hover band can reach the box: top in (mid.y - R, mid.y + R + hmin]
++		var y_to: float = mid.y + R + hmin   # WK-189
++		for _deck in range(4):   # WK-189: up to 4 stacked decks per column
++			if y_from >= y_to:   # WK-189
++				break   # WK-189
++			var rq := PhysicsRayQueryParameters2D.create(Vector2(x, y_from), Vector2(x, y_to), surf_mask)   # WK-189
++			rq.hit_from_inside = false   # WK-189: a ray starting inside a deck skips it (finds the next one below)
++			var hit: Dictionary = space.intersect_ray(rq)   # WK-189
++			if hit.is_empty():   # WK-189: nothing below in the box = a pit / void column
++				break   # WK-189
++			var top: float = (hit["position"] as Vector2).y   # WK-189
++			y_from = top + 2.0   # WK-189: next deck search starts inside this one
++			var col = hit.get("collider")   # WK-189
++			if col == null or not (col as Object).has_meta("bounce_tier_height") or (hit["normal"] as Vector2).y > -0.7:   # WK-189: a bounce TOP, never a bumper
++				continue   # WK-189
++			var cand := Vector2(x, clampf(mid.y, top - hmax, top - hmin))   # WK-189
++			if absf(cand.y - mid.y) > R:   # WK-189
++				continue   # WK-189
++			if view.size.x > 0.0 and not view.has_point(cand):   # WK-189: inside the camera's framing (view inset)
++				continue   # WK-189
++			var m: float = maxf(cand.distance_to(pa), cand.distance_to(pb))   # WK-189
++			var c: float = cand.distance_to(mid)   # WK-189
++			if m > best_m + 0.5 or (absf(m - best_m) <= 0.5 and c >= best_c):   # WK-189: cheap score test before the physics checks
++				continue   # WK-189
++			if not _wk189_open(space, q, circ, cand, top, x, r_clear, surf_mask, haz_mask):   # WK-189
++				continue   # WK-189
++			best_m = m   # WK-189
++			best_c = c   # WK-189
++			best = cand   # WK-189
++	return best   # WK-189
++
++## WK-189: is `cand` open air above its deck? No solid inside r_clear, no hazard inside fair_hazard_r, a clear drop to the deck
++## top, and deck under x +- fair_deck_half at the same top (+-24 px).
++func _wk189_open(space: PhysicsDirectSpaceState2D, q: PhysicsShapeQueryParameters2D, circ: CircleShape2D, cand: Vector2, top: float,
++		x: float, r_clear: float, surf_mask: int, haz_mask: int) -> bool:   # WK-189
++	q.transform = Transform2D(0.0, cand)   # WK-189
++	circ.radius = r_clear   # WK-189
++	q.collision_mask = surf_mask   # WK-189
++	if not space.intersect_shape(q, 1).is_empty():   # WK-189: inside / against geometry
++		return false   # WK-189
++	circ.radius = Tuning.showdown_drop_fair_hazard_r   # WK-189
++	q.collision_mask = haz_mask   # WK-189
++	if not space.intersect_shape(q, 1).is_empty():   # WK-189: near a hazard / moving hazard
++		return false   # WK-189
++	var down := PhysicsRayQueryParameters2D.create(cand, Vector2(x, top - 1.0), surf_mask)   # WK-189: open air straight down to the deck
++	if not space.intersect_ray(down).is_empty():   # WK-189
++		return false   # WK-189
++	for sx in [-Tuning.showdown_drop_fair_deck_half, Tuning.showdown_drop_fair_deck_half]:   # WK-189: deck under both sides (no lip perch)
++		var sq := PhysicsRayQueryParameters2D.create(Vector2(x + sx, cand.y), Vector2(x + sx, top + 24.0), surf_mask)   # WK-189
++		var sh: Dictionary = space.intersect_ray(sq)   # WK-189
++		if sh.is_empty() or absf((sh["position"] as Vector2).y - top) > 24.0:   # WK-189
++			return false   # WK-189
++	return true   # WK-189
+ 
+ func _start_telegraph(now: float) -> void:
+ 	var fp: Dictionary = fair_point()
+@@ -582,6 +688,9 @@ func _start_telegraph(now: float) -> void:
+ 	_tel_rec = {"t_tel": snappedf(now, 0.0001), "t_live": -1.0, "pos": [snappedf(_tel_pos.x, 0.1), snappedf(_tel_pos.y, 0.1)],
+ 		"d_a": snappedf(float(fp["d_a"]), 0.1), "d_b": snappedf(float(fp["d_b"]), 0.1), "picked_from_n": int(fp["in_view_n"]),
+ 		"points_n": int(fp["n"]), "collected_by": -1, "t_collect": -1.0, "popped": false, "step": step}
++	if fp.has("fair"):   # WK-189 telemetry (switch ON only): spawner / synth / fallback + nearest spawner to the midpoint
++		_tel_rec["fair"] = fp["fair"]   # WK-189
++		_tel_rec["sp_mid_d"] = snappedf(float(fp["sp_mid_d"]), 0.1)   # WK-189
+ 	(_stats["drops"] as Array).append(_tel_rec)
+ 	if _in_sd_showdown:   # WK-191 §5.5: an SD drop (same record, also listed in the stage's `sd` record)
+ 		_tel_rec["phase"] = "sd"   # WK-191

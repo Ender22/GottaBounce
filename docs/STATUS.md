@@ -10,11 +10,11 @@ Owner checklist: docs/feedback/owner_questions_2026-11-16.md. Tree was CLEAN at 
 Shipped since 03:40: WK-169 SHOWDOWN ON; WK-169c polish (83d92d9); WK-183 sports fuel arc + refuel ding (UX SHIP); WK-187 + WK-194
 end-screen mash guard + WINNER! plate (UX SHIP); WK-175c wall-refund feedback (fc4591c, gate still OFF; per-mode `wk175_gate_modes`);
 WK-191-prep SD showdown built OFF (f88027c). Ruled: WK-188 GOLD SURGE not shipped; WK-190 accepted (no lever); WK-161b tune rejected.
-IN FLIGHT at 08:10 (re-run any that left no output/commit; on resume check `git status` and revert half-done files with `git restore`):
-  1. WK-175d creative-director brawl re-ask (GB_WK175=wr GB_WK175_MODES=brawl) -> docs/audit/2026-11-16_wk175d_feel.md. SHIP => set
-     `refund_gates_on = true` (one line; scope is brawl only). Sports flip later (add "sports" to wk175_gate_modes after a Q4 re-ask).
-  2. WK-190b SD-showdown A/B on RIG=all (harness tools/out/wk/wk190b_batch, DECISIONS "WK-190b RIG RULING") -> docs/audit/2026-11-16_wk190b_ab.md.
-  3. WK-189 golden-drop fair point + L3 seek fix (gameplay-programmer, port 9147).
+STOPPED at ~08:50 for a PC shutdown (owner). WK-175 WR is ON in brawl (2c06fb6). Two lanes were cut mid-work:
+  1. WK-189 golden-drop fair point + L3 seek fix: unvalidated WIP saved as docs/wip/WK-189_wip_2026-11-16.patch (InputBot, Tuning,
+     ShowdownDirector). Resume: `git apply docs/wip/WK-189_wip_2026-11-16.patch`, then finish + validate per the WK-189 BACKLOG entry.
+  2. WK-190b SD-showdown A/B (RIG=all): had not produced results. Re-run from tools/out/wk/wk190b_batch (build_proj.py + RIG=all
+     run_190b.sh; delete the old scratchpad wk190b dirs first).
 Next after: WK-195 rematch HURT! carry-over repro; WK-66d Dropshot courts art; WK-164 sports bots; WK-45 UI sounds; WK-CD7.
 GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
 WK-38: automation server is OFF unless --gb-port is passed. Don't pipe/redirect run_game.ps1. Recordings keep audio.wav.
