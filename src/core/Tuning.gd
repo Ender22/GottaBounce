@@ -1421,6 +1421,12 @@ var showdown_rim_gap_px: float = 3.0          # SCREEN px past that radius befor
 var showdown_rim_halo_px: float = 7.0         # SCREEN px the soft gold halo extends past the ring  # WK-169
 var showdown_banner_time: float = 1.0         # s the "SHOWDOWN!" top band holds (= TWO LEFT!)  # WK-169
 var showdown_long_wait_s: float = 15.0        # telemetry: a human wait longer than this counts as a long wait (S3)  # WK-169
+# --- WK-191 SD inherits the SHOWDOWN (spec docs/specs/wk190_dead_share_2026-11-16.md §5). Read by ShowdownDirector.gd (+ the  # WK-191
+# PartyMatch SD hooks). With sd_showdown ON a BRAWL sudden death (stage started >= 3, both revived goats alive) enters the shipped  # WK-191
+# SHOWDOWN sd_showdown_delay s (game time) after the SD revive lock ends, so the first golden bubble goes live when the Lv2  # WK-191
+# pre-damage would heal. false = today byte for byte (the showdown clears on SD entry and never re-enters). Built OFF for 190b.  # WK-191
+var sd_showdown: bool = false                 # WK-191 switch (default OFF until the 190b A/B rules; ship value true if R1)  # WK-191
+var sd_showdown_delay: float = 7.0            # s from the SD unlock = dmg_heal_time - showdown_drop_telegraph. Re-derive if either changes  # WK-191
 # --- WK-99 fuel gauge super-ready notch + CD3-04b billed re-light chunk flash (brawl half). Read by src/ui/PlayerCard.gd  # WK-99
 # (corner card gauge) and src/ui/EdgeIndicators.gd (WK-36 off-screen bubble fuel ring). The notch sits at super_boost_min_fuel  # WK-99
 # / fuel_max (10 %): LIT (tall cream tick, chocolate outline) when the tank can fire a super, UNLIT (short dark tick) below it,  # WK-99

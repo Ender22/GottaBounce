@@ -55,6 +55,17 @@ var _tel_glow: Node2D = null     # WK-169c: the telegraph's ground-glow ring
 var _last_collect_t := -1.0      # WK-169c: round_clock of this stage's latest golden collect (kill t_since_grab)
 var _trails := {}                # WK-169c: player idx -> the holder's star trail (CPUParticles2D)
 var wk169c_words := 0            # WK-169c QA: "GOLDEN TANK!" pops shown
+# WK-191 (spec wk190_dead_share §5): SD inherits the SHOWDOWN (Tuning.sd_showdown) + the SD / banner telemetry (§5.5, every arm)
+var _sd_rec := {}                # WK-191: this stage's `sd` record ({} until an SD revive)
+var _sd_unlock_t := -1.0         # WK-191: round_clock of the SD unlock (revive lock ended); -1 = no SD fight running
+var _sd_entered := false         # WK-191: the SD SHOWDOWN already entered this SD (one entry per SD)
+var _in_sd_showdown := false     # WK-191: the running showdown is the SD one (drop / tank records tagged "phase": "sd")
+var _sd_boost := {}              # WK-191: revived idx -> boost seconds after the SD unlock (BS)
+var _sd_words0 := 0              # WK-191: wk169c_words at the SD showdown entry ("GOLDEN TANK!" pops per entry)
+var _banners: Array = []         # WK-191: [{text, t_on, t_off}] for "SUDDEN DEATH!" / "SHOWDOWN!" (T-191c, BX)
+var _ban_open := {}              # WK-191: text -> its open record in _banners
+var _bx_frames := 0              # WK-191: physics frames with both banners on screen (must be 0)
+const WK191_BANNERS := ["SUDDEN DEATH!", "SHOWDOWN!"]   # WK-191
 
 func setup(runner_ref) -> void:
 	runner = runner_ref
@@ -91,6 +102,15 @@ func on_combat_start(_cur_stats: Dictionary) -> void:
 	_holder.clear()
 	_sd = false
 	_last_collect_t = -1.0   # WK-169c
+	_sd_rec = {}   # WK-191
+	_sd_unlock_t = -1.0   # WK-191
+	_sd_entered = false   # WK-191
+	_in_sd_showdown = false   # WK-191
+	_sd_boost = {}   # WK-191
+	_sd_words0 = 0   # WK-191
+	_banners = []   # WK-191
+	_ban_open = {}   # WK-191
+	_bx_frames = 0   # WK-191
 	_t_elim.clear()
 	_ne_after.clear()
 	_last_smash.clear()
@@ -109,6 +129,8 @@ func annotate_kill(rec: Dictionary, victim_idx: int, killer_idx: int) -> void:
 		return
 	var ne_before: int = runner._not_eliminated_count()
 	rec["phase"] = ("2S" if active else "2") if ne_before == 2 else str(ne_before)
+	if str(runner.state) == "SUDDEN_DEATH":   # WK-191 §5.5: an SD kill ("SDS" = inside the SD showdown)
+		rec["phase"] = "SDS" if active else "SD"   # WK-191
 	rec["showdown_step"] = step if active else 0
 	rec["golden_killer"] = killer_idx >= 0 and _holder.has(killer_idx)
 	rec["golden_victim"] = _holder.has(victim_idx)
@@ -162,6 +184,82 @@ func on_sudden_death(revived: Array) -> void:
 	if active:
 		_sd = true
 	_exit_showdown("sd")   # WK-169c: the hush releases at once (SD has its own identity)
+	_sd_rec = {"t_revive": snappedf(float(runner.round_clock), 0.0001), "t_unlock": -1.0, "t_end": -1.0, "t_first_end": -1.0,   # WK-191
+		"ended_by": "", "sd_showdown_t": -1.0, "revived": revived.duplicate(), "drops": [], "tank": [], "boost_s": {},   # WK-191
+		"words": 0, "sd_showdown": Tuning.sd_showdown, "sd_showdown_delay": Tuning.sd_showdown_delay}   # WK-191
+	_sd_unlock_t = -1.0   # WK-191
+	if Tuning.sd_showdown and revived.size() == 2:   # WK-191: the SD showdown's pair = the revived pair (OFF: fighters untouched)
+		fighters = revived.duplicate()   # WK-191
+
+## WK-191: PartyMatch._tick_combat, the frame the SD revive lock ends (both revived goats unfrozen): the SD fight clock starts.
+func on_sd_unlock() -> void:   # WK-191
+	_sd_unlock_t = float(runner.round_clock)   # WK-191
+	if not _sd_rec.is_empty():   # WK-191
+		_sd_rec["t_unlock"] = snappedf(_sd_unlock_t, 0.0001)   # WK-191
+
+## WK-191: per physics tick from PartyMatch._tick_combat in SUDDEN_DEATH (after the revive lock). Telemetry in every arm; the SD
+## SHOWDOWN (spec §5.1) only with Tuning.sd_showdown. OFF = nothing but the SD boost counter (no gameplay effect).
+func tick_sd(delta: float) -> void:   # WK-191
+	if _sd_unlock_t < 0.0:   # WK-191
+		return   # WK-191
+	var now: float = float(runner.round_clock)   # WK-191
+	for i in _sd_rec.get("revived", []):   # WK-191: BS (the FLY verb in the SD)
+		var p = runner.players[int(i)] if int(i) < runner.players.size() else null   # WK-191
+		if is_instance_valid(p) and not p.is_dead() and p.is_boosting():   # WK-191
+			_sd_boost[int(i)] = float(_sd_boost.get(int(i), 0.0)) + delta   # WK-191
+	if not Tuning.sd_showdown or not lever_on():   # WK-191: OFF = today
+		return   # WK-191
+	_track_tanks(now)   # WK-191
+	if not active:   # WK-191
+		if not _sd_entered and int(runner._stage_start_alive) >= 3 and _sd_pair_alive() \
+				and now - _sd_unlock_t >= Tuning.sd_showdown_delay - 0.0001:   # WK-191 §5.1 (1)-(5)
+			_sd_entered = true   # WK-191
+			_in_sd_showdown = true   # WK-191
+			_sd_words0 = wk169c_words   # WK-191
+			_sd_rec["sd_showdown_t"] = snappedf(now, 0.0001)   # WK-191
+			_enter_showdown(now)   # WK-191: the shipped showdown, unchanged (step 1, drop at entry, band, ka-CHUNK, hush, rims)
+		return   # WK-191
+	if step < Tuning.showdown_max_steps and now >= _next_step_t - 0.0001:   # WK-191 (= tick)
+		_set_step(step + 1, now)   # WK-191
+	if Tuning.showdown_drop:   # WK-191
+		_tick_drop(now)   # WK-191
+
+func _sd_pair_alive() -> bool:   # WK-191
+	var rv: Array = _sd_rec.get("revived", [])   # WK-191
+	if rv.size() != 2:   # WK-191
+		return false   # WK-191
+	for i in rv:   # WK-191
+		var p = runner.players[int(i)] if int(i) < runner.players.size() else null   # WK-191
+		if not is_instance_valid(p) or p.is_dead():   # WK-191
+			return false   # WK-191
+	return true   # WK-191
+
+## WK-191 §5.5 banner log: per physics tick in COMBAT / SUDDEN_DEATH. Reads the HUD's centre + top band (read-only) and logs the
+## on-screen spans of "SUDDEN DEATH!" and "SHOWDOWN!" plus the frames both are on (BX, must be 0).
+func poll_banners() -> void:   # WK-191
+	var hud = runner._hud if runner != null else null   # WK-191
+	if hud == null or not is_instance_valid(hud):   # WK-191
+		return   # WK-191
+	var on := {}   # WK-191
+	if hud.has_method("center_showing") and hud.center_showing():   # WK-191
+		var ct = hud.get("_center_text")   # WK-191
+		if ct != null:   # WK-191
+			on[str(ct.text)] = true   # WK-191
+	if hud.has_method("top_showing") and hud.top_showing():   # WK-191
+		var tl = hud.get("_top_label")   # WK-191
+		if tl != null:   # WK-191
+			on[str(tl.text)] = true   # WK-191
+	var now: float = snappedf(float(runner.round_clock), 0.0001)   # WK-191
+	for txt in WK191_BANNERS:   # WK-191
+		if on.has(txt) and not _ban_open.has(txt):   # WK-191
+			var r := {"text": txt, "t_on": now, "t_off": -1.0}   # WK-191
+			_banners.append(r)   # WK-191
+			_ban_open[txt] = r   # WK-191
+		elif not on.has(txt) and _ban_open.has(txt):   # WK-191
+			(_ban_open[txt] as Dictionary)["t_off"] = now   # WK-191
+			_ban_open.erase(txt)   # WK-191
+	if on.has("SUDDEN DEATH!") and on.has("SHOWDOWN!"):   # WK-191
+		_bx_frames += 1   # WK-191
 
 ## Per physics tick from PartyMatch._tick_combat (COMBAT only, outside the SD revive lock).
 func tick(delta: float) -> void:
@@ -248,6 +346,43 @@ func finalize_stats(cur_stats: Dictionary) -> void:
 			else:
 				_stats["ended_by"] = "self"
 		cur_stats["showdown"] = _stats.duplicate(true)
+	_wk191_finalize(cur_stats, length)   # WK-191
+
+## WK-191 §5.5: the banner log + this stage's `sd` record (any arm; the director only exists with showdown telemetry on).
+func _wk191_finalize(cur_stats: Dictionary, length: float) -> void:   # WK-191
+	for txt in _ban_open.keys():   # WK-191: still on at the stage end
+		(_ban_open[txt] as Dictionary)["t_off"] = snappedf(length, 0.0001)   # WK-191
+	_ban_open.clear()   # WK-191
+	cur_stats["banners"] = _banners.duplicate(true)   # WK-191
+	cur_stats["banner_bx_frames"] = _bx_frames   # WK-191
+	if _sd_rec.is_empty():   # WK-191
+		return   # WK-191
+	var sdk: Array = []   # WK-191: the kills inside the SD (phase SD / SDS)
+	for k in cur_stats.get("kills", []):   # WK-191
+		var ph: String = str((k as Dictionary).get("phase", ""))   # WK-191
+		if ph == "SD" or ph == "SDS":   # WK-191
+			sdk.append(k)   # WK-191
+	if not sdk.is_empty():   # WK-191
+		var first: Dictionary = sdk[0]   # WK-191
+		var last: Dictionary = sdk[sdk.size() - 1]   # WK-191
+		_sd_rec["t_first_end"] = snappedf(float(first.get("t", -1.0)), 0.0001)   # WK-191
+		_sd_rec["t_end"] = snappedf(float(last.get("t", -1.0)), 0.0001)   # WK-191
+		if sdk.size() >= 2:   # WK-191: a second double KO (no survivor)
+			_sd_rec["ended_by"] = "double"   # WK-191
+		elif bool(last.get("credited", false)):   # WK-191
+			_sd_rec["ended_by"] = "credited"   # WK-191
+		elif bool(last.get("haunted", false)):   # WK-191
+			_sd_rec["ended_by"] = "haunted"   # WK-191
+		else:   # WK-191
+			_sd_rec["ended_by"] = "self"   # WK-191
+	_sd_rec["sd_kills"] = sdk.size()   # WK-191
+	var bs := {}   # WK-191
+	for i in _sd_boost.keys():   # WK-191
+		bs[str(i)] = snappedf(float(_sd_boost[i]), 0.001)   # WK-191
+	_sd_rec["boost_s"] = bs   # WK-191
+	_sd_rec["words"] = wk169c_words - _sd_words0 if _sd_entered else 0   # WK-191: "GOLDEN TANK!" pops in the SD showdown
+	_sd_rec["max_step"] = step if _in_sd_showdown else 0   # WK-191
+	cur_stats["sd"] = _sd_rec.duplicate(true)   # WK-191
 
 ## Visual + lever teardown (stage end, match end, SD, new stage). Field objects also go with PowerupSystem.round_sweep.
 func clear() -> void:
@@ -313,7 +448,8 @@ func summary(stats: Array) -> Dictionary:
 func _enter_showdown(now: float) -> void:
 	active = true
 	_t_enter = now
-	_stats["t_enter"] = snappedf(now, 0.0001)
+	if not _in_sd_showdown or float(_stats.get("t_enter", -1.0)) < 0.0:   # WK-191: an SD re-entry keeps the COMBAT entry time
+		_stats["t_enter"] = snappedf(now, 0.0001)
 	_next_drop_t = now   # the first golden drop telegraphs at entry
 	if runner._hud != null:
 		runner._hud.show_top("SHOWDOWN!", GOLD, Tuning.showdown_banner_time)
@@ -327,7 +463,7 @@ func _enter_showdown(now: float) -> void:
 func _set_step(s: int, now: float) -> void:
 	step = s
 	(_stats["steps_t"] as Array).append(snappedf(now, 0.0001))
-	_stats["max_step"] = s
+	_stats["max_step"] = maxi(int(_stats.get("max_step", 0)), s)   # WK-191: an SD re-entry restarts at step 1 (same as s when monotonic)
 	_next_step_t = now + Tuning.showdown_step_s
 	# L2 (GhostDirector holds cooldown + cap; it ignores the call when showdown_ghost_boost is OFF except telemetry)
 	var gd = runner.get("_ghost_dir")
@@ -447,6 +583,9 @@ func _start_telegraph(now: float) -> void:
 		"d_a": snappedf(float(fp["d_a"]), 0.1), "d_b": snappedf(float(fp["d_b"]), 0.1), "picked_from_n": int(fp["in_view_n"]),
 		"points_n": int(fp["n"]), "collected_by": -1, "t_collect": -1.0, "popped": false, "step": step}
 	(_stats["drops"] as Array).append(_tel_rec)
+	if _in_sd_showdown:   # WK-191 §5.5: an SD drop (same record, also listed in the stage's `sd` record)
+		_tel_rec["phase"] = "sd"   # WK-191
+		(_sd_rec["drops"] as Array).append(_tel_rec)   # WK-191
 	_claim(_tel_pos)   # WK-169c §2.8 (b): regular bubbles on this point upgrade-pop; the regular director avoids it
 	EventBus.golden_telegraph.emit(_tel_pos)   # WK-169c: the "ding-ding"
 	var p := CPUParticles2D.new()
@@ -531,6 +670,9 @@ func _open_tank(idx: int) -> void:
 	var t := {"idx": idx, "t_on": snappedf(float(runner.round_clock), 0.0001), "t_off": -1.0, "supers": 0, "smashes": 0,
 		"arm_s": Tuning.showdown_drop_arm_s, "t_first_super": -1.0, "t_first_smash": -1.0}   # WK-169c: GOLD SURGE telemetry (s after t_on)
 	(_stats["tank"] as Array).append(t)
+	if _in_sd_showdown:   # WK-191 §5.5
+		t["phase"] = "sd"   # WK-191
+		(_sd_rec["tank"] as Array).append(t)   # WK-191
 	_holder[idx] = t
 	_set_holder_fx(idx, true)   # WK-169c: holder rim x1.5 + shimmer + star trail
 

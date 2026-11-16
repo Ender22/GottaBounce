@@ -828,15 +828,21 @@ func _bounce_go() -> void:
 func _tick_combat(delta: float, rdelta: float) -> void:
 	round_clock += delta   # stat only; gates nothing
 	_wk95_tick_flight(delta)   # WK-95 §8.1 per-player flight telemetry (read-only)
+	if _showdown != null:   # WK-191
+		_showdown.poll_banners()   # WK-191 telemetry: SUDDEN DEATH! / SHOWDOWN! on-screen log (reads the HUD only)
 	# sudden-death revive lock: banner holds, both revived players suspended (spec §5)
 	if _sd_lock > 0.0:
 		_sd_lock -= rdelta
 		if _sd_lock <= 0.0:
 			for p in _alive_players():
 				p.frozen = false
+			if _showdown != null:   # WK-191
+				_showdown.on_sd_unlock()   # WK-191: the SD fight clock starts (t_unlock)
 		return
 	if _showdown != null and state == "COMBAT":
 		_showdown.tick(delta)   # WK-169: 2-alive clock, steps, golden drop (never ends a stage)
+	elif _showdown != null and state == "SUDDEN_DEATH":   # WK-191
+		_showdown.tick_sd(delta)   # WK-191: SD telemetry; with Tuning.sd_showdown the SD SHOWDOWN entry, steps, golden drop
 	# idle-hunt bookkeeping (lethality §3.2 rule 3): ticks only during combat; the Player
 	# resets its own counter on boost/super input
 	for p in players:
