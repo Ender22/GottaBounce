@@ -4,17 +4,18 @@
 > Durable history/rationale lives in `docs/DECISIONS.md`, `docs/specs/`, `docs/briefs/`,
 > `docs/feedback/` — this file is a lean current-state snapshot, not a session log.
 
-**>>> RESUME HERE (2026-11-16 ~07:30) <<<**
+**>>> RESUME HERE (2026-11-16 ~08:10, owner left for work; agents may have died with the PC) <<<**
 Remote: origin = github.com/Ender22/GottaBounce; agents can't push — owner runs `git push -u origin weekend/polish master`.
-Owner checklist + design questions: docs/feedback/owner_questions_2026-11-16.md (GPU reboot, listen test, real pads, OQ-1..3).
-Latest cold playthrough CD6 (1e8b41f, docs/audit/2026-11-16_cd6_playthrough.md) = SHIP front end/Brawl/Dropshot/Trials; WK-175 feel FIX.
-Since 03:40 (committed): WK-169 SHOWDOWN + golden drop ON (8fbcff8); WK-169c showdown polish (83d92d9; race p 0.8 + stroke rulings in
-DECISIONS); WK-183 sports per-player fuel arc + refuel ding (adbb6d6, b9d36a7, 1f35129; UX SHIP); WK-175 A/B = SHIP WR + rendered PASS
-(audits wk175_ab / wk175_rendered) but switch still OFF; WK-161b tune rejected -> WK-161 [~], WK-161c parked; BACKLOG re-rank #11 (b9ac0ef).
-In flight: WK-175c wall refund feedback (ding+flare / blocked tok) + per-mode gate scope, NO flip yet (then CD re-ask Q2 -> brawl flip,
-Q4 -> sports flip); WK-187 end-screen mash gate (CD6-05) + WINNER! backing; WK-188 GOLD SURGE TG-lane batch (holds headless slot;
-spec wk169c §1.5/§1.6 rows) -> docs/audit/2026-11-16_wk169c_goldsurge.md.
-Next: BACKLOG "Next 10" (re-rank #11). WK-CD7 after WK-175d + WK-187 + WK-188 + WK-66d.
+Owner checklist: docs/feedback/owner_questions_2026-11-16.md. Tree was CLEAN at d80fb10.
+Shipped since 03:40: WK-169 SHOWDOWN ON; WK-169c polish (83d92d9); WK-183 sports fuel arc + refuel ding (UX SHIP); WK-187 + WK-194
+end-screen mash guard + WINNER! plate (UX SHIP); WK-175c wall-refund feedback (fc4591c, gate still OFF; per-mode `wk175_gate_modes`);
+WK-191-prep SD showdown built OFF (f88027c). Ruled: WK-188 GOLD SURGE not shipped; WK-190 accepted (no lever); WK-161b tune rejected.
+IN FLIGHT at 08:10 (re-run any that left no output/commit; on resume check `git status` and revert half-done files with `git restore`):
+  1. WK-175d creative-director brawl re-ask (GB_WK175=wr GB_WK175_MODES=brawl) -> docs/audit/2026-11-16_wk175d_feel.md. SHIP => set
+     `refund_gates_on = true` (one line; scope is brawl only). Sports flip later (add "sports" to wk175_gate_modes after a Q4 re-ask).
+  2. WK-190b SD-showdown A/B on RIG=all (harness tools/out/wk/wk190b_batch, DECISIONS "WK-190b RIG RULING") -> docs/audit/2026-11-16_wk190b_ab.md.
+  3. WK-189 golden-drop fair point + L3 seek fix (gameplay-programmer, port 9147).
+Next after: WK-195 rematch HURT! carry-over repro; WK-66d Dropshot courts art; WK-164 sports bots; WK-45 UI sounds; WK-CD7.
 GPU PROBLEM: both AMD adapters in error -> software rendering since the 02:00 freeze. Visuals OK, perf/timing numbers invalid (WK-90 blocked).
 WK-38: automation server is OFF unless --gb-port is passed. Don't pipe/redirect run_game.ps1. Recordings keep audio.wav.
 Frame cleanup: `python -I tools/sweep_frames.py tools/out go`. Stall check: no output > 45 min + no Godot -> TaskStop + recovery agent.
