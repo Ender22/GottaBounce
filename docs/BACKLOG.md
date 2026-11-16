@@ -3146,7 +3146,7 @@ Evidence paths below are under `tools/out/wk/` unless stated. WK-175 FIX 1 / FIX
   share, self-KO and ghost-credited zeros inside their guardrails.
 - Status: open. Next-10 #8 (190a).
 
-### [x] WK-191 [P3][S] (CD6-04) Sudden-death duels sit outside the SHOWDOWN — f88027c
+### [ ] WK-191 [P3][S] (CD6-04) Sudden-death duels sit outside the SHOWDOWN — prep built f88027c (OFF); A/B 190b on RIG=all in flight
 - Area: brawl · Owner: game-designer (ruled in WK-190a's pass) -> gameplay-programmer · Source: WK-CD6 CD6-04
 - Evidence: m2 Long Meadow: after a 4-way chain (WK-181, correct), the SD duel ran 12.6 s with two ghosts and no showdown pressure (spec §5.3
   clears the showdown on SD by design); Stepping Bloom SD 6.2 s (`CD6_data/m2.json`). 2 SD stages in 38.
