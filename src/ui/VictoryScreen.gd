@@ -30,6 +30,7 @@ signal menu_pressed
 
 const ToyKit := preload("res://src/ui/ToyKit.gd")
 const FocusRow := preload("res://src/ui/FocusRow.gd")   # WK-14: one focus look (CC-5.1)
+const GoatFade := preload("res://src/ui/WorldGoatFade.gd")   # WK-187 ux FIX 4: the frozen world goats fade out
 const GOLD := Color("#ffd23f")
 const CHOCO := Color(0.231373, 0.141176, 0.105882)
 const TRAY_IN := 0.55 + 0.28   # s from present() to the tray landing (its row fill pass starts then)
@@ -78,6 +79,11 @@ var _row_shown := false        # WK-187: the REMATCH row + footer popped in (the
 # WK-187: screen-time (_t) arm moment = settle + read time. The gate's real-time arm is a floor on top: a frame hitch
 # advances wall clock but not the tweens, so the row must never go live before the tally has really played on screen.
 var _arm_t := 0.0
+var _settle_t := 0.0           # WK-187 ux FIX 3: screen time the choreography settles (natural end, or the fast-forward)
+var _early_armed := false      # WK-187 ux FIX 3: a deliberate press already pulled the row in
+var _click_msec := -100000     # WK-187 ux FIX 2: last ui_click (one click when the press and the pop coincide)
+var clicks := 0                # QA: ui_clicks this screen played for the row (early press + row live)
+var _goat_fade: Node           # WK-187 ux FIX 4: WorldGoatFade
 # WK-11 (CC-10.2 / CC-3.3): fresh presses only, arm >= Tuning.end_screen_arm, joined devices only.
 var _gate: MenuInputGate
 
@@ -86,6 +92,9 @@ func _ready() -> void:
 	_gate = MenuInputGate.new()
 	_gate.name = "InputGate"
 	add_child(_gate)
+	_goat_fade = GoatFade.new()
+	_goat_fade.name = "GoatFade"
+	add_child(_goat_fade)
 	_gate.verb.connect(_on_verb)
 	_gate.early.connect(_on_early)
 	_prompts.modulate.a = 0.0
@@ -111,7 +120,13 @@ func present(winner: Dictionary, rows: Array, target: int) -> void:
 	# WK-187: the row arms read_time after the tally lands (never before Tuning.end_screen_arm, C-14); a mash can't
 	# fast-forward (quiet gap), a deliberate accept can - and then the read time runs from that moment instead
 	_gate.accept_quiet_gap = Tuning.end_screen_quiet_gap
-	_arm_t = settle_time(rows.size()) + Tuning.end_screen_read_time
+	_gate.quiet_gap_verbs = PackedStringArray(["accept", "back"])   # ux FIX 1: a B mash can't run B, B into QUIT
+	_early_armed = false
+	clicks = 0
+	_settle_t = settle_time(rows.size())
+	_arm_t = _settle_t + Tuning.end_screen_read_time
+	# ux FIX 4: the frozen world goats (and their trails, pips) fade out with the scrim
+	_goat_fade.fade_out(get_parent(), Tuning.end_screen_goat_fade)
 	_gate.open(maxf(Tuning.end_screen_arm, _arm_t))
 	_tweens.clear()
 	_bar_ends.clear()
@@ -281,6 +296,7 @@ func is_armed() -> bool:
 ## arms (the focus spring + breath on REMATCH starts at the arm).
 func _show_row() -> void:
 	_row_shown = true
+	_click()   # ux FIX 2: the row going live is heard, not only seen
 	_prompts.pivot_offset = _prompts.size * 0.5
 	_prompts.scale = Vector2.ONE * Tuning.end_screen_live_pop_from
 	var tw := create_tween()
@@ -289,13 +305,42 @@ func _show_row() -> void:
 	tw.parallel().tween_property(_prompts, "scale", Vector2.ONE, Tuning.end_screen_live_pop).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## Pre-arm press (fresh, joined device): accept FAST-FORWARDS the choreography — it never arms the row.
+## WK-187 ux FIX 3: on the SETTLED screen (row still hidden) a deliberate accept brings the row in early instead.
 func _on_early(v: String, _key: String) -> void:
-	if _live and not _armed and v == "accept" and _t > 0.05 and not _ff_done and not _row_shown:
+	if not _live or _armed or v != "accept" or _t <= 0.05 or _row_shown:
+		return
+	if _ff_done or _t >= _settle_t:
+		_early_arm()
+	else:
 		_fast_forward()
+
+## WK-187 ux FIX 3: a deliberate press (it passed the quiet gap) once the results have played: click, and pull the row
+## in now - but never before Tuning.end_screen_read_floor of settled reading. It never selects anything: the row still
+## needs its own press once visible (CC-10.1). A mash never gets here (quiet gap), so it still never gets in.
+func _early_arm() -> void:
+	if _early_armed:
+		return
+	_early_armed = true
+	_click()
+	var wait: float = maxf(Tuning.end_screen_live_pop, _settle_t + Tuning.end_screen_read_floor - _t)
+	_gate.rearm_from_now(wait)
+	_arm_t = minf(_arm_t, _t + wait)
+
+## WK-187 ux FIX 2: ui_click for the row (a dedicated soft "ui_ready" is a sound-designer request), once per 150 ms.
+func _click() -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - _click_msec < 150:
+		return
+	_click_msec = now
+	clicks += 1
+	AudioManager.play_sfx("ui_click")
 
 ## Armed, fresh press from a device allowed to drive this shared screen.
 func _on_verb(v: String, _key: String) -> void:
-	if not _live or not _armed:
+	if not _live:
+		return
+	if not _armed:
+		_on_early(v, _key)   # the gate's real-time arm can lead the screen's: treat it as a pre-arm press
 		return
 	match v:
 		"left":
@@ -365,8 +410,10 @@ func _fast_forward() -> void:
 	_rays_spin()
 	_gate.rearm_from_now(Tuning.end_screen_read_time)
 	_arm_t = minf(_arm_t, _t + Tuning.end_screen_read_time)
+	_settle_t = minf(_settle_t, _t)   # ux FIX 3: the screen settled now
 
 func dismiss() -> void:
+	_goat_fade.restore()   # ux FIX 4
 	if _live:
 		_set_match_overlays_hidden(false)   # WK-42: REMATCH brings the corner cards back for the new match
 	_live = false

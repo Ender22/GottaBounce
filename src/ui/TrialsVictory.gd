@@ -96,6 +96,10 @@ func present(data: Dictionary) -> void:
 	_t = 0.0
 	activated = ""
 	_kill_tweens()
+	# WK-187 (CD6-05 re-check): the same mash hole as Brawl - pad A is FLY, so mashing it through the last solve fast-forwarded
+	# and then took NEXT CIRCUIT at the 1.3 s arm. Accept / back now need the quiet gap here too (a deliberate press still works).
+	_gate.accept_quiet_gap = Tuning.end_screen_quiet_gap
+	_gate.quiet_gap_verbs = PackedStringArray(["accept", "back"])
 	_gate.open(maxf(Tuning.end_screen_arm, Tuning.trials_victory_arm))
 	var circ: Dictionary = data.get("circuit", {})
 	var nxt: Dictionary = data.get("next", {})

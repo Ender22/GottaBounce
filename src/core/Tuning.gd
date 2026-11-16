@@ -296,9 +296,11 @@ var scoreboard_skip_guard: float = 1.2     # s after the between-stage score scr
 # the screen has SETTLED (the score tally finished, or a deliberate fast-forward landed it) and then stayed up for the  # WK-187
 # read time; until then the REMATCH row + footer are hidden, and they pop in as the row arms (the visible "ready" beat).  # WK-187
 var end_screen_read_time: float = 1.5      # s the settled results stay up before REMATCH / SETUP / QUIT accept a press  # WK-187
-var end_screen_quiet_gap: float = 0.3      # s a button must have been UP before its accept counts (a mash never has it: no tally skip, no REMATCH)  # WK-187
+var end_screen_quiet_gap: float = 0.3      # s a button must have been UP before its accept / back counts (a mash never has it: no tally skip, no REMATCH, no QUIT)  # WK-187
 var end_screen_live_pop: float = 0.22      # s the row's pop-in takes; it starts this long BEFORE the arm so it is fully shown when live  # WK-187
 var end_screen_live_pop_from: float = 0.8  # row scale at the start of the pop (springs to 1.0, TRANS_BACK)  # WK-187
+var end_screen_read_floor: float = 1.0     # ux FIX 3: s of settled reading a deliberate press can't cut (it brings the row in early, never selects)  # WK-187
+var end_screen_goat_fade: float = 0.25     # ux FIX 4: s the frozen world goats / trails / pips / fuel arcs fade to 0 behind the ceremony  # WK-187
 
 # --- Between-stage budget (WK-21/WK-41 · audit D-09 · DECISIONS 2026-07-16 names the score hold as THE knob) ---
 # The ScoreScreen hold is ADAPTIVE: quiet stages get the short hold, dramatic stages (lead change / a player newly

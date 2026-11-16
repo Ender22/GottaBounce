@@ -16,6 +16,8 @@ extends Node
 ## WK-187 (CD6-05) opt-in 4th rule: QUIET ACCEPT — with `accept_quiet_gap` > 0 an accept press counts (early OR armed)
 ## only if that same button had been UP for >= the gap. A celebrating couch mashing A (boost) every ~50-150 ms never
 ## has that gap, so a mash can neither fast-forward the tally nor take REMATCH; a deliberate press always does.
+## WK-187 ux FIX 1: the verbs it covers are `quiet_gap_verbs` (default accept only); the victory screens add "back" so a
+## mash of pad B (use_powerup in play) can't run "B, B" into QUIT TO MENU. Directions are never gated.
 
 signal verb(name: String, key: String)    # armed, fresh, allowed press
 signal early(name: String, key: String)   # fresh, allowed press BEFORE arming (never acts on its own)
@@ -30,10 +32,12 @@ var _stick := {}     # "<device>|h|v" -> -1/0/1 latched stick direction (hystere
 # FLY, because players' hands are on FLY, not on a menu button). Empty by default, so other screens are unchanged.
 # All three gate rules still apply: fresh press only, after the arm delay, from a joined device.
 var extra_accept_actions: PackedStringArray = PackedStringArray()
-# WK-187 (CD6-05): s a button must have been released before an "accept" press on it counts (0 = off, the default:
-# ScoreScreen / Trials / the sports HUD row are unchanged). Victory + SportsVictory set Tuning.end_screen_quiet_gap.
+# WK-187 (CD6-05): s a button must have been released before a press of one of `quiet_gap_verbs` on it counts (0 = off,
+# the default: ScoreScreen and the sports / trials HUD rows are unchanged). Victory, SportsVictory and TrialsVictory set
+# Tuning.end_screen_quiet_gap and gate accept + back.
 var accept_quiet_gap: float = 0.0
-var mash_ignored := 0   # QA: accept presses dropped by the quiet-gap rule since open()
+var quiet_gap_verbs: PackedStringArray = PackedStringArray(["accept"])
+var mash_ignored := 0   # QA: presses dropped by the quiet-gap rule since open()
 var _up_msec := {}      # "<device>|<button>" -> Time.get_ticks_msec() of its last release (tracked even while closed)
 
 func _enter_tree() -> void:
@@ -125,7 +129,7 @@ func _on_window_input(e: InputEvent) -> void:
 	if not InputRouter.may_drive_shared(e):
 		return   # CC-3.3: an unjoined device can't drive a shared menu once a lobby exists
 	var v := _verb_of(e)
-	if v == "accept" and accept_quiet_gap > 0.0 and _up_msec.has(bid) \
+	if accept_quiet_gap > 0.0 and quiet_gap_verbs.has(v) and _up_msec.has(bid) \
 			and Time.get_ticks_msec() - int(_up_msec[bid]) < int(accept_quiet_gap * 1000.0):
 		mash_ignored += 1
 		return   # WK-187: part of a mash (released < quiet gap ago) - never fast-forwards, never acts
