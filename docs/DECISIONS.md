@@ -2,6 +2,10 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-188 GOLD SURGE NOT SHIPPED (docs/audit/2026-11-16_wk169c_goldsurge.md, row R2): showdown_drop_arm_s stays 0.0.
+  The arm works (first golden super 1.04 -> 2.40 s; loser lands first hit 18 -> 44 %) but the duel lives on to a second drop and its
+  holder wins: holder-wins 90.3 -> 90.5 %, tails > 8 s 11 -> 23 %. The advantage is the full-fuel super-every-second holder, not the
+  point-blank opening. G9 stays a FLAG. Any further lever must target holder strength (designer), not the opening.
 - **2026-11-16** WK-190 ACCEPTED (director, docs/specs/wk190_dead_share_2026-11-16.md): Brawl mid-stage dead share is format-normal for
   LIVES 1 last-goat-standing (CD6 human dead seconds: 3-alive 21 %, 2-alive pre-showdown 49 %, showdown 10 %, SD 10 %, double-KO window
   10.5 %; 3-alive p90 6.7 s = no stall; pooled 24.7 % vs 25.0 % arithmetic). No lever; restless ghosts stay OFF; lane G released.

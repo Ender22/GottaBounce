@@ -3106,7 +3106,7 @@ Evidence paths below are under `tools/out/wk/` unless stated. WK-175 FIX 1 / FIX
 - Status: **in-progress** (uncommitted WK-187 edits in the tree: `VictoryScreen.gd`, `SportsVictory.gd`, `MenuInputGate.gd`, `Tuning.gd`
   `end_screen_read_time` 1.5 s / `end_screen_quiet_gap` 0.3 s). Next-10 #2. ID assigned by the director at build start.
 
-### [ ] WK-188 [P2][S] (CD6-01) The golden race is decided at point-blank and the holder then wins: turn GOLD SURGE on
+### [~] WK-188 [P2][S] (CD6-01) The golden race is decided at point-blank and the holder then wins: turn GOLD SURGE on — attempted: GOLD SURGE A/B row R2: holder-wins unchanged 90 %, tails doubled; knob stays 0.0 (2026-11-16_wk169c_goldsurge.md); next lever = holder strength (designer)
 - Area: brawl (showdown) · Owner: game-designer (ruling) -> qa-playtester (headless) · Source: creative-director WK-CD6 CD6-01 (+ T12 Q3
   felt answer "unfair") · **Deduped:** the DECISIONS 83d92d9 note "GOLD SURGE stays 0.0 pending the TG-lane batch" is this item.
 - Evidence: `CD6_data/m1.json`, `m4.json` (`showdown.drops` / `tank`): bubble live -> grab 0.05, 0.08, 0.30, 0.57, 3.6 s (3 of 5 within 0.3 s);
