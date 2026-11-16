@@ -105,6 +105,8 @@ const SFX := {
 	"golden_bell":       ["res://assets/sfx/golden_bell.ogg"],      # WK-169c telegraph "ding-ding" (2 strikes, never a beep)
 	"golden_collect":    ["res://assets/sfx/golden_collect.ogg"],   # WK-169c gold collect sting
 	"golden_pfff":       ["res://assets/sfx/golden_pfff.ogg"],      # WK-169c tank-end deflate
+	# WK-183 refuel "glug-ding" (sports fuel-arc refund tick): synthesized, tools/audio/render_wk183_refuel_ding.py (LICENSES.md)  # WK-183
+	"refuel_ding":       ["res://assets/sfx/refuel_ding.ogg"],      # WK-183
 }
 
 # --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
@@ -158,7 +160,7 @@ const FILLER_SFX := {"bounce": true}
 # Per-sound voice caps: past the cap the sound recycles its OWN oldest voice. "countdown" doubles as the Bomb.gd
 # telegraph beep (4 -> 14 Hz, 0.22-0.32 s each): Everything Yard fired 556 in 89 s and held the pool at 14/14 for
 # 85 of 1574 samples. The match 3-2-1 (1 Hz) never reaches the cap.
-const SFX_VOICE_CAP := {"countdown": 3, "super_aim": 3}   # WK-26: <= 3 wind-ups at once (a 4th recycles the oldest)
+const SFX_VOICE_CAP := {"countdown": 3, "super_aim": 3, "refuel_ding": 2}   # WK-183: refuel_ding <= 2 (4 goats refuelling at once stay a tick, not a chord)   # WK-26: <= 3 wind-ups at once (a 4th recycles the oldest)
 # WK-79b (was -7; audit docs/audit/2026-11-15_audio_measure.md §2): the one looped jetpack voice was 38-65 % of all combat
 # sound, 5-9 dB over the music, masking bounce/KO/aim in 0.5-1.5 kHz. With the SFX makeup gone this is -9 dB effective.
 const THRUST_ON_DB := -12.0
@@ -319,6 +321,7 @@ func _ready() -> void:
 	EventBus.super_lock_pressed.connect(_on_super_lock_pressed)   # WK-20e spawn-truce dry click
 	EventBus.sports_pressure.connect(_on_sports_pressure)   # WK-116 pressure nets (bed swell, ka-CHUNK, clap-chant)
 	EventBus.sports_tension.connect(_on_sports_tension)   # WK-110 MATCH POINT / GOLDEN GOAL kickoff cue
+	EventBus.refuel_ticked.connect(_on_refuel_ticked)     # WK-183 sports fuel-arc refuel ding
 	EventBus.showdown_entered.connect(_on_showdown_entered)   # WK-169c hush + ka-CHUNK
 	EventBus.showdown_step.connect(_on_showdown_step)         # WK-169c LPF step + CHUNK
 	EventBus.showdown_exited.connect(_on_showdown_exited)     # WK-169c hush release
@@ -1017,6 +1020,32 @@ func _on_sports_tension(kind) -> void:   # WK-110
 	else:
 		play_sfx("two_left", {"volume_db": Tuning.wk110_mp_sting_db, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk110"})
 		play_sfx("goal_crowd", {"volume_db": Tuning.wk110_crowd_db, "pitch": 0.74, "pitch_var": 0.0, "bus": _stinger_bus, "tag": "wk110"})
+
+# --------------------------------------------------------------------- WK-183 refuel ding
+
+var refuel_ticks_seen := 0     # WK-183 QA: every EventBus.refuel_ticked received
+var refuel_dings := 0          # WK-183 QA: dings played (the rest were inside the per-goat gap)
+var refuel_log: Array = []     # WK-183 QA: last 32 heard {ms, player, amount, st}
+var _refuel_last := {}         # WK-183: player instance id -> msec of its last heard ding
+## WK-183 (UX FIX 5): the sports fuel arc's refund tick fired (a goat's tank rose this frame). One short glug-ding on the SFX bed,
+## ~10 dB under a ball touch, pitch +0 .. +wk183_ding_st_max semitones with the fuel gained, at most one per wk183_ding_gap_s
+## per goat (real time). Only SportsFuelArc emits, so brawl never hears it.
+func _on_refuel_ticked(player, amount) -> void:   # WK-183
+	refuel_ticks_seen += 1
+	if not Tuning.wk183_ding_on or player == null or not is_instance_valid(player):
+		return
+	var now: int = Time.get_ticks_msec()
+	var id: int = (player as Object).get_instance_id()
+	if now - int(_refuel_last.get(id, -100000)) < int(Tuning.wk183_ding_gap_s * 1000.0):
+		return
+	_refuel_last[id] = now
+	var u: float = clampf(inverse_lerp(Tuning.wk183_ding_amt_lo, Tuning.wk183_ding_amt_hi, float(amount)), 0.0, 1.0)
+	var st: float = u * Tuning.wk183_ding_st_max
+	play_sfx("refuel_ding", {"volume_db": Tuning.wk183_ding_db, "pitch": pow(2.0, st / 12.0), "pitch_var": 0.0, "tag": "wk183"})
+	refuel_dings += 1
+	refuel_log.append({"ms": now, "player": str(player.name), "amount": snappedf(float(amount), 0.1), "st": snappedf(st, 0.01)})
+	if refuel_log.size() > 32:
+		refuel_log.pop_front()
 
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()

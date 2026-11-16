@@ -7,11 +7,14 @@ extends Node2D
 ##   - WK-99 super-ready notch at super_boost_min_fuel / fuel_max: LIT = cream tick poking past the track, UNLIT = short
 ##     muted tick inside it (size + luminance, never hue: the same read as the PlayerCard gauge and the WK-36 bubble ring),
 ##     with the WK-99 pop when the tank crosses UP through the line.
-##   - LOW (< wk183_low_ratio, = the bubble ring's low line): the outline band blinks toward cream and the fill brightens
-##     with it. Luminance only, so a RED-team gauge still reads "low" (a red low colour would vanish into the red team
+##   - LOW (< wk183_low_ratio, = the bubble ring's low line, 0 included): the outline band swings between
+##     wk183_low_rim_floor and wk183_low_rim_flash toward cream (it never returns to chocolate, so the trough reads too)
+##     and the fill brightens with it. Luminance only, so a RED-team gauge still reads "low" (a red low colour would vanish into the red team
 ##     fill), and the empty track never brightens (a bright track read as a FULL arc in the first rendered pass).
 ##   - REFUND TICK: when the tank gains >= wk183_tick_min in one frame (wall / floor / bumper / ball refund, re-light refund,
-##     whiff reserve: drain never rises), the gained slice flashes white, the fill pops wider and the whole arc glints.
+##     whiff reserve: drain never rises), the gained slice flashes white, the fill pops wider and the whole arc glints,
+##     and EventBus.refuel_ticked fires (AudioManager's refuel ding).
+##   - Round caps on the outline, track, fill and tick slice (the PlayerCard capsule language).
 ##   - FULL + STEADY: fades out after wk183_full_hold_s. At kickoff all four tanks are full, so four rings would be
 ##     pure clutter around the ball; the arc appears the moment fuel moves (boost drain or a refund) and is always up
 ##     whenever the tank is below full, which is the only time the number matters.
@@ -20,8 +23,8 @@ extends Node2D
 ##
 ## Built by SportsHUD.setup (sports only; brawl keeps its PlayerCards). Child of its Player (so it frees and hides with
 ## it) but top_level: it never rotates with the tumbling body. It sits in the goat's own z layer, slotted before the aim
-## arrow, so the arrow and the fuse / touch rings draw over it, and so do other goats, the ball (z 40) and the goal front
-## frames (42): the ball and the goal mouth always read. Widths are SCREEN px divided by the camera zoom
+## arrow; the fuse / touch rings (z 3-5), the ball (z 40) and the goal front frames (42) always draw over it, so the ball and
+## the goal mouth always read. (Rendered: when two goats overlap, one goat's arc can draw over the other goat's body.) Widths are SCREEN px divided by the camera zoom
 ## (the Player fuse / touch-ring rule), so it reads the same at every sports zoom. Pure presentation: it polls its own
 ## goat's fuel (there is no fuel signal: fuel drains continuously while boosting, so a per-frame read of one float is the
 ## honest source) and never feeds back.
@@ -85,8 +88,14 @@ func _resolve_team() -> void:
 func debug_state() -> Dictionary:
 	return {"idx": _idx, "team": _team, "alpha": snappedf(_shown_alpha(), 0.01), "ratio": snappedf(_ratio, 0.001),
 		"lit": _notch_lit == 1, "low": _ratio < Tuning.wk183_low_ratio, "tick": snappedf(_tick_t, 0.01),
-		"ticks": ticks, "full_t": snappedf(_full_t, 0.01), "aiming": _aiming,
+		"ticks": ticks, "full_t": snappedf(_full_t, 0.01), "aiming": _aiming, "pulse": snappedf(_pulse(), 0.01),
 		"pos": global_position, "radius_screen": snappedf(_radius_world() / _inv_zoom, 0.1)}
+
+## Low pulse 0..1 at the current clock (0 when not low): the rim sits at floor + (flash - floor) x this.
+func _pulse() -> float:
+	if _ratio >= Tuning.wk183_low_ratio or _locked:
+		return 0.0
+	return 0.5 + 0.5 * sin(_clock * TAU * Tuning.wk183_low_hz)
 
 func _shown_alpha() -> float:
 	return _alpha * Tuning.wk183_alpha * (Tuning.wk183_aim_alpha if _aiming else 1.0)
@@ -123,6 +132,8 @@ func _process(delta: float) -> void:
 			_tick_t = Tuning.wk183_tick_s
 			_full_t = 0.0   # a top-up that fills the tank still shows for the full hold
 			ticks += 1
+			# UX FIX 5: the refuel ding rides the SAME trigger (AudioManager throttles per goat + pitches by amount)
+			EventBus.refuel_ticked.emit(player, fuel - _prev_fuel)
 		_prev_fuel = fuel
 	_tick_t = maxf(0.0, _tick_t - rdelta)
 
@@ -167,6 +178,21 @@ func _seg(a0: float, a1: float, rad: float, col: Color, w: float) -> void:
 	var n: int = maxi(2, int(ceil(absf(a1 - a0) * SEG_PER_RAD)) + 1)
 	draw_arc(Vector2.ZERO, rad, a0, a1, n, col, w, true)
 
+## UX FIX 2: an arc segment with ROUND ends (the PlayerCard capsule / WK-36 bubble ring language): the arc plus a disc of
+## half its width at each end, same colour. Opaque colours only (a translucent colour would double up on the cap overlap).
+func _cap_seg(a0: float, a1: float, rad: float, col: Color, w: float) -> void:
+	if absf(a1 - a0) > 0.0001:
+		_seg(a0, a1, rad, col, w)
+	draw_circle(Vector2.from_angle(a0) * rad, w * 0.5, col, true, -1.0, true)
+	draw_circle(Vector2.from_angle(a1) * rad, w * 0.5, col, true, -1.0, true)
+
+## Screen px from the goat's centre to the arc band's OUTER edge (PlayerPips keeps a below-flipped tag clear of it, WK-183
+## UX FIX 6a). Valid whether or not the arc is showing, so the tag never jumps when the arc fades.
+func outer_radius_screen(zoom: float) -> float:
+	var rv: Variant = player.get("_radius") if player != null and is_instance_valid(player) else null
+	var r: float = float(rv) if rv != null else 44.0
+	return r * Tuning.wk183_radius_mult * zoom + Tuning.wk183_gap_px + Tuning.wk183_width_px * 0.5 + Tuning.wk183_outline_px
+
 func _draw() -> void:
 	var a: float = _shown_alpha()
 	if a <= 0.01 or player == null or not is_instance_valid(player):
@@ -179,29 +205,30 @@ func _draw() -> void:
 	var a_end: float = _ang(1.0)
 	var tick: float = clampf(_tick_t / maxf(Tuning.wk183_tick_s, 0.001), 0.0, 1.0)   # 1 at the refund, 0 when done
 	var low: bool = _ratio < Tuning.wk183_low_ratio and not _locked
-	var pulse: float = 0.5 + 0.5 * sin(_clock * TAU * Tuning.wk183_low_hz) if low else 0.0
+	var pulse: float = _pulse()
 
-	# 1) outline band (chocolate; blinks toward cream when low) + the empty track (the team colour, well darkened)
-	var pad: float = 0.025   # rad of outline past each end (a clean capped silhouette)
-	var oc: Color = OUTLINE.lerp(CREAM, Tuning.wk183_low_rim_flash * pulse) if low else OUTLINE
-	_seg(a_start + pad, a_end - pad, rad, Color(oc, a), w + ow * 2.0)
+	# 1) outline band (chocolate; when low it swings floor -> peak toward cream and never returns to chocolate, UX FIX 1)
+	#    + the empty track (the team colour, well darkened). Round caps on both (UX FIX 2).
+	var rim: float = lerpf(Tuning.wk183_low_rim_floor, Tuning.wk183_low_rim_flash, pulse) if low else 0.0
+	var oc: Color = OUTLINE.lerp(CREAM, rim)
+	_cap_seg(a_start, a_end, rad, Color(oc, a), w + ow * 2.0)
 	var tc: Color = _team_color.darkened(Tuning.wk183_track_darken)
-	_seg(a_start, a_end, rad, Color(tc, Tuning.wk183_track_alpha * a), w)
+	_cap_seg(a_start, a_end, rad, Color(tc, Tuning.wk183_track_alpha * a), w)
 
 	# 2) fill (team colour; brightens with the low pulse and with the refund glint)
 	var glint: float = Tuning.wk183_tick_glow * tick * tick
 	var fcol: Color = _team_color.lerp(Color.WHITE, maxf(Tuning.wk183_low_fill_white * pulse, glint))
 	var fw: float = w * lerpf(1.0, Tuning.wk183_tick_width_pop, tick * tick)
 	if _ratio > 0.002:
-		_seg(a_start, _ang(_ratio), rad, Color(fcol, a), fw)
+		_cap_seg(a_start, _ang(_ratio), rad, Color(fcol, a), fw)   # any fuel > 0 shows at least one round drop
 
 	# 3) refund tick: the gained slice (at least wk183_tick_min_deg wide, ending at the fill end) flashes white
 	if tick > 0.0 and _tick_to > _tick_from:
 		var span: float = deg_to_rad(Tuning.wk183_span_deg)
 		var min_r: float = deg_to_rad(Tuning.wk183_tick_min_deg) / maxf(span, 0.001)
 		var r0: float = minf(_tick_from, maxf(0.0, _tick_to - min_r))
-		var scol: Color = _team_color.lerp(Color.WHITE, 0.35 + 0.65 * tick)
-		_seg(_ang(r0), _ang(_tick_to), rad, Color(scol, a * (0.4 + 0.6 * tick)), fw + ow * tick)
+		var scol: Color = fcol.lerp(Color.WHITE, 0.35 + 0.65 * tick)   # opaque fade into the fill (caps never double up)
+		_cap_seg(_ang(r0), _ang(_tick_to), rad, Color(scol, a), fw + ow * tick)
 
 	# 4) WK-99 super-ready notch: a radial tick across the band at the threshold
 	var na: float = _ang(_notch_ratio())
@@ -215,5 +242,5 @@ func _draw() -> void:
 		_seg(na + nh + 0.03 * pop, na - nh - 0.03 * pop, rad, Color(OUTLINE, a), nl + ow * 2.0)
 		_seg(na + nh * pop, na - nh * pop, rad, Color(CREAM, a), nl)
 	else:
-		var uc: Color = CREAM * Tuning.wk99_notch_unlit
-		_seg(na + nh * 0.7, na - nh * 0.7, rad, Color(uc, a), w * 0.6)
+		# UX FIX 4: UNLIT = a chocolate groove inside the track ("absent"), never a grey sibling of the lit bar
+		_seg(na + nh * 0.7, na - nh * 0.7, rad, Color(OUTLINE, a * Tuning.wk183_notch_unlit_alpha), w * 0.6)

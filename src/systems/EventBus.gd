@@ -92,6 +92,10 @@ signal sports_pressure(step)
 # kind: "match_point" (one team is a goal from the cap) | "golden_goal" (a cap-1 tie: the next goal wins).  # WK-110
 signal sports_tension(kind)   # WK-110
 
+# --- WK-183 refuel ding. src/ui/SportsFuelArc.gd emits on its refund-tick trigger (a goat's tank rose >= Tuning.wk183_tick_min in  # WK-183
+# one frame during live sports play); AudioManager plays "refuel_ding" (per-goat throttle, pitch by amount). amount = fuel gained.  # WK-183
+signal refuel_ticked(player, amount)   # WK-183
+
 # --- WK-169c SHOWDOWN presentation (docs/specs/wk169c_showdown_polish_2026-11-16.md §2.1). ShowdownDirector / PowerupSystem emit;  # WK-169c
 # AudioManager (hush + stings) and MatchHUD (gold card frame) listen and never call back into gameplay.  # WK-169c
 signal showdown_entered(fighters)      # fighters = the two showdown fighters' player indices  # WK-169c

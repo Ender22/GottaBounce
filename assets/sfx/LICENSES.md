@@ -81,3 +81,11 @@ Rendered by `python tools/audio/render_wk169c_showdown.py` (numpy/scipy + ffmpeg
 
 WK-169c entry / step cues reuse listed files at playback: the WK-116 `pressure_ka` (`kenney_impactWood_medium_*` x1.5) then `pressure_chunk`
 (`kenney_impactPunch_heavy_*` x0.78) 70 ms later; steps 2 / 3 = a single `pressure_chunk` x0.73 / x0.68. The held-UB deny is the WK-20e `super_locked` click.
+
+## WK-183 refuel ding (2026-11-16) — SYNTHESIZED in-house (no source audio, no download). Self-made; no third-party licence.
+Rendered by `python tools/audio/render_wk183_refuel_ding.py` (numpy/scipy + ffmpeg, deterministic). Synthesized because every short
+bright blip already here carries another meaning (pickup_bubble = powerup pickup / golden bell, pickup_health = heal, btnClick = UI).
+
+| File | Made from | How | Use (AudioManager key) |
+|---|---|---|---|
+| `refuel_ding.ogg` | sine partials only | glug 0-48 ms (sine swept 240 -> 560 Hz + 25 % 2nd harmonic, -4 dB) + ding from 30 ms (G6 1568 Hz bell partials x1 / x2.76 / x5.40, exp decay tau 26 / 14 / 8 ms); cosine fade 85-110 ms; 150 Hz HPF; peak -1 dBFS; 0.11 s mono 44.1 kHz Vorbis q6 | `refuel_ding` — WK-183 sports fuel-arc refund tick (SFX bus, -16.5 dB = 10 dB under a mid ball touch, +0..+5 st with the fuel gained, <= 1 per 0.15 s per goat) |

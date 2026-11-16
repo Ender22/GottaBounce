@@ -198,6 +198,9 @@ func _process(delta: float) -> void:
 			- Vector2(0.0, Tuning.pip_screen_gap)
 		var dn: Vector2 = (p.global_position + Vector2(0.0, lift) - cam_center) * z + vp * 0.5 \
 			+ Vector2(0.0, Tuning.pip_screen_gap)
+		var wk183_arc = p.get_node_or_null("WK183FuelArc") if Tuning.wk183_arc_on else null   # WK-183 (UX 6a)
+		if wk183_arc != null:   # WK-183: a tag flipped below clears the fuel arc outer edge (visible or not: no jump on fade)
+			dn.y = maxf(dn.y, centre.y + float(wk183_arc.outer_radius_screen(z)) + Tuning.wk183_tag_clear_px)   # WK-183
 		var half_w: float = pip.tab_width() * 0.5 + 4.0
 		sp.x = clampf(sp.x, half_w, vp.x - half_w)   # a goat hugging a side edge keeps its whole pip on screen
 		dn.x = sp.x

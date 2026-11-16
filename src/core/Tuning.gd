@@ -1632,12 +1632,12 @@ var wk183_arc_on: bool = true                 # false = no sports fuel arcs (the
 var wk183_span_deg: float = 130.0             # arc span, centred on 6 o'clock (65 deg each side; 150 ran up into the jetpack / arms)  # WK-183
 var wk183_radius_mult: float = 1.1            # arc centre-line radius = this x collider radius (the round body art is 1.1 x)  # WK-183
 var wk183_gap_px: float = 19.0                # SCREEN px between the body art and the arc centre-line (9 / 15 crossed the feet at sports zoom)  # WK-183
-var wk183_width_px: float = 9.0               # SCREEN px fill width (1080p reference; 7 read as a hairline at 3 m)  # WK-183
+var wk183_width_px: float = 11.0              # SCREEN px fill width (1080p reference; UX FIX 3: 9 -> 11, band 16 px with the outline; ~9 mm at 3 m is the shape-read floor)  # WK-183
 var wk183_outline_px: float = 2.5             # SCREEN px chocolate outline on each side of the track  # WK-183
 var wk183_track_darken: float = 0.70          # empty part of the arc = the team colour darkened by this (flat chocolate vanished on the night courts; 0.62 read as a FULL arc)  # WK-183
-var wk183_track_alpha: float = 0.85           # alpha of that empty track  # WK-183
+var wk183_track_alpha: float = 1.0            # alpha of that empty track (opaque: the round end caps overlap the arc, a translucent track showed darker half-discs)  # WK-183
 var wk183_alpha: float = 1.0                  # arc alpha when shown  # WK-183
-var wk183_z: int = 0                          # z RELATIVE to the goat; the arc is slotted under its aim arrow, so the arrow, fuse / touch rings, other goats' bodies, the ball (40) and goal fronts (42) draw over it  # WK-183
+var wk183_z: int = 0                          # z RELATIVE to the goat (slotted before its aim arrow); the fuse / touch rings (z 3-5), the ball (40) and goal fronts (42) always draw over it. Seen: an overlapping goat's body can sit UNDER another goat's arc (top_level draw order)  # WK-183
 var wk183_full_hide: bool = true              # fade the arc out once the tank is full and steady (4 full arcs at kickoff = clutter)  # WK-183
 var wk183_full_hold_s: float = 0.9            # s a full arc stays up before fading (a refund that tops up still shows)  # WK-183
 var wk183_fade_in_s: float = 0.08             # s the arc takes to appear (fuel starts moving / a refund lands)  # WK-183
@@ -1645,12 +1645,23 @@ var wk183_fade_out_s: float = 0.35            # s the arc takes to fade (full an
 var wk183_aim_alpha: float = 0.0              # arc alpha while the goat super-aims (the fuse ring owns that read)  # WK-183
 var wk183_low_ratio: float = 0.25             # fuel ratio under which the arc pulses (= bubble_fuel_low, the WK-36 bubble ring)  # WK-183
 var wk183_low_hz: float = 2.5                 # low pulse rate (Hz)  # WK-183
-var wk183_low_rim_flash: float = 0.75         # low pulse: the chocolate outline band brightens toward cream by up to this (the empty gauge blinks; never the track, which would read full)  # WK-183
+var wk183_low_rim_floor: float = 0.45         # low pulse TROUGH: the outline band is at least this far toward cream below wk183_low_ratio, 0 fuel included (UX FIX 1: it never returns to chocolate)  # WK-183
+var wk183_low_rim_flash: float = 0.95         # low pulse PEAK: outline mix toward cream (rim = floor + (flash - floor) x pulse). Never the track, which would read full  # WK-183
 var wk183_low_fill_white: float = 0.45        # low pulse: the fill brightens toward white by up to this (luminance, never hue)  # WK-183
 var wk183_tick_min: float = 1.0               # fuel a single frame must gain to count as a refund tick (drain never rises)  # WK-183
 var wk183_tick_s: float = 0.40                # s the refund tick takes (gained slice white -> team colour, width pop -> 1)  # WK-183
 var wk183_tick_min_deg: float = 10.0          # deg min span of the flashed slice (a small top-up must still read at 3 m)  # WK-183
 var wk183_tick_width_pop: float = 1.7         # x fill width at the tick's start  # WK-183
 var wk183_tick_glow: float = 0.55             # whole-arc brighten toward white at the tick's start  # WK-183
-var wk183_notch_deg: float = 5.0              # deg the super-ready notch spans along the arc  # WK-183
-var wk183_notch_overhang_px: float = 4.0      # SCREEN px a LIT notch pokes past the track on each side (unlit: inside the track)  # WK-183
+var wk183_notch_deg: float = 6.0              # deg the LIT super-ready notch spans along the arc (~5.5 px at sports zoom; UX FIX 4)  # WK-183
+var wk183_notch_overhang_px: float = 5.0      # SCREEN px a LIT notch pokes past the band on each side, chocolate keyline at every pulse phase (UX FIX 4)  # WK-183
+var wk183_notch_unlit_alpha: float = 0.7      # UNLIT notch = a chocolate groove inside the track at this alpha ("absent", not a grey sibling of the lit bar)  # WK-183
+var wk183_tag_clear_px: float = 6.0           # SCREEN px a living name tag flipped BELOW its goat keeps clear of the arc's outer edge (whenever arcs are on, visible or not). Read by PlayerPips  # WK-183
+# WK-183 refuel ding (UX FIX 5): EventBus.refuel_ticked (emitted on the arc's refund-tick trigger, sports only) -> AudioManager "refuel_ding"  # WK-183
+# (assets/sfx/refuel_ding.ogg, synthesized by tools/audio/render_wk183_refuel_ding.py), SFX bus.  # WK-183
+var wk183_ding_on: bool = true                # false = the silent WK-183 tick  # WK-183
+var wk183_ding_db: float = -16.5              # volume_db: 10 dB under a mid ball touch (both files -14.3 dBFS active RMS; mid touch -6.5 dB; render script prints it)  # WK-183
+var wk183_ding_gap_s: float = 0.15            # min s between two dings of the SAME goat (real time; a wall ping-pong never machine-guns)  # WK-183
+var wk183_ding_amt_lo: float = 10.0           # fuel gained at (and under) which the ding plays at its base pitch  # WK-183
+var wk183_ding_amt_hi: float = 40.0           # fuel gained at (and over) which it plays wk183_ding_st_max higher  # WK-183
+var wk183_ding_st_max: float = 5.0            # semitones the ding rises across amt_lo -> amt_hi  # WK-183
