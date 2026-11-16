@@ -13,6 +13,9 @@ extends Node
 ##      are ignored entirely (CC-3.3). Before the first join any device drives (cold boot / QA harness).
 ## Verbs: "left" "right" "up" "down" (D-pad / arrows / WASD / left stick with hysteresis) · "accept" · "back".
 ## The gate never consumes events (gameplay is frozen behind every end screen); it only reports them.
+## WK-187 (CD6-05) opt-in 4th rule: QUIET ACCEPT — with `accept_quiet_gap` > 0 an accept press counts (early OR armed)
+## only if that same button had been UP for >= the gap. A celebrating couch mashing A (boost) every ~50-150 ms never
+## has that gap, so a mash can neither fast-forward the tally nor take REMATCH; a deliberate press always does.
 
 signal verb(name: String, key: String)    # armed, fresh, allowed press
 signal early(name: String, key: String)   # fresh, allowed press BEFORE arming (never acts on its own)
@@ -27,6 +30,11 @@ var _stick := {}     # "<device>|h|v" -> -1/0/1 latched stick direction (hystere
 # FLY, because players' hands are on FLY, not on a menu button). Empty by default, so other screens are unchanged.
 # All three gate rules still apply: fresh press only, after the arm delay, from a joined device.
 var extra_accept_actions: PackedStringArray = PackedStringArray()
+# WK-187 (CD6-05): s a button must have been released before an "accept" press on it counts (0 = off, the default:
+# ScoreScreen / Trials / the sports HUD row are unchanged). Victory + SportsVictory set Tuning.end_screen_quiet_gap.
+var accept_quiet_gap: float = 0.0
+var mash_ignored := 0   # QA: accept presses dropped by the quiet-gap rule since open()
+var _up_msec := {}      # "<device>|<button>" -> Time.get_ticks_msec() of its last release (tracked even while closed)
 
 func _enter_tree() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -49,6 +57,7 @@ func open(arm_delay: float = -1.0) -> void:
 	_open_msec = Time.get_ticks_msec()
 	_arm_msec = _open_msec + int(d * 1000.0)
 	_stale = _down.duplicate()
+	mash_ignored = 0
 	for k in _stick.keys():
 		if int(_stick[k]) != 0:
 			_stale[k] = true
@@ -69,6 +78,18 @@ func elapsed() -> float:
 ## Push the arm moment to at least `secs` from now (Victory fast-forward: never arms instantly).
 func delay_arm(secs: float) -> void:
 	_arm_msec = maxi(_arm_msec, Time.get_ticks_msec() + int(secs * 1000.0))
+
+## WK-187: pull the arm moment IN to `secs` from now (a fast-forward lands the screen now, so its read time starts now).
+## Never later than the current arm moment, never earlier than Tuning.end_screen_arm after open().
+func rearm_from_now(secs: float) -> void:
+	var floor_msec: int = _open_msec + int(Tuning.end_screen_arm * 1000.0)
+	_arm_msec = maxi(floor_msec, mini(_arm_msec, Time.get_ticks_msec() + int(secs * 1000.0)))
+
+## WK-187: seconds until the row arms (0 once armed or closed) - screens start their "row goes live" pop from this.
+func secs_to_arm() -> float:
+	if not _open:
+		return 0.0
+	return maxf(0.0, float(_arm_msec - Time.get_ticks_msec()) / 1000.0)
 
 ## Arm immediately (QA / tests only).
 func force_arm() -> void:
@@ -91,6 +112,8 @@ func _on_window_input(e: InputEvent) -> void:
 	if bid == "":
 		return
 	if not e.is_pressed():
+		if _down.has(bid):
+			_up_msec[bid] = Time.get_ticks_msec()   # WK-187: start of this button's quiet gap
 		_down.erase(bid)
 		_stale.erase(bid)
 		return
@@ -102,6 +125,10 @@ func _on_window_input(e: InputEvent) -> void:
 	if not InputRouter.may_drive_shared(e):
 		return   # CC-3.3: an unjoined device can't drive a shared menu once a lobby exists
 	var v := _verb_of(e)
+	if v == "accept" and accept_quiet_gap > 0.0 and _up_msec.has(bid) \
+			and Time.get_ticks_msec() - int(_up_msec[bid]) < int(accept_quiet_gap * 1000.0):
+		mash_ignored += 1
+		return   # WK-187: part of a mash (released < quiet gap ago) - never fast-forwards, never acts
 	if v != "":
 		_emit(v, key)
 

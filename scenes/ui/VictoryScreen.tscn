@@ -78,6 +78,16 @@ text = "WINNER!"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="Plate" type="PanelContainer" parent="Root/WinnerL"]
+show_behind_parent = true
+layout_mode = 0
+offset_left = 168.0
+offset_top = 8.0
+offset_right = 832.0
+offset_bottom = 168.0
+mouse_filter = 2
+theme_type_variation = &"ToyPanel"
+
 [node name="NameL" type="CenterContainer" parent="Root"]
 layout_mode = 0
 offset_left = 120.0

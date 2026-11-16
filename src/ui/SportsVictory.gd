@@ -21,6 +21,11 @@ extends CanvasLayer
 ## buttons via FocusRow + the "A Select · B Quit" glyph footer). Polish: OWN GOALS is a one-line header, an own goal
 ## never gets the gold leader pill (it is not praise), BOTH teams' rows carry their team tint (the losers' lighter),
 ## and the live court behind is dimmed harder (Tuning.sports_victory_scrim_alpha; dark courts kept goats readable).
+##
+## WK-187 (CD6-05, CC-10.2): the Brawl VictoryScreen's mash guard - the row arms Tuning.end_screen_read_time after the
+## screen settles (stat count-up + MVP stamp done, or a deliberate fast-forward), accept presses need the quiet gap
+## (MenuInputGate.accept_quiet_gap: a mash neither fast-forwards nor takes REMATCH), and the hidden row + footer pop in
+## as it arms (the visible "ready" beat).
 
 signal rematch_pressed
 signal setup_pressed
@@ -30,7 +35,7 @@ const ToyKit := preload("res://src/ui/ToyKit.gd")
 const FocusRow := preload("res://src/ui/FocusRow.gd")   # WK-14: one focus look (CC-5.1)
 const GOLD := Color("#ffd23f")
 const CREAM := Color(1.0, 0.97, 0.9)
-const ARM_TIME := 1.1          # s from present() to the prompt row fading in (VictoryScreen's beat)
+const TRAY_IN := 0.50 + 0.28   # s from present() to the tray landing (rows fade + count from then)
 const ROW_STAGGER := 0.10
 const COUNT_TIME := 0.45
 const HOP_HEIGHT := 46.0       # px the celebrating busts jump
@@ -83,6 +88,10 @@ var _rows: Array = []          # built row PanelContainers (slide-in + fast-forw
 var _tray_rest_x := 0.0
 var _pulse: Tween
 var _ff_done := false
+var _row_shown := false        # WK-187: the REMATCH row + footer popped in (the row goes live with it)
+# WK-187: screen-time (_t) arm moment = settle + read time. The gate's real-time arm is a floor on top: a frame hitch
+# advances wall clock but not the tweens, so the row must never go live before the tally has really played on screen.
+var _arm_t := 0.0
 var _palette: Array = [GOLD]
 var _col_w: Array = []         # per visible stat column width (px), header-driven
 var _gate: MenuInputGate
@@ -94,6 +103,7 @@ func _ready() -> void:
 	add_child(_gate)
 	_gate.verb.connect(_on_verb)
 	_gate.early.connect(_on_early)
+	_prompts.modulate.a = 0.0
 	for i in range(_btns.size()):
 		var idx := i
 		(_btns[i] as Button).pressed.connect(func() -> void:
@@ -117,9 +127,9 @@ func present(data: Dictionary) -> void:
 	_live = true
 	_armed = false
 	_ff_done = false
+	_row_shown = false
 	_t = 0.0
 	_focus = 0
-	_gate.open(maxf(Tuning.end_screen_arm, ARM_TIME + 0.15))
 	_kill_tweens()
 	_counts.clear()
 	_rows.clear()
@@ -197,6 +207,11 @@ func present(data: Dictionary) -> void:
 		return int(a["idx"]) < int(b["idx"]))
 	for r in ordered:
 		_rows.append(_build_row(r, columns, leaders, win, tcol, lcol, int(r["idx"]) == mvp))
+	# WK-187: arm read_time after the count-up + MVP stamp land (never before Tuning.end_screen_arm, C-14); a mash
+	# can't fast-forward (quiet gap), a deliberate accept can - the read time then runs from that moment
+	_gate.accept_quiet_gap = Tuning.end_screen_quiet_gap
+	_arm_t = settle_time(_rows.size()) + Tuning.end_screen_read_time
+	_gate.open(maxf(Tuning.end_screen_arm, _arm_t))
 	# --- match facts ---
 	var rally: Dictionary = data.get("longest_rally", {})
 	_rally_p.visible = not rally.is_empty()
@@ -219,6 +234,7 @@ func present(data: Dictionary) -> void:
 	_scrim.modulate.a = 0.0
 	for n: Control in [_rays, _winner_l, _tray, _prompts]:
 		n.modulate.a = 0.0
+	_prompts.scale = Vector2.ONE
 	_winner_l.scale = Vector2(0.3, 0.3)
 	for s in _slots:
 		var sl: Dictionary = s
@@ -286,10 +302,14 @@ func present(data: Dictionary) -> void:
 	var mv_tw := _tw()
 	mv_tw.tween_interval(0.80 + ROW_STAGGER * float(_rows.size()))
 	mv_tw.tween_callback(_stamp_mvp)
-	var pr := _tw()
-	pr.tween_interval(ARM_TIME)
-	pr.tween_property(_prompts, "modulate:a", 1.0, 0.15)
 	ToyKit.drizzle(_fx, _palette, 30)
+
+## WK-187: s from present() until the choreography has settled = max(last stat count-up, MVP stamp landing).
+func settle_time(n_rows: int) -> float:
+	var n: int = maxi(n_rows, 1)
+	var counts: float = TRAY_IN + float(n - 1) * ROW_STAGGER + 0.08 + COUNT_TIME
+	var mvp: float = 0.80 + ROW_STAGGER * float(n) + 0.22
+	return maxf(counts, mvp)
 
 # ------------------------------------------------------------------ build
 
@@ -473,12 +493,25 @@ func _process(delta: float) -> void:
 	if not _live:
 		return
 	_t += delta
-	if not _armed and _gate.is_armed():
+	var lead: float = Tuning.end_screen_live_pop
+	if not _row_shown and _gate.secs_to_arm() <= lead and _t >= _arm_t - lead:
+		_show_row()
+	if not _armed and _gate.is_armed() and _t >= _arm_t:
 		_arm()
+
+## WK-187: the visible "ready" beat - the REMATCH row + glyph footer pop in so they are fully shown the moment the row
+## arms (the focus spring + breath on REMATCH starts at the arm).
+func _show_row() -> void:
+	_row_shown = true
+	_prompts.pivot_offset = _prompts.size * 0.5
+	_prompts.scale = Vector2.ONE * Tuning.end_screen_live_pop_from
+	var tw := _tw()
+	tw.tween_property(_prompts, "modulate:a", 1.0, Tuning.end_screen_live_pop * 0.6)
+	tw.parallel().tween_property(_prompts, "scale", Vector2.ONE, Tuning.end_screen_live_pop).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## Pre-arm press (fresh, joined device): accept FAST-FORWARDS the choreography — it never arms the row.
 func _on_early(v: String, _key: String) -> void:
-	if _live and not _armed and v == "accept" and _t > 0.05 and not _ff_done:
+	if _live and not _armed and v == "accept" and _t > 0.05 and not _ff_done and not _row_shown:
 		_fast_forward()
 
 func _on_verb(v: String, _key: String) -> void:
@@ -520,12 +553,13 @@ func _activate(i: int) -> void:
 			menu_pressed.emit()
 
 ## Accept during the choreography: land every element instantly (never a black cut). WK-11: it does NOT arm the
-## row — the gate still waits (>= Tuning.end_screen_ff_rearm after this, >= end_screen_arm overall).
+## row. WK-187: the screen has settled now, so the row arms Tuning.end_screen_read_time from here (>= end_screen_arm
+## overall) and stays hidden until then (it pops in on its own).
 func _fast_forward() -> void:
 	_ff_done = true
 	_kill_tweens()
 	_scrim.modulate.a = 1.0
-	for n: Control in [_rays, _winner_l, _tray, _prompts]:
+	for n: Control in [_rays, _winner_l, _tray]:
 		n.modulate.a = 1.0
 	_winner_l.scale = Vector2.ONE
 	_tray.position.x = _tray_rest_x
@@ -548,7 +582,8 @@ func _fast_forward() -> void:
 	_rays_spin()
 	for i in range(_slots.size()):
 		_start_hop(i)
-	_gate.delay_arm(Tuning.end_screen_ff_rearm)
+	_gate.rearm_from_now(Tuning.end_screen_read_time)
+	_arm_t = minf(_arm_t, _t + Tuning.end_screen_read_time)
 
 func dismiss() -> void:
 	_live = false
