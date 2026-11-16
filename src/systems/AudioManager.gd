@@ -107,6 +107,9 @@ const SFX := {
 	"golden_pfff":       ["res://assets/sfx/golden_pfff.ogg"],      # WK-169c tank-end deflate
 	# WK-183 refuel "glug-ding" (sports fuel-arc refund tick): synthesized, tools/audio/render_wk183_refuel_ding.py (LICENSES.md)  # WK-183
 	"refuel_ding":       ["res://assets/sfx/refuel_ding.ogg"],      # WK-183
+	# WK-175c blocked-wall "tok": the Kenney impactWood knock (CC0, already licensed; LICENSES.md) pitched DOWN (Tuning.wk175c_tok_pitch)  # WK-175c
+	# = a dull dead knock under the bright spring bounce. gate_clonk uses the same files pitched UP x1.25 (sports kickoff gates only).  # WK-175c
+	"wall_tok":          ["res://assets/sfx/kenney_impactWood_medium_000.ogg", "res://assets/sfx/kenney_impactWood_medium_001.ogg"],   # WK-175c
 }
 
 # --- WK-53 bleat voice per goat skin (PlayerIdentity names). Six different goats (adult / buck / kid recordings)
@@ -160,7 +163,7 @@ const FILLER_SFX := {"bounce": true}
 # Per-sound voice caps: past the cap the sound recycles its OWN oldest voice. "countdown" doubles as the Bomb.gd
 # telegraph beep (4 -> 14 Hz, 0.22-0.32 s each): Everything Yard fired 556 in 89 s and held the pool at 14/14 for
 # 85 of 1574 samples. The match 3-2-1 (1 Hz) never reaches the cap.
-const SFX_VOICE_CAP := {"countdown": 3, "super_aim": 3, "refuel_ding": 2}   # WK-183: refuel_ding <= 2 (4 goats refuelling at once stay a tick, not a chord)   # WK-26: <= 3 wind-ups at once (a 4th recycles the oldest)
+const SFX_VOICE_CAP := {"countdown": 3, "super_aim": 3, "refuel_ding": 2, "wall_tok": 2}   # WK-175c: wall_tok <= 2   # WK-183: refuel_ding <= 2 (4 goats refuelling at once stay a tick, not a chord)   # WK-26: <= 3 wind-ups at once (a 4th recycles the oldest)
 # WK-79b (was -7; audit docs/audit/2026-11-15_audio_measure.md §2): the one looped jetpack voice was 38-65 % of all combat
 # sound, 5-9 dB over the music, masking bounce/KO/aim in 0.5-1.5 kHz. With the SFX makeup gone this is -9 dB effective.
 const THRUST_ON_DB := -12.0
@@ -322,6 +325,7 @@ func _ready() -> void:
 	EventBus.sports_pressure.connect(_on_sports_pressure)   # WK-116 pressure nets (bed swell, ka-CHUNK, clap-chant)
 	EventBus.sports_tension.connect(_on_sports_tension)   # WK-110 MATCH POINT / GOLDEN GOAL kickoff cue
 	EventBus.refuel_ticked.connect(_on_refuel_ticked)     # WK-183 sports fuel-arc refuel ding
+	EventBus.wall_refund_cue.connect(_on_wall_refund_cue)   # WK-175c wall ding / tok (WR walls)
 	EventBus.showdown_entered.connect(_on_showdown_entered)   # WK-169c hush + ka-CHUNK
 	EventBus.showdown_step.connect(_on_showdown_step)         # WK-169c LPF step + CHUNK
 	EventBus.showdown_exited.connect(_on_showdown_exited)     # WK-169c hush release
@@ -1047,6 +1051,41 @@ func _on_refuel_ticked(player, amount) -> void:   # WK-183
 	refuel_log.append({"ms": now, "player": str(player.name), "amount": snappedf(float(amount), 0.1), "st": snappedf(st, 0.01), "db": db})
 	if refuel_log.size() > 32:
 		refuel_log.pop_front()
+
+# --------------------------------------------------------------------- WK-175c wall refund ding / tok
+
+var wall_dings := 0            # WK-175c QA: paying-wall dings played
+var wall_dings_shared := 0     # WK-175c QA: paying-wall cues whose ding was already heard (the WK-183 arc ticked first, same goat < gap)
+var wall_toks := 0             # WK-175c QA: blocked-wall toks played
+var wall_cue_log: Array = []   # WK-175c QA: last 64 {ms, player, paid, amount, db, cpu}
+## WK-175c (CD6 WK-175 FIX 1): Player emitted EventBus.wall_refund_cue (WR live, WALL-class contact, already rate-limited per goat).
+## PAID -> the WK-183 refuel ding, through the SAME per-goat throttle (_refuel_last): in sports the fuel arc's refund tick fires
+## later in the same frame and is swallowed there, so a paying wall dings exactly once. BLOCKED -> "wall_tok" (dull knock).
+## CPU-owned goats play both 6 dB under a human (Tuning.wk175c_*_cpu_db).
+func _on_wall_refund_cue(player, paid, amount, _contact, _normal) -> void:   # WK-175c
+	if not Tuning.wk175c_cues_on or player == null or not is_instance_valid(player):
+		return
+	var human: bool = (player as Node).is_in_group("human")
+	var now: int = Time.get_ticks_msec()
+	var db: float
+	if bool(paid):
+		var id: int = (player as Object).get_instance_id()
+		if now - int(_refuel_last.get(id, -100000)) < int(Tuning.wk183_ding_gap_s * 1000.0):
+			wall_dings_shared += 1   # this goat's ding is already ringing (one path, never a double ding)
+			db = 0.0
+		else:
+			_refuel_last[id] = now
+			var u: float = clampf(inverse_lerp(Tuning.wk183_ding_amt_lo, Tuning.wk183_ding_amt_hi, float(amount)), 0.0, 1.0)
+			db = Tuning.wk175c_ding_db if human else Tuning.wk175c_ding_cpu_db
+			play_sfx("refuel_ding", {"volume_db": db, "pitch": pow(2.0, u * Tuning.wk183_ding_st_max / 12.0), "pitch_var": 0.0, "tag": "wk175c"})
+			wall_dings += 1
+	else:
+		db = Tuning.wk175c_tok_db if human else Tuning.wk175c_tok_cpu_db
+		play_sfx("wall_tok", {"volume_db": db, "pitch": Tuning.wk175c_tok_pitch, "pitch_var": 0.04, "tag": "wk175c"})
+		wall_toks += 1
+	wall_cue_log.append({"ms": now, "player": str((player as Node).name), "paid": bool(paid), "amount": snappedf(float(amount), 0.1), "db": db, "cpu": not human})
+	if wall_cue_log.size() > 64:
+		wall_cue_log.pop_front()
 
 func _sports_active() -> bool:
 	return not get_tree().get_nodes_in_group("sports_ball").is_empty()

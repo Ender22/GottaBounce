@@ -285,3 +285,9 @@ This file is for the NON-OBVIOUS things learned the hard way. Add a line wheneve
   allowed inside this node's _draw()" (47k lines in one session) - the parse gate can't see it; grep the rendered run's `.err`.
 
 - 2026-11-16 (WK-187): end-screen input gates that count only real time can arm before their tween choreography has played when frames hitch (screenshot freezes, software GPU). Gate on BOTH real time and the screen's own animation time. A mash never has a release gap, so a "button released >= 0.3 s" quiet-gap rule beats a pure "press began after live" rule.
+- **WK-175c: soft-blob particle textures are mostly transparent.** `assets/fx/puff_soft.png` has an opaque core of only ~36 px of
+  its 128 px (glow_01 ~51 px), so a CPUParticles2D scale under ~1.0 renders as a speck at brawl zoom (~0.45 screen px per world px
+  in a 1280 window). Smoke / dust read needs scale >= 1.2 there.
+- **Screenshotting a sub-0.3 s FX:** inject a PROCESS_MODE_ALWAYS node that connects the triggering EventBus signal and sets
+  `get_tree().paused = true` N ms (real time) later, screenshot, then unpause (`tools/out/wk/WK-175c_data/Cue175c.gd`). Frame-count
+  delays lie: the software-GPU game ran 45 fps, so "9 frames" was 0.2 s and the effect was already gone.

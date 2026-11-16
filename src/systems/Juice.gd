@@ -19,6 +19,7 @@ func setup(cam: CameraController) -> void:
 	EventBus.hazard_shoved.connect(_on_hazard_shoved)
 	KillPipeline.killed.connect(_on_killed)
 	EventBus.ball_struck.connect(_on_ball_struck)   # WK-105 sports strike juice
+	EventBus.wall_refund_cue.connect(_on_wall_refund_cue)   # WK-175c blocked-wall dud puff
 
 ## WK-105 (SP-01): only the POWER SHOT (super-active / hitstun striker) gets a hit-stop beat (~60 ms at
 ## strength 0.45 via the shared _hitstop curve), a light camera kick and a rumble tap — normal touches
@@ -211,6 +212,145 @@ func _dust_puff(pos: Vector2, t: float) -> void:
 	p.color_ramp = grad
 	scene.add_child(p)
 	scene.get_tree().create_timer(0.8).timeout.connect(p.queue_free)
+
+## WK-175c (CD6 WK-175 FIX 1). PAID wall contact: a short fire burst out of the goat's jetpack nozzle (the flare; Player also
+## swells + over-brightens its live flame and lights a nozzle glow). BLOCKED: the jetpack COUGHS a light-grey smoke sputter out
+## of the nozzle (the mirror of the paid flare, where the player is looking) + a small charcoal soft-smoke dud puff at the contact
+## that squirts out along the wall and sags under gravity (a fizzle) - darker, bigger and slower than the white bounce sparks.
+func _on_wall_refund_cue(player, paid, _amount, contact_point, normal) -> void:   # WK-175c
+	if not Tuning.wk175c_cues_on:
+		return
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	if bool(paid):
+		if player != null and is_instance_valid(player):
+			_wk175c_flare_burst(scene, player)
+		return
+	if player != null and is_instance_valid(player):
+		_wk175c_sputter(scene, player)
+	var n: Vector2 = normal if normal is Vector2 else Vector2.UP
+	var p := CPUParticles2D.new()
+	p.global_position = contact_point + n * 6.0
+	p.z_index = -1   # under the goats (never smears the face), over the sky: the smoke shows AROUND the contact
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.amount = maxi(1, Tuning.wk175c_puff_amount)
+	p.lifetime = Tuning.wk175c_puff_s
+	p.spread = 90.0   # a half-disk off the wall: most blobs squirt out along the face, above and below the goat
+	p.direction = n
+	p.gravity = Vector2(0, 300)
+	p.initial_velocity_min = Tuning.wk175c_puff_speed * 0.5
+	p.initial_velocity_max = Tuning.wk175c_puff_speed
+	p.damping_min = 80.0
+	p.damping_max = 160.0
+	p.scale_amount_min = 3.0
+	p.scale_amount_max = 4.6
+	if ResourceLoader.exists(GLOW_TEX_175C):
+		p.texture = load(GLOW_TEX_175C)
+		p.scale_amount_min = Tuning.wk175c_puff_scale * 0.7
+		p.scale_amount_max = Tuning.wk175c_puff_scale
+	var c0: Color = Tuning.wk175c_puff_color
+	var grad := Gradient.new()
+	grad.set_color(0, c0)
+	grad.add_point(0.4, Color(c0.r * 0.85, c0.g * 0.85, c0.b * 0.85, c0.a * 0.7))
+	grad.set_color(1, Color(c0.r * 0.7, c0.g * 0.7, c0.b * 0.7, 0.0))
+	p.color_ramp = grad
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.6))
+	grow.add_point(Vector2(1.0, 1.0))
+	p.scale_amount_curve = grow
+	scene.add_child(p)
+	scene.get_tree().create_timer(Tuning.wk175c_puff_s + 0.4).timeout.connect(p.queue_free)
+
+const GLOW_TEX_175C := "res://assets/fx/puff_soft.png"   # WK-175c soft smoke blob (the tok puff + sputter; GhostGoat SOFT_TEX)
+
+## WK-175c: the blocked-wall jetpack cough - a few light-grey smoke blobs out of the nozzle (opposite the aim) that drift up.
+func _wk175c_sputter(scene: Node, player) -> void:   # WK-175c
+	var aim := Vector2.UP
+	if player.has_method("get_aim"):
+		aim = player.get_aim()
+	if aim.length() < 0.1:
+		aim = Vector2.UP
+	var back: Vector2 = -aim.normalized()
+	var p := CPUParticles2D.new()
+	p.global_position = (player as Node2D).global_position + back * 46.0
+	p.z_index = 9
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 0.8
+	p.amount = maxi(1, Tuning.wk175c_sputter_amount)
+	p.lifetime = Tuning.wk175c_puff_s
+	p.spread = 35.0
+	p.direction = back
+	p.gravity = Vector2(0, -120)
+	p.initial_velocity_min = 60.0
+	p.initial_velocity_max = 160.0
+	p.damping_min = 120.0
+	p.damping_max = 220.0
+	p.scale_amount_min = 3.0
+	p.scale_amount_max = 4.6
+	if ResourceLoader.exists(GLOW_TEX_175C):
+		p.texture = load(GLOW_TEX_175C)
+		p.scale_amount_min = Tuning.wk175c_sputter_scale * 0.6
+		p.scale_amount_max = Tuning.wk175c_sputter_scale
+	var c0: Color = Tuning.wk175c_sputter_color
+	var grad := Gradient.new()
+	grad.set_color(0, c0)
+	grad.add_point(0.5, Color(c0.r * 0.9, c0.g * 0.9, c0.b * 0.9, c0.a * 0.6))
+	grad.set_color(1, Color(c0.r * 0.8, c0.g * 0.8, c0.b * 0.8, 0.0))
+	p.color_ramp = grad
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.5))
+	grow.add_point(Vector2(1.0, 1.0))
+	p.scale_amount_curve = grow
+	scene.add_child(p)
+	scene.get_tree().create_timer(Tuning.wk175c_puff_s + 0.4).timeout.connect(p.queue_free)
+
+## WK-175c: the paying-wall flare burst - a quick tongue of warm fire out of the nozzle (opposite the aim), additive.
+func _wk175c_flare_burst(scene: Node, player) -> void:   # WK-175c
+	var aim := Vector2.UP
+	if player.has_method("get_aim"):
+		aim = player.get_aim()
+	if aim.length() < 0.1:
+		aim = Vector2.UP
+	var back: Vector2 = -aim.normalized()
+	var p := CPUParticles2D.new()
+	p.global_position = (player as Node2D).global_position + back * 40.0
+	p.z_index = 9
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.amount = maxi(1, Tuning.wk175c_burst_amount)
+	p.lifetime = Tuning.wk175c_flare_s
+	p.spread = 24.0
+	p.direction = back
+	p.gravity = Vector2.ZERO
+	p.initial_velocity_min = Tuning.wk175c_burst_speed * 0.45
+	p.initial_velocity_max = Tuning.wk175c_burst_speed
+	p.damping_min = 500.0
+	p.damping_max = 900.0
+	p.scale_amount_min = 2.4
+	p.scale_amount_max = 4.0
+	if ResourceLoader.exists(FIRE_TEX):
+		p.texture = load(FIRE_TEX)
+		p.scale_amount_min = 0.45
+		p.scale_amount_max = 0.8
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1.0, 1.0, 0.85, 1.0))
+	grad.add_point(0.3, Color(1.0, 0.8, 0.25, 1.0))
+	grad.set_color(1, Color(1.0, 0.35, 0.05, 0.0))
+	p.color_ramp = grad
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 1.0))
+	grow.add_point(Vector2(1.0, 0.2))
+	p.scale_amount_curve = grow
+	var m := CanvasItemMaterial.new()
+	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	p.material = m
+	scene.add_child(p)
+	scene.get_tree().create_timer(0.7).timeout.connect(p.queue_free)
 
 func _on_super(player) -> void:
 	_shake(0.7)

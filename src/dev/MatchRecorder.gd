@@ -71,6 +71,8 @@ func _hook(cs: Node) -> void:
 		EventBus.bleated.connect(_on_bleated)
 	if not EventBus.super_lock_pressed.is_connected(_on_super_lock_pressed):   # WK-20e
 		EventBus.super_lock_pressed.connect(_on_super_lock_pressed)
+	if not EventBus.wall_refund_cue.is_connected(_on_wall_refund_cue):   # WK-175c
+		EventBus.wall_refund_cue.connect(_on_wall_refund_cue)   # WK-175c: ding / tok cue rate per recording
 	_collect_hazards(cs)
 
 func _collect_hazards(n: Node) -> void:
@@ -379,6 +381,11 @@ func _on_hazard_shoved(player, _dir, magnitude) -> void:
 
 func _on_bleated(idx, ghost) -> void:
 	_ev("bleated", {"who": int(idx), "ghost": bool(ghost)})
+
+## WK-175c: a wall refund cue (Player already rate-limited it; brawl plays every one, sports may fold a ding into the arc's).  # WK-175c
+func _on_wall_refund_cue(player, paid, amount, contact_point, _normal) -> void:   # WK-175c
+	_ev("wall_cue", {"who": _idx(player), "paid": bool(paid), "amount": snappedf(float(amount), 0.1),
+		"x": roundi((contact_point as Vector2).x), "y": roundi((contact_point as Vector2).y)})
 
 func _on_killed(victim, cause, attacker) -> void:
 	_ev("killed", {"victim": _idx(victim), "cause": str(cause), "attacker": _idx(attacker) if attacker != null else -1})

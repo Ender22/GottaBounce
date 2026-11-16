@@ -1001,6 +1001,7 @@ func _ready() -> void:  # WK-135: QA arm overrides from the environment ("1" ON,
 	if g == "1" and OS.get_environment("GB_WK175").strip_edges() == "":  # WK-175: the old phase-3 arm keeps meaning "gates on every face" (FULL)
 		wk175_gate_set = 3  # WK-175
 	_wk175_env(OS.get_environment("GB_WK175"))  # WK-175: wins over GB_WK135_GATES (see the WK-175 block at the end of the file)
+	_wk175c_env_modes(g, OS.get_environment("GB_WK175"), OS.get_environment("GB_WK175_MODES"))  # WK-175c: an env-armed gate covers every mode (QA arms)
 
 ## WK-169: apply a GB_WK169 arm string (comma list; see the WK-169 block). "" = leave every switch as authored.  # WK-169
 func _wk169_env(v: String) -> void:  # WK-169
@@ -1555,16 +1556,16 @@ func _wk175_env(v: String) -> void:  # WK-175
 		push_warning("GB_WK175='%s' not recognised (off|wr|ws|full); gates left as authored" % v)  # WK-175
 
 ## WK-175: the effective gate set (0 = OFF, 1 WR, 2 WS, 3 FULL) with the master folded in.  # WK-175
-func wk175_effective_set() -> int:  # WK-175
-	return clampi(wk175_gate_set, 1, 3) if refund_gates_on else 0  # WK-175
+func wk175_effective_set(mode: StringName = &"") -> int:  # WK-175. WK-175c: + mode (the goat's mode family; "" = in scope)
+	return clampi(wk175_gate_set, 1, 3) if (refund_gates_on and wk175c_mode_in_scope(mode)) else 0  # WK-175c: per-mode scope folded in
 
 ## WK-175: class-aware refund-gate rules for ONE contact. cls: 0 FLOOR, 1 WALL, 2 CEILING (never reaches the gate; treated as  # WK-175
 ## WALL). Returns {gate: false = this contact always pays and never reads/writes arm state; e_min / e_frac: re-arm distance  # WK-175
 ## max(e_min, e_frac x launch h) (0 = no arm, pays every contact); min_speed: F2 hard-hit gate (0 = off); cooldown: Alt B cap  # WK-175
 ## (0 = off); valve: C4 time re-arm applies; rebase: a blocked contact re-bases the paying position and E}. Master off = all 0.  # WK-175
-func gate_rules(cls: int, is_bumper: bool, is_deck: bool) -> Dictionary:  # WK-175
+func gate_rules(cls: int, is_bumper: bool, is_deck: bool, mode: StringName = &"") -> Dictionary:  # WK-175. WK-175c: + mode (per-mode scope)
 	var r := {"gate": true, "e_min": 0.0, "e_frac": 0.0, "min_speed": 0.0, "cooldown": 0.0, "valve": false, "rebase": false}  # WK-175
-	var gs: int = wk175_effective_set()  # WK-175
+	var gs: int = wk175_effective_set(mode)  # WK-175. WK-175c: a mode outside wk175_gate_modes = OFF (every contact pays)
 	if gs == 0:  # WK-175: OFF = today (every contact pays)
 		return r  # WK-175
 	var floor_cls: bool = cls == 0  # WK-175
@@ -1594,6 +1595,7 @@ func gate_rules(cls: int, is_bumper: bool, is_deck: bool) -> Dictionary:  # WK-1
 func wk175_meta() -> Dictionary:  # WK-175
 	var gs: int = wk175_effective_set()  # WK-175
 	return {"refund_gates_on": refund_gates_on, "wk175_gate_set": wk175_gate_set, "effective_set": WK175_SET_NAMES[gs],  # WK-175
+		"wk175_gate_modes": wk175_gate_modes.duplicate(),  # WK-175c
 		"wk175_wall_rearm_px": wk175_wall_rearm_px, "wk175_wall_valve": wk175_wall_valve, "wk175_deck_exempt": wk175_deck_exempt,  # WK-175
 		"refund_rearm_timeout": refund_rearm_timeout,  # WK-175
 		"rules": {"floor_tier": gate_rules(0, false, false), "floor_bumper": gate_rules(0, true, false),  # WK-175
@@ -1673,3 +1675,56 @@ var wk183_ding_gap_s: float = 0.15            # min s between two dings of the S
 var wk183_ding_amt_lo: float = 10.0           # fuel gained at (and under) which the ding plays at its base pitch  # WK-183
 var wk183_ding_amt_hi: float = 40.0           # fuel gained at (and over) which it plays wk183_ding_st_max higher  # WK-183
 var wk183_ding_st_max: float = 5.0            # semitones the ding rises across amt_lo -> amt_hi  # WK-183
+# --- WK-175c (CD6 "WK-175 feel check" FIX 1; spec docs/specs/wk175_refund_gates_retune_2026-11-16.md §10 rung 1) wall refund  # WK-175c
+# feedback + the per-mode scope of the WK-175 master. Read by src/entities/Player.gd (emit + flame flare), src/systems/AudioManager.gd  # WK-175c
+# (ding / tok) and src/systems/Juice.gd (tok puff). Player emits EventBus.wall_refund_cue(player, paid, amount, contact, normal) on  # WK-175c
+# a WALL-class contact judged by the refund gate ONLY while WR (effective set 1) is live for that goat's mode; floors never cue.  # WK-175c
+#   paid    -> "refuel_ding" (WK-183 asset; shares AudioManager's per-goat WK-183 ding throttle, so the sports fuel arc's own  # WK-175c
+#              refund-tick ding in the same frame is swallowed: one ding per pay) + a warm jetpack flare on the goat.  # WK-175c
+#   blocked -> "wall_tok" (Kenney impactWood, CC0, pitched down: a dull wood knock) + a slate-grey dud puff at the contact.  # WK-175c
+# PER-MODE SCOPE: the master refund_gates_on applies ONLY in the mode families listed in wk175_gate_modes ("brawl", "trials",  # WK-175c
+# "sports" = every SportsMode court). A goat whose mode can't be resolved (dev scenes) follows the master alone. Today the master is  # WK-175c
+# false, so this list changes nothing. THE BRAWL FLIP is the one line refund_gates_on = true (list default = brawl only); the  # WK-175c
+# sports flip later is adding "sports" here. QA arms: env GB_WK175=wr (or GB_WK135_GATES=1) widens the list to every mode unless  # WK-175c
+# env GB_WK175_MODES=brawl,sports,... names it.  # WK-175c
+var wk175_gate_modes: Array[String] = ["brawl"]   # mode families the WK-175 master applies in (brawl / trials / sports). Inert while refund_gates_on = false  # WK-175c
+const WK175C_ALL_MODES: Array[String] = ["brawl", "trials", "sports"]   # what an env-armed QA run covers  # WK-175c
+var wk175c_cues_on: bool = true               # false = no wall ding / tok / flare / puff (WR stays silent, as pre-WK-175c)  # WK-175c
+var wk175c_ding_db: float = -14.5             # volume_db of a HUMAN goat's paying-wall ding (2 dB over the sports arc tick: brawl's bounce bed is 4 dB louder)  # WK-175c
+var wk175c_ding_cpu_db: float = -20.5         # CPU goat's ding: 6 dB under (the wk183_ding_cpu_db pattern)  # WK-175c
+var wk175c_ding_gap_s: float = 0.25           # min GAME s between two wall cues of the same goat that both PAY  # WK-175c
+var wk175c_tok_db: float = -12.0              # volume_db of a HUMAN goat's blocked-wall tok (impactWood active RMS -17.4 dBFS vs the ding's -14.3)  # WK-175c
+var wk175c_tok_cpu_db: float = -18.0          # CPU goat's tok: 6 dB under  # WK-175c
+var wk175c_tok_pitch: float = 0.8             # tok pitch scale: the ~150 Hz wood knock dropped to ~120 Hz (dull; gate_clonk sits at x1.25)  # WK-175c
+var wk175c_tok_gap_s: float = 0.35            # min GAME s between two toks of the same goat (a FLY-held wall hug knocks ~3/s, never buzzes)  # WK-175c
+var wk175c_flare_s: float = 0.35              # s the paying-wall jetpack flare lasts (decays linearly)  # WK-175c
+var wk175c_flare_scale: float = 1.7           # x flame size at the flare's start (on top of the live thrust / supercharge size)  # WK-175c
+var wk175c_flare_tint: Color = Color(1.9, 1.7, 1.15, 1.0)   # flame modulate at the flare's start (warm over-bright; never cyan = Unlimited Boost)  # WK-175c
+var wk175c_glow_color: Color = Color(1.0, 0.82, 0.32, 1.0)  # additive nozzle glow at the flare's start (also shows when coasting, flame off)  # WK-175c
+var wk175c_glow_scale: float = 1.5            # glow_01 (128 px) scale at the flare's start (shrinks to 0.6 x this)  # WK-175c
+var wk175c_burst_amount: int = 14            # fire licks in the paying-wall flare burst out of the nozzle (Juice; shows even when coasting)  # WK-175c
+var wk175c_burst_speed: float = 420.0         # px/s max of that burst (out of the nozzle, opposite the aim)  # WK-175c
+var wk175c_puff_color: Color = Color(0.52, 0.52, 0.56, 1.0)   # tok dud puff at the CONTACT: mid-grey soft smoke (lighter than night skies, darker than the pale posts / day skies; the bounce dust is white sparks)  # WK-175c
+var wk175c_puff_amount: int = 6               # soft smoke blobs in the tok puff  # WK-175c
+var wk175c_puff_scale: float = 1.2            # puff_soft (128 px; its opaque core is ~36 px) blob scale (max; min = 0.7 x), grows 0.6 -> 1.0 over its life  # WK-175c
+var wk175c_sputter_color: Color = Color(0.74, 0.74, 0.78, 1.0)  # tok jetpack SPUTTER: a light-grey smoke cough out of the nozzle (reads on night skies; the mirror of the paid fire flare)  # WK-175c
+var wk175c_sputter_amount: int = 6            # smoke blobs in the sputter  # WK-175c
+var wk175c_sputter_scale: float = 1.8          # puff_soft (128 px; ~36 px core) sputter blob scale (max; min = 0.6 x)  # WK-175c
+var wk175c_puff_speed: float = 110.0          # px/s the blobs leave the contact (normal +/- 80 deg; they sag under gravity: a fizzle)  # WK-175c
+var wk175c_puff_s: float = 0.6                # s the tok puff + sputter live  # WK-175c
+
+## WK-175c: is the WK-175 master in scope for a goat in mode family `mode` ("" = unresolved -> follows the master alone)?  # WK-175c
+func wk175c_mode_in_scope(mode: StringName) -> bool:  # WK-175c
+	return mode == &"" or wk175_gate_modes.has(String(mode))  # WK-175c
+
+## WK-175c: env-armed gate runs (GB_WK175 on, or the legacy GB_WK135_GATES=1) cover every mode, as the WK-175 A/B did;  # WK-175c
+## GB_WK175_MODES (comma list) names the modes instead. Called last in _ready.  # WK-175c
+func _wk175c_env_modes(g135: String, g175: String, modes: String) -> void:  # WK-175c
+	var armed: bool = g135 == "1" or (g175.strip_edges() != "" and refund_gates_on)  # WK-175c
+	if armed:  # WK-175c
+		wk175_gate_modes = WK175C_ALL_MODES.duplicate()  # WK-175c
+	if modes.strip_edges() != "":  # WK-175c
+		var out: Array[String] = []  # WK-175c
+		for raw in modes.to_lower().split(",", false):  # WK-175c
+			out.append(raw.strip_edges())  # WK-175c
+		wk175_gate_modes = out  # WK-175c

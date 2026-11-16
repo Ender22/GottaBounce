@@ -96,6 +96,11 @@ signal sports_tension(kind)   # WK-110
 # one frame during live sports play); AudioManager plays "refuel_ding" (per-goat throttle, pitch by amount). amount = fuel gained.  # WK-183
 signal refuel_ticked(player, amount)   # WK-183
 
+# --- WK-175c wall refund feedback. Player emits on a WALL-class contact judged by the WK-175 refund gate, only while WR is live for  # WK-175c
+# that goat's mode (floors never emit), rate-limited per goat (Tuning.wk175c_*_gap_s). paid = the wall paid (amount = fuel gained,  # WK-175c
+# 0 at a full tank); false = blocked (no re-arm yet). AudioManager plays the ding / tok, Juice the tok puff; the flare is the goat's own.  # WK-175c
+signal wall_refund_cue(player, paid, amount, contact_point, normal)   # WK-175c
+
 # --- WK-169c SHOWDOWN presentation (docs/specs/wk169c_showdown_polish_2026-11-16.md §2.1). ShowdownDirector / PowerupSystem emit;  # WK-169c
 # AudioManager (hush + stings) and MatchHUD (gold card frame) listen and never call back into gameplay.  # WK-169c
 signal showdown_entered(fighters)      # fighters = the two showdown fighters' player indices  # WK-169c

@@ -159,6 +159,14 @@ var _wk175_wall_last: Dictionary = {}   # face key -> _wk135_clock of its last W
 var _wk175_pay_key := ""                # face key of the contact being paid right now (per-face valve log)  # WK-175
 var _wk175_valve_face: Dictionary = {}  # face key -> {"log": [[clock, fuel]...], "over": bool} (invariant #16 per face)  # WK-175
 var _wk175_zero_t := 0.0                # current unbroken alive streak at fuel < WK175_ZERO_FUEL  # WK-175
+# WK-175c wall refund feedback (Tuning WK-175c block): EventBus.wall_refund_cue on a WALL-class gated contact while WR is live.  # WK-175c
+var _wk175c_cls := -1                   # face class of the contact _wk128_contact_pays judged last (WK135_*)  # WK-175c
+var _wk175c_family: StringName = &"?"   # mode family for the per-mode gate scope: brawl / trials / sports, "" = no mode, "?" = unresolved  # WK-175c
+var _wk175c_pay_t := -100.0             # _wk135_clock of this goat's last emitted PAID cue (rate limit)  # WK-175c
+var _wk175c_tok_t := -100.0             # _wk135_clock of this goat's last emitted tok cue (rate limit)  # WK-175c
+var _wk175c_flare_t := 0.0              # s left on the paying-wall jetpack flare  # WK-175c
+var _wk175c_glow: Sprite2D              # additive nozzle glow of the flare (null if GLOW_TEX absent)  # WK-175c
+var wk175c_cues := {"ding": 0, "tok": 0, "rate_limited": 0}   # QA counters: cues emitted / swallowed by the per-goat gaps  # WK-175c
 # WK-136 (CD3-04a) telemetry: a BILLED re-light's burn, so QA can count presses that ran dry under 0.1 s of thrust.  # WK-136
 const WK136_MIN_BURN := 0.1     # s: spec threshold (12 ticks at 120 tps). FIXED, not Tuning, so both A/B arms measure the same  # WK-136
 var _wk136_burn_t := -1.0       # s of thrust since the last billed re-light (-1 = not tracking)  # WK-136
@@ -341,6 +349,13 @@ func _ready() -> void:
 		gm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		_charge_glow.material = gm
 		add_child(_charge_glow)
+		_wk175c_glow = Sprite2D.new()   # WK-175c: paying-wall flare glow at the nozzle (same soft blob, additive)
+		_wk175c_glow.texture = _charge_glow.texture   # WK-175c
+		_wk175c_glow.visible = false   # WK-175c
+		var gm2 := CanvasItemMaterial.new()   # WK-175c
+		gm2.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD   # WK-175c
+		_wk175c_glow.material = gm2   # WK-175c
+		add_child(_wk175c_glow)   # WK-175c
 	_fire_grad_cyan = Gradient.new()
 	_fire_grad_cyan.set_color(0, Color(0.6, 1.0, 1.0, 1.0))
 	_fire_grad_cyan.add_point(0.3, Color(0.05, 0.65, 1.0, 1.0))
@@ -968,7 +983,10 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 		# non-paying contact still bounces (physics upstream is unchanged) but refunds nothing and — F5 — opens no
 		# supercharge thrust window. (F4: stunned / underside contacts never reach here, so they neither consume nor
 		# reset arm or relight state.)
+		var wk175c_paid := false   # WK-175c
+		var wk175c_f0 := fuel   # WK-175c
 		if _wk128_contact_pays(collider, contact_normal, launch_speed, incoming_speed, -g_dir):
+			wk175c_paid = true   # WK-175c
 			var f0 := fuel
 			fuel = minf(Tuning.fuel_max, fuel + fuel_refund)
 			_wk128_add("fuel_income", fuel - f0)
@@ -979,6 +997,7 @@ func _on_bounced(boost_held: bool, fuel_refund: float = Tuning.fuel_per_bounce, 
 				_supercharge_timer = Tuning.supercharge_window
 			_wk128_paid()   # R3 waiver of a just-billed re-light, then R1 (next press free)
 			_wk20d_paid()   # WK-20d R4: a paying contact lifts the re-arm gate (and voids this super's reserve)
+		_wk175c_cue(wk175c_paid, fuel - wk175c_f0, contact, contact_normal, collider)   # WK-175c: wall ding / tok (WR walls only)
 		_stun_timer = 0.0
 		_stunned_by = null
 	_squash_timer = 0.12
@@ -1031,6 +1050,47 @@ func _wk135_contact(collider: Object, n: Vector2, bumper: bool) -> void:
 			_wk128_add("bumper_pin_episodes", 1.0)
 	else:
 		_in_pin = false
+
+## WK-175c: this goat's mode family for the WK-175 per-mode scope (Tuning.wk175_gate_modes): &"brawl" / &"trials" / &"sports"  # WK-175c
+## (any other GameMode id = a SportsMode court), &"" when there is no runner / mode (dev scenes: the master alone decides).  # WK-175c
+## Cached once resolved (a goat never changes mode; the _wk20d_brawl pattern).  # WK-175c
+func _wk175c_mode() -> StringName:  # WK-175c
+	if _wk175c_family != &"?":  # WK-175c
+		return _wk175c_family  # WK-175c
+	var r = identity_resolver  # WK-175c
+	if r == null or not is_instance_valid(r):  # WK-175c
+		return &""  # WK-175c: not resolved yet (not cached)
+	var m = r.get("_mode")  # WK-175c
+	if m == null or not m.has_method("id"):  # WK-175c
+		return &""  # WK-175c
+	var mid: StringName = m.id()  # WK-175c
+	if mid == &"":  # WK-175c
+		return &""  # WK-175c
+	_wk175c_family = mid if (mid == &"brawl" or mid == &"trials") else &"sports"  # WK-175c
+	return _wk175c_family  # WK-175c
+
+## WK-175c (CD6 WK-175 FIX 1): feedback for a WALL-class contact the refund gate just judged, only while WR (set 1) is live for  # WK-175c
+## this goat's mode. Paid -> flare + EventBus.wall_refund_cue(paid true); blocked -> cue(paid false). Floors / ceilings / OFF /  # WK-175c
+## WS / FULL never cue. Per-goat game-time gaps (Tuning.wk175c_ding_gap_s / wk175c_tok_gap_s) keep a hug from buzzing.  # WK-175c
+func _wk175c_cue(paid: bool, amount: float, contact: Vector2, n: Vector2, collider: Object) -> void:  # WK-175c
+	if not Tuning.wk175c_cues_on or collider == null or _wk175c_cls != WK135_WALL:  # WK-175c
+		return  # WK-175c
+	if Tuning.wk175_effective_set(_wk175c_mode()) != 1:  # WK-175c: WR only
+		return  # WK-175c
+	if paid:  # WK-175c
+		if _wk135_clock - _wk175c_pay_t < Tuning.wk175c_ding_gap_s:  # WK-175c
+			wk175c_cues["rate_limited"] = int(wk175c_cues["rate_limited"]) + 1  # WK-175c
+			return  # WK-175c
+		_wk175c_pay_t = _wk135_clock  # WK-175c
+		_wk175c_flare_t = Tuning.wk175c_flare_s  # WK-175c
+		wk175c_cues["ding"] = int(wk175c_cues["ding"]) + 1  # WK-175c
+	else:  # WK-175c
+		if _wk135_clock - _wk175c_tok_t < Tuning.wk175c_tok_gap_s:  # WK-175c
+			wk175c_cues["rate_limited"] = int(wk175c_cues["rate_limited"]) + 1  # WK-175c
+			return  # WK-175c
+		_wk175c_tok_t = _wk135_clock  # WK-175c
+		wk175c_cues["tok"] = int(wk175c_cues["tok"]) + 1  # WK-175c
+	EventBus.wall_refund_cue.emit(self, paid, amount, contact, n)  # WK-175c
 
 ## WK-135 C1: class of a bumper face from LOCAL gravity at the contact (`up` = -g_dir): FLOOR (n.up > bumper_floor_dot),  # WK-135
 ## CEILING (n.up < -0.5, the existing underside rule), else WALL. Round colliders (cores in their own well) are FLOOR.  # WK-135
@@ -1227,7 +1287,8 @@ func _wk128_contact_pays(collider: Object, n: Vector2, launch_speed: float, inco
 	# (master off = all zero = every contact pays). WK-135 C2 (floor bumper faces under tier rules) lives in there for WS / FULL.  # WK-175
 	var cls: int = _wk135_face_class(n, up, rnd)   # WK-175 (was: if bumper else -1)
 	var deck: bool = collider != null and collider.has_meta("firm_hop")   # WK-175: tier-less moving deck (MovingPlatform WK-20e)
-	var rules: Dictionary = Tuning.gate_rules(cls, bumper, deck)   # WK-175
+	var rules: Dictionary = Tuning.gate_rules(cls, bumper, deck, _wk175c_mode())   # WK-175. WK-175c: + this goat's mode (per-mode scope)
+	_wk175c_cls = cls   # WK-175c
 	# WK-175 §4.5 hug telemetry (every arm): a WALL contact with another contact on the same face key within WK175_HUG_WINDOW.  # WK-175
 	var hug := false   # WK-175
 	if collider != null and cls != WK135_FLOOR:   # WK-175
@@ -1980,6 +2041,9 @@ func respawn(pos: Vector2) -> void:
 	_wk175_wall_last.clear()   # WK-175 E12: respawn clears face memory (hug test, per-face valve log, zero-fuel streak)
 	_wk175_valve_face.clear()   # WK-175
 	_wk175_zero_t = 0.0   # WK-175
+	_wk175c_flare_t = 0.0   # WK-175c
+	_wk175c_pay_t = -100.0   # WK-175c
+	_wk175c_tok_t = -100.0   # WK-175c
 	_last_pay_key = ""
 	_bumper_pay_cd = 0.0
 	_drb_key = ""
@@ -2182,6 +2246,19 @@ func _update_visual(aim_dir: Vector2, boosting: bool, aiming: bool, stunned: boo
 			_fire.initial_velocity_max = 470.0 * flame
 			_fire.scale = Vector2(flame, flame)
 			_smoke.scale = Vector2.ONE * (0.8 + 0.35 * thrust_frac)
+			if _wk175c_flare_t > 0.0:   # WK-175c: paying-wall flare (bigger + over-bright flame, decaying)
+				var k175c: float = clampf(_wk175c_flare_t / maxf(Tuning.wk175c_flare_s, 0.001), 0.0, 1.0)   # WK-175c
+				_fire.scale *= lerpf(1.0, Tuning.wk175c_flare_scale, k175c)   # WK-175c
+				_fire.modulate = Color(1, 1, 1, 1).lerp(Tuning.wk175c_flare_tint, k175c)   # WK-175c
+	_wk175c_flare_t = maxf(0.0, _wk175c_flare_t - delta)   # WK-175c
+	if _wk175c_glow:   # WK-175c: the flare's nozzle glow (shows even when coasting, flame off)
+		var kg: float = clampf(_wk175c_flare_t / maxf(Tuning.wk175c_flare_s, 0.001), 0.0, 1.0)   # WK-175c
+		_wk175c_glow.visible = kg > 0.0 and not stunned   # WK-175c
+		if _wk175c_glow.visible:   # WK-175c
+			_wk175c_glow.position = -aim_dir * 44.0   # WK-175c: the flame's nozzle
+			_wk175c_glow.scale = Vector2.ONE * Tuning.wk175c_glow_scale * lerpf(0.6, 1.0, kg)   # WK-175c
+			var gc: Color = Tuning.wk175c_glow_color   # WK-175c
+			_wk175c_glow.modulate = Color(gc.r, gc.g, gc.b, gc.a * kg)   # WK-175c
 	if _arrow:
 		# WK-20e (spec wk20d §4.2): a held super press the truce dropped shows the super-aim arrow LOCKED (greyed, same  # WK-20e
 		# size and reach as a live aim); LivingCues adds the padlock badge beside the head.  # WK-20e
