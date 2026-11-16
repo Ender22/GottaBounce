@@ -95,13 +95,24 @@ func setup(players: Array, _colors: Array, _skins: Array) -> void:
 	# SPORTS shows TEAM scores (polled), not per-player cards.
 	# WK-183: ...but every goat carries its own fuel arc (team colour, WK-99 super notch, refund tick) in the world.
 	if Tuning.wk183_arc_on:   # WK-183
+		var runner: Node = _runner if _runner != null else get_parent()   # WK-183
+		var layer: Node2D = runner.get_node_or_null("WK183FuelArcs") as Node2D   # WK-183
+		if layer == null:   # WK-183: ONE shared arc layer, after the level and BEFORE the first goat in the runner's tree
+			layer = Node2D.new()   # WK-183
+			layer.name = "WK183FuelArcs"   # WK-183
+			runner.add_child(layer)   # WK-183
+			var first := runner.get_child_count()   # WK-183
+			for p in players:   # WK-183
+				if p != null and is_instance_valid(p) and (p as Node).get_parent() == runner:   # WK-183
+					first = mini(first, (p as Node).get_index())   # WK-183
+			runner.move_child(layer, mini(first, runner.get_child_count() - 1))   # WK-183
 		for i in range(players.size()):   # WK-183
 			var p = players[i]   # WK-183
-			if p == null or not is_instance_valid(p) or p.get_node_or_null("WK183FuelArc") != null:   # WK-183
+			if p == null or not is_instance_valid(p) or FUEL_ARC.of(p) != null:   # WK-183
 				continue   # WK-183
 			var arc: Node2D = FUEL_ARC.new()   # WK-183
-			arc.setup(p, _runner if _runner != null else get_parent(), i)   # WK-183
-			arc.attach()   # WK-183: child of the goat, under its aim arrow
+			arc.setup(p, runner, i)   # WK-183
+			arc.attach(layer)   # WK-183: under every goat body (tree order), over the floor
 
 ## WK-183 QA readout (gbplay eval): every goat's fuel arc state.
 func fuel_arc_state() -> Array:   # WK-183
@@ -109,7 +120,7 @@ func fuel_arc_state() -> Array:   # WK-183
 	var ps: Variant = _runner.get("players") if _runner != null else null   # WK-183
 	if ps is Array:   # WK-183
 		for p in (ps as Array):   # WK-183
-			var arc = p.get_node_or_null("WK183FuelArc") if is_instance_valid(p) else null   # WK-183
+			var arc = FUEL_ARC.of(p)   # WK-183
 			out.append(arc.debug_state() if arc != null else {})   # WK-183
 	return out   # WK-183
 

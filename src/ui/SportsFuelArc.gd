@@ -21,10 +21,14 @@ extends Node2D
 ##   - Hidden while the goat is dead / respawning, outside live combat (intro, countdown, goal banner, end screen) and
 ##     while it super-aims (the fuse ring owns the space around the goat then).
 ##
-## Built by SportsHUD.setup (sports only; brawl keeps its PlayerCards). Child of its Player (so it frees and hides with
-## it) but top_level: it never rotates with the tumbling body. It sits in the goat's own z layer, slotted before the aim
-## arrow; the fuse / touch rings (z 3-5), the ball (z 40) and the goal front frames (42) always draw over it, so the ball and
-## the goal mouth always read. (Rendered: when two goats overlap, one goat's arc can draw over the other goat's body.) Widths are SCREEN px divided by the camera zoom
+## Built by SportsHUD.setup (sports only; brawl keeps its PlayerCards). All four arcs live in ONE shared world layer
+## (SportsHUD's "WK183FuelArcs" Node2D) placed in the runner's tree AFTER the level container and BEFORE the goats, at the
+## goats' z (Tuning.wk183_z = 0). Same z, earlier in the tree = drawn under every goat body (and its aim arrow / fuse /
+## touch rings), over the floor and walls (z 0, inside the level). The ball (z 40), the goal front frames (42) and the name
+## tags (CanvasLayer) draw over it. Re-grade item 1: an arc parented to its goat (top_level) crossed a stacked teammate's
+## face; an absolute z -1 layer fixed that but sank a grounded goat's arc under the floor, so the layer is ordered by tree
+## instead. Inside a stack the lower goat's arc is partly covered by the other body (accepted: bodies win). It never
+## rotates with the tumbling body (it is not the goat's child) and frees itself when its goat is gone. Widths are SCREEN px divided by the camera zoom
 ## (the Player fuse / touch-ring rule), so it reads the same at every sports zoom. Pure presentation: it polls its own
 ## goat's fuel (there is no fuel signal: fuel drains continuously while boosting, so a per-frame read of one float is the
 ## honest source) and never feeds back.
@@ -59,17 +63,22 @@ func setup(p, runner, idx: int) -> void:
 	player = p
 	_runner = runner
 	_idx = idx
-	name = "WK183FuelArc"
-	top_level = true
-	z_index = Tuning.wk183_z   # relative to the goat
+	name = "WK183FuelArc_%d" % idx
+	z_index = Tuning.wk183_z
 	_resolve_team()
 
-## Add me to my goat, slotted just before its aim arrow: drawn over the body art, under the arrow / fuse / touch rings.
-func attach() -> void:
-	player.add_child(self)
-	var arrow = player.get("_arrow")
-	if arrow is Node and (arrow as Node).get_parent() == player:
-		player.move_child(self, (arrow as Node).get_index())
+## Add me to the shared arc layer (SportsHUD builds it: a world Node2D placed AFTER the level and BEFORE the goats in the
+## runner's tree) and register me on my goat (meta "wk183_arc": PlayerPips / QA find me there).
+func attach(layer: Node) -> void:
+	layer.add_child(self)
+	player.set_meta("wk183_arc", self)
+
+## The arc registered on goat p (null outside sports / with arcs off).
+static func of(p) -> Node:
+	if p == null or not is_instance_valid(p) or not (p as Object).has_meta("wk183_arc"):
+		return null
+	var a: Variant = (p as Object).get_meta("wk183_arc")
+	return a as Node if a is Node and is_instance_valid(a) else null
 
 func _resolve_team() -> void:
 	if _team >= 0 or _runner == null or not is_instance_valid(_runner):
@@ -106,7 +115,10 @@ func _radius_world() -> float:
 	return r * Tuning.wk183_radius_mult + Tuning.wk183_gap_px * _inv_zoom
 
 func _process(delta: float) -> void:
-	if player == null or not is_instance_valid(player) or _runner == null or not is_instance_valid(_runner):
+	if player == null or not is_instance_valid(player):
+		queue_free()   # the goat is gone (match torn down): so is its arc
+		return
+	if _runner == null or not is_instance_valid(_runner):
 		return
 	var rdelta: float = delta / maxf(Engine.time_scale, 0.05)   # hitstop / slow-mo must not stretch the fades
 	_clock += rdelta

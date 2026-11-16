@@ -1041,9 +1041,10 @@ func _on_refuel_ticked(player, amount) -> void:   # WK-183
 	_refuel_last[id] = now
 	var u: float = clampf(inverse_lerp(Tuning.wk183_ding_amt_lo, Tuning.wk183_ding_amt_hi, float(amount)), 0.0, 1.0)
 	var st: float = u * Tuning.wk183_ding_st_max
-	play_sfx("refuel_ding", {"volume_db": Tuning.wk183_ding_db, "pitch": pow(2.0, st / 12.0), "pitch_var": 0.0, "tag": "wk183"})
+	var db: float = Tuning.wk183_ding_db if (player as Node).is_in_group("human") else Tuning.wk183_ding_cpu_db   # WK-183 re-grade: CPUs 6 dB down
+	play_sfx("refuel_ding", {"volume_db": db, "pitch": pow(2.0, st / 12.0), "pitch_var": 0.0, "tag": "wk183"})
 	refuel_dings += 1
-	refuel_log.append({"ms": now, "player": str(player.name), "amount": snappedf(float(amount), 0.1), "st": snappedf(st, 0.01)})
+	refuel_log.append({"ms": now, "player": str(player.name), "amount": snappedf(float(amount), 0.1), "st": snappedf(st, 0.01), "db": db})
 	if refuel_log.size() > 32:
 		refuel_log.pop_front()
 

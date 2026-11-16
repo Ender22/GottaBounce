@@ -1637,7 +1637,7 @@ var wk183_outline_px: float = 2.5             # SCREEN px chocolate outline on e
 var wk183_track_darken: float = 0.70          # empty part of the arc = the team colour darkened by this (flat chocolate vanished on the night courts; 0.62 read as a FULL arc)  # WK-183
 var wk183_track_alpha: float = 1.0            # alpha of that empty track (opaque: the round end caps overlap the arc, a translucent track showed darker half-discs)  # WK-183
 var wk183_alpha: float = 1.0                  # arc alpha when shown  # WK-183
-var wk183_z: int = 0                          # z RELATIVE to the goat (slotted before its aim arrow); the fuse / touch rings (z 3-5), the ball (40) and goal fronts (42) always draw over it. Seen: an overlapping goat's body can sit UNDER another goat's arc (top_level draw order)  # WK-183
+var wk183_z: int = 0                          # z of the shared arc layer (= the goats' z). The layer sits in the runner's tree AFTER the level and BEFORE the goats, so every goat body / aim arrow / ring draws over every arc (re-grade item 1) while arcs stay over the floor (z -1 sank grounded arcs under it); ball (40), goal fronts (42), tags on top  # WK-183
 var wk183_full_hide: bool = true              # fade the arc out once the tank is full and steady (4 full arcs at kickoff = clutter)  # WK-183
 var wk183_full_hold_s: float = 0.9            # s a full arc stays up before fading (a refund that tops up still shows)  # WK-183
 var wk183_fade_in_s: float = 0.08             # s the arc takes to appear (fuel starts moving / a refund lands)  # WK-183
@@ -1660,6 +1660,7 @@ var wk183_tag_clear_px: float = 6.0           # SCREEN px a living name tag flip
 # WK-183 refuel ding (UX FIX 5): EventBus.refuel_ticked (emitted on the arc's refund-tick trigger, sports only) -> AudioManager "refuel_ding"  # WK-183
 # (assets/sfx/refuel_ding.ogg, synthesized by tools/audio/render_wk183_refuel_ding.py), SFX bus.  # WK-183
 var wk183_ding_on: bool = true                # false = the silent WK-183 tick  # WK-183
+var wk183_ding_cpu_db: float = -22.5          # volume_db of a CPU-owned goat's ding (6 dB under a human's: three CPUs dinging is noise, the human's own refund is the lesson)  # WK-183
 var wk183_ding_db: float = -16.5              # volume_db: 10 dB under a mid ball touch (both files -14.3 dBFS active RMS; mid touch -6.5 dB; render script prints it)  # WK-183
 var wk183_ding_gap_s: float = 0.15            # min s between two dings of the SAME goat (real time; a wall ping-pong never machine-guns)  # WK-183
 var wk183_ding_amt_lo: float = 10.0           # fuel gained at (and under) which the ding plays at its base pitch  # WK-183

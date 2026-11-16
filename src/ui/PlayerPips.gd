@@ -23,6 +23,7 @@ extends Control
 ## tumble rotation / spawn-blink modulate). Pure presentation: polls the runner, never feeds back.
 
 const PIP_SCENE := preload("res://scenes/ui/PlayerPip.tscn")
+const SPORTS_FUEL_ARC := preload("res://src/ui/SportsFuelArc.gd")   # WK-183: the sports fuel arc a below-flipped tag clears
 const SHOW_STATES := ["STAGE_INTRO", "COUNTDOWN", "COMBAT", "SUDDEN_DEATH", "STAGE_END", "MATCH_END"]
 const TOP_MARGIN := 6.0         # flip below the goat when the pip would cross this many px from the top
 
@@ -198,7 +199,7 @@ func _process(delta: float) -> void:
 			- Vector2(0.0, Tuning.pip_screen_gap)
 		var dn: Vector2 = (p.global_position + Vector2(0.0, lift) - cam_center) * z + vp * 0.5 \
 			+ Vector2(0.0, Tuning.pip_screen_gap)
-		var wk183_arc = p.get_node_or_null("WK183FuelArc") if Tuning.wk183_arc_on else null   # WK-183 (UX 6a)
+		var wk183_arc = SPORTS_FUEL_ARC.of(p) if Tuning.wk183_arc_on else null   # WK-183 (UX 6a)
 		if wk183_arc != null:   # WK-183: a tag flipped below clears the fuel arc outer edge (visible or not: no jump on fade)
 			dn.y = maxf(dn.y, centre.y + float(wk183_arc.outer_radius_screen(z)) + Tuning.wk183_tag_clear_px)   # WK-183
 		var half_w: float = pip.tab_width() * 0.5 + 4.0
