@@ -2,6 +2,14 @@
 
 One line per significant/irreversible decision. Newest first.
 
+- **2026-11-16** WK-190 ACCEPTED (director, docs/specs/wk190_dead_share_2026-11-16.md): Brawl mid-stage dead share is format-normal for
+  LIVES 1 last-goat-standing (CD6 human dead seconds: 3-alive 21 %, 2-alive pre-showdown 49 %, showdown 10 %, SD 10 %, double-KO window
+  10.5 %; 3-alive p90 6.7 s = no stall; pooled 24.7 % vs 25.0 % arithmetic). No lever; restless ghosts stay OFF; lane G released.
+  Spectator gate = waits (median <= 6 s, p90 <= 13 s, >15 s <= 5 %, max <= 30 s) + 3-alive p90 <= 8 s; dead share reported only.
+  OQ-1/OQ-3 stay parked. Reopen if 190a-v falsifies, waits regress, a real couch reports first-out disengagement, or the owner answers OQ-1.
+- **2026-11-16** WK-191 RULED (same spec): sudden death inherits the SHOWDOWN 7.0 s after the SD unlock (first gold lands as the Lv2
+  pre-damage heals). Built OFF (`sd_showdown`), decided by A/B 190b (480 forced SDs, S0/S0r/S1, spec §6.7); if long SDs are rare
+  (R7 < 12 %) accept and close.
 - **2026-11-16** WK-169c BUILD RULINGS (director, 83d92d9): (a) low-fuel golden race roll bot_golden_lowfuel_seek_p = 0.8, not the
   spec's 0.5 — at 0.5 a lost first roll sends the bot into a refuel dive that burns the race fuel (T-B1 6/10 -> 9/10 at 0.8). (b) T-G3
   ACCEPTED on the new ~2 px umber stroke: gold-ring-to-edge contrast 0.62-0.64 on all arenas and the crops read cleanly on Islands
