@@ -16,7 +16,7 @@ stories referenced by doc entries → skill `gottabounce-failure-archaeology`.
 
 ## 1. The doc map
 
-All paths relative to repo root `D:\Dropbox\MyGames\GottaBounce - FablePause`.
+All paths relative to repo root `D:\Projects\GottaBounce`.
 
 | Path | What it is | Update cadence |
 |---|---|---|

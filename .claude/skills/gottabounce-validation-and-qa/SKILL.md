@@ -265,7 +265,7 @@ src/dev/Playtest.gd (modes), tools/gbplay.py (script/eval mechanics), scenes/Are
 (qa3/qa5 evidence).
 
 Drift-prone facts — re-verify before relying on them:
-- HEAD / sign-off state: `git -C "D:\Dropbox\MyGames\GottaBounce - FablePause" log --oneline -5`
+- HEAD / sign-off state: `git -C "D:\Projects\GottaBounce" log --oneline -5`
   and read docs/STATUS.md "NEXT STEPS" — if the v2.1 dry-reflect fix has landed and tests
   11/13/14/15 + 6c/6d re-ran PASS, §5's NOT-certified list is stale.
 - Criteria counts: `grep -n "^## " docs/specs/*.md` then read each criteria section.

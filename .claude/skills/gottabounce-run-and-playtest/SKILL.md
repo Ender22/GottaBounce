@@ -53,7 +53,7 @@ Each agent picks its OWN port — **9100 + agent slot** (9101, 9102, ...) — an
 - Verified 2026-11-14 (WK-130): two games on 9101/9102 at once, each eval returned its own PID, ENTER
   sent to 9101 changed only 9101's screen; a record_match run alongside bound no port.
 
-Run from the repo root: `D:\Dropbox\MyGames\GottaBounce - FablePause` (path contains spaces — quote it).
+Run from the repo root: `D:\Projects\GottaBounce` (no spaces any more; quoting is harmless).
 Any shell call that launches Godot needs `dangerouslyDisableSandbox: true`. Prefer the Bash tool for
 direct Godot invocations (PowerShell 5.1 wraps native stderr in NativeCommandError — details in
 skill `gottabounce-build-and-env`).
@@ -226,7 +226,7 @@ Run via the Bash tool (paths quoted; `dangerouslyDisableSandbox: true`):
 
 ```bash
 "C:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe" --headless \
-  --path "D:/Dropbox/MyGames/GottaBounce - FablePause" res://scenes/Playtest.tscn -- botwar 60
+  --path "D:/Projects/GottaBounce" res://scenes/Playtest.tscn -- botwar 60
 ```
 
 Everything after `--` is `<mode> <seconds>` (defaults: `observe` 20).
@@ -318,7 +318,7 @@ no-crash gate ONLY, never a sign-off (doctrine → skill `gottabounce-validation
 
 ```bash
 "C:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe" --headless \
-  --path "D:/Dropbox/MyGames/GottaBounce - FablePause" --editor --quit
+  --path "D:/Projects/GottaBounce" --editor --quit
 ```
 
 Then grep the output for: `Parse Error`, `hides a native`, `Failed to load script`,

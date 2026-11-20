@@ -23,7 +23,7 @@ Jargon used below, defined once:
   OR is a flying stunned body, AND closing speed >= `Tuning.smash_impact_min`.
 - **zombie process** — a leftover Godot instance from a previous run; it hogs CPU and holds port 9090.
 
-All file paths are repo-relative from `D:\Dropbox\MyGames\GottaBounce - FablePause`.
+All file paths are repo-relative from `D:\Projects\GottaBounce`.
 All tuning values and statuses below are as of 2026-07-03.
 
 ## Master triage table
@@ -96,7 +96,7 @@ python tools/gbplay.py eval "return get_tree().current_scene.scene_file_path"
 python tools/gbplay.py eval "return ProjectSettings.globalize_path('res://')"
 ```
 Expected: `res://scenes/Arena.tscn` (this repo's main scene, `project.godot:7`) and a path
-ending in `GottaBounce - FablePause/` (note the ` - FablePause` suffix). Anything else = wrong
+ending in `Projects/GottaBounce/` (moved from `Dropbox/MyGames/GottaBounce - FablePause` on 2026-11-20). Anything else = wrong
 project. Fix: `tools/stop_game.ps1`, then relaunch with `powershell -File tools/run_game.ps1`
 (it derives the project path from its own location, so it cannot pick the wrong repo).
 

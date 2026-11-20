@@ -76,8 +76,8 @@ the fix is committed. Nothing else in the campaign may start first (depth-first 
 
 **Step 0.1 — Establish code state.**
 ```
-git -C "D:\Dropbox\MyGames\GottaBounce - FablePause" log --oneline -3
-git -C "D:\Dropbox\MyGames\GottaBounce - FablePause" status --short
+git -C "D:\Projects\GottaBounce" log --oneline -3
+git -C "D:\Projects\GottaBounce" status --short
 ```
 Then read `src/entities/Player.gd` `_on_bounced()` (~line 550). Expected (fix present): the fuel
 refund, `_supercharge_timer`, and `_stun_timer = 0.0` / `_stunned_by = null` lines are all inside

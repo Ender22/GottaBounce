@@ -221,7 +221,7 @@ re-verification. Full incident chronicle: skill `gottabounce-failure-archaeology
 
 ## Provenance and maintenance
 
-Verified 2026-07-03 against HEAD 0e315b9 (repo `D:\Dropbox\MyGames\GottaBounce - FablePause`), by
+Verified 2026-07-03 against HEAD 0e315b9 (repo `D:\Projects\GottaBounce`), by
 reading: CLAUDE.md, docs/STUDIO.md, docs/PIPELINE.md, docs/DECISIONS.md, docs/STATUS.md,
 docs/specs/v0_combat_lethality.md (v2.1), docs/reference/LESSONS_LEARNED.md,
 docs/reference/MASTER_BUILD_PLAN.md §5, src/core/Tuning.gd, .git/hooks/post-commit, git log.

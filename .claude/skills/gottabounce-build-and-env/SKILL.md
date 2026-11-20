@@ -40,13 +40,13 @@ There is **no CI** (no `.github/`), no build server, and no export pipeline yet
 
 Two facts combine into the nastiest environment trap on this machine:
 
-1. **The repo path contains spaces**: `D:\Dropbox\MyGames\GottaBounce - FablePause`.
+1. **The repo path contains spaces**: `D:\Projects\GottaBounce`.
 2. **A sibling OLD project exists at `D:\Dropbox\MyGames\GottaBounce`** (the failed
    first attempt — kept untouched as reference). Its `src/dev/mcp_interaction_server.gd`
    ALSO declares `const PORT: int = 9090`.
 
 Consequence: PowerShell's `Start-Process -ArgumentList` does NOT quote arguments for
-you. If you hand-launch Godot with an unquoted `--path D:\Dropbox\MyGames\GottaBounce - FablePause`,
+you. If you hand-launch Godot with an unquoted `--path D:\Projects\GottaBounce`,
 the argument is split at the first space, Godot resolves the path prefix
 `D:\Dropbox\MyGames\GottaBounce` — the WRONG project — and it boots, listens on 9090,
 and answers `gbplay.py` commands. Everything "works" while you drive the wrong game.
@@ -75,7 +75,7 @@ that assumes the current path.
    elsewhere and update `.mcp.json` `GODOT_PATH` plus the `$godot` variable in
    `tools/run_game.ps1`; the studio-standard path is the one above and CLAUDE.md cites it).
 2. Install Python 3.13 on PATH, then `pip install pillow`.
-3. Clone/sync the repo to `D:\Dropbox\MyGames\GottaBounce - FablePause`.
+3. Clone/sync the repo to `D:\Projects\GottaBounce`.
 4. Optional (MCP): install Node, and ensure `D:/Dropbox/MyGames/godot-mcp/build/index.js`
    exists (a separate checkout of godot-mcp, built to `build/`). Verified present 2026-07-03.
 5. Optional (art): install Chrome; leave it running before any art-generation session.
